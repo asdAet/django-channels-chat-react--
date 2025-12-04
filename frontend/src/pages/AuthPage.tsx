@@ -31,9 +31,6 @@ export function AuthPage({
       <div className="card wide">
         <p className="eyebrow">{title}</p>
         <h2 className="mb-1">{submitLabel}</h2>
-        <p className="muted">
-          Авторизация теперь идёт через JSON API. Cookie-сессия остаётся прежней.
-        </p>
         <form className="form" onSubmit={handleSubmit}>
           <label className="field">
             <span>Имя пользователя</span>

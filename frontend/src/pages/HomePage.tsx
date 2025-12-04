@@ -127,7 +127,9 @@ export function HomePage({ user, onNavigate }: Props) {
     }
 
     const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const socket = new WebSocket(`${scheme}://${window.location.host}/ws/presence/`);
+    const socket = new WebSocket(
+      `${scheme}://${window.location.host}/ws/presence/`
+    );
     presenceRef.current = socket;
 
     socket.onmessage = (event) => {
@@ -216,7 +218,8 @@ export function HomePage({ user, onNavigate }: Props) {
             <span className="pill">{isLoading ? 'загрузка...' : 'онлайн'}</span>
           </div>
           <p className="muted">
-            Доступна только авторизованным пользователям. Сообщения сохраняются в базе.
+            Доступна только авторизованным пользователям. Сообщения сохраняются
+            в базе.
           </p>
           <button
             className="btn primary"

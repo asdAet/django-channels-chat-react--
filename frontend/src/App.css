@@ -1,6 +1,6 @@
 .app-shell {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 70%;
+  margin: 0% auto;
   padding: 32px 24px 72px;
   color: #e2e8f5;
 }
@@ -23,18 +23,6 @@
   backdrop-filter: blur(10px);
 }
 
-.brand {
-  border: none;
-  background: linear-gradient(120deg, #8ae6ff, #7c5bff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-}
-
 .topbar nav {
   display: flex;
   align-items: center;
@@ -53,6 +41,60 @@
 
 .link:hover {
   opacity: 1;
+  transform: translateY(-1px);
+}
+
+
+.brand_link {
+  border: none;
+  background: linear-gradient(120deg, #8ae6ff, #7c5bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+
+  opacity: 0.86;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.brand_link:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+
+.brand {
+  border: none;
+  background: linear-gradient(120deg, #8ae6ff, #7c5bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+
+}
+
+.avatar_link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.avatar_link:hover,
+.avatar_link:focus-visible {
   transform: translateY(-1px);
 }
 
@@ -108,6 +150,15 @@
   border-radius: 12px;
 }
 
+.chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(124, 91, 255, 0.25);
+}
+
+button:focus {
+  outline: none;
+}
+
 .profile_avatar_wrapper {
   width: 180px;
   height: 180px;
@@ -135,7 +186,8 @@
 .profile_avatar img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
 }
 
 .avatar_overlay {
@@ -148,7 +200,7 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.25s;
-  border-radius: 50%;
+  border-radius: 10%;
   font-size: 14px;
   font-weight: bold;
 }
@@ -174,7 +226,8 @@
 .avatar img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
 }
 
 .avatar.small {
@@ -325,7 +378,6 @@
   width: max-content;
   padding-bottom: 10%;
 }
-
 
 .grid.two {
   display: grid;
@@ -482,7 +534,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   padding: 14px;
-  height: 440px;
+  height: 600px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

@@ -108,6 +108,7 @@ export function App() {
     if (!auth.user) return
     setError(null)
     try {
+      await ensureCsrf()
       const { user } = await updateProfile(fields)
       const bustedImage =
         user.profileImage && user.profileImage.length > 0
@@ -149,6 +150,7 @@ export function App() {
             user={auth.user}
             onSave={handleProfileSave}
             onNavigate={handleNavigate}
+            onLogout={handleLogout}
           />
         )
       case 'room':

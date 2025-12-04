@@ -4,6 +4,7 @@ import type { UserProfile } from '../entities/user/types';
 
 type Props = {
   user: UserProfile | null;
+  onLogout: () => void;
   onSave: (fields: {
     username: string;
     email: string;
@@ -12,7 +13,7 @@ type Props = {
   onNavigate: (path: string) => void;
 };
 
-export function ProfilePage({ user, onSave, onNavigate }: Props) {
+export function ProfilePage({ user, onSave, onNavigate, onLogout}: Props) {
   const [form, setForm] = useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -119,6 +120,10 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
             onClick={() => onNavigate('/')}
           >
             На главную
+          </button>
+
+          <button className="btn ghost" type="button" onClick={onLogout}>
+            Выйти
           </button>
         </div>
       </form>
