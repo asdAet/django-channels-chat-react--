@@ -26,8 +26,6 @@ def _serialize_user(request, user):
     return {
         "username": user.username,
         "email": user.email,
-        "firstName": user.first_name,
-        "lastName": user.last_name,
         "profileImage": profile_image,
     }
 

@@ -26,15 +26,11 @@ export const logout = () => fetchJson<{ ok: boolean }>('/auth/logout/', { method
 export const updateProfile = (fields: {
   username: string
   email: string
-  firstName: string
-  lastName: string
   image?: File | null
 }) => {
   const form = new FormData()
   form.append('username', fields.username)
   form.append('email', fields.email)
-  form.append('first_name', fields.firstName)
-  form.append('last_name', fields.lastName)
   if (fields.image) {
     form.append('image', fields.image)
   }

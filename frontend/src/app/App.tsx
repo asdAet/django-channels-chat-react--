@@ -103,8 +103,6 @@ export function App() {
   const handleProfileSave = async (fields: {
     username: string
     email: string
-    firstName: string
-    lastName: string
     image?: File | null
   }) => {
     if (!auth.user) return

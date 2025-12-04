@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.db import OperationalError, ProgrammingError, IntegrityError
 from django.views.decorators.http import require_http_methods
 
 from .constants import PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
@@ -27,11 +28,17 @@ def _public_room():
     """
     Ensure the public room exists in the database.
     """
-    room, _ = Room.objects.get_or_create(
-        slug=PUBLIC_ROOM_SLUG,
-        defaults={"name": PUBLIC_ROOM_NAME},
-    )
-    return room
+    try:
+        room, _created = Room.objects.get_or_create(
+            slug=PUBLIC_ROOM_SLUG,
+            defaults={"name": PUBLIC_ROOM_NAME},
+        )
+        return room
+    except (OperationalError, ProgrammingError, IntegrityError):
+        # База может быть не готова (миграции не прогнаны) — вернем заглушку,
+        # чтобы не ронять весь API.
+        stub = Room(slug=PUBLIC_ROOM_SLUG, name=PUBLIC_ROOM_NAME)
+        return stub
 
 
 @require_http_methods(["GET"])
@@ -44,27 +51,36 @@ def public_room(request):
 def room_details(request, room_slug):
     if not request.user.is_authenticated and room_slug != PUBLIC_ROOM_SLUG:
         return JsonResponse({"error": "Требуется авторизация"}, status=401)
-    display_name = (
-        Room.objects.filter(slug=room_slug)
-        .values_list("name", flat=True)
-        .first()
-    )
-    return JsonResponse({"slug": room_slug, "name": display_name or room_slug})
+
+    try:
+        room, _created = Room.objects.get_or_create(
+            slug=room_slug,
+            defaults={"name": room_slug},
+        )
+        return JsonResponse({"slug": room.slug, "name": room.name})
+    except (OperationalError, ProgrammingError, IntegrityError):
+        # Если таблицы нет или миграции не применены, вернем минимальные данные,
+        # чтобы фронт продолжил работать.
+        return JsonResponse({"slug": room_slug, "name": room_slug})
 
 
 @require_http_methods(["GET"])
 def room_messages(request, room_slug):
     if not request.user.is_authenticated and room_slug != PUBLIC_ROOM_SLUG:
         return JsonResponse({"error": "Требуется авторизация"}, status=401)
-    messages = Message.objects.filter(room=room_slug).order_by("date_added")
-    serialized = [
-        {
-            "id": message.id,
-            "username": message.username,
-            "content": message.message_content,
-            "profilePic": _build_profile_pic_url(request, message.profile_pic),
-            "createdAt": message.date_added.isoformat(),
-        }
-        for message in messages
-    ]
-    return JsonResponse({"messages": serialized})
+    try:
+        messages = Message.objects.filter(room=room_slug).order_by("date_added")
+        serialized = [
+            {
+                "id": message.id,
+                "username": message.username,
+                "content": message.message_content,
+                "profilePic": _build_profile_pic_url(request, message.profile_pic),
+                "createdAt": message.date_added.isoformat(),
+            }
+            for message in messages
+        ]
+        return JsonResponse({"messages": serialized})
+    except (OperationalError, ProgrammingError):
+        # Таблица не готова — вернем пустой список, чтобы не отдавать 500.
+        return JsonResponse({"messages": []})
