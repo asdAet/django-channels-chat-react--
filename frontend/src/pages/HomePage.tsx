@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getPublicRoom, getRoomDetails, getRoomMessages } from '../shared/api/chat';
+import { apiService } from '../adapters/ApiService';
 import type { RoomDetails } from '../entities/room/types';
 import type { UserProfile } from '../entities/user/types';
 import { debugLog } from '../shared/lib/debug';
@@ -24,7 +24,8 @@ export function HomePage({ user, onNavigate }: Props) {
   useEffect(() => {
     queueMicrotask(() => setLoading(true));
     let active = true;
-    getPublicRoom()
+    apiService
+      .getPublicRoom()
       .then((room) => {
         if (active) setPublicRoom(room);
       })
@@ -61,7 +62,8 @@ export function HomePage({ user, onNavigate }: Props) {
     }
 
     const roomSlug = visiblePublicRoom.slug;
-    getRoomMessages(roomSlug)
+    apiService
+      .getRoomMessages(roomSlug)
       .then((payload) => {
         if (!active) return;
         // показываем последние 4 сообщения
@@ -182,7 +184,7 @@ export function HomePage({ user, onNavigate }: Props) {
       const maxAttempts = 5;
       for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
         const slug = createRoomSlug();
-        const details = await getRoomDetails(slug);
+        const details = await apiService.getRoomDetails(slug);
         if (details.created === false) {
           continue;
         }

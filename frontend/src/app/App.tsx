@@ -6,7 +6,7 @@ import { HomePage } from '../pages/HomePage'
 import { ProfilePage } from '../pages/ProfilePage'
 import { ChatRoomPage } from '../pages/ChatRoomPage'
 import { TopBar } from '../widgets/layout/TopBar'
-import { ensureCsrf, getSession, login, logout, register, updateProfile } from '../shared/api/auth'
+import { apiService } from '../adapters/ApiService'
 import type { ApiError } from '../shared/api/types'
 import type { UserProfile } from '../entities/user/types'
 import { debugLog } from '../shared/lib/debug'
@@ -23,10 +23,12 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    ensureCsrf()
+    apiService
+      .ensureCsrf()
       .catch((err) => debugLog('CSRF fetch failed', err))
       .finally(() => {
-        getSession()
+        apiService
+          .getSession()
           .then((session) => {
             setAuth({ user: session.user, loading: false })
           })
@@ -68,8 +70,8 @@ export function App() {
   const handleLogin = async (username: string, password: string) => {
     setError(null)
     try {
-      await ensureCsrf()
-      const session = await login(username, password)
+      await apiService.ensureCsrf()
+      const session = await apiService.login(username, password)
       setAuth({ user: session.user, loading: false })
       setBanner('Добро пожаловать обратно 👋')
       handleNavigate('/')
@@ -82,8 +84,8 @@ export function App() {
   const handleRegister = async (username: string, password1: string, password2: string) => {
     setError(null)
     try {
-      await ensureCsrf()
-      const session = await register(username, password1, password2)
+      await apiService.ensureCsrf()
+      const session = await apiService.register(username, password1, password2)
       setAuth({ user: session.user, loading: false })
       setBanner('Аккаунт создан. Можно общаться!')
       handleNavigate('/')
@@ -94,7 +96,7 @@ export function App() {
   }
 
   const handleLogout = async () => {
-    await logout().catch(() => {})
+    await apiService.logout().catch(() => {})
     setAuth({ user: null, loading: false })
     setBanner('Вы вышли из аккаунта')
     handleNavigate('/login')
@@ -108,8 +110,8 @@ export function App() {
     if (!auth.user) return
     setError(null)
     try {
-      await ensureCsrf()
-      const { user } = await updateProfile(fields)
+      await apiService.ensureCsrf()
+      const { user } = await apiService.updateProfile(fields)
       const bustedImage =
         user.profileImage && user.profileImage.length > 0
           ? `${user.profileImage}${user.profileImage.includes('?') ? '&' : '?'}t=${Date.now()}`

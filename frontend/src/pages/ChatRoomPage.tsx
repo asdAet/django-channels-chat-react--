@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getRoomDetails, getRoomMessages } from '../shared/api/chat'
+import { apiService } from '../adapters/ApiService'
 import type { Message } from '../entities/message/types'
 import type { RoomDetails } from '../entities/room/types'
 import type { UserProfile } from '../entities/user/types'
@@ -27,7 +27,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     let active = true
     queueMicrotask(() => setLoading(true))
     queueMicrotask(() => setStatus('connecting'))
-    Promise.all([getRoomDetails(slug), getRoomMessages(slug)])
+    Promise.all([apiService.getRoomDetails(slug), apiService.getRoomMessages(slug)])
       .then(([info, payload]) => {
         if (!active) return
         setDetails(info)
