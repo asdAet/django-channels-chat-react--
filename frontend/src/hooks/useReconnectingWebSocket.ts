@@ -34,6 +34,7 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
     attempt: 0,
     timeoutId: null,
   })
+  const connectRef = useRef<(() => void) | null>(null)
   const handlersRef = useRef({ onMessage, onOpen, onClose, onError })
   const activeRef = useRef(true)
 
@@ -118,14 +119,18 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
       const jitter = Math.floor(Math.random() * 200)
       const delay = Math.min(maxDelayMs, baseDelayMs * 2 ** attempt) + jitter
       retryRef.current.timeoutId = window.setTimeout(() => {
-        connect()
+        connectRef.current?.()
       }, delay)
     }
   }, [baseDelayMs, cleanup, maxDelayMs, maxRetries, protocols, url])
 
   useEffect(() => {
+    connectRef.current = connect
+  }, [connect])
+
+  useEffect(() => {
     activeRef.current = true
-    connect()
+    queueMicrotask(() => connect())
     return () => {
       activeRef.current = false
       cleanup()

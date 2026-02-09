@@ -64,7 +64,7 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
   }, [slug, user])
 
   useEffect(() => {
-    loadInitial()
+    queueMicrotask(() => loadInitial())
   }, [loadInitial])
 
   const loadMore = useCallback(async () => {

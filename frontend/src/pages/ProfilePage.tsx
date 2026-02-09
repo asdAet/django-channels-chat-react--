@@ -59,7 +59,16 @@ export function ProfilePage({ user, onSave, onNavigate, onLogout}: Props) {
       <div className="profile_avatar_wrapper">
         <div
           className="profile_avatar"
+          role="button"
+          tabIndex={0}
+          aria-label="Загрузить фото профиля"
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
         >
           {previewUrl ? (
             <img src={previewUrl} alt={user.username} />
