@@ -9,6 +9,7 @@ import { useChatActions } from '../hooks/useChatActions'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useReconnectingWebSocket } from '../hooks/useReconnectingWebSocket'
 import { sanitizeText } from '../shared/lib/sanitize'
+import { getWebSocketBase } from '../shared/lib/ws'
 
 type Props = {
   user: UserProfile | null
@@ -62,8 +63,7 @@ export function HomePage({ user, onNavigate }: Props) {
 
   const liveUrl = useMemo(() => {
     if (!visiblePublicRoom) return null
-    const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    return `${scheme}://${window.location.host}/ws/chat/${encodeURIComponent(
+    return `${getWebSocketBase()}/ws/chat/${encodeURIComponent(
       visiblePublicRoom.slug,
     )}/`
   }, [visiblePublicRoom])
@@ -97,8 +97,7 @@ export function HomePage({ user, onNavigate }: Props) {
 
   const presenceUrl = useMemo(() => {
     if (!user) return null
-    const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    return `${scheme}://${window.location.host}/ws/presence/`
+    return `${getWebSocketBase()}/ws/presence/`
   }, [user])
 
   const handlePresence = useCallback((event: MessageEvent) => {

@@ -6,6 +6,7 @@ import { useChatRoom } from '../hooks/useChatRoom'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useReconnectingWebSocket } from '../hooks/useReconnectingWebSocket'
 import { sanitizeText } from '../shared/lib/sanitize'
+import { getWebSocketBase } from '../shared/lib/ws'
 
 type Props = {
   slug: string
@@ -33,8 +34,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
   const wsUrl = useMemo(() => {
     if (!user && !isPublicRoom) return null
-    const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    return `${scheme}://${window.location.host}/ws/chat/${encodeURIComponent(slug)}/`
+    return `${getWebSocketBase()}/ws/chat/${encodeURIComponent(slug)}/`
   }, [slug, user, isPublicRoom])
 
   const applyRateLimit = useCallback((cooldownMs: number) => {
