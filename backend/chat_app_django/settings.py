@@ -106,7 +106,7 @@ ASGI_APPLICATION = 'chat_app_django.asgi.application'
 
 
 
-    if REDIS_URL:  
+if REDIS_URL:  
         CACHES = {  
             "default": {  
                 "BACKEND": "django.core.cache.backends.redis.RedisCache",  
