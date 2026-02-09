@@ -7,6 +7,8 @@ type Props = {
   onSubmit: (username: string, password: string, confirm?: string) => void
   onNavigate: (path: string) => void
   requireConfirm?: boolean
+  error?: string | null
+  passwordRules?: string[]
 }
 
 export function AuthPage({
@@ -15,6 +17,8 @@ export function AuthPage({
   onSubmit,
   onNavigate,
   requireConfirm = false,
+  error = null,
+  passwordRules = [],
 }: Props) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -31,6 +35,11 @@ export function AuthPage({
       <div className="card wide">
         <p className="eyebrow">{title}</p>
         <h2 className="mb-1">{submitLabel}</h2>
+        {error && (
+          <div className="toast danger" role="alert">
+            {error}
+          </div>
+        )}
         <form className="form" onSubmit={handleSubmit}>
           <label className="field">
             <span>Имя пользователя</span>
@@ -60,6 +69,16 @@ export function AuthPage({
                 onChange={(e) => setConfirm(e.target.value)}
               />
             </label>
+          )}
+          {requireConfirm && passwordRules.length > 0 && (
+            <div className="password-rules">
+              <p className="note">Пароль должен соответствовать требованиям:</p>
+              <ul className="ticks">
+                {passwordRules.map((rule) => (
+                  <li key={rule}>{rule}</li>
+                ))}
+              </ul>
+            </div>
           )}
           <button className="btn primary" type="submit">
             {submitLabel}

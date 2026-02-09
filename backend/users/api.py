@@ -2,7 +2,7 @@ import json
 import time
 from datetime import timedelta
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, password_validation
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.core.cache import cache
@@ -206,6 +206,11 @@ def register_view(request):
     errors = _collect_errors(form.errors)
     summary = " ".join(["; ".join(v) for v in errors.values()]) if errors else "Ошибка валидации"
     return JsonResponse({"error": summary, "errors": errors}, status=400)
+
+
+@require_http_methods(["GET"])
+def password_rules(request):
+    return JsonResponse({"rules": password_validation.password_validators_help_texts()})
 
 
 @require_http_methods(["GET", "POST"])

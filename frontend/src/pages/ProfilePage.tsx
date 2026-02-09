@@ -18,6 +18,7 @@ export function ProfilePage({ user, onSave, onNavigate, onLogout}: Props) {
     username: user?.username || '',
     email: user?.email || '',
   });
+  const isUsernameValid = form.username.trim().length > 0;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<File | null>(null);
@@ -120,7 +121,7 @@ export function ProfilePage({ user, onSave, onNavigate, onLogout}: Props) {
           />
         </label>
         <div className="actions">
-          <button className="btn primary" type="submit">
+          <button className="btn primary" type="submit" disabled={!isUsernameValid}>
             Сохранить
           </button>
           <button

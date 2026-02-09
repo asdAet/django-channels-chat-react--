@@ -19,6 +19,10 @@ class AuthController {
     return await apiService.register(dto.username, dto.password1, dto.password2)
   }
 
+  public async getPasswordRules(): Promise<{ rules: string[] }> {
+    return await apiService.getPasswordRules()
+  }
+
   public async logout(): Promise<{ ok: boolean }> {
     return await apiService.logout()
   }

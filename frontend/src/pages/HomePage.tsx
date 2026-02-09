@@ -29,6 +29,7 @@ export function HomePage({ user, onNavigate }: Props) {
 
   const visiblePublicRoom = useMemo(() => publicRoom, [publicRoom])
   const isLoading = useMemo(() => loading, [loading])
+  const publicRoomLabel = visiblePublicRoom?.name || 'Комната для всех'
 
   useEffect(() => {
     let active = true
@@ -179,11 +180,20 @@ export function HomePage({ user, onNavigate }: Props) {
         </div>
       )}
       <section className="hero">
-        <div>
-          <p className="eyebrow">Django Channels + React</p>
-          <h1>Чат в реальном времени.</h1>
-          <p className="lead"></p>
-          <div className="actions">
+        <div className="hero-content">
+          <div>
+            <p className="eyebrow">Django Channels + React</p>
+            <h1>Чат в реальном времени.</h1>
+            <p className="lead">
+              Быстрые комнаты, живые обсуждения и приватные чаты без лишних шагов.
+            </p>
+          </div>
+          <ul className="ticks">
+            <li>Создавайте приватные комнаты за секунды</li>
+            <li>История сообщений сохраняется</li>
+            <li>Онлайн-статус участников в реальном времени</li>
+          </ul>
+          <div className="actions hero-actions">
             <button className="btn primary" onClick={() => onNavigate('/rooms/public')}>
               Открыть публичный чат
             </button>
@@ -195,7 +205,15 @@ export function HomePage({ user, onNavigate }: Props) {
           </div>
         </div>
         <div className="hero-card">
-          <div className="badge">Прямой эфир</div>
+          <div className="hero-card-header">
+            <div>
+              <div className="badge">Прямой эфир</div>
+              <p className="muted">Публичная комната • {publicRoomLabel}</p>
+            </div>
+            <span className={`pill ${visiblePublicRoom ? 'success' : 'muted'}`}>
+              {visiblePublicRoom ? 'в эфире' : 'загрузка...'}
+            </span>
+          </div>
           {visiblePublicRoom ? (
             <div className="live-feed" aria-live="polite">
               {liveMessages.map((msg) => (
@@ -215,11 +233,17 @@ export function HomePage({ user, onNavigate }: Props) {
       </section>
 
       <section className="grid two">
+        <div className="grid-head">
+          <h2>Выберите сценарий</h2>
+          <p className="muted">
+            Публичная комната для всех или своя приватная — подключайтесь в один клик.
+          </p>
+        </div>
         <div className="card">
           <div className="card-header">
             <div>
               <p className="eyebrow">Публичная комната</p>
-              <h3>{visiblePublicRoom?.name || 'Комната для всех'}</h3>
+              <h3>{publicRoomLabel}</h3>
             </div>
             <span className="pill">{isLoading ? 'загрузка...' : 'онлайн'}</span>
           </div>
@@ -271,9 +295,11 @@ export function HomePage({ user, onNavigate }: Props) {
             <div>
               <p className="eyebrow">Кто онлайн</p>
             </div>
-            <span className="pill">{online.length}</span>
+            <span className="pill">{user ? online.length : '—'}</span>
           </div>
-          {online.length ? (
+          {!user ? (
+            <p className="muted">Войдите, чтобы видеть участников онлайн.</p>
+          ) : online.length ? (
             <div className="online-list">
               {online.map((u) => (
                 <div className="online-item" key={u.username}>

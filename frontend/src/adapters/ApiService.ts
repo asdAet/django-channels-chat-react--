@@ -10,6 +10,7 @@ import { login } from './apiService/login'
 import { register } from './apiService/register'
 import { logout } from './apiService/logout'
 import { updateProfile } from './apiService/updateProfile'
+import { getPasswordRules } from './apiService/getPasswordRules'
 import { getPublicRoom } from './apiService/getPublicRoom'
 import { getRoomDetails } from './apiService/getRoomDetails'
 import { getRoomMessages } from './apiService/getRoomMessages'
@@ -141,6 +142,10 @@ class ApiService implements IApiService {
 
   public async register(username: string, password1: string, password2: string) {
     return await register(this.apiClient, username, password1, password2)
+  }
+
+  public async getPasswordRules() {
+    return await getPasswordRules(this.apiClient)
   }
 
   public async logout() {

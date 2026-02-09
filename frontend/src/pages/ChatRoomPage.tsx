@@ -19,6 +19,7 @@ const RATE_LIMIT_COOLDOWN_MS = 10_000
 export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const { details, messages, loading, loadingMore, hasMore, error, loadMore, setMessages } =
     useChatRoom(slug, user)
+  const isPublicRoom = slug === 'public'
   const isOnline = useOnlineStatus()
   const [draft, setDraft] = useState('')
   const [roomError, setRoomError] = useState<string | null>(null)
@@ -31,10 +32,10 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const tempIdRef = useRef(0)
 
   const wsUrl = useMemo(() => {
-    if (!user) return null
+    if (!user && !isPublicRoom) return null
     const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
     return `${scheme}://${window.location.host}/ws/chat/${encodeURIComponent(slug)}/`
-  }, [slug, user])
+  }, [slug, user, isPublicRoom])
 
   const applyRateLimit = useCallback((cooldownMs: number) => {
     const until = Date.now() + cooldownMs
@@ -133,7 +134,10 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const rateLimitSeconds = Math.ceil(rateLimitRemainingMs / 1000)
 
   const sendMessage = () => {
-    if (!user) return
+    if (!user) {
+      setRoomError('Авторизуйтесь, чтобы отправлять сообщения')
+      return
+    }
     const raw = draft
     if (!raw.trim()) return
     if (rateLimitActive) {
@@ -164,7 +168,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     setDraft('')
   }
 
-  if (!user) {
+  if (!user && !isPublicRoom) {
     return (
       <div className="panel">
         <p>Чтобы войти в комнату, авторизуйтесь.</p>
@@ -271,13 +275,31 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
               </article>
             ))}
           </div>
-          <div className={`chat-input${rateLimitActive ? ' blocked' : ''}`}>
+          {!user && isPublicRoom && (
+            <div className="auth-callout">
+              <div>
+                <p className="auth-callout-title">Только чтение</p>
+                <p className="muted">
+                  Чтобы писать в публичном чате, войдите или зарегистрируйтесь.
+                </p>
+              </div>
+              <div className="actions">
+                <button className="btn primary" onClick={() => onNavigate('/login')}>
+                  Войти
+                </button>
+                <button className="btn ghost" onClick={() => onNavigate('/register')}>
+                  Регистрация
+                </button>
+              </div>
+            </div>
+          )}
+          <div className={`chat-input${rateLimitActive || !user ? ' blocked' : ''}`}>
             <input
               type="text"
               value={draft}
               aria-label="Сообщение"
-              placeholder="Сообщение"
-              disabled={rateLimitActive}
+              placeholder={user ? 'Сообщение' : 'Войдите, чтобы писать'}
+              disabled={rateLimitActive || !user}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -290,7 +312,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
               className="btn primary"
               aria-label="Отправить сообщение"
               onClick={sendMessage}
-              disabled={!draft.trim() || status !== 'online' || !isOnline || rateLimitActive}
+              disabled={!draft.trim() || status !== 'online' || !isOnline || rateLimitActive || !user}
             >
               Отправить
             </button>

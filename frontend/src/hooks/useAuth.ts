@@ -3,6 +3,7 @@
 import { authController } from '../controllers/AuthController'
 import type { LoginDto, RegisterDto, UpdateProfileDto, UserProfileDto } from '../dto/auth'
 import { debugLog } from '../shared/lib/debug'
+import type { ApiError } from '../shared/api/types'
 
 export type AuthState = {
   user: UserProfileDto | null
@@ -64,10 +65,18 @@ export const useAuth = () => {
 
   const updateProfile = useCallback(async (dto: UpdateProfileDto) => {
     await authController.ensureCsrf()
-    const { user } = await authController.updateProfile(dto)
-    const normalizedUser = normalizeProfileImage(user)
-    setAuth((prev) => ({ ...prev, user: normalizedUser }))
-    return { user: normalizedUser }
+    try {
+      const { user } = await authController.updateProfile(dto)
+      const normalizedUser = normalizeProfileImage(user)
+      setAuth((prev) => ({ ...prev, user: normalizedUser }))
+      return { user: normalizedUser }
+    } catch (err) {
+      const apiErr = err as ApiError
+      if (apiErr && typeof apiErr.status === 'number' && apiErr.status === 401) {
+        setAuth({ user: null, loading: false })
+      }
+      throw err
+    }
   }, [])
 
   return {

@@ -39,6 +39,8 @@ export type ChatRoomState = {
 }
 
 export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
+  const isPublicRoom = slug === 'public'
+  const canView = Boolean(user) || isPublicRoom
   const [state, setState] = useState<ChatRoomState>({
     details: null,
     messages: [],
@@ -50,7 +52,7 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
   const requestIdRef = useRef(0)
 
   const loadInitial = useCallback(() => {
-    if (!user) return
+    if (!canView) return
     const requestId = ++requestIdRef.current
     setState((prev) => ({ ...prev, loading: true, error: null }))
 
@@ -76,14 +78,14 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
         debugLog('Room load failed', err)
         setState((prev) => ({ ...prev, loading: false, error: 'load_failed' }))
       })
-  }, [slug, user])
+  }, [slug, canView])
 
   useEffect(() => {
     queueMicrotask(() => loadInitial())
   }, [loadInitial])
 
   const loadMore = useCallback(async () => {
-    if (!user) return
+    if (!canView) return
     if (state.loadingMore || !state.hasMore) return
 
     const oldestId = state.messages[0]?.id
@@ -112,7 +114,7 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
       debugLog('Room load more failed', err)
       setState((prev) => ({ ...prev, loadingMore: false }))
     }
-  }, [slug, user, state.hasMore, state.loadingMore, state.messages])
+  }, [slug, canView, state.hasMore, state.loadingMore, state.messages])
 
   const setMessages = useCallback((updater: Message[] | ((prev: Message[]) => Message[])) => {
     setState((prev) => {

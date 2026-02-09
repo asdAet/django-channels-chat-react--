@@ -14,6 +14,7 @@ export interface IApiService {
   getSession(): Promise<SessionResponse>
   login(username: string, password: string): Promise<SessionResponse>
   register(username: string, password1: string, password2: string): Promise<SessionResponse>
+  getPasswordRules(): Promise<{ rules: string[] }>
   logout(): Promise<{ ok: boolean }>
   updateProfile(fields: UpdateProfileInput): Promise<{ user: UserProfile }>
   getPublicRoom(): Promise<RoomDetails>

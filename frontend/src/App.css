@@ -278,6 +278,12 @@ button:focus {
   border-radius: 20px;
 }
 
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .hero h1 {
   margin: 8px 0 12px;
   font-size: 34px;
@@ -296,6 +302,10 @@ button:focus {
   justify-content: center;
 }
 
+.hero-actions {
+  justify-content: flex-start;
+}
+
 .hero-card {
   padding: 18px;
   background: linear-gradient(
@@ -306,6 +316,14 @@ button:focus {
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   height: fit-content;
+}
+
+.hero-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .live-feed {
@@ -337,6 +355,14 @@ button:focus {
   color: #e2e8f5;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.grid-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 4px 0;
 }
 
 .online-list {
@@ -374,7 +400,7 @@ button:focus {
 }
 
 .ticks li::before {
-  content: '\\2022';
+  content: '\2022';
   margin-right: 8px;
   color: #8ae6ff;
 }
@@ -446,6 +472,15 @@ button:focus {
     grid-template-columns: 1fr;
   }
 
+  .hero-actions {
+    align-items: stretch;
+  }
+
+  .hero-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .card {
     padding: 14px;
   }
@@ -474,6 +509,11 @@ button:focus {
     width: 100%;
     text-align: center;
   }
+
+  .auth-callout {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .card-header {
@@ -490,6 +530,8 @@ button:focus {
   background: rgba(138, 230, 255, 0.12);
   color: #d8f6ff;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pill.muted {
@@ -596,6 +638,17 @@ button:focus {
   color: #8ae6ff;
 }
 
+.password-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.password-rules .ticks {
+  margin: 0;
+  gap: 4px;
+}
+
 .toast {
   padding: 12px 14px;
   border-radius: 12px;
@@ -637,6 +690,26 @@ button:focus {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.auth-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-callout-title {
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.auth-callout .actions {
+  justify-content: flex-start;
 }
 
 .chat-log {
