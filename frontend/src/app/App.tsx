@@ -174,7 +174,7 @@ export function App() {
       <div className="app-shell">
         <TopBar user={auth.user} onNavigate={handleNavigate} onLogout={handleLogout} />
         <main className="content">
-          {auth.loading && <div className="panel muted">Проверяем сессию...</div>}
+          {/* {auth.loading && <div className="panel muted">Проверяем сессию...</div>} */}
           {banner && (
             <div className="toast success" role="status">
               {banner}
