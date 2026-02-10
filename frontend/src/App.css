@@ -452,7 +452,7 @@ button:focus {
 }
 
 /* Mobile tweaks */
-@media (max-width: 640px) {
+@media (max-width: 881px) {
   .app-shell {
     padding: 20px 14px 48px;
     max-width: 100%;
