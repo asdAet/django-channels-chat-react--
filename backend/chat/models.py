@@ -7,6 +7,13 @@ from django.utils import timezone
 
 class Message(models.Model):
     username = models.CharField(max_length=50)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="messages",
+    )
     room = models.CharField(max_length=50)
     message_content = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -16,7 +23,8 @@ class Message(models.Model):
         ordering = ('date_added', )
 
     def __str__(self):
-        return f"{self.username}: {self.message_content}"
+        name = self.user.username if self.user else self.username
+        return f"{name}: {self.message_content}"
 
 
 class Room(models.Model):

@@ -100,7 +100,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         profile_url = build_profile_url(self.scope, profile_name)
 
         # Save message to DB
-        await self.save_message(message, username, profile_name, room)
+        await self.save_message(message, user, username, profile_name, room)
 
         # Send message to room group
         await self.channel_layer.group_send(
@@ -134,10 +134,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     @sync_to_async
-    def save_message(self, message, username, profile_pic, room):
+    def save_message(self, message, user, username, profile_pic, room):
         Message.objects.create(
             message_content=message,
             username=username,
+            user=user,
             profile_pic=profile_pic,
             room=room,
         )

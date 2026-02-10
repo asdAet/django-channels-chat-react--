@@ -154,7 +154,7 @@ def room_messages(request, room_slug):
             limit = 50
         limit = max(1, min(limit, 200))
 
-        messages_qs = Message.objects.filter(room=room_slug)
+        messages_qs = Message.objects.filter(room=room_slug).select_related("user", "user__profile")
         if before_raw:
             try:
                 before_id = int(before_raw)
@@ -164,18 +164,34 @@ def room_messages(request, room_slug):
 
         messages = list(messages_qs.order_by("-id")[:limit])
         messages.reverse()
-        serialized = [
-            {
-                "id": message.id,
-                "username": message.username,
-                "content": message.message_content,
-                "profilePic": _build_profile_pic_url(
-                    request, message.profile_pic, username=message.username
-                ),
-                "createdAt": message.date_added.isoformat(),
-            }
-            for message in messages
-        ]
+        serialized = []
+        for message in messages:
+            user = getattr(message, "user", None)
+            username = user.username if user else message.username
+            profile_source = None
+            if user:
+                profile = getattr(user, "profile", None)
+                image = getattr(profile, "image", None) if profile else None
+                if image:
+                    profile_source = image
+            if not profile_source:
+                profile_source = message.profile_pic
+
+            profile_pic = (
+                _build_profile_pic_url(request, profile_source, username=username)
+                if profile_source
+                else None
+            )
+
+            serialized.append(
+                {
+                    "id": message.id,
+                    "username": username,
+                    "content": message.message_content,
+                    "profilePic": profile_pic,
+                    "createdAt": message.date_added.isoformat(),
+                }
+            )
         return JsonResponse({"messages": serialized})
     except (OperationalError, ProgrammingError):
         # Таблица не готова — вернем пустой список, чтобы не отдавать 500.
