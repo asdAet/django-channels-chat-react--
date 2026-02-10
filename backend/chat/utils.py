@@ -32,7 +32,7 @@ def build_profile_url(scope, image_name: str | None) -> str | None:
     if image_name.startswith("http://") or image_name.startswith("https://"):
         return image_name
 
-    media_url = settings.MEDIA_URL or "/media/"
+    media_url = settings.MEDIA_URL or ":8443/media/"
     if not media_url.startswith("/"):
         media_url = f"/{media_url}"
     if not media_url.endswith("/"):
