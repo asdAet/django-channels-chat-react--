@@ -204,6 +204,15 @@ def register_view(request):
         return JsonResponse({"ok": True}, status=201)
 
     errors = _collect_errors(form.errors)
+    password_fields = {"password1", "password2"}
+    if errors and password_fields.intersection(errors.keys()):
+        errors.pop("password1", None)
+        errors.pop("password2", None)
+        errors["password"] = ["Пароль слишком слабый"]
+        return JsonResponse(
+            {"error": "Пароль слишком слабый", "errors": errors}, status=400
+        )
+    
     summary = " ".join(["; ".join(v) for v in errors.values()]) if errors else "Ошибка валидации"
     return JsonResponse({"error": summary, "errors": errors}, status=400)
 
