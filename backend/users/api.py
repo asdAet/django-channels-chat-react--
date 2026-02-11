@@ -5,6 +5,7 @@ from datetime import timedelta
 from django.contrib.auth import authenticate, login, logout, password_validation
 from django.contrib.auth.models import User
 from django.http import JsonResponse
+from django.http.request import RawPostDataException
 from django.core.cache import cache
 from django.conf import settings
 from django.middleware.csrf import get_token
@@ -35,11 +36,21 @@ def _serialize_user(request, user):
 
 
 def _parse_body(request):
-    if request.body:
-        try:
-            return json.loads(request.body)
-        except json.JSONDecodeError:
-            pass
+    content_type = request.META.get("CONTENT_TYPE", "")
+    if content_type.startswith("multipart/form-data") or content_type.startswith("application/x-www-form-urlencoded"):
+        return request.POST if request.POST else {}
+
+    try:
+        if request.body:
+            try:
+                return json.loads(request.body)
+            except json.JSONDecodeError:
+                pass
+    except RawPostDataException:
+        if request.POST:
+            return request.POST
+        return {}
+
     if request.POST:
         return request.POST
     return {}
