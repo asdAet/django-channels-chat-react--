@@ -225,12 +225,22 @@ button:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #d9d9d9;
+  /* background: #2d3b93; */
 }
+
 
 .profile_avatar.readonly {
   cursor: default;
 }
+
+.profile_avatar.readonly.clickable {
+  cursor: zoom-in;
+}
+
+.profile_avatar.readonly.clickable:hover {
+  box-shadow: 0 0 0 3px rgba(122, 178, 255, 0.2);
+}
+
 
 .profile_avatar.readonly .avatar_overlay {
   display: none;
@@ -262,12 +272,56 @@ button:focus {
   opacity: 1;
 }
 
+
+.avatar-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 22, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 1200;
+  backdrop-filter: blur(8px);
+}
+
+.avatar-lightbox__content {
+  width: fit-content;
+  height: fit-content;
+  max-width: 92vw;
+  max-height: 92vh;
+  padding: 0;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(12, 18, 30, 0.92);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+
+
+
+
+.avatar-lightbox__image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 16px;
+  display: block;
+}
+
 .avatar {
   width: 56px;
   height: 56px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background: linear-gradient(120deg, #7c5bff, #1a8fe3);
+  /* background: linear-gradient(120deg, #000000, #000000); */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -309,7 +363,7 @@ button:focus {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 24px;
-  padding: 24px;
+  padding: 0;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 20px;
@@ -317,8 +371,8 @@ button:focus {
 
 .hero-content {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  justify-content: center;
 }
 
 .hero h1 {

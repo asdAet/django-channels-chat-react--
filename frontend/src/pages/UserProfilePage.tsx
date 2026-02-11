@@ -1,3 +1,4 @@
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { avatarFallback, formatRegistrationDate } from "../shared/lib/format";
 import type { UserProfile } from "../entities/user/types";
 import { useUserProfile } from "../hooks/useUserProfile";
@@ -17,6 +18,38 @@ export function UserProfilePage({
   onLogout,
 }: Props) {
   const { user, loading, error } = useUserProfile(username);
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const hasProfileImage = Boolean(user?.profileImage);
+
+  const openPreview = () => {
+    if (!hasProfileImage) return;
+    setIsPreviewOpen(true);
+  };
+  const closePreview = () => setIsPreviewOpen(false);
+
+  const handleAvatarKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!hasProfileImage) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openPreview();
+    }
+  };
+
+  useEffect(() => {
+    if (!isPreviewOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closePreview();
+    };
+    window.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isPreviewOpen]);
 
   if (loading) {
     return (
@@ -48,7 +81,14 @@ export function UserProfilePage({
       </div>
 
       <div className="profile_avatar_wrapper">
-        <div className="profile_avatar readonly">
+        <div
+          className={`profile_avatar readonly${hasProfileImage ? " clickable" : ""}`}
+          role={hasProfileImage ? "button" : undefined}
+          tabIndex={hasProfileImage ? 0 : -1}
+          aria-label={hasProfileImage ? "Открыть аватар" : undefined}
+          onClick={openPreview}
+          onKeyDown={handleAvatarKeyDown}
+        >
           {user.profileImage ? (
             <img src={user.profileImage} alt={user.username} />
           ) : (
@@ -56,6 +96,28 @@ export function UserProfilePage({
           )}
         </div>
       </div>
+
+      {isPreviewOpen && user.profileImage && (
+        <div
+          className="avatar-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Аватар ${user.username}`}
+          onClick={closePreview}
+        >
+          <div
+            className="avatar-lightbox__content"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <img
+              className="avatar-lightbox__image"
+              src={user.profileImage}
+              alt={`Аватар ${user.username}`}
+              draggable={false}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="stack">
         <div>
