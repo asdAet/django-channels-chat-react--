@@ -121,6 +121,33 @@
   border: none;
 }
 
+.public-cta {
+  position: relative;
+  border: 1px solid rgba(138, 230, 255, 0.65);
+  box-shadow: 0 0 0 2px rgba(138, 230, 255, 0.18), 0 16px 36px rgba(124, 91, 255, 0.35);
+}
+
+.public-cta::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(138, 230, 255, 0.55), rgba(124, 91, 255, 0.55));
+  opacity: 0.35;
+  filter: blur(8px);
+  z-index: -1;
+}
+
+.public-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px rgba(138, 230, 255, 0.28), 0 18px 40px rgba(124, 91, 255, 0.45);
+}
+
+.public-cta:focus-visible {
+  outline: 2px solid rgba(138, 230, 255, 0.8);
+  outline-offset: 3px;
+}
+
 .btn.logaut {
   background: linear-gradient(120deg, #ff8a8a, #c11c1c);
   color: #0a1020;
@@ -467,19 +494,37 @@ button:focus {
   }
 
   .topbar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand actions"
+      "nav nav";
+    align-items: center;
+    gap: 10px 12px;
     width: calc(100% + 28px);
     margin-left: -14px;
     margin-right: -14px;
   }
 
-  .topbar nav,
-  .nav-actions {
+  .topbar .brand,
+  .topbar .brand_link {
+    grid-area: brand;
+    justify-self: start;
+  }
+
+  .topbar nav {
+    grid-area: nav;
     width: 100%;
-    justify-content: space-between;
+    justify-content: center;
     flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+
+  .topbar .nav-actions {
+    grid-area: actions;
+    width: auto;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
     gap: 8px;
   }
 

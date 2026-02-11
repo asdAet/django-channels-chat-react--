@@ -188,7 +188,7 @@ export function HomePage({ user, onNavigate }: Props) {
           </ul>
           <div className="actions hero-actions">
             <button
-              className="btn primary"
+              className="btn primary public-cta"
               onClick={() => onNavigate("/rooms/public")}
             >
               Открыть публичный чат
