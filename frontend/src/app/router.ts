@@ -6,6 +6,10 @@ export type Route =
   | { name: 'user'; username: string }
   | { name: 'room'; slug: string }
 
+const ROOM_SLUG_RE = /^[A-Za-z0-9_-]{3,50}$/
+
+const isValidRoomSlug = (value: string) => ROOM_SLUG_RE.test(value)
+
 export const parseRoute = (pathname: string): Route => {
   const normalized = pathname.replace(/\/+$/, '') || '/'
   if (normalized === '/login') return { name: 'login' }
@@ -17,6 +21,7 @@ export const parseRoute = (pathname: string): Route => {
   }
   if (normalized.startsWith('/rooms/')) {
     const slug = decodeURIComponent(normalized.replace('/rooms/', '') || '')
+    if (!isValidRoomSlug(slug)) return { name: 'home' }
     return { name: 'room', slug }
   }
   return { name: 'home' }

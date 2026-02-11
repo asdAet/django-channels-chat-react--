@@ -23,6 +23,10 @@ class ApiTests(TestCase):
         response = self.client.get("/api/chat/rooms/private123/")
         self.assertEqual(response.status_code, 401)
 
+    def test_invalid_room_slug_with_slash_returns_400(self):
+        response = self.client.get("/api/chat/rooms/public%2Fbad/messages/")
+        self.assertEqual(response.status_code, 400)
+
     def test_register_and_login(self):
         csrf = self._csrf()
         register_payload = {
@@ -192,4 +196,5 @@ class BuildProfileUrlFromRequestTests(SimpleTestCase):
         )
         url = build_profile_url_from_request(request, "http://127.0.0.1:8000/media/profile_pics/a.jpg")
         self.assertEqual(url, "https://slowed.sbs/media/profile_pics/a.jpg")
+
 
