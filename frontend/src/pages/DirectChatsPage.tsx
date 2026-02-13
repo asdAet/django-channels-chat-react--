@@ -88,7 +88,9 @@ export function DirectChatsList({
                 </div>
                 <div className="direct-chat-item__body">
                   <div className="direct-chat-item__head">
-                    <strong>{item.peer.username}</strong>
+                    <strong className="direct-chat-item__name" title={item.peer.username}>
+                      {item.peer.username}
+                    </strong>
                     <div className="direct-chat-item__meta">
                       <span className="muted">{formatTimestamp(item.lastMessageAt)}</span>
                       {unreadCounts[item.slug] > 0 && (
