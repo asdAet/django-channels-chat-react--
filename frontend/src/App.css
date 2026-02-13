@@ -606,6 +606,27 @@ button:focus {
     width: 100%;
   }
 
+  .direct-layout--chat .direct-main {
+    height: calc(100dvh - 200px);
+    height: calc(100vh - 200px);
+    overflow: hidden;
+  }
+
+  .direct-layout--chat .chat {
+    height: 100%;
+  }
+
+  .direct-layout--chat .chat-box {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .direct-layout--chat .chat-log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
   .direct-sidebar,
   .direct-main {
     width: 100%;
@@ -1232,6 +1253,7 @@ button:focus {
   grid-template-columns: 320px 1fr;
   gap: 16px;
   align-items: stretch;
+  height: calc(100vh - 200px);
   max-height: calc(100vh - 200px);
   overflow: hidden;
 }
@@ -1278,6 +1300,7 @@ button:focus {
 @media (max-width: 881px) {
   .direct-layout {
     display: block;
+    height: auto;
     max-height: none;
     overflow: visible;
   }

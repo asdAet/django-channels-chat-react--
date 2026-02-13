@@ -7,7 +7,11 @@ type Props = {
   onNavigate: (path: string) => void
   onLogout: () => void
 }
-
+/**
+ * 
+ * @param param0 
+ * @returns 
+ */
 export function TopBar({ user, onNavigate }: Props) {
   const { unreadDialogsCount } = useDirectInbox()
 
