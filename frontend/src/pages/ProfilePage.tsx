@@ -365,24 +365,19 @@ export function ProfilePage({ user, onSave, onNavigate, onLogout }: Props) {
         </label>
         <div className="actions">
           <button
-            className="btn primary"
+            className="link green"
             type="submit"
             disabled={!isUsernameValid || !isBioValid}
           >
             Сохранить
           </button>
           <button
-            className="btn ghost"
+            className="link"
             type="button"
             onClick={() => onNavigate("/")}
           >
             На главную
           </button>
-          {onLogout && (
-            <button className="btn logaut" type="button" onClick={onLogout}>
-              Выйти
-            </button>
-          )}
         </div>
       </form>
     </div>

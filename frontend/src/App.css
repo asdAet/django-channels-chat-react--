@@ -615,6 +615,14 @@ button:focus {
   margin: 0;
 }
 
+
+.red{
+  color: rgb(255, 58, 58);
+}
+.green{
+  color: rgb(88, 255, 72);
+}
+
 /* Mobile tweaks */
 @media (max-width: 881px) {
   .direct-layout {

@@ -421,7 +421,7 @@ export function UserProfilePage({
         <div className="actions">
           {isSelf && (
             <button
-              className="btn primary"
+              className="link"
               onClick={() => onNavigate("/profile")}
             >
               Редактировать
@@ -429,7 +429,7 @@ export function UserProfilePage({
           )}
           {!isSelf && currentUser && (
             <button
-              className="btn primary"
+              className="link"
               onClick={() =>
                 /**
                  * Выполняет метод `onNavigate`.
@@ -442,11 +442,11 @@ export function UserProfilePage({
               Отправить сообщение
             </button>
           )}
-          <button className="btn ghost" onClick={() => onNavigate("/")}>
+          <button className="link" onClick={() => onNavigate("/")}>
             На главную
           </button>
           {isSelf && (
-            <button className="btn logaut" type="button" onClick={onLogout}>
+            <button className="link red" type="button" onClick={onLogout}>
               Выйти
             </button>
           )}

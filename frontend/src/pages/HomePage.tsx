@@ -294,7 +294,7 @@ export function HomePage({ user, onNavigate }: Props) {
           </ul>
           <div className="actions hero-actions">
             <button
-              className="btn primary public-cta"
+              className="btn outline"
               onClick={() => onNavigate("/rooms/public")}
             >
               Открыть публичный чат
@@ -357,7 +357,7 @@ export function HomePage({ user, onNavigate }: Props) {
             в базе.
           </p>
           <button
-            className="btn primary"
+            className="btn outline"
             disabled={!user || !visiblePublicRoom}
             onClick={() =>
               /**
