@@ -1,6 +1,4 @@
-﻿
-"""Содержит логику модуля `api` подсистемы `chat`."""
-
+"""API endpoints for the chat subsystem."""
 
 import hashlib
 import hmac
@@ -10,34 +8,36 @@ import time
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, OperationalError, ProgrammingError, transaction
-from django.http import Http404, JsonResponse
-from django.views.decorators.http import require_http_methods
+from django.http import Http404
+from rest_framework import status as http_status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from chat_app_django.http_utils import parse_request_payload
+from messages.models import Message
+from messages.serializers import MessageSerializer
+from roles.access import READ_ROLES, ensure_can_read_or_404
+from roles.models import ChatRole
+from rooms.models import Room
+from rooms.serializers import RoomPublicSerializer
 
-from .access import READ_ROLES, ensure_can_read_or_404
 from .constants import PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
-from .models import ChatRole, Message, Room
 from .utils import build_profile_url_from_request, serialize_avatar_crop
 
 User = get_user_model()
 
 
 def _build_profile_pic_url(request, profile_pic):
-    """Выполняет логику `_build_profile_pic_url` с параметрами из сигнатуры."""
     if not profile_pic:
         return None
-
     try:
         raw_value = profile_pic.url
     except (AttributeError, ValueError):
         raw_value = str(profile_pic)
-
     return build_profile_url_from_request(request, raw_value)
 
 
 def _serialize_peer(request, user):
-    """Выполняет логику `_serialize_peer` с параметрами из сигнатуры."""
     profile_pic = None
     profile = getattr(user, "profile", None)
     image = getattr(profile, "image", None) if profile else None
@@ -55,7 +55,6 @@ def _serialize_peer(request, user):
 
 
 def _normalize_username(raw_username):
-    """Выполняет логику `_normalize_username` с параметрами из сигнатуры."""
     if not isinstance(raw_username, str):
         return ""
     value = raw_username.strip()
@@ -65,13 +64,11 @@ def _normalize_username(raw_username):
 
 
 def _direct_pair_key(user_a_id: int, user_b_id: int) -> str:
-    """Выполняет логику `_direct_pair_key` с параметрами из сигнатуры."""
     low, high = sorted([int(user_a_id), int(user_b_id)])
     return f"{low}:{high}"
 
 
 def _direct_room_slug(pair_key: str) -> str:
-    """Выполняет логику `_direct_room_slug` с параметрами из сигнатуры."""
     salt = str(getattr(settings, "CHAT_DIRECT_SLUG_SALT", "") or settings.SECRET_KEY)
     digest = hmac.new(
         salt.encode("utf-8"),
@@ -82,7 +79,6 @@ def _direct_room_slug(pair_key: str) -> str:
 
 
 def _parse_pair_key_users(pair_key: str | None) -> tuple[int, int] | None:
-    """Выполняет логику `_parse_pair_key_users` с параметрами из сигнатуры."""
     if not pair_key or ":" not in pair_key:
         return None
     first, second = pair_key.split(":", 1)
@@ -93,7 +89,6 @@ def _parse_pair_key_users(pair_key: str | None) -> tuple[int, int] | None:
 
 
 def _ensure_role(room: Room, user, role: str, granted_by=None):
-    """Выполняет логику `_ensure_role` с параметрами из сигнатуры."""
     role_obj, _ = ChatRole.objects.get_or_create(
         room=room,
         user=user,
@@ -116,21 +111,18 @@ def _ensure_role(room: Room, user, role: str, granted_by=None):
 
 
 def _ensure_room_owner_role(room: Room):
-    """Выполняет логику `_ensure_room_owner_role` с параметрами из сигнатуры."""
     if not room.created_by:
         return
     _ensure_role(room, room.created_by, ChatRole.Role.OWNER, granted_by=room.created_by)
 
 
 def _ensure_direct_roles(room: Room, initiator, peer, created: bool):
-    """Выполняет логику `_ensure_direct_roles` с параметрами из сигнатуры."""
     initiator_role = ChatRole.Role.OWNER if created else ChatRole.Role.MEMBER
     _ensure_role(room, initiator, initiator_role, granted_by=initiator)
     _ensure_role(room, peer, ChatRole.Role.MEMBER, granted_by=initiator)
 
 
 def _create_or_get_direct_room(initiator, target, pair_key: str, slug: str):
-    """Выполняет логику `_create_or_get_direct_room` с параметрами из сигнатуры."""
     room, created = Room.objects.get_or_create(
         direct_pair_key=pair_key,
         defaults={
@@ -158,7 +150,6 @@ def _create_or_get_direct_room(initiator, target, pair_key: str, slug: str):
 
 
 def _ensure_direct_room_with_retry(initiator, target, pair_key: str, slug: str):
-    """Выполняет логику `_ensure_direct_room_with_retry` с параметрами из сигнатуры."""
     attempts = max(1, int(getattr(settings, "CHAT_DIRECT_START_RETRIES", 3)))
 
     for attempt in range(attempts):
@@ -172,7 +163,6 @@ def _ensure_direct_room_with_retry(initiator, target, pair_key: str, slug: str):
             if attempt == attempts - 1:
                 raise
         except OperationalError as exc:
-            # SQLite can transiently lock the DB (e.g. dev/e2e strict-mode double calls).
             room = Room.objects.filter(direct_pair_key=pair_key).first()
             if room:
                 return room, False
@@ -184,7 +174,6 @@ def _ensure_direct_room_with_retry(initiator, target, pair_key: str, slug: str):
 
 
 def _direct_peer_for_user(room: Room, user):
-    """Выполняет логику `_direct_peer_for_user` с параметрами из сигнатуры."""
     peer_role = (
         ChatRole.objects.filter(room=room)
         .exclude(user=user)
@@ -198,7 +187,6 @@ def _direct_peer_for_user(room: Room, user):
 
 
 def _public_room():
-    """Выполняет логику `_public_room` с параметрами из сигнатуры."""
     try:
         room, _created = Room.objects.get_or_create(
             slug=PUBLIC_ROOM_SLUG,
@@ -219,7 +207,6 @@ def _public_room():
 
 
 def _is_valid_room_slug(slug: str) -> bool:
-    """Выполняет логику `_is_valid_room_slug` с параметрами из сигнатуры."""
     pattern = getattr(settings, "CHAT_ROOM_SLUG_REGEX", r"^[A-Za-z0-9_-]{3,50}$")
     try:
         return bool(re.match(pattern, slug or ""))
@@ -228,7 +215,6 @@ def _is_valid_room_slug(slug: str) -> bool:
 
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
-    """Выполняет логику `_parse_positive_int` с параметрами из сигнатуры."""
     try:
         parsed = int(raw_value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
@@ -239,19 +225,17 @@ def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
 
 
 def _resolve_room(room_slug: str):
-    """Выполняет логику `_resolve_room` с параметрами из сигнатуры."""
     if room_slug == PUBLIC_ROOM_SLUG:
         return _public_room(), None
 
     if not _is_valid_room_slug(room_slug):
-        return None, JsonResponse({"error": "Invalid room slug"}, status=400)
+        return None, Response({"error": "Invalid room slug"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     room = Room.objects.filter(slug=room_slug).first()
     return room, None
 
 
 def _serialize_room_details(request, room: Room, created: bool):
-    """Выполняет логику `_serialize_room_details` с параметрами из сигнатуры."""
     payload = {
         "slug": room.slug,
         "name": room.name,
@@ -261,7 +245,7 @@ def _serialize_room_details(request, room: Room, created: bool):
         "peer": None,
     }
 
-    if room.kind == Room.Kind.DIRECT and request.user.is_authenticated:
+    if room.kind == Room.Kind.DIRECT and request.user and request.user.is_authenticated:
         peer = _direct_peer_for_user(room, request.user)
         if peer:
             payload["peer"] = _serialize_peer(request, peer)
@@ -269,30 +253,27 @@ def _serialize_room_details(request, room: Room, created: bool):
     return payload
 
 
-@require_http_methods(["GET"])
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def public_room(request):
-    """Выполняет логику `public_room` с параметрами из сигнатуры."""
     room = _public_room()
-    return JsonResponse({"slug": room.slug, "name": room.name, "kind": room.kind})
+    serializer = RoomPublicSerializer({"slug": room.slug, "name": room.name, "kind": room.kind})
+    return Response(serializer.data)
 
 
-@require_http_methods(["POST"])
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def direct_start(request):
-    """Выполняет логику `direct_start` с параметрами из сигнатуры."""
-    if not request.user.is_authenticated:
-        return JsonResponse({"error": "Authentication required"}, status=401)
-
-    payload = parse_request_payload(request)
-    target_username = _normalize_username(payload.get("username"))
+    target_username = _normalize_username(request.data.get("username"))
     if not target_username:
-        return JsonResponse({"error": "username is required"}, status=400)
+        return Response({"error": "username is required"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     target = User.objects.filter(username=target_username).select_related("profile").first()
     if not target:
-        return JsonResponse({"error": "Not found"}, status=404)
+        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
 
     if target.pk == request.user.pk:
-        return JsonResponse({"error": "Cannot start direct chat with yourself"}, status=400)
+        return Response({"error": "Cannot start direct chat with yourself"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     pair_key = _direct_pair_key(request.user.pk, target.pk)
     slug = _direct_room_slug(pair_key)
@@ -300,29 +281,24 @@ def direct_start(request):
     try:
         room, created = _ensure_direct_room_with_retry(request.user, target, pair_key, slug)
     except OperationalError:
-        return JsonResponse({"error": "Service unavailable"}, status=503)
+        return Response({"error": "Service unavailable"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
 
     try:
         with transaction.atomic():
             _ensure_direct_roles(room, request.user, target, created=created)
     except OperationalError:
-        return JsonResponse({"error": "Service unavailable"}, status=503)
+        return Response({"error": "Service unavailable"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    return JsonResponse(
-        {
-            "slug": room.slug,
-            "kind": room.kind,
-            "peer": _serialize_peer(request, target),
-        }
-    )
+    return Response({
+        "slug": room.slug,
+        "kind": room.kind,
+        "peer": _serialize_peer(request, target),
+    })
 
 
-@require_http_methods(["GET"])
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def direct_chats(request):
-    """Выполняет логику `direct_chats` с параметрами из сигнатуры."""
-    if not request.user.is_authenticated:
-        return JsonResponse({"error": "Authentication required"}, status=401)
-
     role_qs = (
         ChatRole.objects.filter(
             user=request.user,
@@ -346,7 +322,7 @@ def direct_chats(request):
             continue
 
         last_message = (
-            Message.objects.filter(room=room.slug)
+            Message.objects.filter(room=room)
             .order_by("-date_added", "-id")
             .first()
         )
@@ -371,12 +347,12 @@ def direct_chats(request):
     for item in items:
         item.pop("sortKey", None)
 
-    return JsonResponse({"items": items})
+    return Response({"items": items})
 
 
-@require_http_methods(["GET"])
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def room_details(request, room_slug):
-    """Выполняет логику `room_details` с параметрами из сигнатуры."""
     try:
         room, error_response = _resolve_room(room_slug)
         if error_response:
@@ -384,8 +360,8 @@ def room_details(request, room_slug):
 
         created = False
         if room is None:
-            if not request.user.is_authenticated:
-                return JsonResponse({"error": "Not found"}, status=404)
+            if not request.user or not request.user.is_authenticated:
+                return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
 
             room = Room.objects.create(
                 slug=room_slug,
@@ -400,16 +376,15 @@ def room_details(request, room_slug):
                 try:
                     ensure_can_read_or_404(room, request.user)
                 except Http404:
-                    # Ensure owner role exists for legacy private rooms before rejecting.
                     _ensure_room_owner_role(room)
                     try:
                         ensure_can_read_or_404(room, request.user)
                     except Http404:
-                        return JsonResponse({"error": "Not found"}, status=404)
+                        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
 
-        return JsonResponse(_serialize_room_details(request, room, created=created))
+        return Response(_serialize_room_details(request, room, created=created))
     except (OperationalError, ProgrammingError, IntegrityError):
-        return JsonResponse(
+        return Response(
             {
                 "slug": room_slug,
                 "name": room_slug,
@@ -421,21 +396,21 @@ def room_details(request, room_slug):
         )
 
 
-@require_http_methods(["GET"])
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def room_messages(request, room_slug):
-    """Выполняет логику `room_messages` с параметрами из сигнатуры."""
     room, error_response = _resolve_room(room_slug)
     if error_response:
         return error_response
 
     if room is None:
-        return JsonResponse({"error": "Not found"}, status=404)
+        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
 
     if room.kind in {Room.Kind.PRIVATE, Room.Kind.DIRECT}:
         try:
             ensure_can_read_or_404(room, request.user)
         except Http404:
-            return JsonResponse({"error": "Not found"}, status=404)
+            return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         default_page_size = max(1, int(getattr(settings, "CHAT_MESSAGES_PAGE_SIZE", 50)))
@@ -444,8 +419,8 @@ def room_messages(request, room_slug):
             int(getattr(settings, "CHAT_MESSAGES_MAX_PAGE_SIZE", 200)),
         )
 
-        limit_raw = request.GET.get("limit")
-        before_raw = request.GET.get("before")
+        limit_raw = request.query_params.get("limit")
+        before_raw = request.query_params.get("before")
 
         if limit_raw is None:
             limit = default_page_size
@@ -453,7 +428,7 @@ def room_messages(request, room_slug):
             try:
                 limit = _parse_positive_int(limit_raw, "limit")
             except ValueError as exc:
-                return JsonResponse({"error": str(exc)}, status=400)
+                return Response({"error": str(exc)}, status=http_status.HTTP_400_BAD_REQUEST)
         limit = min(limit, max_page_size)
 
         before_id = None
@@ -461,9 +436,9 @@ def room_messages(request, room_slug):
             try:
                 before_id = _parse_positive_int(before_raw, "before")
             except ValueError as exc:
-                return JsonResponse({"error": str(exc)}, status=400)
+                return Response({"error": str(exc)}, status=http_status.HTTP_400_BAD_REQUEST)
 
-        messages_qs = Message.objects.filter(room=room.slug).select_related("user", "user__profile")
+        messages_qs = Message.objects.filter(room=room).select_related("user", "user__profile")
         if before_id is not None:
             messages_qs = messages_qs.filter(id__lt=before_id)
 
@@ -475,37 +450,19 @@ def room_messages(request, room_slug):
 
         next_before = batch[0].id if has_more and batch else None
 
-        serialized = []
-        for message in batch:
-            user = getattr(message, "user", None)
-            username = user.username if user else message.username
+        serializer = MessageSerializer(
+            batch,
+            many=True,
+            context={
+                "request": request,
+                "build_profile_pic_url": lambda pic: _build_profile_pic_url(request, pic),
+                "serialize_avatar_crop": serialize_avatar_crop,
+            },
+        )
 
-            profile_source = None
-            if user:
-                profile = getattr(user, "profile", None)
-                image = getattr(profile, "image", None) if profile else None
-                if image:
-                    profile_source = image
-            if not profile_source:
-                profile_source = message.profile_pic
-
-            profile_pic = _build_profile_pic_url(request, profile_source)
-            avatar_crop = serialize_avatar_crop(getattr(user, "profile", None)) if user else None
-
-            serialized.append(
-                {
-                    "id": message.id,
-                    "username": username,
-                    "content": message.message_content,
-                    "profilePic": profile_pic,
-                    "avatarCrop": avatar_crop,
-                    "createdAt": message.date_added.isoformat(),
-                }
-            )
-
-        return JsonResponse(
+        return Response(
             {
-                "messages": serialized,
+                "messages": serializer.data,
                 "pagination": {
                     "limit": limit,
                     "hasMore": has_more,
@@ -514,7 +471,7 @@ def room_messages(request, room_slug):
             }
         )
     except (OperationalError, ProgrammingError):
-        return JsonResponse(
+        return Response(
             {
                 "messages": [],
                 "pagination": {

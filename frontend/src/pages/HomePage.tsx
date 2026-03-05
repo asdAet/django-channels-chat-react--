@@ -155,7 +155,7 @@ export function HomePage({ user }: Props) {
             <h3 className={styles.footerTitle}>Разработчикам</h3>
             <ul className={styles.footerList}>
               <li><a href="#api">API Документация</a></li>
-              <li><a href="#github">GitHub</a></li>
+              <li><a href="https://github.com/asdAet/EchoChat" target="_blank">GitHub</a></li>
               <li><a href="#sdk">SDK</a></li>
               <li><a href="#status">Статус системы</a></li>
             </ul>

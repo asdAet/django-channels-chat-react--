@@ -19,7 +19,11 @@ from chat_app_django.ip_utils import get_client_ip_from_scope
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
 
-from .access import READ_ROLES, can_read, can_write
+from messages.models import Message
+from roles.access import READ_ROLES, can_read, can_write
+from roles.models import ChatRole
+from rooms.models import Room
+
 from .constants import (
     CHAT_CLOSE_IDLE_CODE,
     DIRECT_INBOX_CLOSE_IDLE_CODE,
@@ -42,7 +46,6 @@ from .direct_inbox import (
     touch_active_room,
     user_group_name,
 )
-from .models import ChatRole, Message, Room
 from .utils import build_profile_url, serialize_avatar_crop
 
 User = get_user_model()
@@ -164,7 +167,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         profile_name, avatar_crop = await self._get_profile_avatar_state(user)
         profile_url = build_profile_url(self.scope, profile_name)
 
-        saved_message = await self.save_message(message, user, username, profile_name, room_slug)
+        saved_message = await self.save_message(message, user, username, profile_name, self.room)
         created_at = saved_message.date_added.isoformat()
 
         await self.channel_layer.group_send(

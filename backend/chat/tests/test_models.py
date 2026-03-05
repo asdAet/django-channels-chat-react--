@@ -3,7 +3,9 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from chat.models import ChatRole, Message, Room
+from messages.models import Message
+from roles.models import ChatRole
+from rooms.models import Room
 
 User = get_user_model()
 
@@ -13,18 +15,20 @@ class ChatModelsTests(TestCase):
 
     def test_message_str_uses_related_user_when_available(self):
         user = User.objects.create_user(username="msg_user", password="pass12345")
+        room = Room.objects.create(name="Public", slug="public", kind=Room.Kind.PUBLIC)
         message = Message.objects.create(
             username="legacy",
             user=user,
-            room="public",
+            room=room,
             message_content="hello",
         )
         self.assertEqual(str(message), "msg_user: hello")
 
     def test_message_str_falls_back_to_username_field(self):
+        room = Room.objects.create(name="Public", slug="public", kind=Room.Kind.PUBLIC)
         message = Message.objects.create(
             username="legacy",
-            room="public",
+            room=room,
             message_content="hello",
         )
         self.assertEqual(str(message), "legacy: hello")

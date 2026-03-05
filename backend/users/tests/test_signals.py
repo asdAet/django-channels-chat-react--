@@ -8,7 +8,9 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
 
-from chat.models import ChatRole, Message, Room
+from messages.models import Message
+from roles.models import ChatRole
+from rooms.models import Room
 from users.models import Profile
 from users.signals import ensure_profile
 
@@ -78,7 +80,7 @@ class UserSignalsTests(TestCase):
         Message.objects.create(
             username='old_name',
             user=user,
-            room='private123',
+            room=room,
             message_content='hello',
         )
 

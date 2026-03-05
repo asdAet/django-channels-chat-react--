@@ -7,7 +7,8 @@ from django.db import IntegrityError
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from chat.models import ChatRole, Message
+from messages.models import Message
+from roles.models import ChatRole
 
 from .models import Profile
 

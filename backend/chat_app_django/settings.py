@@ -68,6 +68,10 @@ INSTALLED_APPS = [
     "corsheaders",
     "crispy_forms",
     "crispy_bootstrap4",
+    "rest_framework",
+    "rooms.apps.RoomsConfig",
+    "roles.apps.RolesConfig",
+    "messages.apps.MessagesConfig",
     "chat.apps.ChatConfig",
     "users.apps.UsersConfig",
     "django.contrib.admin",
@@ -77,6 +81,25 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+    "DEFAULT_PAGINATION_CLASS": None,
+    "UNAUTHENTICATED_USER": None,
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

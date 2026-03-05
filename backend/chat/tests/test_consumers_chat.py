@@ -266,7 +266,7 @@ class ChatConsumerTests(TransactionTestCase):
             await communicator.disconnect()
 
         async_to_sync(run)()
-        self.assertTrue(Message.objects.filter(room='private123', message_content='hello').exists())
+        self.assertTrue(Message.objects.filter(room=self.private_room, message_content='hello').exists())
 
 
     def test_direct_message_notifies_participants_in_inbox_channel(self):
