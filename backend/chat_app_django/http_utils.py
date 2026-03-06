@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 
-from django.http import JsonResponse
 from django.http.request import RawPostDataException
+from rest_framework.response import Response
 
 
 def parse_request_payload(request) -> Mapping[str, object]:
@@ -39,7 +39,7 @@ def error_response(
     error: str | None = None,
     detail: str | None = None,
     errors: Mapping[str, list[str] | str] | None = None,
-) -> JsonResponse:
+) -> Response:
     """Формирует единый JSON-ответ ошибки в формате error/detail/errors."""
     payload: dict[str, object] = {}
     if error:
@@ -48,4 +48,4 @@ def error_response(
         payload["detail"] = detail
     if errors:
         payload["errors"] = errors
-    return JsonResponse(payload, status=status)
+    return Response(payload, status=status)

@@ -1,4 +1,5 @@
-"""Содержит тесты модуля `test_api_profile` подсистемы `users`."""
+# pyright: reportAttributeAccessIssue=false
+"""РЎРѕРґРµСЂР¶РёС‚ С‚РµСЃС‚С‹ РјРѕРґСѓР»СЏ `test_api_profile` РїРѕРґСЃРёСЃС‚РµРјС‹ `users`."""
 
 
 import io
@@ -17,9 +18,9 @@ User = get_user_model()
 
 
 class ProfileApiTests(TestCase):
-    """Группирует тестовые сценарии класса `ProfileApiTests`."""
+    """Р“СЂСѓРїРїРёСЂСѓРµС‚ С‚РµСЃС‚РѕРІС‹Рµ СЃС†РµРЅР°СЂРёРё РєР»Р°СЃСЃР° `ProfileApiTests`."""
     def setUp(self):
-        """Проверяет сценарий `setUp`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `setUp`."""
         self.client = Client(enforce_csrf_checks=True)
         self.user = User.objects.create_user(
             username='profile_user',
@@ -33,13 +34,13 @@ class ProfileApiTests(TestCase):
         )
 
     def _csrf(self) -> str:
-        """Проверяет сценарий `_csrf`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `_csrf`."""
         response = self.client.get('/api/auth/csrf/')
         return response.cookies['csrftoken'].value
 
     @staticmethod
     def _image_upload(filename: str = 'avatar.png', size=(20, 20)) -> SimpleUploadedFile:
-        """Проверяет сценарий `_image_upload`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `_image_upload`."""
         image = Image.new('RGB', size, (30, 60, 90))
         buff = io.BytesIO()
         image.save(buff, format='PNG')
@@ -47,7 +48,7 @@ class ProfileApiTests(TestCase):
         return SimpleUploadedFile(filename, buff.read(), content_type='image/png')
 
     def _assert_signed_profile_image(self, url: str):
-        """Проверяет, что profileImage отдается через подписанный endpoint."""
+        """РџСЂРѕРІРµСЂСЏРµС‚, С‡С‚Рѕ profileImage РѕС‚РґР°РµС‚СЃСЏ С‡РµСЂРµР· РїРѕРґРїРёСЃР°РЅРЅС‹Р№ endpoint."""
         parsed = urlparse(url)
         self.assertEqual(parsed.path.split("/api/auth/media/")[0], "")
         self.assertTrue(parsed.path.startswith("/api/auth/media/"))
@@ -64,12 +65,12 @@ class ProfileApiTests(TestCase):
         )
 
     def test_profile_requires_auth(self):
-        """Проверяет сценарий `test_profile_requires_auth`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_profile_requires_auth`."""
         response = self.client.get('/api/auth/profile/')
         self.assertEqual(response.status_code, 401)
 
     def test_get_profile_authenticated(self):
-        """Проверяет сценарий `test_get_profile_authenticated`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_get_profile_authenticated`."""
         self.client.force_login(self.user)
         response = self.client.get('/api/auth/profile/')
         self.assertEqual(response.status_code, 200)
@@ -82,7 +83,7 @@ class ProfileApiTests(TestCase):
         self.assertIsNone(payload['avatarCrop'])
 
     def test_profile_update_allows_same_username(self):
-        """Проверяет сценарий `test_profile_update_allows_same_username`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_profile_update_allows_same_username`."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -100,7 +101,7 @@ class ProfileApiTests(TestCase):
         self.assertEqual(self.user.profile.bio, 'updated')
 
     def test_profile_update_rejects_duplicate_username(self):
-        """Проверяет сценарий `test_profile_update_rejects_duplicate_username`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_profile_update_rejects_duplicate_username`."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -117,7 +118,7 @@ class ProfileApiTests(TestCase):
         self.assertIn('username', payload['errors'])
 
     def test_profile_update_rejects_long_username(self):
-        """Проверяет сценарий `test_profile_update_rejects_long_username`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_profile_update_rejects_long_username`."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -134,7 +135,7 @@ class ProfileApiTests(TestCase):
         self.assertIn('username', payload['errors'])
 
     def test_profile_update_accepts_username_length_30(self):
-        """Проверяет, что имя пользователя длиной 30 символов проходит."""
+        """РџСЂРѕРІРµСЂСЏРµС‚, С‡С‚Рѕ РёРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РґР»РёРЅРѕР№ 30 СЃРёРјРІРѕР»РѕРІ РїСЂРѕС…РѕРґРёС‚."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -148,7 +149,7 @@ class ProfileApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_profile_update_rejects_duplicate_email(self):
-        """Проверяет сценарий `test_profile_update_rejects_duplicate_email`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_profile_update_rejects_duplicate_email`."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -165,7 +166,7 @@ class ProfileApiTests(TestCase):
         self.assertIn('email', payload['errors'])
 
     def test_profile_update_sanitizes_bio(self):
-        """Проверяет сценарий `test_profile_update_sanitizes_bio`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_profile_update_sanitizes_bio`."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -182,7 +183,7 @@ class ProfileApiTests(TestCase):
         self.assertEqual(self.user.profile.bio, 'Hello alert(1)')
 
     def test_profile_update_image_upload(self):
-        """Проверяет сценарий `test_profile_update_image_upload`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_profile_update_image_upload`."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -201,7 +202,7 @@ class ProfileApiTests(TestCase):
         self.assertIsNone(payload['avatarCrop'])
 
     def test_profile_update_image_upload_persists_avatar_crop(self):
-        """Сохраняет crop-метаданные вместе с новой аватаркой."""
+        """РЎРѕС…СЂР°РЅСЏРµС‚ crop-РјРµС‚Р°РґР°РЅРЅС‹Рµ РІРјРµСЃС‚Рµ СЃ РЅРѕРІРѕР№ Р°РІР°С‚Р°СЂРєРѕР№."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -236,7 +237,7 @@ class ProfileApiTests(TestCase):
         )
 
     def test_profile_update_rejects_oversized_image(self):
-        """Отклоняет загрузку аватара, если сторона больше безопасного лимита."""
+        """РћС‚РєР»РѕРЅСЏРµС‚ Р·Р°РіСЂСѓР·РєСѓ Р°РІР°С‚Р°СЂР°, РµСЃР»Рё СЃС‚РѕСЂРѕРЅР° Р±РѕР»СЊС€Рµ Р±РµР·РѕРїР°СЃРЅРѕРіРѕ Р»РёРјРёС‚Р°."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         response = self.client.post(
@@ -254,7 +255,7 @@ class ProfileApiTests(TestCase):
 
     @override_settings(DEBUG=True)
     def test_signed_media_endpoint_allows_valid_and_rejects_invalid_requests(self):
-        """Проверяет endpoint подписанной раздачи media."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ endpoint РїРѕРґРїРёСЃР°РЅРЅРѕР№ СЂР°Р·РґР°С‡Рё media."""
         self.client.force_login(self.user)
         csrf = self._csrf()
         update = self.client.post(
@@ -282,10 +283,13 @@ class ProfileApiTests(TestCase):
 
         media_path = parsed.path.removeprefix("/api/auth/media/")
         expired_url = utils._signed_media_url_path(media_path, expires_at=1)
+        self.assertIsNotNone(expired_url)
+        if expired_url is None:
+            self.fail("Expected signed media url")
         self.assertEqual(self.client.get(expired_url).status_code, 403)
 
     def test_public_profile_hides_email(self):
-        """Проверяет сценарий `test_public_profile_hides_email`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_public_profile_hides_email`."""
         response = self.client.get(f'/api/auth/users/{self.user.username}/')
         self.assertEqual(response.status_code, 200)
         payload = response.json()['user']
@@ -293,3 +297,4 @@ class ProfileApiTests(TestCase):
         self.assertEqual(payload['email'], '')
         self.assertIn('lastSeen', payload)
         self.assertIn('avatarCrop', payload)
+

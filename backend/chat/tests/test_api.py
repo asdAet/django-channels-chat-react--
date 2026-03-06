@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 
 """Содержит тесты модуля `test_api` подсистемы `chat`."""
 
@@ -47,7 +48,7 @@ class ChatApiHelpersTests(SimpleTestCase):
         parsed = urlparse(url)
         self.assertEqual(f"{parsed.scheme}://{parsed.netloc}", "https://example.com")
         self.assertEqual(parsed.path, "/api/auth/media/profile_pics/fallback.jpg")
-        query = parse_qs(parsed.query)
+        query = parse_qs(str(parsed.query))
         self.assertIn("exp", query)
         self.assertIn("sig", query)
         self.assertTrue(
@@ -190,7 +191,7 @@ class RoomDetailsApiTests(TestCase):
             slug='dm_abc123',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
         ChatRole.objects.create(
@@ -226,7 +227,7 @@ class RoomDetailsApiTests(TestCase):
             slug='dm_abc123',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
         ChatRole.objects.create(
@@ -276,7 +277,7 @@ class RoomMessagesApiTests(TestCase):
             slug=slug,
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
         ChatRole.objects.create(
@@ -565,7 +566,7 @@ class ChatApiExtraCoverageTests(TestCase):
         role.refresh_from_db()
 
         self.assertEqual(role.username_snapshot, self.peer.username)
-        self.assertEqual(role.granted_by_id, self.owner.id)
+        self.assertEqual(role.granted_by_id, self.owner.pk)
 
     def test_ensure_room_owner_role_skips_room_without_creator(self):
         """Проверяет сценарий `test_ensure_room_owner_role_skips_room_without_creator`."""
@@ -600,7 +601,7 @@ class ChatApiExtraCoverageTests(TestCase):
             slug='dm_stub_01',
             name='stub',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.peer.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.peer.pk}',
             created_by=self.owner,
         )
 

@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false
 """Содержит тесты модуля `test_consumers_chat` подсистемы `chat`."""
 
 
@@ -52,7 +53,7 @@ class ChatConsumerTests(TransactionTestCase):
             slug='dm_abc123',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
         ChatRole.objects.create(

@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "crispy_forms",
     "crispy_bootstrap4",
     "rest_framework",
+    "auditlog.apps.AuditlogConfig",
     "rooms.apps.RoomsConfig",
     "roles.apps.RolesConfig",
     "messages.apps.MessagesConfig",
@@ -82,9 +83,18 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 ]
 
+def build_rest_renderer_classes(debug: bool) -> list[str]:
+    classes = ["rest_framework.renderers.JSONRenderer"]
+    if debug:
+        classes.append("rest_framework.renderers.BrowsableAPIRenderer")
+    return classes
+
+
+REST_RENDERER_CLASSES = build_rest_renderer_classes(DEBUG)
+
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRenderer",
+        *REST_RENDERER_CLASSES,
     ],
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
@@ -108,6 +118,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "auditlog.interfaces.middleware.AuditHttpMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "users.middleware.UpdateLastSeenMiddleware",
@@ -315,6 +326,10 @@ DIRECT_INBOX_ACTIVE_TTL = int(os.getenv("DIRECT_INBOX_ACTIVE_TTL", "90"))
 DIRECT_INBOX_HEARTBEAT = int(os.getenv("DIRECT_INBOX_HEARTBEAT", "20"))
 DIRECT_INBOX_IDLE_TIMEOUT = int(os.getenv("DIRECT_INBOX_IDLE_TIMEOUT", "90"))
 
+AUDIT_RETENTION_DAYS = env_int("AUDIT_RETENTION_DAYS", 180, minimum=1)
+AUDIT_API_DEFAULT_LIMIT = env_int("AUDIT_API_DEFAULT_LIMIT", 50, minimum=1)
+AUDIT_API_MAX_LIMIT = env_int("AUDIT_API_MAX_LIMIT", 200, minimum=1)
+
 if REDIS_URL:
     CACHES = {
         "default": {
@@ -383,5 +398,3 @@ LOGGING = {
         },
     },
 }
-
-

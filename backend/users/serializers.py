@@ -27,3 +27,18 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField()
     password1 = serializers.CharField()
     password2 = serializers.CharField()
+
+
+class LogoutSerializer(serializers.Serializer):
+    """Empty serializer used to render a POST form for logout in Browsable API."""
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    username = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    bio = serializers.CharField(required=False, allow_blank=True)
+    image = serializers.ImageField(required=False, allow_null=True)
+    avatarCropX = serializers.FloatField(required=False)
+    avatarCropY = serializers.FloatField(required=False)
+    avatarCropWidth = serializers.FloatField(required=False)
+    avatarCropHeight = serializers.FloatField(required=False)

@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Содержит тесты модуля `test_utils` подсистемы `chat`."""
 
 from urllib.parse import parse_qs, urlparse
@@ -48,7 +49,7 @@ class UtilityHelpersTests(SimpleTestCase):
         self.assertIsNotNone(signed)
         parsed = urlparse(signed)
         self.assertEqual(parsed.path, "/api/auth/media/profile_pics/a.jpg")
-        query = parse_qs(parsed.query)
+        query = parse_qs(str(parsed.query))
         self.assertEqual(query["exp"][0], "12345")
         self.assertTrue(
             utils.is_valid_media_signature(
@@ -121,7 +122,7 @@ class _SignedUrlAssertionsMixin:
             self.assertEqual(f"{parsed.scheme}://{parsed.netloc}", expected_base)
 
         self.assertEqual(parsed.path, "/api/auth/media/profile_pics/a.jpg")
-        query = parse_qs(parsed.query)
+        query = parse_qs(str(parsed.query))
         self.assertIn("exp", query)
         self.assertIn("sig", query)
         expires_at = int(query["exp"][0])

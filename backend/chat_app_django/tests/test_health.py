@@ -35,6 +35,9 @@ class HealthUnitTests(SimpleTestCase):
 
         response = health.ready(request)
         self.assertEqual(response.status_code, 503)
+        render = getattr(response, "render", None)
+        if callable(render):
+            render()
         payload = json.loads(response.content)
         self.assertEqual(payload['status'], 'error')
         self.assertEqual(payload['components']['database'], 'error')

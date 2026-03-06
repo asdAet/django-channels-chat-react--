@@ -28,18 +28,18 @@ def serialize_avatar_crop(profile) -> dict[str, float] | None:
     if not profile:
         return None
 
-    field_names = (
-        "avatar_crop_x",
-        "avatar_crop_y",
-        "avatar_crop_width",
-        "avatar_crop_height",
-    )
-    raw_values = [getattr(profile, field, None) for field in field_names]
-    if any(value is None for value in raw_values):
+    raw_x = getattr(profile, "avatar_crop_x", None)
+    raw_y = getattr(profile, "avatar_crop_y", None)
+    raw_width = getattr(profile, "avatar_crop_width", None)
+    raw_height = getattr(profile, "avatar_crop_height", None)
+    if raw_x is None or raw_y is None or raw_width is None or raw_height is None:
         return None
 
     try:
-        x, y, width, height = [float(value) for value in raw_values]
+        x = float(raw_x)
+        y = float(raw_y)
+        width = float(raw_width)
+        height = float(raw_height)
     except (TypeError, ValueError):
         return None
 

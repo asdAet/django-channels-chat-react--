@@ -21,7 +21,7 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Run backend tests with coverage
         run: |
-          coverage run --rcfile=.coveragerc manage.py test
+          coverage run --rcfile=.coveragerc -m pytest
           coverage report --rcfile=.coveragerc --fail-under=90
 
   frontend-unit:

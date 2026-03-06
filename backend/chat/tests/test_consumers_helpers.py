@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false
 """Содержит тесты модуля `test_consumers_helpers` подсистемы `chat`."""
 
 
@@ -109,7 +110,7 @@ class ChatConsumerInternalTests(TestCase):
         cache.clear()
         self.assertTrue(async_to_sync(consumer._rate_limited)(self.user))
 
-        key = f'rl:chat:message:{self.user.id}'
+        key = f'rl:chat:message:{self.user.pk}'
         bucket = SecurityRateLimitBucket.objects.get(scope_key=key)
         bucket.reset_at = timezone.now() - timedelta(seconds=1)
         bucket.save(update_fields=['reset_at', 'updated_at'])
@@ -501,7 +502,7 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
     def test_build_targets_returns_empty_for_missing_room(self):
         """Проверяет сценарий `test_build_targets_returns_empty_for_missing_room`."""
         consumer = self._consumer()
-        result = async_to_sync(consumer._build_direct_inbox_targets)(999999, self.owner.id, 'msg', '2026-01-01T00:00:00Z')
+        result = async_to_sync(consumer._build_direct_inbox_targets)(999999, self.owner.pk, 'msg', '2026-01-01T00:00:00Z')
         self.assertEqual(result, [])
 
     def test_build_targets_handles_invalid_pair_key(self):
@@ -522,7 +523,7 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
         )
 
         consumer = self._consumer()
-        result = async_to_sync(consumer._build_direct_inbox_targets)(room.id, self.owner.id, 'msg', '2026-01-01T00:00:00Z')
+        result = async_to_sync(consumer._build_direct_inbox_targets)(room.pk, self.owner.pk, 'msg', '2026-01-01T00:00:00Z')
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]['payload']['item']['slug'], room.slug)
 
@@ -532,7 +533,7 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
             slug='dm_missingpair',
             name='missingpair',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
         ChatRole.objects.create(
@@ -544,11 +545,11 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
         )
 
         consumer = self._consumer()
-        targets = async_to_sync(consumer._build_direct_inbox_targets)(room.id, self.owner.id, 'hello', '2026-01-01T00:00:00Z')
+        targets = async_to_sync(consumer._build_direct_inbox_targets)(room.pk, self.owner.pk, 'hello', '2026-01-01T00:00:00Z')
 
         groups = {item['group'] for item in targets}
-        self.assertIn(f'direct_inbox_user_{self.owner.id}', groups)
-        self.assertIn(f'direct_inbox_user_{self.member.id}', groups)
+        self.assertIn(f'direct_inbox_user_{self.owner.pk}', groups)
+        self.assertIn(f'direct_inbox_user_{self.member.pk}', groups)
 
 
 class DirectInboxConsumerInternalTests(TestCase):

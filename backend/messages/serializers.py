@@ -5,7 +5,7 @@ from .models import Message
 
 class MessageSerializer(serializers.ModelSerializer):
     content = serializers.CharField(source="message_content")
-    createdAt = serializers.DateTimeField(source="date_added", format="iso-8601")
+    createdAt = serializers.DateTimeField(source="date_added")
     profilePic = serializers.SerializerMethodField()
     avatarCrop = serializers.SerializerMethodField()
 

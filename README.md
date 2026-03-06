@@ -506,7 +506,7 @@ npm run build
 ```powershell
 cd backend
 .\.venv\Scripts\Activate.ps1
-coverage run --rcfile=.coveragerc manage.py test
+coverage run --rcfile=.coveragerc -m pytest
 coverage report --rcfile=.coveragerc --fail-under=90
 ```
 

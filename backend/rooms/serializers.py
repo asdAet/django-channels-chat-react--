@@ -19,7 +19,7 @@ class RoomDetailSerializer(serializers.Serializer):
     slug = serializers.CharField()
     name = serializers.CharField()
     kind = serializers.CharField()
-    created = serializers.BooleanField(default=False)
+    created = serializers.BooleanField(required=False)
     createdBy = serializers.CharField(allow_null=True, source="created_by_name")
     peer = serializers.DictField(allow_null=True, required=False)
 

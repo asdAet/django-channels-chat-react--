@@ -9,6 +9,7 @@ from django.dispatch import receiver
 
 from messages.models import Message
 from roles.models import ChatRole
+from chat_app_django.security.audit import audit_security_event
 
 from .models import Profile
 
@@ -56,3 +57,12 @@ def sync_chat_username_snapshots(sender, instance, **kwargs):
     ChatRole.objects.filter(user=instance).exclude(
         username_snapshot=instance.username
     ).update(username_snapshot=instance.username)
+    audit_security_event(
+        "user.username.changed",
+        actor_user=instance,
+        actor_user_id=instance.id,
+        actor_username=instance.username,
+        is_authenticated=True,
+        old_username=old_username,
+        new_username=instance.username,
+    )

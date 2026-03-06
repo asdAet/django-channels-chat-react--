@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 
 """Содержит тесты модуля `test_access` подсистемы `chat`."""
 
@@ -108,7 +109,7 @@ class ChatAccessTests(TestCase):
             slug='dm_abc124',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
         ChatRole.objects.create(

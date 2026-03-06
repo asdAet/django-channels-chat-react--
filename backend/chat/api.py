@@ -9,8 +9,9 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, OperationalError, ProgrammingError, transaction
 from django.http import Http404
-from rest_framework import status as http_status
+from rest_framework import serializers, status as http_status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -25,6 +26,10 @@ from .constants import PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
 from .utils import build_profile_url_from_request, serialize_avatar_crop
 
 User = get_user_model()
+
+
+class DirectStartInputSerializer(serializers.Serializer):
+    username = serializers.CharField()
 
 
 def _build_profile_pic_url(request, profile_pic):
@@ -102,7 +107,8 @@ def _ensure_role(room: Room, user, role: str, granted_by=None):
     if role_obj.username_snapshot != user.username:
         role_obj.username_snapshot = user.username
         changed_fields.append("username_snapshot")
-    if granted_by and role_obj.granted_by_id != getattr(granted_by, "id", None):
+    granted_by_pk = getattr(granted_by, "pk", None) if granted_by else None
+    if granted_by and getattr(role_obj, "granted_by_id", None) != granted_by_pk:
         role_obj.granted_by = granted_by
         changed_fields.append("granted_by")
     if changed_fields:
@@ -296,6 +302,51 @@ def direct_start(request):
     })
 
 
+class DirectStartApiView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = DirectStartInputSerializer
+
+    def get(self, _request):
+        return Response({"detail": "Use POST with username"})
+
+    def post(self, request):
+        target_username = _normalize_username(request.data.get("username"))
+        if not target_username:
+            return Response({"error": "username is required"}, status=http_status.HTTP_400_BAD_REQUEST)
+
+        target = User.objects.filter(username=target_username).select_related("profile").first()
+        if not target:
+            return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+
+        if target.pk == request.user.pk:
+            return Response({"error": "Cannot start direct chat with yourself"}, status=http_status.HTTP_400_BAD_REQUEST)
+
+        pair_key = _direct_pair_key(request.user.pk, target.pk)
+        slug = _direct_room_slug(pair_key)
+
+        try:
+            room, created = _ensure_direct_room_with_retry(request.user, target, pair_key, slug)
+        except OperationalError:
+            return Response({"error": "Service unavailable"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            with transaction.atomic():
+                _ensure_direct_roles(room, request.user, target, created=created)
+        except OperationalError:
+            return Response({"error": "Service unavailable"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response(
+            {
+                "slug": room.slug,
+                "kind": room.kind,
+                "peer": _serialize_peer(request, target),
+            }
+        )
+
+
+direct_start = DirectStartApiView.as_view()
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def direct_chats(request):
@@ -313,12 +364,15 @@ def direct_chats(request):
     items = []
     for role in role_qs:
         room = role.room
-        if room.id in seen_room_ids:
+        room_pk = getattr(room, "pk", None)
+        if room_pk is None:
             continue
-        seen_room_ids.add(room.id)
+        if room_pk in seen_room_ids:
+            continue
+        seen_room_ids.add(room_pk)
 
         pair = _parse_pair_key_users(room.direct_pair_key)
-        if not pair or request.user.id not in pair:
+        if not pair or request.user.pk not in pair:
             continue
 
         last_message = (
@@ -448,7 +502,7 @@ def room_messages(request, room_slug):
             batch = batch[:limit]
         batch.reverse()
 
-        next_before = batch[0].id if has_more and batch else None
+        next_before = getattr(batch[0], "pk", None) if has_more and batch else None
 
         serializer = MessageSerializer(
             batch,

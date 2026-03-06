@@ -12,6 +12,10 @@ from .models import ChatRole
 def audit_chat_role_save(sender, instance: ChatRole, created: bool, **kwargs):
     audit_security_event(
         "chat.role.created" if created else "chat.role.updated",
+        actor_user=instance.user,
+        actor_user_id=getattr(instance.user, "id", None),
+        actor_username=getattr(instance.user, "username", None),
+        is_authenticated=bool(getattr(instance.user, "is_authenticated", False)),
         room_slug=getattr(instance.room, "slug", None),
         username=getattr(instance.user, "username", None),
         role=instance.role,
@@ -23,6 +27,10 @@ def audit_chat_role_save(sender, instance: ChatRole, created: bool, **kwargs):
 def audit_chat_role_delete(sender, instance: ChatRole, **kwargs):
     audit_security_event(
         "chat.role.deleted",
+        actor_user=instance.user,
+        actor_user_id=getattr(instance.user, "id", None),
+        actor_username=getattr(instance.user, "username", None),
+        is_authenticated=bool(getattr(instance.user, "is_authenticated", False)),
         room_slug=getattr(instance.room, "slug", None),
         username=getattr(instance.user, "username", None),
         role=instance.role,

@@ -1,4 +1,5 @@
-"""Содержит тесты модуля `test_forms` подсистемы `users`."""
+# pyright: reportAttributeAccessIssue=false
+"""РЎРѕРґРµСЂР¶РёС‚ С‚РµСЃС‚С‹ РјРѕРґСѓР»СЏ `test_forms` РїРѕРґСЃРёСЃС‚РµРјС‹ `users`."""
 
 
 import io
@@ -16,15 +17,15 @@ User = get_user_model()
 
 
 class UserUpdateFormTests(TestCase):
-    """Группирует тестовые сценарии класса `UserUpdateFormTests`."""
+    """Р“СЂСѓРїРїРёСЂСѓРµС‚ С‚РµСЃС‚РѕРІС‹Рµ СЃС†РµРЅР°СЂРёРё РєР»Р°СЃСЃР° `UserUpdateFormTests`."""
     def test_allows_same_username_for_current_user(self):
-        """Проверяет сценарий `test_allows_same_username_for_current_user`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_allows_same_username_for_current_user`."""
         user = User.objects.create_user(username='user1', password='pass12345')
         form = UserUpdateForm(data={'username': 'user1', 'email': ''}, instance=user)
         self.assertTrue(form.is_valid())
 
     def test_rejects_duplicate_username(self):
-        """Проверяет сценарий `test_rejects_duplicate_username`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_rejects_duplicate_username`."""
         User.objects.create_user(username='user1', password='pass12345')
         user2 = User.objects.create_user(username='user2', password='pass12345')
         form = UserUpdateForm(data={'username': 'user1', 'email': ''}, instance=user2)
@@ -32,7 +33,7 @@ class UserUpdateFormTests(TestCase):
         self.assertIn('username', form.errors)
 
     def test_username_length_boundary(self):
-        """Проверяет граничные значения длины username в форме профиля."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ РіСЂР°РЅРёС‡РЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ РґР»РёРЅС‹ username РІ С„РѕСЂРјРµ РїСЂРѕС„РёР»СЏ."""
         user = User.objects.create_user(username='base_user', password='pass12345')
 
         valid_form = UserUpdateForm(data={'username': 'x' * 30, 'email': ''}, instance=user)
@@ -43,7 +44,7 @@ class UserUpdateFormTests(TestCase):
         self.assertIn('username', invalid_form.errors)
 
     def test_rejects_duplicate_email_case_insensitive(self):
-        """Проверяет сценарий `test_rejects_duplicate_email_case_insensitive`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_rejects_duplicate_email_case_insensitive`."""
         User.objects.create_user(username='user1', password='pass12345', email='mail@example.com')
         user2 = User.objects.create_user(username='user2', password='pass12345', email='other@example.com')
         form = UserUpdateForm(data={'username': 'user2', 'email': 'MAIL@example.com'}, instance=user2)
@@ -52,10 +53,10 @@ class UserUpdateFormTests(TestCase):
 
 
 class ProfileUpdateFormTests(TestCase):
-    """Группирует тестовые сценарии класса `ProfileUpdateFormTests`."""
+    """Р“СЂСѓРїРїРёСЂСѓРµС‚ С‚РµСЃС‚РѕРІС‹Рµ СЃС†РµРЅР°СЂРёРё РєР»Р°СЃСЃР° `ProfileUpdateFormTests`."""
     @staticmethod
     def _image_upload(size=(20, 20)) -> SimpleUploadedFile:
-        """Создает тестовую PNG-картинку заданного размера."""
+        """РЎРѕР·РґР°РµС‚ С‚РµСЃС‚РѕРІСѓСЋ PNG-РєР°СЂС‚РёРЅРєСѓ Р·Р°РґР°РЅРЅРѕРіРѕ СЂР°Р·РјРµСЂР°."""
         image = Image.new("RGB", size, (10, 20, 30))
         buffer = io.BytesIO()
         image.save(buffer, format="PNG")
@@ -63,7 +64,7 @@ class ProfileUpdateFormTests(TestCase):
         return SimpleUploadedFile("avatar.png", buffer.read(), content_type="image/png")
 
     def test_clean_bio_strips_html_tags(self):
-        """Проверяет сценарий `test_clean_bio_strips_html_tags`."""
+        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_clean_bio_strips_html_tags`."""
         user = User.objects.create_user(username='bio_user', password='pass12345')
         profile = user.profile
         form = ProfileUpdateForm(
@@ -74,7 +75,7 @@ class ProfileUpdateFormTests(TestCase):
         self.assertEqual(form.cleaned_data['bio'], 'Hello alert(1)')
 
     def test_clean_image_rejects_too_large_dimensions(self):
-        """Отклоняет изображение, если хотя бы одна сторона превышает лимит."""
+        """РћС‚РєР»РѕРЅСЏРµС‚ РёР·РѕР±СЂР°Р¶РµРЅРёРµ, РµСЃР»Рё С…РѕС‚СЏ Р±С‹ РѕРґРЅР° СЃС‚РѕСЂРѕРЅР° РїСЂРµРІС‹С€Р°РµС‚ Р»РёРјРёС‚."""
         user = User.objects.create_user(username="image_too_large", password="pass12345")
         form = ProfileUpdateForm(
             data={"bio": "ok"},
@@ -85,7 +86,7 @@ class ProfileUpdateFormTests(TestCase):
         self.assertIn("image", form.errors)
 
     def test_clean_image_rejects_decompression_bomb(self):
-        """Отклоняет изображение при срабатывании защиты PIL от bomb-архивов."""
+        """РћС‚РєР»РѕРЅСЏРµС‚ РёР·РѕР±СЂР°Р¶РµРЅРёРµ РїСЂРё СЃСЂР°Р±Р°С‚С‹РІР°РЅРёРё Р·Р°С‰РёС‚С‹ PIL РѕС‚ bomb-Р°СЂС…РёРІРѕРІ."""
         user = User.objects.create_user(username="bomb_image", password="pass12345")
         with patch("users.forms.Image.open", side_effect=Image.DecompressionBombError):
             form = ProfileUpdateForm(
@@ -97,7 +98,7 @@ class ProfileUpdateFormTests(TestCase):
             self.assertIn("image", form.errors)
 
     def test_accepts_complete_avatar_crop_payload(self):
-        """Сохраняет валидный набор crop-метаданных аватарки."""
+        """РЎРѕС…СЂР°РЅСЏРµС‚ РІР°Р»РёРґРЅС‹Р№ РЅР°Р±РѕСЂ crop-РјРµС‚Р°РґР°РЅРЅС‹С… Р°РІР°С‚Р°СЂРєРё."""
         user = User.objects.create_user(username="crop_ok", password="pass12345")
         form = ProfileUpdateForm(
             data={
@@ -118,7 +119,7 @@ class ProfileUpdateFormTests(TestCase):
         self.assertEqual(profile.avatar_crop_height, 0.4)
 
     def test_rejects_partial_avatar_crop_payload(self):
-        """Отклоняет неполный набор crop-метаданных."""
+        """РћС‚РєР»РѕРЅСЏРµС‚ РЅРµРїРѕР»РЅС‹Р№ РЅР°Р±РѕСЂ crop-РјРµС‚Р°РґР°РЅРЅС‹С…."""
         user = User.objects.create_user(username="crop_partial", password="pass12345")
         form = ProfileUpdateForm(
             data={
@@ -133,7 +134,7 @@ class ProfileUpdateFormTests(TestCase):
         self.assertIn("image", form.errors)
 
     def test_rejects_out_of_bounds_avatar_crop_payload(self):
-        """Отклоняет crop-метаданные, выходящие за границы изображения."""
+        """РћС‚РєР»РѕРЅСЏРµС‚ crop-РјРµС‚Р°РґР°РЅРЅС‹Рµ, РІС‹С…РѕРґСЏС‰РёРµ Р·Р° РіСЂР°РЅРёС†С‹ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ."""
         user = User.objects.create_user(username="crop_bad", password="pass12345")
         form = ProfileUpdateForm(
             data={
@@ -148,3 +149,4 @@ class ProfileUpdateFormTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("image", form.errors)
+

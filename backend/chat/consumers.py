@@ -77,8 +77,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         """Выполняет логику `connect` с параметрами из сигнатуры."""
-        user = self.scope["user"]
-        room_slug = self.scope["url_route"]["kwargs"]["room_name"]
+        user = self.scope.get("user")
+        if user is None:
+            audit_ws_event("ws.connect.denied", self.scope, endpoint="chat", reason="missing_user", code=4401)
+            await self.close(code=4401)
+            return
+
+        room_slug = None
+        url_route = self.scope.get("url_route")
+        if isinstance(url_route, dict):
+            kwargs = url_route.get("kwargs")
+            if isinstance(kwargs, dict):
+                room_slug = kwargs.get("room_name")
+
+        if not isinstance(room_slug, str):
+            audit_ws_event("ws.connect.denied", self.scope, endpoint="chat", reason="invalid_slug", code=4404)
+            await self.close(code=4404)
+            return
 
         if await sync_to_async(_ws_connect_rate_limited)(self.scope, "chat"):
             audit_ws_event("ws.connect.denied", self.scope, endpoint="chat", reason="rate_limited", code=4429)
@@ -103,7 +118,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         self.room = room
         self.room_name = room.slug
-        room_identifier = room.id if getattr(room, "id", None) else room.slug
+        room_identifier = room.pk if getattr(room, "pk", None) else room.slug
         self.room_group_name = f"chat_room_{room_identifier}"
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
@@ -115,7 +130,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.chat_idle_timeout > 0:
             self._idle_task = asyncio.create_task(self._idle_watchdog())
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, code):
         """Выполняет логику `disconnect` с параметрами из сигнатуры."""
         idle_task = getattr(self, "_idle_task", None)
         if idle_task:
@@ -127,32 +142,66 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if hasattr(self, "room_group_name"):
             await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        audit_ws_event(
+            "ws.disconnect",
+            self.scope,
+            endpoint="chat",
+            code=code,
+            room_slug=getattr(self, "room_name", None),
+        )
 
-    async def receive(self, text_data):
+    async def receive(self, text_data=None, bytes_data=None):
         """Выполняет логику `receive` с параметрами из сигнатуры."""
         self._last_activity = time.monotonic()
+        if text_data is None and bytes_data is not None:
+            try:
+                text_data = bytes_data.decode("utf-8")
+            except UnicodeDecodeError:
+                audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_payload")
+                return
+        if text_data is None:
+            return
         try:
             text_data_json = json.loads(text_data)
         except json.JSONDecodeError:
+            audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_json")
             return
 
         message = text_data_json.get("message", "")
         if not isinstance(message, str):
+            audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_payload")
             return
         message = message.strip()
         if not message:
+            audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="empty_message")
             return
 
         max_len = int(getattr(settings, "CHAT_MESSAGE_MAX_LENGTH", 1000))
         if len(message) > max_len:
+            audit_ws_event(
+                "ws.message.rejected",
+                self.scope,
+                endpoint="chat",
+                reason="message_too_long",
+                room_slug=self.room.slug,
+                message_length=len(message),
+            )
             await self.send(text_data=json.dumps({"error": "message_too_long"}))
             return
 
-        user = self.scope["user"]
-        if not user.is_authenticated:
+        user = self.scope.get("user")
+        if user is None or not getattr(user, "is_authenticated", False):
+            audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="unauthorized")
             return
 
         if not await self._can_write(self.room, user):
+            audit_ws_event(
+                "ws.message.rejected",
+                self.scope,
+                endpoint="chat",
+                reason="forbidden",
+                room_slug=self.room.slug,
+            )
             await self.send(text_data=json.dumps({"error": "forbidden"}))
             return
 
@@ -161,7 +210,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({"error": "rate_limited"}))
             return
 
-        username = user.username
+        username = getattr(user, "username", "")
+        if not username:
+            audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_user")
+            return
         room_slug = self.room.slug
 
         profile_name, avatar_crop = await self._get_profile_avatar_state(user)
@@ -169,6 +221,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         saved_message = await self.save_message(message, user, username, profile_name, self.room)
         created_at = saved_message.date_added.isoformat()
+        audit_ws_event(
+            "ws.message.sent",
+            self.scope,
+            endpoint="chat",
+            room_slug=self.room.slug,
+            message_length=len(message),
+        )
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -183,9 +242,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         if self.room.kind == Room.Kind.DIRECT:
+            sender_id = getattr(user, "pk", None)
+            if sender_id is None:
+                return
             targets = await self._build_direct_inbox_targets(
-                room_id=self.room.id,
-                sender_id=user.id,
+                room_id=self.room.pk,
+                sender_id=int(sender_id),
                 message=message,
                 created_at=created_at,
             )
@@ -293,7 +355,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """Checks chat message rate limit for the current user."""
         limit = int(getattr(settings, "CHAT_MESSAGE_RATE_LIMIT", 20))
         window = int(getattr(settings, "CHAT_MESSAGE_RATE_WINDOW", 10))
-        scope_key = f"rl:chat:message:{user.id}"
+        scope_key = f"rl:chat:message:{user.pk}"
         policy = RateLimitPolicy(limit=limit, window_seconds=window)
         return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
 
@@ -324,11 +386,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             user = role.user
             if not user:
                 continue
-            if pair_user_ids and user.id not in pair_user_ids:
+            if pair_user_ids and user.pk not in pair_user_ids:
                 continue
-            if user.id in seen_user_ids:
+            if user.pk in seen_user_ids:
                 continue
-            seen_user_ids.add(user.id)
+            seen_user_ids.add(user.pk)
             participants.append(user)
 
         if pair_user_ids and len(participants) < len(pair_user_ids):
@@ -336,14 +398,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if missing_ids:
                 for user in User.objects.filter(id__in=missing_ids).select_related("profile"):
                     participants.append(user)
-                    seen_user_ids.add(user.id)
+                    seen_user_ids.add(user.pk)
 
         if not participants:
             return []
 
         targets = []
         for participant in participants:
-            peer = next((candidate for candidate in participants if candidate.id != participant.id), None)
+            peer = next((candidate for candidate in participants if candidate.pk != participant.pk), None)
             peer_image_name = ""
             peer_avatar_crop = None
             if peer:
@@ -352,10 +414,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 peer_image_name = getattr(peer_image, "name", "") or ""
                 peer_avatar_crop = serialize_avatar_crop(peer_profile)
 
-            if participant.id == sender_id or is_room_active(participant.id, room.slug):
-                unread_state = mark_read(participant.id, room.slug, self.direct_inbox_unread_ttl)
+            if participant.pk == sender_id or is_room_active(participant.pk, room.slug):
+                unread_state = mark_read(participant.pk, room.slug, self.direct_inbox_unread_ttl)
             else:
-                unread_state = mark_unread(participant.id, room.slug, self.direct_inbox_unread_ttl)
+                unread_state = mark_unread(participant.pk, room.slug, self.direct_inbox_unread_ttl)
 
             slugs = unread_state.get("slugs", [])
             raw_counts = unread_state.get("counts", {})
@@ -383,7 +445,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "counts": counts,
                 },
             }
-            targets.append({"group": user_group_name(participant.id), "payload": payload})
+            targets.append({"group": user_group_name(participant.pk), "payload": payload})
         return targets
 
 
@@ -409,7 +471,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
 
         self.user = user
         self.conn_id = uuid.uuid4().hex
-        self.group_name = user_group_name(user.id)
+        self.group_name = user_group_name(user.pk)
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -423,7 +485,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
 
         await self._send_unread_state()
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, code):
         """Выполняет логику `disconnect` с параметрами из сигнатуры."""
         for task_name in ("_heartbeat_task", "_idle_task"):
             task = getattr(self, task_name, None)
@@ -441,6 +503,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
 
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        audit_ws_event("ws.disconnect", self.scope, endpoint="direct_inbox", code=code)
 
     async def receive(self, text_data=None, bytes_data=None):
         """Выполняет логику `receive` с параметрами из сигнатуры."""
@@ -451,6 +514,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
         try:
             payload = json.loads(text_data)
         except json.JSONDecodeError:
+            audit_ws_event("ws.direct_inbox.rejected", self.scope, endpoint="direct_inbox", reason="invalid_json")
             return
 
         event_type = payload.get("type")
@@ -462,41 +526,99 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             raw_slug = payload.get("roomSlug")
             if raw_slug is None:
                 await self._clear_active_room(conn_only=True)
+                audit_ws_event(
+                    "ws.direct_inbox.set_active_room.success",
+                    self.scope,
+                    endpoint="direct_inbox",
+                    room_slug=None,
+                )
                 return
             if not isinstance(raw_slug, str):
+                audit_ws_event(
+                    "ws.direct_inbox.set_active_room.rejected",
+                    self.scope,
+                    endpoint="direct_inbox",
+                    reason="invalid_payload",
+                )
                 await self._send_error("invalid_payload")
                 return
 
             room_slug = raw_slug.strip()
             if not _is_valid_room_slug(room_slug):
+                audit_ws_event(
+                    "ws.direct_inbox.set_active_room.rejected",
+                    self.scope,
+                    endpoint="direct_inbox",
+                    reason="forbidden",
+                    room_slug=room_slug,
+                )
                 await self._send_error("forbidden")
                 return
 
             room = await self._load_room(room_slug)
             if not room or room.kind != Room.Kind.DIRECT or not await self._can_read(room):
+                audit_ws_event(
+                    "ws.direct_inbox.set_active_room.rejected",
+                    self.scope,
+                    endpoint="direct_inbox",
+                    reason="forbidden",
+                    room_slug=room_slug,
+                )
                 await self._send_error("forbidden")
                 return
 
             await self._set_active_room(room_slug)
+            audit_ws_event(
+                "ws.direct_inbox.set_active_room.success",
+                self.scope,
+                endpoint="direct_inbox",
+                room_slug=room_slug,
+            )
             return
 
         if event_type == "mark_read":
             raw_slug = payload.get("roomSlug")
             if not isinstance(raw_slug, str):
+                audit_ws_event(
+                    "ws.direct_inbox.mark_read.rejected",
+                    self.scope,
+                    endpoint="direct_inbox",
+                    reason="invalid_payload",
+                )
                 await self._send_error("invalid_payload")
                 return
 
             room_slug = raw_slug.strip()
             if not _is_valid_room_slug(room_slug):
+                audit_ws_event(
+                    "ws.direct_inbox.mark_read.rejected",
+                    self.scope,
+                    endpoint="direct_inbox",
+                    reason="forbidden",
+                    room_slug=room_slug,
+                )
                 await self._send_error("forbidden")
                 return
 
             room = await self._load_room(room_slug)
             if not room or room.kind != Room.Kind.DIRECT or not await self._can_read(room):
+                audit_ws_event(
+                    "ws.direct_inbox.mark_read.rejected",
+                    self.scope,
+                    endpoint="direct_inbox",
+                    reason="forbidden",
+                    room_slug=room_slug,
+                )
                 await self._send_error("forbidden")
                 return
 
             unread = await self._mark_read(room_slug)
+            audit_ws_event(
+                "ws.direct_inbox.mark_read.success",
+                self.scope,
+                endpoint="direct_inbox",
+                room_slug=room_slug,
+            )
             await self.send(
                 text_data=json.dumps(
                     {
@@ -506,6 +628,15 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                     }
                 )
             )
+            return
+
+        audit_ws_event(
+            "ws.direct_inbox.rejected",
+            self.scope,
+            endpoint="direct_inbox",
+            reason="unsupported_event",
+            event_type=event_type,
+        )
 
     async def direct_inbox_event(self, event):
         """Выполняет логику `direct_inbox_event` с параметрами из сигнатуры."""
@@ -570,27 +701,27 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
     @sync_to_async
     def _get_unread_state(self):
         """Выполняет логику `_get_unread_state` с параметрами из сигнатуры."""
-        return get_unread_state(self.user.id)
+        return get_unread_state(self.user.pk)
 
     @sync_to_async
     def _mark_read(self, room_slug: str):
         """Выполняет логику `_mark_read` с параметрами из сигнатуры."""
-        return mark_read(self.user.id, room_slug, self.unread_ttl)
+        return mark_read(self.user.pk, room_slug, self.unread_ttl)
 
     @sync_to_async
     def _set_active_room(self, room_slug: str):
         """Выполняет логику `_set_active_room` с параметрами из сигнатуры."""
-        set_active_room(self.user.id, room_slug, self.conn_id, self.active_ttl)
+        set_active_room(self.user.pk, room_slug, self.conn_id, self.active_ttl)
 
     @sync_to_async
     def _clear_active_room(self, conn_only: bool = False):
         """Выполняет логику `_clear_active_room` с параметрами из сигнатуры."""
-        clear_active_room(self.user.id, self.conn_id if conn_only else None)
+        clear_active_room(self.user.pk, self.conn_id if conn_only else None)
 
     @sync_to_async
     def _touch_active_room(self):
         """Выполняет логику `_touch_active_room` с параметрами из сигнатуры."""
-        touch_active_room(self.user.id, self.conn_id, self.active_ttl)
+        touch_active_room(self.user.pk, self.conn_id, self.active_ttl)
 
 
 class PresenceConsumer(AsyncWebsocketConsumer):
@@ -640,7 +771,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             await self._add_user(user)
         await self._broadcast()
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, code):
         """Выполняет логику `disconnect` с параметрами из сигнатуры."""
         for task_name in ("_heartbeat_task", "_idle_task"):
             task = getattr(self, task_name, None)
@@ -653,7 +784,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
                 pass
 
         user = self.scope.get("user")
-        graceful = close_code in (1000, 1001)
+        graceful = code in (1000, 1001)
         if self.is_guest:
             await self._remove_guest(self.guest_key, graceful=graceful)
         elif user and user.is_authenticated:
@@ -661,6 +792,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
 
         await self._broadcast()
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        audit_ws_event("ws.disconnect", self.scope, endpoint="presence", code=code)
 
     async def receive(self, text_data=None, bytes_data=None):
         """Выполняет логику `receive` с параметрами из сигнатуры."""
@@ -671,8 +803,16 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         try:
             payload = json.loads(text_data)
         except json.JSONDecodeError:
+            audit_ws_event("ws.presence.rejected", self.scope, endpoint="presence", reason="invalid_json")
             return
         if payload.get("type") != "ping":
+            audit_ws_event(
+                "ws.presence.rejected",
+                self.scope,
+                endpoint="presence",
+                reason="unsupported_event",
+                event_type=payload.get("type"),
+            )
             return
 
         if now < self._next_presence_touch_at:

@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false
 """Содержит тесты модуля `test_consumers_direct_inbox` подсистемы `chat`."""
 
 
@@ -32,7 +33,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
             slug='dm_direct_inbox',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
         ChatRole.objects.create(
@@ -54,7 +55,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
             slug='dm_unrelated_inbox',
             name='dm2',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.member.id}:{self.other.id}',
+            direct_pair_key=f'{self.member.pk}:{self.other.pk}',
             created_by=self.member,
         )
         ChatRole.objects.create(
@@ -124,7 +125,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
 
     def test_authenticated_user_receives_initial_unread_state(self):
         """Проверяет сценарий `test_authenticated_user_receives_initial_unread_state`."""
-        mark_unread(self.member.id, self.direct_room.slug, ttl_seconds=60)
+        mark_unread(self.member.pk, self.direct_room.slug, ttl_seconds=60)
 
         async def run():
             """Проверяет сценарий `run`."""
@@ -143,8 +144,8 @@ class DirectInboxConsumerTests(TransactionTestCase):
 
     def test_mark_read_decreases_unread_dialogs(self):
         """Проверяет сценарий `test_mark_read_decreases_unread_dialogs`."""
-        mark_unread(self.member.id, self.direct_room.slug, ttl_seconds=60)
-        mark_unread(self.member.id, self.unrelated_room.slug, ttl_seconds=60)
+        mark_unread(self.member.pk, self.direct_room.slug, ttl_seconds=60)
+        mark_unread(self.member.pk, self.unrelated_room.slug, ttl_seconds=60)
 
         async def run():
             """Проверяет сценарий `run`."""
