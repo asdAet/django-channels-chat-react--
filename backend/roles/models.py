@@ -28,6 +28,13 @@ from .permissions import (
 class Role(models.Model):
     """A named role with a permission bitmask, scoped to a room."""
 
+    EVERYONE = "@everyone"
+    VIEWER = "Viewer"
+    MEMBER = "Member"
+    MODERATOR = "Moderator"
+    ADMIN = "Admin"
+    OWNER = "Owner"
+
     room = models.ForeignKey(
         Room,
         on_delete=models.CASCADE,
@@ -90,12 +97,12 @@ class Role(models.Model):
             everyone_perms = int(EVERYONE_PRIVATE)
 
         defaults = [
-            ("@everyone", 0, everyone_perms, True),
-            ("Viewer", 10, int(PRESET_VIEWER), False),
-            ("Member", 20, int(PRESET_MEMBER), False),
-            ("Moderator", 40, int(PRESET_MODERATOR), False),
-            ("Admin", 60, int(PRESET_ADMIN), False),
-            ("Owner", 80, int(PRESET_OWNER), False),
+            (cls.EVERYONE, 0, everyone_perms, True),
+            (cls.VIEWER, 10, int(PRESET_VIEWER), False),
+            (cls.MEMBER, 20, int(PRESET_MEMBER), False),
+            (cls.MODERATOR, 40, int(PRESET_MODERATOR), False),
+            (cls.ADMIN, 60, int(PRESET_ADMIN), False),
+            (cls.OWNER, 80, int(PRESET_OWNER), False),
         ]
 
         created = {}

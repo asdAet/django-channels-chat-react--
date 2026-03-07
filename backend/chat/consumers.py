@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import re
 import time
 
 from asgiref.sync import sync_to_async
@@ -28,14 +27,7 @@ from roles.models import Membership
 from rooms.models import Room
 
 from .constants import CHAT_CLOSE_IDLE_CODE, PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
-
-
-def _is_valid_room_slug(value: str) -> bool:
-    pattern = getattr(settings, "CHAT_ROOM_SLUG_REGEX", r"^[A-Za-z0-9_-]{3,50}$")
-    try:
-        return bool(re.match(pattern, value or ""))
-    except re.error:
-        return False
+from .utils import is_valid_room_slug as _is_valid_room_slug
 
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:

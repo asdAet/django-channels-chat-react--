@@ -149,20 +149,27 @@ def join_via_invite(actor, invite_code: str) -> dict:
     room = invite.room
     group_rules.ensure_is_group(room)
 
-    # Check if already a member
-    existing = Membership.objects.filter(room=room, user=actor).first()
-    if existing:
-        if existing.is_banned:
-            raise GroupForbiddenError("You are banned from this group")
-        return {"roomSlug": room.slug, "status": "already_member"}
-
-    # Check max members
-    if room.member_count >= room.max_members:
-        raise GroupError("This group has reached its member limit")
-
     with transaction.atomic():
+        # Lock invite and room to prevent race conditions
+        invite = InviteLink.objects.select_for_update().get(pk=invite.pk)
+        if invite.is_expired:
+            raise GroupError("This invite link has expired")
+
+        existing = Membership.objects.select_for_update().filter(
+            room=room, user=actor
+        ).first()
+        if existing:
+            if existing.is_banned:
+                raise GroupForbiddenError("You are banned from this group")
+            return {"roomSlug": room.slug, "status": "already_member"}
+
+        room = Room.objects.select_for_update().get(pk=room.pk)
+        if room.member_count >= room.max_members:
+            raise GroupError("This group has reached its member limit")
+
         # Increment use count
-        InviteLink.objects.filter(pk=invite.pk).update(use_count=F("use_count") + 1)
+        invite.use_count = F("use_count") + 1
+        invite.save(update_fields=["use_count"])
 
         if room.join_approval_required:
             JoinRequest.objects.update_or_create(
@@ -174,7 +181,7 @@ def join_via_invite(actor, invite_code: str) -> dict:
             status = "pending"
         else:
             membership = Membership.objects.create(room=room, user=actor)
-            member_role = Role.objects.filter(room=room, name="Member").first()
+            member_role = Role.objects.filter(room=room, name=Role.MEMBER).first()
             if member_role:
                 membership.roles.add(member_role)
             Room.objects.filter(pk=room.pk).update(member_count=F("member_count") + 1)

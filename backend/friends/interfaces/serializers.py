@@ -5,26 +5,21 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from friends.models import Friendship
+from friends.utils import get_from_user_id, get_to_user_id
 
 
-def _friend_to_user_id(obj: Friendship) -> int:
-    to_user_id = getattr(obj, "to_user_id", None)
-    if to_user_id is not None:
-        return int(to_user_id)
-    to_user_pk = getattr(getattr(obj, "to_user", None), "pk", None)
-    if to_user_pk is None:
-        raise ValueError("Friendship recipient id is missing")
-    return int(to_user_pk)
-
-
-def _friend_from_user_id(obj: Friendship) -> int:
-    from_user_id = getattr(obj, "from_user_id", None)
-    if from_user_id is not None:
-        return int(from_user_id)
-    from_user_pk = getattr(getattr(obj, "from_user", None), "pk", None)
-    if from_user_pk is None:
+def _require_from_user_id(obj: Friendship) -> int:
+    uid = get_from_user_id(obj)
+    if uid is None:
         raise ValueError("Friendship sender id is missing")
-    return int(from_user_pk)
+    return uid
+
+
+def _require_to_user_id(obj: Friendship) -> int:
+    uid = get_to_user_id(obj)
+    if uid is None:
+        raise ValueError("Friendship recipient id is missing")
+    return uid
 
 
 class _UserBriefSerializer(serializers.Serializer):
@@ -42,7 +37,7 @@ class FriendOutputSerializer(serializers.ModelSerializer):
         fields = ("id", "user", "created_at")
 
     def get_user(self, obj: Friendship) -> dict:
-        return {"id": _friend_to_user_id(obj), "username": obj.to_user.username}
+        return {"id": _require_to_user_id(obj), "username": obj.to_user.username}
 
 
 class IncomingRequestOutputSerializer(serializers.ModelSerializer):
@@ -55,7 +50,7 @@ class IncomingRequestOutputSerializer(serializers.ModelSerializer):
         fields = ("id", "user", "created_at")
 
     def get_user(self, obj: Friendship) -> dict:
-        return {"id": _friend_from_user_id(obj), "username": obj.from_user.username}
+        return {"id": _require_from_user_id(obj), "username": obj.from_user.username}
 
 
 class OutgoingRequestOutputSerializer(serializers.ModelSerializer):
@@ -68,7 +63,7 @@ class OutgoingRequestOutputSerializer(serializers.ModelSerializer):
         fields = ("id", "user", "created_at")
 
     def get_user(self, obj: Friendship) -> dict:
-        return {"id": _friend_to_user_id(obj), "username": obj.to_user.username}
+        return {"id": _require_to_user_id(obj), "username": obj.to_user.username}
 
 
 class UsernameInputSerializer(serializers.Serializer):

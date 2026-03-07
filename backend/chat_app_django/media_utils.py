@@ -9,7 +9,7 @@ from urllib.parse import quote, urlencode, urlparse
 
 from django.conf import settings
 
-INTERNAL_HOSTNAMES = {
+_DEFAULT_INTERNAL_HOSTNAMES = {
     "localhost",
     "backend",
     "backend-1",
@@ -21,6 +21,10 @@ INTERNAL_HOSTNAMES = {
     "app-nginx-1",
     "0.0.0.0",
 }
+
+INTERNAL_HOSTNAMES: set[str] = set(
+    getattr(settings, "MEDIA_INTERNAL_HOSTNAMES", _DEFAULT_INTERNAL_HOSTNAMES)
+)
 
 
 def serialize_avatar_crop(profile) -> dict[str, float] | None:

@@ -1,5 +1,6 @@
 """REST API views for the groups subsystem."""
 
+from functools import wraps
 from typing import Any, cast
 
 from rest_framework import status as http_status
@@ -49,6 +50,7 @@ def _validated_data(serializer: Any) -> dict[str, Any]:
 
 def _handle_group_errors(func):
     """Decorator to handle common group service errors."""
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -60,8 +62,6 @@ def _handle_group_errors(func):
             return _error(str(exc), http_status.HTTP_409_CONFLICT)
         except (GroupError, ValueError) as exc:
             return _error(str(exc), http_status.HTTP_400_BAD_REQUEST)
-    wrapper.__name__ = func.__name__
-    wrapper.__module__ = func.__module__
     return wrapper
 
 
@@ -220,8 +220,10 @@ def unmute_member(request, slug, user_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def list_banned(request, slug):
-    items = member_service.list_banned(request.user, slug)
-    return Response({"items": items})
+    page = int(request.query_params.get("page", 1))
+    page_size = int(request.query_params.get("pageSize", 50))
+    data = member_service.list_banned(request.user, slug, page=page, page_size=page_size)
+    return Response(data)
 
 
 # ── Invite Links ───────────────────────────────────────────────────────

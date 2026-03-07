@@ -1,22 +1,7 @@
 from django.contrib import admin
 
 from .models import Friendship
-
-
-def _friend_from_user_id(obj: Friendship) -> int | None:
-    from_user_id = getattr(obj, "from_user_id", None)
-    if from_user_id is not None:
-        return int(from_user_id)
-    from_user_pk = getattr(getattr(obj, "from_user", None), "pk", None)
-    return int(from_user_pk) if from_user_pk is not None else None
-
-
-def _friend_to_user_id(obj: Friendship) -> int | None:
-    to_user_id = getattr(obj, "to_user_id", None)
-    if to_user_id is not None:
-        return int(to_user_id)
-    to_user_pk = getattr(getattr(obj, "to_user", None), "pk", None)
-    return int(to_user_pk) if to_user_pk is not None else None
+from .utils import get_from_user_id, get_to_user_id
 
 
 @admin.register(Friendship)
@@ -41,11 +26,11 @@ class FriendshipAdmin(admin.ModelAdmin):
 
     @admin.display(description="From user id")
     def from_user_id_value(self, obj: Friendship) -> int | None:
-        return _friend_from_user_id(obj)
+        return get_from_user_id(obj)
 
     @admin.display(description="To user id")
     def to_user_id_value(self, obj: Friendship) -> int | None:
-        return _friend_to_user_id(obj)
+        return get_to_user_id(obj)
 
     def _set_status(self, queryset, status: str) -> int:
         updated = 0

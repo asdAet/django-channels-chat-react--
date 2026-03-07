@@ -65,7 +65,7 @@ def ensure_room_owner(room: Room) -> None:
     """Ensure the room creator has Owner membership."""
     if not room.created_by:
         return
-    ensure_membership(room, room.created_by, role_name="Owner")
+    ensure_membership(room, room.created_by, role_name=Role.OWNER)
 
 
 def ensure_direct_memberships(room: Room, initiator, peer) -> None:

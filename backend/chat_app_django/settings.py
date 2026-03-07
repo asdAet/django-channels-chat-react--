@@ -260,20 +260,19 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 LOGIN_REDIRECT_URL = "chat-home"
 LOGIN_URL = "login"
 
+_DEV_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
-    [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    _DEV_ORIGINS if DEBUG else [],
 )
 
 CORS_ALLOWED_ORIGINS = env_list(
     "DJANGO_CORS_ALLOWED_ORIGINS",
-    [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    _DEV_ORIGINS if DEBUG else [],
 )
 CORS_ALLOW_CREDENTIALS = env_bool("DJANGO_CORS_ALLOW_CREDENTIALS", True)
 CORS_URLS_REGEX = r"^/api/.*$"

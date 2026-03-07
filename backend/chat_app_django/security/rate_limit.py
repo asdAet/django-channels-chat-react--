@@ -30,6 +30,8 @@ class RateLimitPolicy:
 class DbRateLimiter:
     """Инкапсулирует атомарное rate-limit состояние в таблице БД."""
 
+    _MAX_RETRIES = 3
+
     @classmethod
     def is_limited(cls, scope_key: str, policy: RateLimitPolicy) -> bool:
         """Проверяет и увеличивает счетчик для ключа, возвращая факт блокировки."""
@@ -39,41 +41,45 @@ class DbRateLimiter:
 
         limit = policy.normalized_limit()
         window = policy.normalized_window()
-        now = timezone.now()
-        next_reset_at = now + timedelta(seconds=window)
 
-        try:
-            with transaction.atomic():
-                bucket = (
-                    SecurityRateLimitBucket.objects.select_for_update()
-                    .filter(scope_key=scope_key)
-                    .first()
-                )
-
-                if bucket is None:
-                    SecurityRateLimitBucket.objects.create(
-                        scope_key=scope_key,
-                        count=1,
-                        reset_at=next_reset_at,
+        for _attempt in range(cls._MAX_RETRIES):
+            now = timezone.now()
+            next_reset_at = now + timedelta(seconds=window)
+            try:
+                with transaction.atomic():
+                    bucket = (
+                        SecurityRateLimitBucket.objects.select_for_update()
+                        .filter(scope_key=scope_key)
+                        .first()
                     )
+
+                    if bucket is None:
+                        SecurityRateLimitBucket.objects.create(
+                            scope_key=scope_key,
+                            count=1,
+                            reset_at=next_reset_at,
+                        )
+                        return False
+
+                    if bucket.reset_at <= now:
+                        bucket.count = 1
+                        bucket.reset_at = next_reset_at
+                        bucket.save(update_fields=["count", "reset_at", "updated_at"])
+                        return False
+
+                    if bucket.count >= limit:
+                        return True
+
+                    bucket.count += 1
+                    bucket.save(update_fields=["count", "updated_at"])
                     return False
+            except IntegrityError:
+                # При гонке повторяем (ограничено _MAX_RETRIES).
+                continue
+            except Exception:
+                # Security-критичный fail-closed.
+                return True
 
-                if bucket.reset_at <= now:
-                    bucket.count = 1
-                    bucket.reset_at = next_reset_at
-                    bucket.save(update_fields=["count", "reset_at", "updated_at"])
-                    return False
-
-                if bucket.count >= limit:
-                    return True
-
-                bucket.count += 1
-                bucket.save(update_fields=["count", "updated_at"])
-                return False
-        except IntegrityError:
-            # При гонке повторяем путь чтения/обновления.
-            return cls.is_limited(scope_key, policy)
-        except Exception:
-            # Security-критичный fail-closed.
-            return True
+        # Все попытки исчерпаны — fail-closed.
+        return True
 

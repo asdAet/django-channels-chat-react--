@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import re
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -15,6 +14,7 @@ from django.conf import settings
 from chat_app_django.ip_utils import get_client_ip_from_scope
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
+from chat.utils import is_valid_room_slug as _is_valid_room_slug
 from roles.access import can_read
 from rooms.models import Room
 
@@ -33,14 +33,6 @@ T = TypeVar("T")
 
 def _to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
     return cast(Callable[..., Awaitable[T]], sync_to_async(func, thread_sensitive=True))
-
-
-def _is_valid_room_slug(value: str) -> bool:
-    pattern = getattr(settings, "CHAT_ROOM_SLUG_REGEX", r"^[A-Za-z0-9_-]{3,50}$")
-    try:
-        return bool(re.match(pattern, value or ""))
-    except re.error:
-        return False
 
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:

@@ -16,6 +16,8 @@ from groups.application.group_service import (
     _ensure_authenticated,
     _load_group_or_raise,
 )
+from django.contrib.auth import get_user_model
+
 from groups.infrastructure.models import JoinRequest
 from roles.application.permission_service import (
     compute_permissions,
@@ -26,6 +28,8 @@ from roles.domain.rules import can_manage_target
 from roles.models import Membership, Role
 from roles.permissions import Perm
 from rooms.models import Room
+
+User = get_user_model()
 
 
 def _get_membership_or_raise(room: Room, user) -> Membership:
@@ -59,16 +63,19 @@ def join_group(actor, room_slug: str) -> Membership:
     if not room.is_public:
         raise GroupForbiddenError("This group requires an invite link to join")
 
-    existing = Membership.objects.filter(room=room, user=actor).first()
-    if existing:
-        if existing.is_banned:
-            raise GroupForbiddenError("You are banned from this group")
-        return existing  # already a member
-
-    if room.member_count >= room.max_members:
-        raise GroupError("This group has reached its member limit")
-
     with transaction.atomic():
+        existing = Membership.objects.select_for_update().filter(
+            room=room, user=actor
+        ).first()
+        if existing:
+            if existing.is_banned:
+                raise GroupForbiddenError("You are banned from this group")
+            return existing  # already a member
+
+        room = Room.objects.select_for_update().get(pk=room.pk)
+        if room.member_count >= room.max_members:
+            raise GroupError("This group has reached its member limit")
+
         if room.join_approval_required:
             JoinRequest.objects.update_or_create(
                 room=room,
@@ -78,7 +85,7 @@ def join_group(actor, room_slug: str) -> Membership:
             raise GroupError("Your join request has been submitted for approval")
 
         membership = Membership.objects.create(room=room, user=actor)
-        member_role = Role.objects.filter(room=room, name="Member").first()
+        member_role = Role.objects.filter(room=room, name=Role.MEMBER).first()
         if member_role:
             membership.roles.add(member_role)
         Room.objects.filter(pk=room.pk).update(member_count=F("member_count") + 1)
@@ -102,7 +109,7 @@ def leave_group(actor, room_slug: str) -> None:
     membership = _get_membership_or_raise(room, actor)
 
     # Check if actor is the owner
-    owner_role = Role.objects.filter(room=room, name="Owner").first()
+    owner_role = Role.objects.filter(room=room, name=Role.OWNER).first()
     if owner_role and membership.roles.filter(pk=owner_role.pk).exists():
         raise GroupError("Owner must transfer ownership before leaving")
 
@@ -175,7 +182,9 @@ def ban_member(
         room=room, user_id=int(target_user_id)
     ).first()
     if not target_membership:
-        # Create a banned membership to prevent rejoining
+        # Validate target user exists before creating pre-emptive ban
+        if not User.objects.filter(pk=int(target_user_id)).exists():
+            raise GroupNotFoundError("User not found")
         target_membership = Membership.objects.create(
             room=room,
             user_id=int(target_user_id),
@@ -238,6 +247,8 @@ def unban_member(actor, room_slug: str, target_user_id: int) -> None:
     membership.ban_reason = ""
     membership.banned_by = None
     membership.save(update_fields=["is_banned", "ban_reason", "banned_by"])
+
+    Room.objects.filter(pk=room.pk).update(member_count=F("member_count") + 1)
 
     audit_security_event(
         "group.member.unbanned",
@@ -366,7 +377,9 @@ def list_members(
     }
 
 
-def list_banned(actor, room_slug: str) -> list[dict]:
+def list_banned(
+    actor, room_slug: str, *, page: int = 1, page_size: int = 50
+) -> dict:
     """List banned members. Requires BAN_MEMBERS permission."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_slug)
@@ -374,20 +387,30 @@ def list_banned(actor, room_slug: str) -> list[dict]:
     if not has_permission(room, actor, Perm.BAN_MEMBERS):
         raise GroupForbiddenError("Missing BAN_MEMBERS permission")
 
-    banned = (
+    qs = (
         Membership.objects.filter(room=room, is_banned=True)
         .select_related("user", "banned_by")
         .order_by("-joined_at")
     )
-    return [
-        {
-            "userId": m.user_id,
-            "username": m.user.username,
-            "reason": m.ban_reason,
-            "bannedBy": m.banned_by.username if m.banned_by else None,
-        }
-        for m in banned
-    ]
+
+    total = qs.count()
+    offset = (max(1, page) - 1) * page_size
+    banned = list(qs[offset : offset + page_size])
+
+    return {
+        "items": [
+            {
+                "userId": m.user_id,
+                "username": m.user.username,
+                "reason": m.ban_reason,
+                "bannedBy": m.banned_by.username if m.banned_by else None,
+            }
+            for m in banned
+        ],
+        "total": total,
+        "page": page,
+        "pageSize": page_size,
+    }
 
 
 def approve_join_request(actor, room_slug: str, request_id: int) -> Membership:
@@ -413,17 +436,18 @@ def approve_join_request(actor, room_slug: str, request_id: int) -> Membership:
         membership, created = Membership.objects.get_or_create(
             room=room, user=join_req.user
         )
-        if membership.is_banned:
+        was_banned = membership.is_banned
+        if was_banned:
             membership.is_banned = False
             membership.ban_reason = ""
             membership.banned_by = None
             membership.save(update_fields=["is_banned", "ban_reason", "banned_by"])
 
-        member_role = Role.objects.filter(room=room, name="Member").first()
+        member_role = Role.objects.filter(room=room, name=Role.MEMBER).first()
         if member_role:
             membership.roles.add(member_role)
 
-        if created:
+        if created or was_banned:
             Room.objects.filter(pk=room.pk).update(
                 member_count=F("member_count") + 1
             )

@@ -1,7 +1,5 @@
 """API endpoints for the chat subsystem."""
 
-import re
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, OperationalError, ProgrammingError, transaction
@@ -95,12 +93,7 @@ def _public_room():
         return Room(slug=PUBLIC_ROOM_SLUG, name=PUBLIC_ROOM_NAME, kind=Room.Kind.PUBLIC)
 
 
-def _is_valid_room_slug(slug: str) -> bool:
-    pattern = getattr(settings, "CHAT_ROOM_SLUG_REGEX", r"^[A-Za-z0-9_-]{3,50}$")
-    try:
-        return bool(re.match(pattern, slug or ""))
-    except re.error:
-        return False
+from chat.utils import is_valid_room_slug as _is_valid_room_slug
 
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:

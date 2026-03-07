@@ -40,8 +40,8 @@ def transfer_ownership(actor, room_slug: str, new_owner_user_id: int) -> None:
     if not actor_membership:
         raise GroupError("You are not a member of this group")
 
-    owner_role = Role.objects.filter(room=room, name="Owner").first()
-    admin_role = Role.objects.filter(room=room, name="Admin").first()
+    owner_role = Role.objects.filter(room=room, name=Role.OWNER).first()
+    admin_role = Role.objects.filter(room=room, name=Role.ADMIN).first()
 
     if not owner_role:
         raise GroupError("Owner role not found")
@@ -52,8 +52,7 @@ def transfer_ownership(actor, room_slug: str, new_owner_user_id: int) -> None:
         if admin_role:
             actor_membership.roles.add(admin_role)
 
-        # Remove all roles from new owner, add Owner
-        new_owner_membership.roles.clear()
+        # Add Owner role to new owner (keep existing roles)
         new_owner_membership.roles.add(owner_role)
 
         # Update room created_by

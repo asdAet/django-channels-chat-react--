@@ -19,9 +19,9 @@ from django.utils import timezone
 from chat.constants import CHAT_CLOSE_IDLE_CODE
 from chat.consumers import (
     ChatConsumer,
-    _is_valid_room_slug,
     _ws_connect_rate_limited,
 )
+from chat.utils import is_valid_room_slug as _is_valid_room_slug
 from direct_inbox.consumers import DirectInboxConsumer
 from presence.constants import PRESENCE_CLOSE_IDLE_CODE
 from presence.consumers import PresenceConsumer

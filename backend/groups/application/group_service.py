@@ -12,6 +12,8 @@ from roles.models import Membership, Role
 from roles.permissions import Perm
 from rooms.models import Room
 
+_UNSET = object()
+
 
 class GroupError(Exception):
     pass
@@ -73,6 +75,9 @@ def create_group(
     if is_public and not username:
         raise GroupError("Public groups must have a username")
 
+    if username and Room.objects.filter(username=username).exists():
+        raise GroupConflictError("This username is already taken")
+
     slug = group_rules.generate_group_slug(name)
 
     try:
@@ -89,12 +94,10 @@ def create_group(
             )
             roles = Role.create_defaults_for_room(room)
             membership = Membership.objects.create(room=room, user=actor)
-            owner_role = roles.get("Owner")
+            owner_role = roles.get(Role.OWNER)
             if owner_role:
                 membership.roles.add(owner_role)
     except IntegrityError as exc:
-        if "username" in str(exc).lower():
-            raise GroupConflictError("This username is already taken") from exc
         raise GroupConflictError("Could not create group") from exc
 
     audit_security_event(
@@ -117,7 +120,7 @@ def update_group(
     name: str | None = None,
     description: str | None = None,
     is_public: bool | None = None,
-    username: str | None = ...,  # type: ignore[assignment]
+    username: str | None = _UNSET,  # type: ignore[assignment]
     slow_mode_seconds: int | None = None,
     join_approval_required: bool | None = None,
 ) -> Room:
@@ -143,7 +146,7 @@ def update_group(
         room.is_public = is_public
         changed_fields.append("is_public")
 
-    if username is not ...:
+    if username is not _UNSET:
         room.username = group_rules.validate_group_username(username)
         changed_fields.append("username")
 
@@ -158,14 +161,17 @@ def update_group(
     if room.is_public and not room.username:
         raise GroupError("Public groups must have a username")
 
+    if "username" in changed_fields and room.username:
+        conflict = Room.objects.filter(username=room.username).exclude(pk=room.pk).exists()
+        if conflict:
+            raise GroupConflictError("This username is already taken")
+
     if changed_fields:
         try:
             with transaction.atomic():
                 room.save(update_fields=changed_fields)
         except IntegrityError as exc:
-            if "username" in str(exc).lower():
-                raise GroupConflictError("This username is already taken") from exc
-            raise
+            raise GroupConflictError("Could not update group") from exc
 
         audit_security_event(
             "group.updated",

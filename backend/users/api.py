@@ -190,14 +190,9 @@ def logout_view(request):
 
 
 @csrf_protect
-@api_view(["GET", "POST"])
+@api_view(["POST"])
 def register_view(request):
     """Регистрирует нового пользователя."""
-    if request.method == "GET":
-        return error_response(
-            status=200,
-            detail="Используйте POST с полями username, password1, password2",
-        )
 
     if _rate_limited(request, "register"):
         audit_http_event("auth.register.rate_limited", request)
