@@ -12,14 +12,14 @@ from friends.utils import get_from_user_id, get_to_user_id
 def _require_from_user_id(obj: Friendship) -> int:
     uid = get_from_user_id(obj)
     if uid is None:
-        raise ValueError("Friendship sender id is missing")
+        raise ValueError("Не указан идентификатор отправителя дружбы")
     return uid
 
 
 def _require_to_user_id(obj: Friendship) -> int:
     uid = get_to_user_id(obj)
     if uid is None:
-        raise ValueError("Friendship recipient id is missing")
+        raise ValueError("Не указан идентификатор получателя дружбы")
     return uid
 
 

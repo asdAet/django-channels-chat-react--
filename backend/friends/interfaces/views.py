@@ -67,7 +67,7 @@ class SendRequestApiView(GenericAPIView):
     serializer_class = UsernameInputSerializer
 
     def get(self, _request):
-        return Response({"detail": "Use POST with username"})
+        return Response({"detail": "Используйте POST с именем пользователя"})
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -136,7 +136,7 @@ class BlockUserApiView(GenericAPIView):
     serializer_class = UsernameInputSerializer
 
     def get(self, _request):
-        return Response({"detail": "Use POST with username"})
+        return Response({"detail": "Используйте POST с именем пользователя"})
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)

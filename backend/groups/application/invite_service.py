@@ -41,12 +41,12 @@ def create_invite(
 
     effective = compute_permissions(room, actor)
     if not (effective & (Perm.INVITE_USERS | Perm.MANAGE_INVITES | Perm.ADMINISTRATOR)):
-        raise GroupForbiddenError("Missing permission to create invites")
+        raise GroupForbiddenError("Отсутствует разрешение на создание приглашений")
 
     max_invites = getattr(settings, "GROUP_MAX_INVITES_PER_ROOM", 50)
     active_count = InviteLink.objects.filter(room=room, is_revoked=False).count()
     if active_count >= max_invites:
-        raise GroupError(f"Maximum of {max_invites} active invite links per group")
+        raise GroupError(f"Максимум активных ссылок-приглашений в группе: {max_invites}")
 
     expires_at = None
     if expires_in_seconds is not None and expires_in_seconds > 0:
@@ -91,7 +91,7 @@ def revoke_invite(actor, room_slug: str, invite_code: str) -> None:
 
     invite = InviteLink.objects.filter(room=room, code=invite_code).first()
     if not invite:
-        raise GroupNotFoundError("Invite link not found")
+        raise GroupNotFoundError("Ссылка-приглашение не найдена")
 
     invite.is_revoked = True
     invite.save(update_fields=["is_revoked"])
@@ -115,10 +115,10 @@ def get_invite_info(invite_code: str) -> dict:
         .first()
     )
     if not invite:
-        raise GroupNotFoundError("Invite link not found")
+        raise GroupNotFoundError("Ссылка-приглашение не найдена")
 
     if invite.is_expired:
-        raise GroupError("This invite link has expired")
+        raise GroupError("Срок действия этой ссылки-приглашения истёк")
 
     room = invite.room
     return {
@@ -141,10 +141,10 @@ def join_via_invite(actor, invite_code: str) -> dict:
         .first()
     )
     if not invite:
-        raise GroupNotFoundError("Invite link not found")
+        raise GroupNotFoundError("Ссылка-приглашение не найдена")
 
     if invite.is_expired:
-        raise GroupError("This invite link has expired")
+        raise GroupError("Срок действия этой ссылки-приглашения истёк")
 
     room = invite.room
     group_rules.ensure_is_group(room)
@@ -153,19 +153,19 @@ def join_via_invite(actor, invite_code: str) -> dict:
         # Lock invite and room to prevent race conditions
         invite = InviteLink.objects.select_for_update().get(pk=invite.pk)
         if invite.is_expired:
-            raise GroupError("This invite link has expired")
+            raise GroupError("Срок действия этой ссылки-приглашения истёк")
 
         existing = Membership.objects.select_for_update().filter(
             room=room, user=actor
         ).first()
         if existing:
             if existing.is_banned:
-                raise GroupForbiddenError("You are banned from this group")
+                raise GroupForbiddenError("Вы заблокированы в этой группе")
             return {"roomSlug": room.slug, "status": "already_member"}
 
         room = Room.objects.select_for_update().get(pk=room.pk)
         if room.member_count >= room.max_members:
-            raise GroupError("This group has reached its member limit")
+            raise GroupError("В этой группе достигнут лимит участников")
 
         # Increment use count
         invite.use_count = F("use_count") + 1

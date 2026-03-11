@@ -6,7 +6,7 @@ const usernameSchema = z
   .string()
   .transform((value) => (value.startsWith('@') ? value.slice(1) : value))
   .transform((value) => value.trim())
-  .refine((value) => value.length > 0, 'Username is required')
+  .refine((value) => value.length > 0, 'Требуется имя пользователя')
 
 /**
  * Декодирует slug комнаты из route-параметра.

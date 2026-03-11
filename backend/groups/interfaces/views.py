@@ -134,7 +134,7 @@ def group_detail(request, slug):
 
     if request.method == "PATCH":
         if not getattr(request.user, "is_authenticated", False):
-            return _error("Authentication required", 401)
+            return _error("Требуется аутентификация", 401)
         ser = GroupUpdateInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         d = _validated_data(ser)
@@ -174,7 +174,7 @@ def group_detail(request, slug):
 
     # DELETE
     if not getattr(request.user, "is_authenticated", False):
-        return _error("Authentication required", 401)
+        return _error("Требуется аутентификация", 401)
     group_service.delete_group(request.user, slug)
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -356,7 +356,7 @@ def reject_join_request(request, slug, request_id):
 def group_pins(request, slug):
     if request.method == "POST":
         if not getattr(request.user, "is_authenticated", False):
-            return _error("Authentication required", 401)
+            return _error("Требуется аутентификация", 401)
         ser = PinInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = _validated_data(ser)
@@ -454,7 +454,7 @@ class GroupDetailInteractiveView(_HandledGroupAPIView):
     def patch(self, request, slug):
         def _impl():
             if not getattr(request.user, "is_authenticated", False):
-                return _error("Authentication required", 401)
+                return _error("Требуется аутентификация", 401)
             ser = self.get_serializer(data=request.data)
             ser.is_valid(raise_exception=True)
             data = _validated_data(ser)
@@ -498,7 +498,7 @@ class GroupDetailInteractiveView(_HandledGroupAPIView):
     def delete(self, request, slug):
         def _impl():
             if not getattr(request.user, "is_authenticated", False):
-                return _error("Authentication required", 401)
+                return _error("Требуется аутентификация", 401)
             group_service.delete_group(request.user, slug)
             return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -592,7 +592,7 @@ class GroupPinsInteractiveView(_HandledGroupAPIView):
     def post(self, request, slug):
         def _impl():
             if not getattr(request.user, "is_authenticated", False):
-                return _error("Authentication required", 401)
+                return _error("Требуется аутентификация", 401)
             ser = self.get_serializer(data=request.data)
             ser.is_valid(raise_exception=True)
             data = _validated_data(ser)

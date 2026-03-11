@@ -134,7 +134,7 @@ export const normalizeAxiosError = (error: unknown): ApiError => {
     const axiosError = error as AxiosError
     const status = axiosError.response?.status ?? 0
     const data = normalizeErrorPayload(axiosError.response?.data)
-    const message = extractErrorMessage(data) || axiosError.message || 'Request failed'
+    const message = extractErrorMessage(data) || axiosError.message || 'Ошибка запроса'
     return { status, message, data }
   }
 
@@ -153,7 +153,7 @@ export const normalizeAxiosError = (error: unknown): ApiError => {
     }
   }
 
-  return { status: 0, message: 'Request failed' }
+  return { status: 0, message: 'Ошибка запроса' }
 }
 
 class ApiService implements IApiService {

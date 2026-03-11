@@ -69,7 +69,7 @@ def _apply_room_avatar_crop(room: Room, crop_payload: dict[str, float], changed_
 def _validate_room_avatar_crop(crop_payload: dict[str, float]) -> dict[str, float]:
     for key in _ROOM_AVATAR_CROP_FIELDS:
         if crop_payload.get(key) is None:
-            raise GroupError("Provide all avatar crop fields")
+            raise GroupError("Укажите все поля обрезки аватарки")
 
     try:
         x = float(crop_payload["avatar_crop_x"])
@@ -77,12 +77,12 @@ def _validate_room_avatar_crop(crop_payload: dict[str, float]) -> dict[str, floa
         width = float(crop_payload["avatar_crop_width"])
         height = float(crop_payload["avatar_crop_height"])
     except (KeyError, TypeError, ValueError):
-        raise GroupError("Invalid avatar crop payload")
+        raise GroupError("Некорректные данные обрезки аватарки")
 
     if not (0 <= x < 1 and 0 <= y < 1 and 0 < width <= 1 and 0 < height <= 1):
-        raise GroupError("Avatar crop values must be within [0..1] bounds")
+        raise GroupError("Значения обрезки аватарки должны быть в диапазоне [0..1]")
     if (x + width) > 1.000001 or (y + height) > 1.000001:
-        raise GroupError("Avatar crop values exceed image boundaries")
+        raise GroupError("Значения обрезки аватарки выходят за границы изображения")
 
     return {
         "avatar_crop_x": x,
@@ -109,13 +109,13 @@ def _serialize_group_avatar(request, room: Room) -> tuple[str | None, dict[str, 
 
 def _ensure_authenticated(actor) -> None:
     if not actor or not getattr(actor, "is_authenticated", False):
-        raise GroupForbiddenError("Authentication required")
+        raise GroupForbiddenError("Требуется аутентификация")
 
 
 def _load_group_or_raise(room_slug: str) -> Room:
     room = Room.objects.filter(slug=room_slug, kind=Room.Kind.GROUP).first()
     if not room:
-        raise GroupNotFoundError("Group not found")
+        raise GroupNotFoundError("Группа не найдена")
     return room
 
 
@@ -130,7 +130,7 @@ def _ensure_group_permission(room: Room, actor, perm: Perm) -> None:
             room_slug=room.slug,
             required_permission=perm.name,
         )
-        raise GroupForbiddenError(f"Missing {perm.name} permission")
+        raise GroupForbiddenError(f"Отсутствует разрешение {perm.name}")
 
 
 def create_group(
@@ -149,7 +149,7 @@ def create_group(
     username = group_rules.validate_group_username(username)
 
     if username and Room.objects.filter(username=username).exists():
-        raise GroupConflictError("This username is already taken")
+        raise GroupConflictError("Это имя пользователя уже занято")
 
     slug = group_rules.generate_group_slug(name)
 
@@ -171,7 +171,7 @@ def create_group(
             if owner_role:
                 membership.roles.add(owner_role)
     except IntegrityError as exc:
-        raise GroupConflictError("Could not create group") from exc
+        raise GroupConflictError("Не удалось создать группу") from exc
 
     audit_security_event(
         "group.created",
@@ -206,7 +206,7 @@ def update_group(
 
     effective = compute_permissions(room, actor)
     if not (effective & (Perm.CHANGE_GROUP_INFO | Perm.MANAGE_ROOM | Perm.ADMINISTRATOR)):
-        raise GroupForbiddenError("Missing permission to edit group info")
+        raise GroupForbiddenError("Отсутствует разрешение на редактирование информации о группе")
 
     changed_fields: list[str] = []
 
@@ -235,7 +235,7 @@ def update_group(
         changed_fields.append("join_approval_required")
 
     if avatar is not None and avatar_action == "remove":
-        raise GroupError("Cannot upload and remove avatar in the same request")
+        raise GroupError("Нельзя одновременно загрузить и удалить аватарку в одном запросе")
 
     crop_update: dict[str, float] | None | _UnsetType = _UNSET
     if not isinstance(avatar_crop, _UnsetType):
@@ -264,14 +264,14 @@ def update_group(
     if "username" in changed_fields and room.username:
         conflict = Room.objects.filter(username=room.username).exclude(pk=room.pk).exists()
         if conflict:
-            raise GroupConflictError("This username is already taken")
+            raise GroupConflictError("Это имя пользователя уже занято")
 
     if changed_fields:
         try:
             with transaction.atomic():
                 room.save(update_fields=changed_fields)
         except IntegrityError as exc:
-            raise GroupConflictError("Could not update group") from exc
+            raise GroupConflictError("Не удалось обновить группу") from exc
 
         audit_security_event(
             "group.updated",
@@ -313,9 +313,9 @@ def get_group_info(room_slug: str, actor=None, request=None) -> dict:
 
     if not room.is_public:
         if not actor or not getattr(actor, "is_authenticated", False):
-            raise GroupNotFoundError("Group not found")
+            raise GroupNotFoundError("Группа не найдена")
         if not has_permission(room, actor, Perm.READ_MESSAGES):
-            raise GroupNotFoundError("Group not found")
+            raise GroupNotFoundError("Группа не найдена")
 
     avatar_url, avatar_crop = _serialize_group_avatar(request, room)
 

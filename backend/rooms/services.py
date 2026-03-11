@@ -170,7 +170,7 @@ def ensure_direct_room_with_retry(initiator, target, pair_key: str, slug: str):
                 raise
             time.sleep(0.05 * (attempt + 1))
 
-    raise OperationalError("failed to create direct room")
+    raise OperationalError("Не удалось создать личную комнату")
 
 
 def direct_peer_for_user(room: Room, user):

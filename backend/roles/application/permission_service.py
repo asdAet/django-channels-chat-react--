@@ -184,7 +184,7 @@ def can_write(room: Room, user) -> bool:
 
 def ensure_can_read_or_404(room: Room, user) -> None:
     if not can_read(room, user):
-        raise Http404("Not found")
+        raise Http404("Не найдено")
 
 
 def ensure_can_write(room: Room, user) -> bool:

@@ -20,7 +20,7 @@ def _parse_int(raw_value, *, field_name: str) -> int | None:
     try:
         return int(raw_value)
     except (TypeError, ValueError):
-        raise ValueError(f"Invalid '{field_name}': must be an integer")
+        raise ValueError(f"Некорректный параметр '{field_name}': должно быть целое число")
 
 
 def _parse_bool(raw_value, *, field_name: str) -> bool | None:
@@ -31,7 +31,7 @@ def _parse_bool(raw_value, *, field_name: str) -> bool | None:
         return True
     if value in {"0", "false", "no", "off"}:
         return False
-    raise ValueError(f"Invalid '{field_name}': must be boolean")
+    raise ValueError(f"Некорректный параметр '{field_name}': должно быть логическое значение")
 
 
 def _parse_datetime(raw_value, *, field_name: str) -> datetime | None:
@@ -40,7 +40,7 @@ def _parse_datetime(raw_value, *, field_name: str) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(str(raw_value))
     except ValueError:
-        raise ValueError(f"Invalid '{field_name}': must be ISO datetime")
+        raise ValueError(f"Некорректный параметр '{field_name}': должен быть в формате ISO datetime")
     if timezone.is_naive(parsed):
         parsed = timezone.make_aware(parsed, timezone=dt_timezone.utc)
     return parsed
@@ -54,7 +54,7 @@ def parse_filters(params) -> AuditQueryFilters:
     if parsed_limit is None:
         parsed_limit = default_limit
     if parsed_limit < 1:
-        raise ValueError("Invalid 'limit': must be >= 1")
+        raise ValueError("Некорректный параметр 'limit': должно быть >= 1")
 
     return AuditQueryFilters(
         actor_user_id=_parse_int(params.get("actor_user_id"), field_name="actor_user_id"),

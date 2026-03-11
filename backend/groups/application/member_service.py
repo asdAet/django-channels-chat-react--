@@ -60,7 +60,7 @@ def _schedule_membership_revoked(room: Room, target_user_id: int) -> None:
 def _get_membership_or_raise(room: Room, user) -> Membership:
     membership = Membership.objects.filter(room=room, user=user).first()
     if not membership:
-        raise GroupNotFoundError("Member not found")
+        raise GroupNotFoundError("Участник не найден")
     return membership
 
 
@@ -77,7 +77,7 @@ def _ensure_hierarchy(room: Room, actor, target_membership: Membership) -> None:
         actor_top_position=actor_ctx.top_position,
         target_position=target_pos,
     ):
-        raise GroupForbiddenError("Cannot manage a member at your level or higher")
+        raise GroupForbiddenError("Нельзя управлять участником вашего уровня или выше")
 
 
 def _ensure_not_self(actor, target_user_id: int) -> None:
@@ -85,7 +85,7 @@ def _ensure_not_self(actor, target_user_id: int) -> None:
     if actor_id is None:
         return
     if int(actor_id) == int(target_user_id):
-        raise GroupError("Cannot apply this action to yourself")
+        raise GroupError("Нельзя применить это действие к самому себе")
 
 
 def join_group(actor, room_slug: str) -> Membership:
@@ -94,7 +94,7 @@ def join_group(actor, room_slug: str) -> Membership:
     room = _load_group_or_raise(room_slug)
 
     if not room.is_public:
-        raise GroupForbiddenError("This group requires an invite link to join")
+        raise GroupForbiddenError("Для вступления в эту группу требуется ссылка-приглашение")
 
     with transaction.atomic():
         existing = Membership.objects.select_for_update().filter(
@@ -102,12 +102,12 @@ def join_group(actor, room_slug: str) -> Membership:
         ).first()
         if existing:
             if existing.is_banned:
-                raise GroupForbiddenError("You are banned from this group")
+                raise GroupForbiddenError("Вы заблокированы в этой группе")
             return existing  # already a member
 
         room = Room.objects.select_for_update().get(pk=room.pk)
         if room.member_count >= room.max_members:
-            raise GroupError("This group has reached its member limit")
+            raise GroupError("В этой группе достигнут лимит участников")
 
         if room.join_approval_required:
             JoinRequest.objects.update_or_create(
@@ -115,7 +115,7 @@ def join_group(actor, room_slug: str) -> Membership:
                 user=actor,
                 status=JoinRequest.Status.PENDING,
             )
-            raise GroupError("Your join request has been submitted for approval")
+            raise GroupError("Ваша заявка на вступление отправлена на рассмотрение")
 
         membership = Membership.objects.create(room=room, user=actor)
         member_role = Role.objects.filter(room=room, name=Role.MEMBER).first()
@@ -180,13 +180,13 @@ def kick_member(actor, room_slug: str, target_user_id: int) -> None:
     _ensure_not_self(actor, int(target_user_id))
 
     if not has_permission(room, actor, Perm.KICK_MEMBERS):
-        raise GroupForbiddenError("Missing KICK_MEMBERS permission")
+        raise GroupForbiddenError("Отсутствует разрешение KICK_MEMBERS")
 
     target_membership = Membership.objects.filter(
         room=room, user_id=int(target_user_id)
     ).first()
     if not target_membership:
-        raise GroupNotFoundError("Member not found")
+        raise GroupNotFoundError("Участник не найден")
 
     _ensure_hierarchy(room, actor, target_membership)
 
@@ -225,7 +225,7 @@ def ban_member(
     _ensure_not_self(actor, int(target_user_id))
 
     if not has_permission(room, actor, Perm.BAN_MEMBERS):
-        raise GroupForbiddenError("Missing BAN_MEMBERS permission")
+        raise GroupForbiddenError("Отсутствует разрешение BAN_MEMBERS")
 
     target_membership = Membership.objects.filter(
         room=room, user_id=int(target_user_id)
@@ -233,7 +233,7 @@ def ban_member(
     if not target_membership:
         # Validate target user exists before creating pre-emptive ban
         if not User.objects.filter(pk=int(target_user_id)).exists():
-            raise GroupNotFoundError("User not found")
+            raise GroupNotFoundError("Пользователь не найден")
         target_membership = Membership.objects.create(
             room=room,
             user_id=int(target_user_id),
@@ -287,13 +287,13 @@ def unban_member(actor, room_slug: str, target_user_id: int) -> None:
     room = _load_group_or_raise(room_slug)
 
     if not has_permission(room, actor, Perm.BAN_MEMBERS):
-        raise GroupForbiddenError("Missing BAN_MEMBERS permission")
+        raise GroupForbiddenError("Отсутствует разрешение BAN_MEMBERS")
 
     membership = Membership.objects.filter(
         room=room, user_id=int(target_user_id), is_banned=True
     ).first()
     if not membership:
-        raise GroupNotFoundError("Banned member not found")
+        raise GroupNotFoundError("Заблокированный участник не найден")
 
     with transaction.atomic():
         membership.delete()
@@ -322,18 +322,18 @@ def mute_member(
     _ensure_not_self(actor, int(target_user_id))
 
     if not has_permission(room, actor, Perm.MUTE_MEMBERS):
-        raise GroupForbiddenError("Missing MUTE_MEMBERS permission")
+        raise GroupForbiddenError("Отсутствует разрешение MUTE_MEMBERS")
 
     if duration_seconds < 1:
-        raise GroupError("Mute duration must be at least 1 second")
+        raise GroupError("Длительность мута должна быть не менее 1 секунды")
     if duration_seconds > 366 * 86400:  # ~1 year max
-        raise GroupError("Mute duration cannot exceed 1 year")
+        raise GroupError("Длительность мута не может превышать 1 год")
 
     target_membership = Membership.objects.filter(
         room=room, user_id=int(target_user_id)
     ).first()
     if not target_membership:
-        raise GroupNotFoundError("Member not found")
+        raise GroupNotFoundError("Участник не найден")
 
     _ensure_hierarchy(room, actor, target_membership)
 
@@ -361,13 +361,13 @@ def unmute_member(actor, room_slug: str, target_user_id: int) -> Membership:
     _ensure_not_self(actor, int(target_user_id))
 
     if not has_permission(room, actor, Perm.MUTE_MEMBERS):
-        raise GroupForbiddenError("Missing MUTE_MEMBERS permission")
+        raise GroupForbiddenError("Отсутствует разрешение MUTE_MEMBERS")
 
     target_membership = Membership.objects.filter(
         room=room, user_id=int(target_user_id)
     ).first()
     if not target_membership:
-        raise GroupNotFoundError("Member not found")
+        raise GroupNotFoundError("Участник не найден")
 
     target_membership.muted_until = None
     target_membership.muted_by = None
@@ -393,7 +393,7 @@ def list_members(
     room = _load_group_or_raise(room_slug)
 
     if not has_permission(room, actor, Perm.READ_MESSAGES):
-        raise GroupForbiddenError("Cannot view members")
+        raise GroupForbiddenError("Нет доступа к просмотру участников")
 
     qs = (
         Membership.objects.filter(room=room, is_banned=False)
@@ -457,7 +457,7 @@ def list_banned(
     room = _load_group_or_raise(room_slug)
 
     if not has_permission(room, actor, Perm.BAN_MEMBERS):
-        raise GroupForbiddenError("Missing BAN_MEMBERS permission")
+        raise GroupForbiddenError("Отсутствует разрешение BAN_MEMBERS")
 
     qs = (
         Membership.objects.filter(room=room, is_banned=True)
@@ -491,13 +491,13 @@ def approve_join_request(actor, room_slug: str, request_id: int) -> Membership:
     room = _load_group_or_raise(room_slug)
 
     if not has_permission(room, actor, Perm.KICK_MEMBERS):
-        raise GroupForbiddenError("Missing permission to manage join requests")
+        raise GroupForbiddenError("Отсутствует разрешение на управление заявками на вступление")
 
     join_req = JoinRequest.objects.filter(
         pk=int(request_id), room=room, status=JoinRequest.Status.PENDING
     ).select_related("user").first()
     if not join_req:
-        raise GroupNotFoundError("Join request not found")
+        raise GroupNotFoundError("Заявка на вступление не найдена")
 
     with transaction.atomic():
         join_req.status = JoinRequest.Status.APPROVED
@@ -543,13 +543,13 @@ def reject_join_request(actor, room_slug: str, request_id: int) -> None:
     room = _load_group_or_raise(room_slug)
 
     if not has_permission(room, actor, Perm.KICK_MEMBERS):
-        raise GroupForbiddenError("Missing permission to manage join requests")
+        raise GroupForbiddenError("Отсутствует разрешение на управление заявками на вступление")
 
     join_req = JoinRequest.objects.filter(
         pk=int(request_id), room=room, status=JoinRequest.Status.PENDING
     ).first()
     if not join_req:
-        raise GroupNotFoundError("Join request not found")
+        raise GroupNotFoundError("Заявка на вступление не найдена")
 
     join_req.status = JoinRequest.Status.REJECTED
     join_req.reviewed_by = actor
@@ -573,7 +573,7 @@ def list_join_requests(actor, room_slug: str) -> list[dict]:
     room = _load_group_or_raise(room_slug)
 
     if not has_permission(room, actor, Perm.KICK_MEMBERS):
-        raise GroupForbiddenError("Missing permission to view join requests")
+        raise GroupForbiddenError("Отсутствует разрешение на просмотр заявок на вступление")
 
     requests = (
         JoinRequest.objects.filter(room=room, status=JoinRequest.Status.PENDING)

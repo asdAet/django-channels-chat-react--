@@ -26,16 +26,16 @@ def pin_message(actor, room_slug: str, message_id: int) -> PinnedMessage:
 
     effective = compute_permissions(room, actor)
     if not (effective & (Perm.PIN_MESSAGES | Perm.MANAGE_MESSAGES | Perm.ADMINISTRATOR)):
-        raise GroupForbiddenError("Missing permission to pin messages")
+        raise GroupForbiddenError("Отсутствует разрешение на закрепление сообщений")
 
     message = Message.objects.filter(pk=int(message_id), room=room).first()
     if not message:
-        raise GroupNotFoundError("Message not found in this group")
+        raise GroupNotFoundError("Сообщение в этой группе не найдено")
 
     max_pins = getattr(settings, "GROUP_MAX_PINNED_MESSAGES", 100)
     pin_count = PinnedMessage.objects.filter(room=room).count()
     if pin_count >= max_pins:
-        raise GroupError(f"Maximum of {max_pins} pinned messages per group")
+        raise GroupError(f"Максимум закреплённых сообщений в группе: {max_pins}")
 
     pin, created = PinnedMessage.objects.get_or_create(
         room=room,
@@ -63,13 +63,13 @@ def unpin_message(actor, room_slug: str, message_id: int) -> None:
 
     effective = compute_permissions(room, actor)
     if not (effective & (Perm.PIN_MESSAGES | Perm.MANAGE_MESSAGES | Perm.ADMINISTRATOR)):
-        raise GroupForbiddenError("Missing permission to unpin messages")
+        raise GroupForbiddenError("Отсутствует разрешение на открепление сообщений")
 
     pin = PinnedMessage.objects.filter(
         room=room, message_id=int(message_id)
     ).first()
     if not pin:
-        raise GroupNotFoundError("Pinned message not found")
+        raise GroupNotFoundError("Закреплённое сообщение не найдено")
 
     pin.delete()
 
@@ -93,7 +93,7 @@ def list_pinned(room_slug: str, actor) -> list[dict]:
         _ensure_authenticated(actor)
         effective = compute_permissions(room, actor)
         if not (effective & Perm.READ_MESSAGES):
-            raise GroupForbiddenError("Cannot view pinned messages")
+            raise GroupForbiddenError("Нет доступа к просмотру закреплённых сообщений")
 
     pins = (
         PinnedMessage.objects.filter(room=room)

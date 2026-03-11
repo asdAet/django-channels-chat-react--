@@ -42,7 +42,7 @@ def ready(_request):
     except DatabaseError:
         ok = False
         components["database"] = "error"
-        logger.exception("Health check failed: database is unavailable")
+        logger.exception("Проверка здоровья не пройдена: база данных недоступна")
 
     cache_key = f"health:{uuid.uuid4().hex}"
     cache_value = "ok"
@@ -55,7 +55,7 @@ def ready(_request):
     except Exception:
         ok = False
         components["cache"] = "error"
-        logger.exception("Health check failed: cache is unavailable")
+        logger.exception("Проверка здоровья не пройдена: кэш недоступен")
 
     status_code = 200 if ok else 503
     payload = {

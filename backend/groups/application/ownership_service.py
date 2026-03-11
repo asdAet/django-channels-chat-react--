@@ -28,23 +28,23 @@ def transfer_ownership(actor, room_slug: str, new_owner_user_id: int) -> None:
     _ensure_group_permission(room, actor, Perm.ADMINISTRATOR)
 
     if int(new_owner_user_id) == actor.pk:
-        raise GroupError("Cannot transfer ownership to yourself")
+        raise GroupError("Нельзя передать владение самому себе")
 
     new_owner_membership = Membership.objects.filter(
         room=room, user_id=int(new_owner_user_id), is_banned=False
     ).first()
     if not new_owner_membership:
-        raise GroupNotFoundError("Target member not found")
+        raise GroupNotFoundError("Целевой участник не найден")
 
     actor_membership = Membership.objects.filter(room=room, user=actor).first()
     if not actor_membership:
-        raise GroupError("You are not a member of this group")
+        raise GroupError("Вы не являетесь участником этой группы")
 
     owner_role = Role.objects.filter(room=room, name=Role.OWNER).first()
     admin_role = Role.objects.filter(room=room, name=Role.ADMIN).first()
 
     if not owner_role:
-        raise GroupError("Owner role not found")
+        raise GroupError("Роль владельца не найдена")
 
     with transaction.atomic():
         # Remove Owner from old owner, add Admin

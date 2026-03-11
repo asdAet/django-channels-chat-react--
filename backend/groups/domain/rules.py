@@ -24,9 +24,9 @@ def validate_group_name(name: str) -> str:
     """Validate and clean group name."""
     name = name.strip()
     if not name:
-        raise ValueError("Group name cannot be empty")
+        raise ValueError("Название группы не может быть пустым")
     if len(name) > 50:
-        raise ValueError("Group name cannot exceed 50 characters")
+        raise ValueError("Название группы не может превышать 50 символов")
     return name
 
 
@@ -37,30 +37,30 @@ def validate_group_username(username: str | None) -> str | None:
     username = username.strip().lower()
     if not re.match(r"^[a-z][a-z0-9_]{2,49}$", username):
         raise ValueError(
-            "Username must start with a letter, contain only lowercase "
-            "letters, digits and underscores, and be 3-50 characters long"
+            "Имя пользователя должно начинаться с буквы, содержать только "
+            "строчные латинские буквы, цифры и подчёркивания, и быть длиной 3–50 символов"
         )
     return username
 
 
 def validate_group_description(description: str) -> str:
     if len(description) > 2000:
-        raise ValueError("Description cannot exceed 2000 characters")
+        raise ValueError("Описание не может превышать 2000 символов")
     return description
 
 
 def validate_slow_mode(seconds: int) -> int:
     if seconds < 0:
-        raise ValueError("Slow mode seconds must be >= 0")
+        raise ValueError("Значение медленного режима должно быть >= 0")
     if seconds > 86400:  # 24 hours max
-        raise ValueError("Slow mode cannot exceed 24 hours")
+        raise ValueError("Медленный режим не может превышать 24 часа")
     return seconds
 
 
 def ensure_is_group(room: Room) -> None:
     """Raise if the room is not a group."""
     if room.kind != Room.Kind.GROUP:
-        raise ValueError("This operation is only available for groups")
+        raise ValueError("Эта операция доступна только для групп")
 
 
 def generate_group_slug(name: str) -> str:

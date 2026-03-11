@@ -42,7 +42,7 @@ def _load_message_or_raise(room: Room, message_id: int) -> Message:
         .first()
     )
     if not msg:
-        raise MessageNotFoundError("Message not found")
+        raise MessageNotFoundError("Сообщение не найдено")
     return msg
 
 
@@ -65,11 +65,11 @@ def edit_message(user, room: Room, message_id: int, new_content: str) -> Message
     """Edit a message. Returns the updated message."""
     new_content = new_content.strip()
     if not new_content:
-        raise MessageValidationError("Message content cannot be empty")
+        raise MessageValidationError("Текст сообщения не может быть пустым")
 
     max_len = int(getattr(settings, "CHAT_MESSAGE_MAX_LENGTH", 1000))
     if len(new_content) > max_len:
-        raise MessageValidationError("Message too long")
+        raise MessageValidationError("Сообщение слишком длинное")
 
     with transaction.atomic():
         msg = _load_message_or_raise(room, message_id)
@@ -78,10 +78,10 @@ def edit_message(user, room: Room, message_id: int, new_content: str) -> Message
         is_moderator = has_permission(room, user, Perm.MANAGE_MESSAGES)
 
         if not is_author and not is_moderator:
-            raise MessageForbiddenError("You cannot edit this message")
+            raise MessageForbiddenError("Вы не можете редактировать это сообщение")
 
         if is_author and not is_moderator and not _within_edit_window(msg):
-            raise MessageForbiddenError("Edit window has expired")
+            raise MessageForbiddenError("Время на редактирование истекло")
 
         if not msg.original_content:
             msg.original_content = msg.message_content
@@ -99,7 +99,7 @@ def delete_message(user, room: Room, message_id: int) -> Message:
         msg = _load_message_or_raise(room, message_id)
 
         if not _can_manage_message(room, user, msg):
-            raise MessageForbiddenError("You cannot delete this message")
+            raise MessageForbiddenError("Вы не можете удалить это сообщение")
 
         msg.is_deleted = True
         msg.deleted_at = timezone.now()
@@ -115,14 +115,14 @@ def add_reaction(user, room: Room, message_id: int, emoji: str) -> Reaction:
     """Add an emoji reaction to a message. Idempotent."""
     emoji = emoji.strip()
     if not emoji or len(emoji) > 32:
-        raise MessageValidationError("Invalid emoji")
+        raise MessageValidationError("Некорректный эмодзи")
 
     if not has_permission(room, user, Perm.ADD_REACTIONS):
-        raise MessageForbiddenError("Missing ADD_REACTIONS permission")
+        raise MessageForbiddenError("Отсутствует разрешение ADD_REACTIONS")
 
     msg = Message.objects.filter(pk=message_id, room=room, is_deleted=False).first()
     if not msg:
-        raise MessageNotFoundError("Message not found")
+        raise MessageNotFoundError("Сообщение не найдено")
 
     reaction, _created = Reaction.objects.get_or_create(
         message=msg, user=user, emoji=emoji,
@@ -142,7 +142,7 @@ def remove_reaction(user, room: Room, message_id: int, emoji: str) -> None:
 def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
     """Mark messages as read up to the given message ID."""
     if not Message.objects.filter(pk=last_read_message_id, room=room).exists():
-        raise MessageNotFoundError("Message not found")
+        raise MessageNotFoundError("Сообщение не найдено")
 
     max_retries = 3
     for attempt in range(max_retries):
@@ -162,7 +162,7 @@ def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
             if attempt == max_retries - 1:
                 raise
             time.sleep(0.1 * (attempt + 1))
-    raise OperationalError("database is locked")
+    raise OperationalError("база данных заблокирована")
 
 
 def get_unread_counts(user) -> list[dict]:

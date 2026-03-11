@@ -48,26 +48,26 @@ def _audit_role_denied(room: Room | None, actor, reason: str) -> None:
 def _load_room_or_raise(room_slug: str) -> Room:
     room = repositories.get_room_by_slug(room_slug)
     if not room:
-        raise RoleNotFoundError("Room not found")
+        raise RoleNotFoundError("Комната не найдена")
     return room
 
 
 def _ensure_authenticated(actor) -> None:
     if not actor or not getattr(actor, "is_authenticated", False):
-        raise RoleForbiddenError("Authentication required")
+        raise RoleForbiddenError("Требуется аутентификация")
 
 
 def _ensure_manage_roles(room: Room, actor) -> ActorContext:
     actor_context = get_actor_context(room, actor)
     if not rules.has_manage_roles(int(actor_context.permissions)):
         _audit_role_denied(room, actor, "missing_manage_roles")
-        raise RoleForbiddenError("Missing MANAGE_ROLES permission")
+        raise RoleForbiddenError("Отсутствует разрешение MANAGE_ROLES")
     return actor_context
 
 
 def _ensure_not_direct(room: Room) -> None:
     if room.kind == Room.Kind.DIRECT:
-        raise RoleServiceError("Role management is not supported for direct rooms")
+        raise RoleServiceError("Управление ролями не поддерживается для личных чатов")
 
 
 def _ensure_manage_target_position(actor_context: ActorContext, *, target_position: int) -> None:
@@ -75,7 +75,7 @@ def _ensure_manage_target_position(actor_context: ActorContext, *, target_positi
         actor_top_position=actor_context.top_position,
         target_position=target_position,
     ):
-        raise RoleForbiddenError("Cannot manage role at your level or higher")
+        raise RoleForbiddenError("Нельзя управлять ролью вашего уровня или выше")
 
 
 def _ensure_permissions_subset(actor_context: ActorContext, *, candidate_permissions: int) -> None:
@@ -83,7 +83,7 @@ def _ensure_permissions_subset(actor_context: ActorContext, *, candidate_permiss
         candidate=int(candidate_permissions),
         holder=int(actor_context.permissions),
     ):
-        raise RoleForbiddenError("Cannot grant permissions you do not have")
+        raise RoleForbiddenError("Нельзя выдавать разрешения, которых у вас нет")
 
 
 def _membership_top_position(membership: Membership | None) -> int:
@@ -98,7 +98,7 @@ def _membership_top_position(membership: Membership | None) -> int:
 def _obj_pk(value: object, *, field_name: str = "object") -> int:
     pk_value = getattr(value, "pk", None)
     if pk_value is None:
-        raise RoleServiceError(f"{field_name} has no primary key")
+        raise RoleServiceError(f"У поля {field_name} отсутствует первичный ключ")
     return int(pk_value)
 
 
@@ -109,7 +109,7 @@ def _membership_user_id(membership: Membership) -> int:
     user = getattr(membership, "user", None)
     user_pk = getattr(user, "pk", None)
     if user_pk is None:
-        raise RoleServiceError("Membership has no user id")
+        raise RoleServiceError("У записи участия отсутствует идентификатор пользователя")
     return int(user_pk)
 
 
@@ -184,7 +184,7 @@ def create_room_role(
                 is_default=False,
             )
     except IntegrityError as exc:
-        raise RoleConflictError("Role with this name already exists in room") from exc
+        raise RoleConflictError("Роль с таким названием уже существует в комнате") from exc
 
     audit_security_event(
         "role.manage.created",
@@ -214,11 +214,11 @@ def update_room_role(
     context = _room_actor_context_or_raise(room_slug, actor)
     role = repositories.get_role(context.room, int(role_id))
     if not role:
-        raise RoleNotFoundError("Role not found")
+        raise RoleNotFoundError("Роль не найдена")
 
     _ensure_manage_target_position(context.actor_context, target_position=int(role.position))
     if rules.role_is_protected(is_default=role.is_default, name=role.name):
-        raise RoleForbiddenError("System role cannot be modified")
+        raise RoleForbiddenError("Системную роль нельзя изменять")
 
     if permissions is not None:
         _ensure_permissions_subset(context.actor_context, candidate_permissions=int(permissions))
@@ -244,7 +244,7 @@ def update_room_role(
             with transaction.atomic():
                 role.save(update_fields=changed_fields)
         except IntegrityError as exc:
-            raise RoleConflictError("Role with this name already exists in room") from exc
+            raise RoleConflictError("Роль с таким названием уже существует в комнате") from exc
 
         audit_security_event(
             "role.manage.updated",
@@ -263,10 +263,10 @@ def delete_room_role(room_slug: str, role_id: int, actor) -> None:
     context = _room_actor_context_or_raise(room_slug, actor)
     role = repositories.get_role(context.room, int(role_id))
     if not role:
-        raise RoleNotFoundError("Role not found")
+        raise RoleNotFoundError("Роль не найдена")
     _ensure_manage_target_position(context.actor_context, target_position=int(role.position))
     if rules.role_is_protected(is_default=role.is_default, name=role.name):
-        raise RoleForbiddenError("System role cannot be removed")
+        raise RoleForbiddenError("Системную роль нельзя удалить")
 
     role_id_value = _obj_pk(role, field_name="role")
     role_name_value = role.name
@@ -289,7 +289,7 @@ def get_member_roles(room_slug: str, user_id: int, actor) -> Membership:
     context = _room_actor_context_or_raise(room_slug, actor)
     membership = repositories.get_membership_by_user_id(context.room, int(user_id))
     if not membership:
-        raise RoleNotFoundError("Membership not found")
+        raise RoleNotFoundError("Запись участия не найдена")
     _ensure_manage_member(context.actor_context, membership)
     return membership
 
@@ -298,7 +298,7 @@ def set_member_roles(room_slug: str, user_id: int, actor, role_ids: list[int]) -
     context = _room_actor_context_or_raise(room_slug, actor)
     membership = repositories.get_membership_by_user_id(context.room, int(user_id))
     if not membership:
-        raise RoleNotFoundError("Membership not found")
+        raise RoleNotFoundError("Запись участия не найдена")
     _ensure_manage_member(context.actor_context, membership)
 
     normalized_role_ids = rules.normalize_role_ids(role_ids)
@@ -309,7 +309,7 @@ def set_member_roles(room_slug: str, user_id: int, actor, role_ids: list[int]) -
         )
     )
     if len(roles) != len(normalized_role_ids):
-        raise RoleServiceError("One or more roles were not found in this room")
+        raise RoleServiceError("Одна или несколько ролей не найдены в этой комнате")
 
     for role in roles:
         _ensure_manage_target_position(context.actor_context, target_position=int(role.position))
@@ -347,20 +347,20 @@ def _resolve_override_target(
     target_user_id: int | None,
 ) -> tuple[Role | None, Membership | None]:
     if not rules.validate_override_target_ids(target_role_id, target_user_id):
-        raise RoleServiceError("Exactly one of targetRoleId or targetUserId is required")
+        raise RoleServiceError("Необходимо указать ровно одно из полей: targetRoleId или targetUserId")
 
     target_role = None
     target_membership = None
     if target_role_id is not None:
         target_role = repositories.get_role(room, int(target_role_id))
         if not target_role:
-            raise RoleNotFoundError("Target role not found")
+            raise RoleNotFoundError("Целевая роль не найдена")
         _ensure_manage_target_position(actor_context, target_position=int(target_role.position))
 
     if target_user_id is not None:
         target_membership = repositories.get_membership_by_user_id(room, int(target_user_id))
         if not target_membership:
-            raise RoleNotFoundError("Target user membership not found")
+            raise RoleNotFoundError("Запись участия целевого пользователя не найдена")
         _ensure_manage_member(actor_context, target_membership)
 
     return target_role, target_membership
@@ -424,7 +424,7 @@ def update_room_override(
     context = _room_actor_context_or_raise(room_slug, actor)
     override = repositories.get_override(context.room, int(override_id))
     if not override:
-        raise RoleNotFoundError("Override not found")
+        raise RoleNotFoundError("Переопределение не найдено")
 
     target_role_id = _override_target_role_id(override)
     target_user_id = _override_target_user_id(override)
@@ -432,12 +432,12 @@ def update_room_override(
     if target_role_id:
         target_role = repositories.get_role(context.room, target_role_id)
         if not target_role:
-            raise RoleNotFoundError("Target role not found")
+            raise RoleNotFoundError("Целевая роль не найдена")
         _ensure_manage_target_position(context.actor_context, target_position=int(target_role.position))
     elif target_user_id:
         target_membership = repositories.get_membership_by_user_id(context.room, target_user_id)
         if not target_membership:
-            raise RoleNotFoundError("Target membership not found")
+            raise RoleNotFoundError("Целевая запись участия не найдена")
         _ensure_manage_member(context.actor_context, target_membership)
 
     changed_fields: list[str] = []
@@ -469,7 +469,7 @@ def delete_room_override(room_slug: str, override_id: int, actor) -> None:
     context = _room_actor_context_or_raise(room_slug, actor)
     override = repositories.get_override(context.room, int(override_id))
     if not override:
-        raise RoleNotFoundError("Override not found")
+        raise RoleNotFoundError("Переопределение не найдено")
 
     target_role_id = _override_target_role_id(override)
     target_user_id = _override_target_user_id(override)
@@ -501,7 +501,7 @@ def permissions_for_me(room_slug: str, actor) -> dict[str, object]:
     _ensure_authenticated(actor)
     room = _load_room_or_raise(room_slug)
     if room.kind in {Room.Kind.PRIVATE, Room.Kind.DIRECT} and not can_read(room, actor):
-        raise RoleNotFoundError("Room not found")
+        raise RoleNotFoundError("Комната не найдена")
 
     effective = compute_permissions(room, actor)
     granted_flags = [perm.name for perm in Perm if perm and (effective & perm)]

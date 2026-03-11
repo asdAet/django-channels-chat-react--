@@ -130,7 +130,7 @@ def login_view(request):
     """Логин пользователя по username/password."""
     if _rate_limited(request, "login"):
         audit_http_event("auth.login.rate_limited", request)
-        return error_response(status=429, error="Too many attempts")
+        return error_response(status=429, error="Слишком много попыток")
 
     payload = _extract_payload(request)
     if not payload:
@@ -196,7 +196,7 @@ def register_view(request):
 
     if _rate_limited(request, "register"):
         audit_http_event("auth.register.rate_limited", request)
-        return error_response(status=429, error="Too many attempts")
+        return error_response(status=429, error="Слишком много попыток")
 
     payload = _extract_payload(request)
     if not payload:
@@ -280,7 +280,7 @@ def media_view(request, file_path: str):
     """Отдает media-файл по подписанному URL через X-Accel-Redirect."""
     normalized_path = normalize_media_path(file_path)
     if not normalized_path:
-        return Response({"error": "Not found"}, status=404)
+        return Response({"error": "Не найдено"}, status=404)
 
     exp_raw = request.GET.get("exp")
     signature = request.GET.get("sig")
@@ -288,19 +288,19 @@ def media_view(request, file_path: str):
         expires_at = int(exp_raw)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         audit_http_event("media.signature.invalid", request, path=file_path, reason="invalid_exp")
-        return Response({"error": "Forbidden"}, status=403)
+        return Response({"error": "Доступ запрещен"}, status=403)
 
     now = int(time.time())
     if expires_at < now:
         audit_http_event("media.signature.expired", request, path=normalized_path)
-        return Response({"error": "Forbidden"}, status=403)
+        return Response({"error": "Доступ запрещен"}, status=403)
 
     if not is_valid_media_signature(normalized_path, expires_at, signature):
         audit_http_event("media.signature.invalid", request, path=normalized_path, reason="bad_signature")
-        return Response({"error": "Forbidden"}, status=403)
+        return Response({"error": "Доступ запрещен"}, status=403)
 
     if not default_storage.exists(normalized_path):
-        return Response({"error": "Not found"}, status=404)
+        return Response({"error": "Не найдено"}, status=404)
 
     cache_seconds = max(0, expires_at - now)
     if settings.DEBUG:
@@ -317,11 +317,11 @@ def media_view(request, file_path: str):
 def public_profile_view(request, username: str):
     """Возвращает публичные поля профиля по username."""
     if not username:
-        return Response({"error": "Not found"}, status=404)
+        return Response({"error": "Не найдено"}, status=404)
 
     user = User.objects.filter(username=username).select_related("profile").first()
     if not user:
-        return Response({"error": "Not found"}, status=404)
+        return Response({"error": "Не найдено"}, status=404)
 
     profile = getattr(user, "profile", None)
     profile_image = None
@@ -378,12 +378,12 @@ class LoginInteractiveView(GenericAPIView):
     serializer_class = LoginSerializer
 
     def get(self, _request):
-        return error_response(status=200, detail="Use POST with username and password")
+        return error_response(status=200, detail="Используйте POST с полями username и password")
 
     def post(self, request):
         if _rate_limited(request, "login"):
             audit_http_event("auth.login.rate_limited", request)
-            return error_response(status=429, error="Too many attempts")
+            return error_response(status=429, error="Слишком много попыток")
 
         payload = _extract_payload(request)
         if not payload:
@@ -429,7 +429,7 @@ class LogoutInteractiveView(GenericAPIView):
     serializer_class = LogoutSerializer
 
     def get(self, _request):
-        return error_response(status=200, detail="Use POST to logout")
+        return error_response(status=200, detail="Используйте POST для выхода")
 
     def post(self, request):
         user = getattr(request, "user", None)
@@ -458,7 +458,7 @@ class RegisterInteractiveView(GenericAPIView):
     def post(self, request):
         if _rate_limited(request, "register"):
             audit_http_event("auth.register.rate_limited", request)
-            return error_response(status=429, error="Too many attempts")
+            return error_response(status=429, error="Слишком много попыток")
 
         payload = _extract_payload(request)
         if not payload:

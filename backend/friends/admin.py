@@ -24,11 +24,11 @@ class FriendshipAdmin(admin.ModelAdmin):
     fields = ("from_user", "to_user", "status", "created_at", "updated_at")
     actions = ("mark_pending", "mark_accepted", "mark_declined", "mark_blocked", "make_mutual_accepted")
 
-    @admin.display(description="From user id")
+    @admin.display(description="ID отправителя")
     def from_user_id_value(self, obj: Friendship) -> int | None:
         return get_from_user_id(obj)
 
-    @admin.display(description="To user id")
+    @admin.display(description="ID получателя")
     def to_user_id_value(self, obj: Friendship) -> int | None:
         return get_to_user_id(obj)
 
@@ -42,27 +42,27 @@ class FriendshipAdmin(admin.ModelAdmin):
             updated += 1
         return updated
 
-    @admin.action(description="Set status: pending")
+    @admin.action(description="Установить статус: в ожидании")
     def mark_pending(self, request, queryset):
         updated = self._set_status(queryset, Friendship.Status.PENDING)
-        self.message_user(request, f"Updated {updated} friendship(s) to pending.")
+        self.message_user(request, f"Обновлено дружб: {updated}, статус «в ожидании».")
 
-    @admin.action(description="Set status: accepted")
+    @admin.action(description="Установить статус: принята")
     def mark_accepted(self, request, queryset):
         updated = self._set_status(queryset, Friendship.Status.ACCEPTED)
-        self.message_user(request, f"Updated {updated} friendship(s) to accepted.")
+        self.message_user(request, f"Обновлено дружб: {updated}, статус «принята».")
 
-    @admin.action(description="Set status: declined")
+    @admin.action(description="Установить статус: отклонена")
     def mark_declined(self, request, queryset):
         updated = self._set_status(queryset, Friendship.Status.DECLINED)
-        self.message_user(request, f"Updated {updated} friendship(s) to declined.")
+        self.message_user(request, f"Обновлено дружб: {updated}, статус «отклонена».")
 
-    @admin.action(description="Set status: blocked")
+    @admin.action(description="Установить статус: заблокирована")
     def mark_blocked(self, request, queryset):
         updated = self._set_status(queryset, Friendship.Status.BLOCKED)
-        self.message_user(request, f"Updated {updated} friendship(s) to blocked.")
+        self.message_user(request, f"Обновлено дружб: {updated}, статус «заблокирована».")
 
-    @admin.action(description="Make accepted + create reverse accepted rows")
+    @admin.action(description="Сделать принятой + создать зеркальные записи")
     def make_mutual_accepted(self, request, queryset):
         created_or_updated = 0
         for friendship in queryset.select_related("from_user", "to_user"):
@@ -75,4 +75,4 @@ class FriendshipAdmin(admin.ModelAdmin):
                 defaults={"status": Friendship.Status.ACCEPTED},
             )
             created_or_updated += 1
-        self.message_user(request, f"Processed {created_or_updated} friendship pair(s).")
+        self.message_user(request, f"Обработано пар дружбы: {created_or_updated}.")

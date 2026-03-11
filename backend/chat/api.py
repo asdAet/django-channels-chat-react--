@@ -93,7 +93,7 @@ def _serialize_reply_to(message: Message | None):
     if not message:
         return None
     if message.is_deleted:
-        return {"id": message.pk, "username": None, "content": "[deleted]"}
+        return {"id": message.pk, "username": None, "content": "[удалено]"}
     return {
         "id": message.pk,
         "username": message.user.username if message.user else message.username,
@@ -150,9 +150,9 @@ def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
     try:
         parsed = int(raw_value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
-        raise ValueError(f"Invalid '{param_name}': must be an integer")
+        raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
     if parsed < 1:
-        raise ValueError(f"Invalid '{param_name}': must be >= 1")
+        raise ValueError(f"Некорректный параметр '{param_name}': должно быть >= 1")
     return parsed
 
 
@@ -161,7 +161,7 @@ def _resolve_room(room_slug: str):
         return _public_room(), None
 
     if not _is_valid_room_slug(room_slug):
-        return None, Response({"error": "Invalid room slug"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return None, Response({"error": "Некорректный slug комнаты"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     room = Room.objects.filter(slug=room_slug).first()
     return room, None
@@ -215,19 +215,19 @@ class DirectStartApiView(GenericAPIView):
     serializer_class = DirectStartInputSerializer
 
     def get(self, _request):
-        return Response({"detail": "Use POST with username"})
+        return Response({"detail": "Используйте POST с именем пользователя"})
 
     def post(self, request):
         target_username = _normalize_username(request.data.get("username"))
         if not target_username:
-            return Response({"error": "username is required"}, status=http_status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Требуется имя пользователя"}, status=http_status.HTTP_400_BAD_REQUEST)
 
         target = User.objects.filter(username=target_username).select_related("profile").first()
         if not target:
-            return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
         if target.pk == request.user.pk:
-            return Response({"error": "Cannot start direct chat with yourself"}, status=http_status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Нельзя начать личный чат с самим собой"}, status=http_status.HTTP_400_BAD_REQUEST)
 
         pair_key = direct_pair_key(request.user.pk, target.pk)
         slug = direct_room_slug(pair_key)
@@ -235,13 +235,13 @@ class DirectStartApiView(GenericAPIView):
         try:
             room, created = ensure_direct_room_with_retry(request.user, target, pair_key, slug)
         except OperationalError:
-            return Response({"error": "Service unavailable"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({"error": "Сервис временно недоступен"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
 
         try:
             with transaction.atomic():
                 ensure_direct_roles(room, request.user, target, created=created)
         except OperationalError:
-            return Response({"error": "Service unavailable"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({"error": "Сервис временно недоступен"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
 
         return Response(
             {
@@ -322,7 +322,7 @@ def room_details(request, room_slug):
         created = False
         if room is None:
             if not request.user or not request.user.is_authenticated:
-                return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+                return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
             room = Room.objects.create(
                 slug=room_slug,
@@ -342,9 +342,9 @@ def room_details(request, room_slug):
                         try:
                             ensure_can_read_or_404(room, request.user)
                         except Http404:
-                            return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+                            return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
                     else:
-                        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+                        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
         return Response(_serialize_room_details(request, room, created=created))
     except (OperationalError, ProgrammingError, IntegrityError):
@@ -368,13 +368,13 @@ def room_messages(request, room_slug):
         return error_response
 
     if room is None:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     if room.kind in {Room.Kind.PRIVATE, Room.Kind.DIRECT, Room.Kind.GROUP}:
         try:
             ensure_can_read_or_404(room, request.user)
         except Http404:
-            return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         default_page_size = max(1, int(getattr(settings, "CHAT_MESSAGES_PAGE_SIZE", 50)))
@@ -478,18 +478,18 @@ def message_detail(request, room_slug, message_id):
     if error_response:
         return error_response
     if room is None:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         _ensure_room_read_access(request, room)
     except Http404:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         if request.method == "PATCH":
             content = request.data.get("content", "")
             if not isinstance(content, str):
-                return Response({"error": "content is required"}, status=http_status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Требуется поле content"}, status=http_status.HTTP_400_BAD_REQUEST)
             msg = edit_message(request.user, room, message_id, content)
             edited_at = msg.edited_at or msg.date_added
             _broadcast_to_room(room, {
@@ -514,7 +514,7 @@ def message_detail(request, room_slug, message_id):
             return Response(status=http_status.HTTP_204_NO_CONTENT)
 
     except MessageNotFoundError:
-        return Response({"error": "Message not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Сообщение не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
     except MessageForbiddenError as exc:
         return Response({"error": str(exc)}, status=http_status.HTTP_403_FORBIDDEN)
     except MessageValidationError as exc:
@@ -530,16 +530,16 @@ def message_reactions(request, room_slug, message_id):
     if error_response:
         return error_response
     if room is None:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         _ensure_room_read_access(request, room)
     except Http404:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     emoji = request.data.get("emoji", "")
     if not isinstance(emoji, str):
-        return Response({"error": "emoji is required"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Требуется поле emoji"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     try:
         reaction = add_reaction(request.user, room, message_id, emoji)
@@ -557,7 +557,7 @@ def message_reactions(request, room_slug, message_id):
             "username": request.user.username,
         })
     except MessageNotFoundError:
-        return Response({"error": "Message not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Сообщение не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
     except MessageForbiddenError as exc:
         return Response({"error": str(exc)}, status=http_status.HTTP_403_FORBIDDEN)
     except MessageValidationError as exc:
@@ -571,12 +571,12 @@ def message_reaction_remove(request, room_slug, message_id, emoji):
     if error_response:
         return error_response
     if room is None:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         _ensure_room_read_access(request, room)
     except Http404:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     remove_reaction(request.user, room, message_id, emoji)
     _broadcast_to_room(room, {
@@ -599,12 +599,12 @@ def upload_attachments(request, room_slug):
     if error_response:
         return error_response
     if room is None:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         _ensure_room_read_access(request, room)
     except Http404:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     if request.method == "GET":
         limit_raw = request.query_params.get("limit")
@@ -663,16 +663,16 @@ def upload_attachments(request, room_slug):
         )
 
     if not has_permission(room, request.user, Perm.ATTACH_FILES):
-        return Response({"error": "Missing ATTACH_FILES permission"}, status=http_status.HTTP_403_FORBIDDEN)
+        return Response({"error": "Отсутствует разрешение ATTACH_FILES"}, status=http_status.HTTP_403_FORBIDDEN)
 
     files = request.FILES.getlist("files")
     if not files:
-        return Response({"error": "No files provided"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Файлы не переданы"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     max_per_msg = int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5))
     if len(files) > max_per_msg:
         return Response(
-            {"error": f"Maximum {max_per_msg} files per message"},
+            {"error": f"Максимум {max_per_msg} файлов на сообщение"},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
 
@@ -681,7 +681,7 @@ def upload_attachments(request, room_slug):
     for f in files:
         if f.size > max_size:
             return Response(
-                {"error": f"File '{f.name}' exceeds maximum size"},
+                {"error": f"Файл '{f.name}' превышает максимальный размер"},
                 status=http_status.HTTP_400_BAD_REQUEST,
             )
 
@@ -708,7 +708,7 @@ def upload_attachments(request, room_slug):
         except ValueError as exc:
             return Response({"error": str(exc)}, status=http_status.HTTP_400_BAD_REQUEST)
         if not Message.objects.filter(pk=reply_to_id, room=room, is_deleted=False).exists():
-            return Response({"error": "Reply target not found"}, status=http_status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Сообщение для ответа не найдено"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     user = request.user
     profile = getattr(user, "profile", None)
@@ -779,16 +779,16 @@ def search_messages(request, room_slug):
     if error_response:
         return error_response
     if room is None:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         _ensure_room_read_access(request, room)
     except Http404:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     q = request.query_params.get("q", "").strip()
     if len(q) < 2:
-        return Response({"error": "Query must be at least 2 characters"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Запрос должен содержать минимум 2 символа"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     try:
         limit = min(int(request.query_params.get("limit", 20)), 50)
@@ -921,7 +921,7 @@ def global_search(request):
     is_handle_query = raw_q.startswith("@")
     q = raw_q[1:].strip() if is_handle_query else raw_q
     if len(q) < 2:
-        return Response({"error": "Query must be at least 2 characters"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Запрос должен содержать минимум 2 символа"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     users_limit = _parse_section_limit(request, "usersLimit", 8, 20)
     groups_limit = _parse_section_limit(request, "groupsLimit", 8, 20)
@@ -1008,21 +1008,21 @@ def mark_read_view(request, room_slug):
     if error_response:
         return error_response
     if room is None:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     try:
         _ensure_room_read_access(request, room)
     except Http404:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     last_read_id = request.data.get("lastReadMessageId")
     if not isinstance(last_read_id, int) or last_read_id < 1:
-        return Response({"error": "lastReadMessageId must be a positive integer"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "lastReadMessageId должен быть положительным целым числом"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     try:
         state = service_mark_read(request.user, room, last_read_id)
     except MessageNotFoundError:
-        return Response({"error": "Message not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Сообщение не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
     # Sync with DirectInbox cache for DM rooms
     if room.kind == Room.Kind.DIRECT:

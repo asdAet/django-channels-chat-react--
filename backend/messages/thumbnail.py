@@ -32,7 +32,7 @@ def generate_thumbnail(source_field) -> dict | None:
         source_field.seek(0)
         img = Image.open(source_field)
     except Exception:
-        logger.debug("Cannot open image for thumbnail", exc_info=True)
+        logger.debug("Не удалось открыть изображение для миниатюры", exc_info=True)
         return None
 
     original_width, original_height = img.size
@@ -76,5 +76,5 @@ def generate_thumbnail(source_field) -> dict | None:
             "height": new_size[1],
         }
     except Exception:
-        logger.debug("Thumbnail generation failed", exc_info=True)
+        logger.debug("Не удалось сгенерировать миниатюру", exc_info=True)
         return None

@@ -27,7 +27,7 @@ def events_list_view(request):
 def event_detail_view(_request, event_id: int):
     item = query_service.get_event(event_id)
     if not item:
-        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
     serializer = AuditEventSerializer(item)
     return Response({"item": serializer.data})
 
@@ -51,9 +51,9 @@ def username_history_view(request, user_id: int):
     try:
         limit = int(raw_limit) if raw_limit is not None else 200
     except (TypeError, ValueError):
-        return Response({"error": "Invalid 'limit': must be an integer"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Некорректный параметр 'limit': должно быть целое число"}, status=http_status.HTTP_400_BAD_REQUEST)
     if limit < 1:
-        return Response({"error": "Invalid 'limit': must be >= 1"}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Некорректный параметр 'limit': должно быть >= 1"}, status=http_status.HTTP_400_BAD_REQUEST)
 
     items = username_history_service.get_username_history(user_id=user_id, limit=limit)
     serializer = UsernameHistorySerializer(items, many=True)

@@ -36,7 +36,7 @@ class RoleUpdateInputSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if not attrs:
-            raise serializers.ValidationError("At least one field is required")
+            raise serializers.ValidationError("Требуется указать хотя бы одно поле")
         return attrs
 
 
@@ -80,7 +80,7 @@ class OverrideCreateInputSerializer(serializers.Serializer):
         target_role_id = attrs.get("targetRoleId")
         target_user_id = attrs.get("targetUserId")
         if (target_role_id is None) == (target_user_id is None):
-            raise serializers.ValidationError("Exactly one of targetRoleId or targetUserId is required")
+            raise serializers.ValidationError("Требуется указать ровно одно из полей: targetRoleId или targetUserId")
         return attrs
 
 
@@ -90,6 +90,5 @@ class OverrideUpdateInputSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if not attrs:
-            raise serializers.ValidationError("At least one field is required")
+            raise serializers.ValidationError("Требуется указать хотя бы одно поле")
         return attrs
-

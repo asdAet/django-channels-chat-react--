@@ -338,7 +338,7 @@ describe('ApiService', () => {
      * @returns Результат выполнения `expect`.
      */
 
-    expect(normalized).toEqual({ status: 0, message: 'Request failed' })
+    expect(normalized).toEqual({ status: 0, message: 'Ошибка запроса' })
   })
 
 })

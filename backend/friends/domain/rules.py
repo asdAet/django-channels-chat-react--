@@ -17,13 +17,13 @@ def can_send_request(
     Returns (allowed, reason).
     """
     if existing_outgoing_status == "blocked":
-        return False, "You have blocked this user"
+        return False, "Вы заблокировали этого пользователя"
     if existing_incoming_status == "blocked":
-        return False, "This user has blocked you"
+        return False, "Этот пользователь заблокировал вас"
     if existing_outgoing_status == "pending":
-        return False, "Friend request already sent"
+        return False, "Заявка в друзья уже отправлена"
     if existing_outgoing_status == "accepted":
-        return False, "Already friends"
+        return False, "Вы уже в друзьях"
     return True, ""
 
 

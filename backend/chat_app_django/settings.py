@@ -39,9 +39,9 @@ def env_int(name: str, default: int, minimum: int | None = None) -> int:
         try:
             value = int(raw)
         except ValueError as exc:
-            raise ImproperlyConfigured(f"{name} must be an integer.") from exc
+            raise ImproperlyConfigured(f"{name} должно быть целым числом.") from exc
     if minimum is not None and value < minimum:
-        raise ImproperlyConfigured(f"{name} must be >= {minimum}.")
+        raise ImproperlyConfigured(f"{name} должно быть >= {minimum}.")
     return value
 
 
@@ -53,14 +53,14 @@ if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = secrets.token_urlsafe(50)
     else:
-        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set in production.")
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY должен быть задан в production.")
 
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
     ["localhost", "127.0.0.1"] if DEBUG else [],
 )
 if not DEBUG and not ALLOWED_HOSTS:
-    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be set in production.")
+    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS должен быть задан в production.")
 
 
 INSTALLED_APPS = [
@@ -155,7 +155,7 @@ REDIS_URL = os.getenv("REDIS_URL")
 REQUIRE_REDIS = env_bool("DJANGO_REQUIRE_REDIS", not DEBUG)
 ALLOW_INMEMORY_CHANNEL_LAYER = env_bool("DJANGO_ALLOW_INMEMORY_CHANNEL_LAYER", DEBUG)
 if REQUIRE_REDIS and not REDIS_URL:
-    raise ImproperlyConfigured("REDIS_URL must be set in production.")
+    raise ImproperlyConfigured("REDIS_URL должен быть задан в production.")
 
 if REDIS_URL:
     CHANNEL_LAYERS = {
@@ -172,7 +172,7 @@ elif ALLOW_INMEMORY_CHANNEL_LAYER:
     }
 else:
     raise ImproperlyConfigured(
-        "REDIS_URL is required unless DJANGO_ALLOW_INMEMORY_CHANNEL_LAYER=1."
+        "Требуется REDIS_URL, если DJANGO_ALLOW_INMEMORY_CHANNEL_LAYER не равен 1."
     )
 
 
@@ -188,7 +188,7 @@ def _database_from_url(url: str) -> dict:
             "HOST": parsed.hostname or "",
             "PORT": str(parsed.port or ""),
         }
-    raise ImproperlyConfigured("Unsupported DATABASE_URL scheme.")
+    raise ImproperlyConfigured("Неподдерживаемая схема DATABASE_URL.")
 
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -225,12 +225,12 @@ if (
     and DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3"
     and not ALLOW_SQLITE_IN_PROD
 ):
-    raise ImproperlyConfigured("SQLite is not allowed in production.")
+    raise ImproperlyConfigured("SQLite не разрешен в production.")
 
 
 RELAX_PASSWORDS = env_bool("DJANGO_RELAX_PASSWORDS", DEBUG)
 if not DEBUG and RELAX_PASSWORDS:
-    raise ImproperlyConfigured("DJANGO_RELAX_PASSWORDS cannot be enabled in production.")
+    raise ImproperlyConfigured("DJANGO_RELAX_PASSWORDS нельзя включать в production.")
 
 if RELAX_PASSWORDS:
     AUTH_PASSWORD_VALIDATORS = [
@@ -310,7 +310,7 @@ AUTH_RATE_LIMIT = int(os.getenv("AUTH_RATE_LIMIT", "10"))
 AUTH_RATE_WINDOW = int(os.getenv("AUTH_RATE_WINDOW", "60"))
 USERNAME_MAX_LENGTH = env_int("USERNAME_MAX_LENGTH", 30, minimum=1)
 if USERNAME_MAX_LENGTH > 150:
-    raise ImproperlyConfigured("USERNAME_MAX_LENGTH must be <= 150.")
+    raise ImproperlyConfigured("USERNAME_MAX_LENGTH должен быть <= 150.")
 CHAT_MESSAGE_EDIT_WINDOW_SECONDS = env_int("CHAT_MESSAGE_EDIT_WINDOW_SECONDS", 900, minimum=0)
 CHAT_MESSAGE_MAX_LENGTH = int(os.getenv("CHAT_MESSAGE_MAX_LENGTH", "1000"))
 CHAT_MESSAGE_RATE_LIMIT = int(os.getenv("CHAT_MESSAGE_RATE_LIMIT", "20"))
