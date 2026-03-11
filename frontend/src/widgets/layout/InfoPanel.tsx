@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useInfoPanel } from '../../shared/layout/useInfoPanel'
@@ -50,37 +49,22 @@ function PanelContent({
 }
 
 export function InfoPanel({ currentUsername }: { currentUsername: string | null }) {
-  const { isOpen, content, targetId, close } = useInfoPanel()
+  const { isOpen, content, targetId, close, clearClosed } = useInfoPanel()
   const navigate = useNavigate()
-  const [rendered, setRendered] = useState(false)
-  const [renderContent, setRenderContent] = useState<string | null>(null)
-  const [renderTargetId, setRenderTargetId] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (isOpen && content) {
-      setRendered(true)
-      setRenderContent(content)
-      setRenderTargetId(targetId ?? null)
-      return
-    }
-
-    if (!isOpen) {
-      const timer = window.setTimeout(() => {
-        setRendered(false)
-        setRenderContent(null)
-        setRenderTargetId(null)
-      }, 220)
-      return () => window.clearTimeout(timer)
-    }
-  }, [isOpen, content, targetId])
 
   const onJumpToMessage = (slug: string, messageId: number) => {
     navigate(`/rooms/${encodeURIComponent(slug)}?message=${messageId}`)
   }
 
-  if (!rendered || !renderContent) return null
+  if (!content) return null
 
-  const compactHeader = renderContent === 'group'
+  const handlePanelTransitionEnd = (event: React.TransitionEvent<HTMLElement>) => {
+    if (event.currentTarget !== event.target) return
+    if (isOpen) return
+    clearClosed()
+  }
+
+  const compactHeader = content === 'group'
 
   return (
     <>
@@ -92,9 +76,10 @@ export function InfoPanel({ currentUsername }: { currentUsername: string | null 
       <aside
         className={[styles.panel, !isOpen ? styles.panelHidden : ''].filter(Boolean).join(' ')}
         aria-label="Информационная панель"
+        onTransitionEnd={handlePanelTransitionEnd}
       >
         <div className={styles.header}>
-          <h3 className={styles.headerTitle}>{TITLES[renderContent] ?? 'Информация'}</h3>
+          <h3 className={styles.headerTitle}>{TITLES[content] ?? 'Информация'}</h3>
           <button
             type="button"
             className={styles.closeBtn}
@@ -109,8 +94,8 @@ export function InfoPanel({ currentUsername }: { currentUsername: string | null 
         </div>
         <div className={[styles.body, compactHeader ? styles.bodyCompact : ''].filter(Boolean).join(' ')}>
           <PanelContent
-            content={renderContent}
-            targetId={renderTargetId}
+            content={content}
+            targetId={targetId}
             currentUsername={currentUsername}
             onJumpToMessage={onJumpToMessage}
           />

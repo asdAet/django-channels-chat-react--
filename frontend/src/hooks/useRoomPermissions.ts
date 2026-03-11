@@ -8,6 +8,9 @@ import { Perm } from '../entities/role/types'
 type UseRoomPermissionsResult = {
   loading: boolean
   raw: MyPermissions | null
+  isMember: boolean
+  isBanned: boolean
+  canJoin: boolean
   canRead: boolean
   canWrite: boolean
   canAttachFiles: boolean
@@ -20,6 +23,7 @@ type UseRoomPermissionsResult = {
   canInvite: boolean
   canMute: boolean
   isAdmin: boolean
+  refresh: () => Promise<void>
 }
 
 export function useRoomPermissions(slug: string | null): UseRoomPermissionsResult {
@@ -53,6 +57,9 @@ export function useRoomPermissions(slug: string | null): UseRoomPermissionsResul
   return {
     loading,
     raw,
+    isMember: raw?.isMember ?? false,
+    isBanned: raw?.isBanned ?? false,
+    canJoin: raw?.canJoin ?? false,
     canRead: admin || hasPermissionFlag(p, Perm.READ_MESSAGES),
     canWrite: admin || hasPermissionFlag(p, Perm.SEND_MESSAGES),
     canAttachFiles: admin || hasPermissionFlag(p, Perm.ATTACH_FILES),
@@ -65,5 +72,6 @@ export function useRoomPermissions(slug: string | null): UseRoomPermissionsResul
     canInvite: admin || hasPermissionFlag(p, Perm.INVITE_USERS),
     canMute: admin || hasPermissionFlag(p, Perm.MUTE_MEMBERS),
     isAdmin: admin,
+    refresh: load,
   }
 }

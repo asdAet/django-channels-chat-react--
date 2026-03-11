@@ -23,6 +23,7 @@ const chatRoomMock = vi.hoisted(() => ({
   hasMore: false,
   error: null as string | null,
   loadMore: vi.fn(),
+  reload: vi.fn(),
   setMessages: vi.fn(),
 }))
 
@@ -35,6 +36,41 @@ const presenceMock = vi.hoisted(() => ({
 
 const infoPanelMock = vi.hoisted(() => ({
   open: vi.fn(),
+}))
+
+const permissionsMock = vi.hoisted(() => ({
+  loading: false,
+  raw: null,
+  isMember: true,
+  isBanned: false,
+  canJoin: false,
+  canRead: true,
+  canWrite: true,
+  canAttachFiles: true,
+  canReact: true,
+  canManageMessages: false,
+  canManageRoles: false,
+  canManageRoom: false,
+  canKick: false,
+  canBan: false,
+  canInvite: false,
+  canMute: false,
+  isAdmin: false,
+  refresh: vi.fn().mockResolvedValue(undefined),
+}))
+
+const groupControllerMock = vi.hoisted(() => ({
+  joinGroup: vi.fn().mockResolvedValue(undefined),
+}))
+
+const chatControllerMock = vi.hoisted(() => ({
+  editMessage: vi.fn().mockResolvedValue({}),
+  deleteMessage: vi.fn().mockResolvedValue(undefined),
+  addReaction: vi.fn().mockResolvedValue({}),
+  removeReaction: vi.fn().mockResolvedValue(undefined),
+  searchMessages: vi.fn().mockResolvedValue({ results: [] }),
+  uploadAttachments: vi.fn().mockResolvedValue({}),
+  markRead: vi.fn().mockResolvedValue({}),
 }))
 
 vi.mock('react-router-dom', () => ({
@@ -69,6 +105,10 @@ vi.mock('../hooks/useTypingIndicator', () => ({
   useTypingIndicator: () => ({ sendTyping: vi.fn() }),
 }))
 
+vi.mock('../hooks/useRoomPermissions', () => ({
+  useRoomPermissions: () => permissionsMock,
+}))
+
 vi.mock('../shared/directInbox', () => ({
   useDirectInbox: () => ({ setActiveRoom: vi.fn(), markRead: vi.fn() }),
 }))
@@ -82,15 +122,11 @@ vi.mock('../shared/layout/useInfoPanel', () => ({
 }))
 
 vi.mock('../controllers/ChatController', () => ({
-  chatController: {
-    editMessage: vi.fn().mockResolvedValue({}),
-    deleteMessage: vi.fn().mockResolvedValue(undefined),
-    addReaction: vi.fn().mockResolvedValue({}),
-    removeReaction: vi.fn().mockResolvedValue(undefined),
-    searchMessages: vi.fn().mockResolvedValue({ results: [] }),
-    uploadAttachments: vi.fn().mockResolvedValue({}),
-    markRead: vi.fn().mockResolvedValue({}),
-  },
+  chatController: chatControllerMock,
+}))
+
+vi.mock('../controllers/GroupController', () => ({
+  groupController: groupControllerMock,
 }))
 
 import { ChatRoomPage } from './ChatRoomPage'
@@ -118,7 +154,28 @@ describe('ChatRoomPage', () => {
     chatRoomMock.hasMore = false
     chatRoomMock.error = null
     chatRoomMock.loadMore.mockReset()
+    chatRoomMock.reload.mockReset()
     chatRoomMock.setMessages.mockReset()
+    permissionsMock.loading = false
+    permissionsMock.raw = null
+    permissionsMock.isMember = true
+    permissionsMock.isBanned = false
+    permissionsMock.canJoin = false
+    permissionsMock.canRead = true
+    permissionsMock.canWrite = true
+    permissionsMock.canAttachFiles = true
+    permissionsMock.canReact = true
+    permissionsMock.canManageMessages = false
+    permissionsMock.canManageRoles = false
+    permissionsMock.canManageRoom = false
+    permissionsMock.canKick = false
+    permissionsMock.canBan = false
+    permissionsMock.canInvite = false
+    permissionsMock.canMute = false
+    permissionsMock.isAdmin = false
+    permissionsMock.refresh.mockReset().mockResolvedValue(undefined)
+    groupControllerMock.joinGroup.mockReset().mockResolvedValue(undefined)
+    chatControllerMock.markRead.mockReset().mockResolvedValue({})
     presenceMock.online = []
     presenceMock.status = 'online'
     presenceMock.lastError = null
@@ -219,5 +276,110 @@ describe('ChatRoomPage', () => {
 
     expect(container.querySelector('article[data-own-message="true"]')).not.toBeNull()
     expect(container.querySelector('article[data-own-message="false"]')).not.toBeNull()
+  })
+
+  it('shows join CTA and hides input for public group non-member', async () => {
+    chatRoomMock.details = {
+      slug: 'g-public-1',
+      name: 'Public Group',
+      kind: 'group',
+      created: false,
+      createdBy: null,
+    } as RoomDetails
+    permissionsMock.loading = false
+    permissionsMock.isMember = false
+    permissionsMock.canWrite = false
+    permissionsMock.canJoin = true
+
+    render(<ChatRoomPage slug="g-public-1" user={user} onNavigate={vi.fn()} />)
+
+    expect(screen.getByTestId('group-join-callout')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Сообщение')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Присоединиться' }))
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(groupControllerMock.joinGroup).toHaveBeenCalledWith('g-public-1')
+    expect(permissionsMock.refresh).toHaveBeenCalledTimes(1)
+    expect(chatRoomMock.reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('deduplicates mark-read for same last message id', async () => {
+    chatRoomMock.details = {
+      slug: 'dm_1',
+      name: 'dm',
+      kind: 'direct',
+      created: false,
+      createdBy: null,
+      peer: { username: 'alice', profileImage: null, lastSeen: null },
+    } as RoomDetails
+    chatRoomMock.messages = [
+      {
+        id: 1,
+        username: 'alice',
+        content: 'first',
+        profilePic: null,
+        createdAt: '2026-02-13T12:00:00.000Z',
+        editedAt: null,
+        isDeleted: false,
+        replyTo: null,
+        attachments: [],
+        reactions: [],
+      },
+      {
+        id: 2,
+        username: 'alice',
+        content: 'second',
+        profilePic: null,
+        createdAt: '2026-02-13T12:01:00.000Z',
+        editedAt: null,
+        isDeleted: false,
+        replyTo: null,
+        attachments: [],
+        reactions: [],
+      },
+    ]
+
+    const { rerender } = render(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(chatControllerMock.markRead).toHaveBeenCalledWith('dm_1', 2)
+    expect(chatControllerMock.markRead).toHaveBeenCalledTimes(1)
+
+    chatRoomMock.messages = [...chatRoomMock.messages]
+    rerender(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(chatControllerMock.markRead).toHaveBeenCalledTimes(1)
+
+    chatRoomMock.messages = [
+      ...chatRoomMock.messages,
+      {
+        id: 3,
+        username: 'alice',
+        content: 'third',
+        profilePic: null,
+        createdAt: '2026-02-13T12:02:00.000Z',
+        editedAt: null,
+        isDeleted: false,
+        replyTo: null,
+        attachments: [],
+        reactions: [],
+      },
+    ]
+    rerender(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(chatControllerMock.markRead).toHaveBeenCalledWith('dm_1', 3)
+    expect(chatControllerMock.markRead).toHaveBeenCalledTimes(2)
   })
 })

@@ -28,6 +28,9 @@ export type PermissionOverride = {
 export type MyPermissions = {
   permissions: number
   roles?: number[]
+  isMember?: boolean
+  isBanned?: boolean
+  canJoin?: boolean
 }
 
 /** Bitmask flags matching backend roles/permissions.py Perm enum. */

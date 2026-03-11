@@ -164,6 +164,7 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
     hasMore: state.hasMore,
     error: state.error,
     loadMore,
+    reload: loadInitial,
     setMessages,
     setError,
   }

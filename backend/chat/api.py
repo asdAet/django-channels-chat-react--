@@ -114,6 +114,23 @@ def _serialize_attachment_item(request, attachment: MessageAttachment):
     }
 
 
+def _serialize_group_avatar_for_room(request, room: Room) -> tuple[str | None, dict[str, float] | None]:
+    if room.kind != Room.Kind.GROUP:
+        return None, None
+
+    avatar_url = None
+    image = getattr(room, "avatar", None)
+    image_name = getattr(image, "name", "") if image else ""
+    if image_name:
+        avatar_url = _build_profile_pic_url(request, image)
+    else:
+        fallback_name = str(getattr(settings, "GROUP_DEFAULT_AVATAR", "default.jpg") or "").strip()
+        if fallback_name:
+            avatar_url = build_profile_url_from_request(request, fallback_name)
+
+    return avatar_url, serialize_avatar_crop(room)
+
+
 def _normalize_username(raw_username):
     if not isinstance(raw_username, str):
         return ""
@@ -168,6 +185,7 @@ def _resolve_room(room_slug: str):
 
 
 def _serialize_room_details(request, room: Room, created: bool):
+    group_avatar_url, group_avatar_crop = _serialize_group_avatar_for_room(request, room)
     payload = {
         "slug": room.slug,
         "name": room.name,
@@ -175,6 +193,8 @@ def _serialize_room_details(request, room: Room, created: bool):
         "created": created,
         "createdBy": room.created_by.username if room.created_by else None,
         "peer": None,
+        "avatarUrl": group_avatar_url,
+        "avatarCrop": group_avatar_crop,
     }
 
     if request.user and request.user.is_authenticated:
@@ -356,6 +376,8 @@ def room_details(request, room_slug):
                 "created": True,
                 "createdBy": None,
                 "peer": None,
+                "avatarUrl": None,
+                "avatarCrop": None,
             }
         )
 

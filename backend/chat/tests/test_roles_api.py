@@ -184,10 +184,35 @@ class RoomRolesApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["roomSlug"], self.room.slug)
+        self.assertTrue(payload["isMember"])
+        self.assertFalse(payload["isBanned"])
+        self.assertFalse(payload["canJoin"])
         self.assertTrue(payload["can"]["read"])
         self.assertTrue(payload["can"]["write"])
         self.assertTrue(payload["can"]["manageRoles"])
         self.assertIn("ADMINISTRATOR", payload["flags"])
+
+    def test_permissions_me_for_public_group_non_member_is_read_only_joinable(self):
+        public_group = Room.objects.create(
+            slug="roles-public-group-01",
+            name="Roles Public",
+            kind=Room.Kind.GROUP,
+            is_public=True,
+            username="rolespublic01",
+            created_by=self.owner,
+        )
+        ensure_membership(public_group, self.owner, role_name="Owner")
+
+        self.client.force_login(self.member)
+        response = self.client.get(f"/api/chat/rooms/{public_group.slug}/permissions/me/")
+        self.assertEqual(response.status_code, 200)
+
+        payload = response.json()
+        self.assertFalse(payload["isMember"])
+        self.assertFalse(payload["isBanned"])
+        self.assertTrue(payload["canJoin"])
+        self.assertTrue(payload["can"]["read"])
+        self.assertFalse(payload["can"]["write"])
 
     def test_direct_room_rejects_role_management(self):
         direct_room = Room.objects.create(

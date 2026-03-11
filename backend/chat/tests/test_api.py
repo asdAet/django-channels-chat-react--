@@ -121,6 +121,28 @@ class RoomDetailsApiTests(TestCase):
         self.assertEqual(payload['slug'], 'public')
         self.assertEqual(payload['kind'], Room.Kind.PUBLIC)
 
+    def test_group_room_details_returns_group_avatar_fields(self):
+        room = Room.objects.create(
+            slug='g-room-avatar-1',
+            name='Avatar Group',
+            kind=Room.Kind.GROUP,
+            is_public=True,
+            username='groomavatar1',
+            created_by=self.owner,
+        )
+        ensure_membership(room, self.owner, role_name='Owner')
+
+        self.client.force_login(self.owner)
+        response = self.client.get(f'/api/chat/rooms/{room.slug}/')
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload['kind'], Room.Kind.GROUP)
+        self.assertIn('avatarUrl', payload)
+        self.assertIn('avatarCrop', payload)
+        self.assertIsNotNone(payload['avatarUrl'])
+        self.assertIn('/api/auth/media/', payload['avatarUrl'])
+        self.assertIsNone(payload['avatarCrop'])
+
     def test_invalid_private_slug_returns_400(self):
         """Проверяет сценарий `test_invalid_private_slug_returns_400`."""
         response = self.client.get('/api/chat/rooms/bad%2Fslug/')

@@ -128,8 +128,11 @@ def compute_permissions(room: Room, user) -> Perm:
 
     membership = repositories.get_membership(room, user)
     if not membership:
-        if room.kind == Room.Kind.GROUP and not getattr(room, "is_public", False):
-            return Perm(0)
+        if room.kind == Room.Kind.GROUP:
+            if not getattr(room, "is_public", False):
+                return Perm(0)
+            # Public groups are readable before join, but writing requires membership.
+            return Perm.READ_MESSAGES
         return Perm(everyone_permissions)
     if membership.is_banned:
         return Perm(0)

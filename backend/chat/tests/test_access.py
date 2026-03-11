@@ -51,6 +51,23 @@ class ChatAccessTests(TestCase):
         self.assertTrue(can_read(self.private_room, self.member))
         self.assertTrue(can_write(self.private_room, self.member))
 
+    def test_public_group_non_member_is_read_only_until_join(self):
+        group = Room.objects.create(
+            slug='g_access_public_01',
+            name='Public Group',
+            kind=Room.Kind.GROUP,
+            is_public=True,
+            username='gaccess01',
+            created_by=self.owner,
+        )
+        ensure_membership(group, self.owner, role_name="Owner")
+
+        self.assertTrue(can_read(group, self.other))
+        self.assertFalse(can_write(group, self.other))
+
+        ensure_membership(group, self.other, role_name="Member")
+        self.assertTrue(can_write(group, self.other))
+
 
     def test_direct_room_without_pair_key_denied(self):
         """Проверяет сценарий `test_direct_room_without_pair_key_denied`."""

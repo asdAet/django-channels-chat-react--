@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 
 import { chatController } from '../controllers/ChatController'
 import { friendsController } from '../controllers/FriendsController'
+import { groupController } from '../controllers/GroupController'
 import { decodeChatWsEvent } from '../dto'
 import type { SearchResultItem } from '../domain/interfaces/IApiService'
 import type { Message } from '../entities/message/types'
@@ -10,6 +11,7 @@ import type { UserProfile } from '../entities/user/types'
 import { useChatRoom } from '../hooks/useChatRoom'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { useReconnectingWebSocket } from '../hooks/useReconnectingWebSocket'
+import { useRoomPermissions } from '../hooks/useRoomPermissions'
 import { useTypingIndicator } from '../hooks/useTypingIndicator'
 import { useChatMessageMaxLength } from '../shared/config/limits'
 import { invalidateDirectChats, invalidateRoomMessages } from '../shared/cache/cacheManager'
@@ -72,7 +74,7 @@ const sameAvatarCrop = (left: Message['avatarCrop'], right: Message['avatarCrop'
 }
 
 export function ChatRoomPage({ slug, user, onNavigate }: Props) {
-  const { details, messages, loading, loadingMore, hasMore, error, loadMore, setMessages } = useChatRoom(slug, user)
+  const { details, messages, loading, loadingMore, hasMore, error, loadMore, reload, setMessages } = useChatRoom(slug, user)
   const location = useLocation()
   const isPublicRoom = slug === 'public'
   const isOnline = useOnlineStatus()
@@ -80,6 +82,14 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const { setActiveRoom, markRead } = useDirectInbox()
   const { online: presenceOnline, status: presenceStatus } = usePresence()
   const maxMessageLength = useChatMessageMaxLength()
+  const roomPermissions = useRoomPermissions(user ? slug : null)
+  const {
+    loading: permissionsLoading,
+    canWrite: canWriteToRoom,
+    canJoin: canJoinRoom,
+    isBanned: isBannedInRoom,
+    refresh: refreshRoomPermissions,
+  } = roomPermissions
 
   const onlineUsernames = useMemo(
     () => new Set(presenceStatus === 'online' ? presenceOnline.map((e) => e.username) : []),
@@ -97,6 +107,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const [deleteConfirm, setDeleteConfirm] = useState<Message | null>(null)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
   const [queuedFiles, setQueuedFiles] = useState<File[]>([])
+  const [joinInProgress, setJoinInProgress] = useState(false)
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null)
   const [showScrollFab, setShowScrollFab] = useState(false)
   const [newMsgCount, setNewMsgCount] = useState(0)
@@ -120,6 +131,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const loadingMoreRef = useRef(loadingMore)
   const deepLinkedMessageRef = useRef<number | null>(null)
   const uploadAbortRef = useRef<AbortController | null>(null)
+  const lastReadSentRef = useRef(0)
 
   const wsUrl = useMemo(() => {
     if (!user && !isPublicRoom) return null
@@ -179,6 +191,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   useEffect(() => {
     uploadAbortRef.current?.abort()
     uploadAbortRef.current = null
+    lastReadSentRef.current = 0
     setQueuedFiles([])
     setUploadProgress(null)
     initialUnreadScrollDoneRef.current = false
@@ -273,6 +286,17 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     return () => window.clearInterval(id)
   }, [typingUsers.size])
 
+  const sendMarkReadIfNeeded = useCallback((lastReadMessageId: number | null | undefined) => {
+    if (!user || !lastReadMessageId || lastReadMessageId < 1) return
+    if (lastReadMessageId <= lastReadSentRef.current) return
+    lastReadSentRef.current = lastReadMessageId
+    void chatController.markRead(slug, lastReadMessageId).catch(() => {
+      if (lastReadSentRef.current === lastReadMessageId) {
+        lastReadSentRef.current = Math.max(0, lastReadMessageId - 1)
+      }
+    })
+  }, [slug, user])
+
   // Mark room as read when entering
   useEffect(() => {
     if (!user || !slug.startsWith('dm_')) return
@@ -323,8 +347,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     if (!isAtBottomRef.current) return
     const lastMsg = messages[messages.length - 1]
     if (!lastMsg || lastMsg.id < 1) return
-    void chatController.markRead(slug, lastMsg.id).catch(() => {})
-  }, [messages, slug, user])
+    sendMarkReadIfNeeded(lastMsg.id)
+  }, [messages, sendMarkReadIfNeeded, user])
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search)
@@ -540,7 +564,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       // Send read receipt when user scrolls to bottom
       const lastMsg = messagesRef.current[messagesRef.current.length - 1]
       if (lastMsg && lastMsg.id >= 1) {
-        void chatController.markRead(slug, lastMsg.id).catch(() => {})
+        sendMarkReadIfNeeded(lastMsg.id)
       }
     }
 
@@ -549,7 +573,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       prevScrollHeightRef.current = scrollHeight
       void loadMore()
     }
-  }, [hasMore, loadMore, loading, loadingMore])
+  }, [hasMore, loadMore, loading, loadingMore, sendMarkReadIfNeeded])
 
   const scrollToBottom = useCallback(() => {
     const list = listRef.current
@@ -798,6 +822,24 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     openInfoPanel('group', slug)
   }, [details?.kind, openInfoPanel, slug])
 
+  const handleJoinGroup = useCallback(async () => {
+    if (!user) {
+      setRoomError('Авторизуйтесь, чтобы присоединиться к группе')
+      return
+    }
+    setJoinInProgress(true)
+    setRoomError(null)
+    try {
+      await groupController.joinGroup(slug)
+      reload()
+      await refreshRoomPermissions()
+    } catch (err) {
+      setRoomError(extractApiErrorMessage(err, 'Не удалось присоединиться к группе'))
+    } finally {
+      setJoinInProgress(false)
+    }
+  }, [refreshRoomPermissions, reload, slug, user])
+
   const openRoomSearch = useCallback(() => {
     setHeaderSearchOpen((prev) => {
       const next = !prev
@@ -884,6 +926,20 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
   const isBlocked = Boolean(details?.blocked)
   const isBlockedByMe = Boolean(details?.blockedByMe)
+  const isGroupRoom = details?.kind === 'group'
+  const isGroupReadOnly = Boolean(
+    user
+    && isGroupRoom
+    && !permissionsLoading
+    && !canWriteToRoom,
+  )
+  const showGroupJoinCta = isGroupReadOnly && canJoinRoom
+  const showGroupReadOnlyNotice = isGroupReadOnly && !canJoinRoom
+  const canSendMessages = Boolean(
+    user
+    && !isBlocked
+    && (!isGroupRoom || canWriteToRoom),
+  )
 
   const roomSubtitle = details?.kind === 'direct'
     ? (isBlocked
@@ -970,7 +1026,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             >
               <Avatar
                 username={roomTitle}
-                profileImage={null}
+                profileImage={details?.kind === 'group' ? (details.avatarUrl ?? null) : null}
+                avatarCrop={details?.kind === 'group' ? (details.avatarCrop ?? undefined) : undefined}
                 size="small"
               />
             </button>
@@ -1172,7 +1229,34 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             </div>
           )}
 
-          {user && !isBlocked && (
+          {user && showGroupJoinCta && (
+            <div className={styles.authCallout} data-testid="group-join-callout">
+              <div className={styles.authCalloutText}>
+                <p className={styles.muted}>Чтобы отправлять сообщения, сначала присоединитесь к группе.</p>
+              </div>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  void handleJoinGroup()
+                }}
+                disabled={joinInProgress || permissionsLoading}
+              >
+                {joinInProgress ? 'Присоединяемся...' : 'Присоединиться'}
+              </Button>
+            </div>
+          )}
+
+          {user && showGroupReadOnlyNotice && (
+            <div className={styles.authCallout} data-testid="group-readonly-callout">
+              <div className={styles.authCalloutText}>
+                <p className={styles.muted}>
+                  {isBannedInRoom ? 'Вы заблокированы в этой группе.' : 'У вас нет прав на отправку сообщений в этой группе.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {canSendMessages && (
             <MessageInput
               draft={draft}
               onDraftChange={setDraft}

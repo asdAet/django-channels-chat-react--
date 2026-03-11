@@ -6,6 +6,13 @@
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
   animation: panelSlideIn 220ms ease;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.panelHidden {
+  opacity: 0;
+  transform: translateX(24px);
+  pointer-events: none;
 }
 
 @keyframes panelSlideIn {
@@ -108,6 +115,7 @@
   }
 
   .panelHidden {
+    opacity: 1;
     transform: translateX(100%);
     pointer-events: none;
   }

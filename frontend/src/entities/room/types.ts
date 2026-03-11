@@ -16,6 +16,8 @@ export type RoomDetails = {
   slug: string
   name: string
   kind: RoomKind
+  avatarUrl?: string | null
+  avatarCrop?: AvatarCrop | null
   peer?: RoomPeer | null
   created?: boolean
   createdBy?: string | null

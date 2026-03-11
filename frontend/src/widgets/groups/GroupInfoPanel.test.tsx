@@ -43,6 +43,27 @@ const chatControllerMock = vi.hoisted(() => ({
   getRoomMessages: vi.fn(),
 }))
 
+const roomPermissionsMock = vi.hoisted(() => ({
+  loading: false,
+  raw: null,
+  isMember: true,
+  isBanned: false,
+  canJoin: false,
+  canRead: true,
+  canWrite: true,
+  canAttachFiles: true,
+  canReact: true,
+  canManageMessages: true,
+  canManageRoles: true,
+  canManageRoom: true,
+  canKick: true,
+  canBan: true,
+  canInvite: true,
+  canMute: true,
+  isAdmin: true,
+  refresh: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('../../controllers/GroupController', () => ({
   groupController: groupControllerMock,
 }))
@@ -56,22 +77,7 @@ vi.mock('../../controllers/ChatController', () => ({
 }))
 
 vi.mock('../../hooks/useRoomPermissions', () => ({
-  useRoomPermissions: () => ({
-    loading: false,
-    raw: null,
-    canRead: true,
-    canWrite: true,
-    canAttachFiles: true,
-    canReact: true,
-    canManageMessages: true,
-    canManageRoles: true,
-    canManageRoom: true,
-    canKick: true,
-    canBan: true,
-    canInvite: true,
-    canMute: true,
-    isAdmin: true,
-  }),
+  useRoomPermissions: () => roomPermissionsMock,
 }))
 
 vi.mock('../../shared/ui', () => ({
@@ -145,6 +151,24 @@ describe('GroupInfoPanel', () => {
     rolesControllerMock.getMemberRoles.mockReset()
     chatControllerMock.getRoomAttachments.mockReset()
     chatControllerMock.getRoomMessages.mockReset()
+    roomPermissionsMock.loading = false
+    roomPermissionsMock.raw = null
+    roomPermissionsMock.isMember = true
+    roomPermissionsMock.isBanned = false
+    roomPermissionsMock.canJoin = false
+    roomPermissionsMock.canRead = true
+    roomPermissionsMock.canWrite = true
+    roomPermissionsMock.canAttachFiles = true
+    roomPermissionsMock.canReact = true
+    roomPermissionsMock.canManageMessages = true
+    roomPermissionsMock.canManageRoles = true
+    roomPermissionsMock.canManageRoom = true
+    roomPermissionsMock.canKick = true
+    roomPermissionsMock.canBan = true
+    roomPermissionsMock.canInvite = true
+    roomPermissionsMock.canMute = true
+    roomPermissionsMock.isAdmin = true
+    roomPermissionsMock.refresh.mockReset().mockResolvedValue(undefined)
 
     withBaseMocks()
   })
@@ -331,5 +355,19 @@ describe('GroupInfoPanel', () => {
       expect(chatControllerMock.getRoomMessages).toHaveBeenCalled()
     })
     expect(screen.getByText('https://example.com/path')).toBeInTheDocument()
+  })
+
+  it('does not request roles and overrides without manage roles permission', async () => {
+    roomPermissionsMock.canManageRoles = false
+    groupControllerMock.getGroupDetails.mockResolvedValue(sampleGroup)
+
+    render(<GroupInfoPanel slug="test-group" />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Test Group' })).toBeInTheDocument()
+    })
+
+    expect(rolesControllerMock.getRoomRoles).not.toHaveBeenCalled()
+    expect(rolesControllerMock.getRoomOverrides).not.toHaveBeenCalled()
   })
 })

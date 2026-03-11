@@ -103,8 +103,9 @@ class TestPublicGroupPermissions(TestCase):
     def test_unauthenticated_can_read_public_group(self):
         perms = compute_permissions(self.room, None)
         assert perms & Perm.READ_MESSAGES
+        assert not (perms & Perm.SEND_MESSAGES)
 
-    def test_outsider_gets_everyone_permissions(self):
+    def test_outsider_can_only_read_before_join(self):
         perms = compute_permissions(self.room, self.outsider)
         assert perms & Perm.READ_MESSAGES
-        assert perms & Perm.SEND_MESSAGES
+        assert not (perms & Perm.SEND_MESSAGES)

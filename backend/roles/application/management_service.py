@@ -503,12 +503,25 @@ def permissions_for_me(room_slug: str, actor) -> dict[str, object]:
     if room.kind in {Room.Kind.PRIVATE, Room.Kind.DIRECT} and not can_read(room, actor):
         raise RoleNotFoundError("Комната не найдена")
 
+    membership = repositories.get_membership(room, actor)
+    is_member = bool(membership and not membership.is_banned)
+    is_banned = bool(membership and membership.is_banned)
+    can_join = bool(
+        room.kind == Room.Kind.GROUP
+        and room.is_public
+        and not is_member
+        and not is_banned
+    )
+
     effective = compute_permissions(room, actor)
     granted_flags = [perm.name for perm in Perm if perm and (effective & perm)]
     return {
         "roomSlug": room.slug,
         "kind": room.kind,
         "permissions": int(effective),
+        "isMember": is_member,
+        "isBanned": is_banned,
+        "canJoin": can_join,
         "flags": granted_flags,
         "can": {
             "read": bool(effective & Perm.READ_MESSAGES),

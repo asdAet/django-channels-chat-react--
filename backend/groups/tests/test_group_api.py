@@ -41,6 +41,9 @@ class TestCreateGroup(APITestCase):
         assert data["isPublic"] is False
         assert data["memberCount"] == 1
         assert data["createdBy"] == "owner"
+        assert data["avatarUrl"] is not None
+        _assert_signed_media_url(data["avatarUrl"])
+        assert data["avatarCrop"] is None
 
         room = Room.objects.get(slug=data["slug"])
         assert room.kind == Room.Kind.GROUP
@@ -195,7 +198,8 @@ class TestGroupDetail(APITestCase):
             format="json",
         )
         assert remove_resp.status_code == 200
-        assert remove_resp.json()["avatarUrl"] is None
+        assert remove_resp.json()["avatarUrl"] is not None
+        _assert_signed_media_url(remove_resp.json()["avatarUrl"])
         assert remove_resp.json()["avatarCrop"] is None
 
         room = Room.objects.get(slug=self.slug)
@@ -235,6 +239,8 @@ class TestPublicGroupList(APITestCase):
         for item in data["items"]:
             assert "avatarUrl" in item
             assert "avatarCrop" in item
+            assert item["avatarUrl"] is not None
+            _assert_signed_media_url(item["avatarUrl"])
         with_avatar = next((item for item in data["items"] if item["username"] == "grp0"), None)
         assert with_avatar is not None
         assert with_avatar["avatarUrl"] is not None
@@ -279,6 +285,9 @@ class TestMyGroupList(APITestCase):
         assert names == ["Private Mine", "Public Mine"]
         assert all("avatarUrl" in item for item in data["items"])
         assert all("avatarCrop" in item for item in data["items"])
+        assert all(item["avatarUrl"] is not None for item in data["items"])
+        for item in data["items"]:
+            _assert_signed_media_url(item["avatarUrl"])
 
     def test_search_my_groups(self):
         resp = self.api_client.get("/api/groups/my/?search=minepub")

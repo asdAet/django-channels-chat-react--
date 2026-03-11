@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 
 import styles from '../../styles/ui/ContextMenu.module.css'
 
@@ -19,11 +19,11 @@ type Props = {
 
 export function ContextMenu({ items, x, y, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ x, y })
 
-  useEffect(() => {
+  const reposition = useCallback(() => {
     const el = ref.current
     if (!el) return
+
     const rect = el.getBoundingClientRect()
     let nx = x
     let ny = y
@@ -31,8 +31,21 @@ export function ContextMenu({ items, x, y, onClose }: Props) {
     if (y + rect.height > window.innerHeight - 8) ny = window.innerHeight - rect.height - 8
     if (nx < 8) nx = 8
     if (ny < 8) ny = 8
-    setPos({ x: nx, y: ny })
+    el.style.left = `${nx}px`
+    el.style.top = `${ny}px`
   }, [x, y])
+
+  useLayoutEffect(() => {
+    reposition()
+  }, [reposition])
+
+  useEffect(() => {
+    const handleResize = () => reposition()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [reposition])
 
   useEffect(() => {
     const handleClick = () => onClose()
@@ -59,7 +72,7 @@ export function ContextMenu({ items, x, y, onClose }: Props) {
     <div
       ref={ref}
       className={styles.menu}
-      style={{ left: pos.x, top: pos.y }}
+      style={{ left: x, top: y }}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation() }}
       role="menu"

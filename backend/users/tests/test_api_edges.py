@@ -1,5 +1,5 @@
 # pyright: reportAttributeAccessIssue=false
-"""РЎРѕРґРµСЂР¶РёС‚ С‚РµСЃС‚С‹ РјРѕРґСѓР»СЏ `test_api_edges` РїРѕРґСЃРёСЃС‚РµРјС‹ `users`."""
+"""Содержит тесты модуля `test_api_edges` подсистемы `users`."""
 
 
 import json
@@ -19,42 +19,42 @@ User = get_user_model()
 
 
 class _BodyRaisesRequest:
-    """Р“СЂСѓРїРїРёСЂСѓРµС‚ С‚РµСЃС‚РѕРІС‹Рµ СЃС†РµРЅР°СЂРёРё РєР»Р°СЃСЃР° `_BodyRaisesRequest`."""
+    """Группирует тестовые сценарии класса `_BodyRaisesRequest`."""
     META = {'CONTENT_TYPE': 'application/json'}
 
     def __init__(self, post=None):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `__init__`."""
+        """Проверяет сценарий `__init__`."""
         self.POST = post or {}
 
     @property
     def body(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `body`."""
+        """Проверяет сценарий `body`."""
         raise RawPostDataException('stream already consumed')
 
 
 class _InvalidJsonRequest:
-    """Р“СЂСѓРїРїРёСЂСѓРµС‚ С‚РµСЃС‚РѕРІС‹Рµ СЃС†РµРЅР°СЂРёРё РєР»Р°СЃСЃР° `_InvalidJsonRequest`."""
+    """Группирует тестовые сценарии класса `_InvalidJsonRequest`."""
     META = {'CONTENT_TYPE': 'application/json'}
 
     def __init__(self, body: bytes, post=None):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `__init__`."""
+        """Проверяет сценарий `__init__`."""
         self._body = body
         self.POST = post or {}
 
     @property
     def body(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `body`."""
+        """Проверяет сценарий `body`."""
         return self._body
 
 
 class UsersApiHelpersTests(SimpleTestCase):
-    """Р“СЂСѓРїРїРёСЂСѓРµС‚ С‚РµСЃС‚РѕРІС‹Рµ СЃС†РµРЅР°СЂРёРё РєР»Р°СЃСЃР° `UsersApiHelpersTests`."""
+    """Группирует тестовые сценарии класса `UsersApiHelpersTests`."""
     def setUp(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `setUp`."""
+        """Проверяет сценарий `setUp`."""
         self.factory = RequestFactory()
 
     def test_parse_body_returns_post_for_form_content_type(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_parse_body_returns_post_for_form_content_type`."""
+        """Проверяет сценарий `test_parse_body_returns_post_for_form_content_type`."""
         request = SimpleNamespace(
             META={'CONTENT_TYPE': 'multipart/form-data'},
             POST={'username': 'form-user'},
@@ -62,48 +62,48 @@ class UsersApiHelpersTests(SimpleTestCase):
         self.assertEqual(parse_request_payload(request), {'username': 'form-user'})
 
     def test_parse_body_handles_raw_post_data_exception(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_parse_body_handles_raw_post_data_exception`."""
+        """Проверяет сценарий `test_parse_body_handles_raw_post_data_exception`."""
         request = _BodyRaisesRequest(post={'username': 'fallback'})
         self.assertEqual(parse_request_payload(request), {'username': 'fallback'})
 
     def test_parse_body_invalid_json_falls_back_to_empty_dict(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_parse_body_invalid_json_falls_back_to_empty_dict`."""
+        """Проверяет сценарий `test_parse_body_invalid_json_falls_back_to_empty_dict`."""
         request = _InvalidJsonRequest(body=b'{bad-json', post={})
         self.assertEqual(parse_request_payload(request), {})
 
     def test_collect_errors_merges_dicts(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_collect_errors_merges_dicts`."""
+        """Проверяет сценарий `test_collect_errors_merges_dicts`."""
         merged = api._collect_errors({'username': ['taken']}, {'password': ['weak']})
         self.assertEqual(merged, {'username': ['taken'], 'password': ['weak']})
 
     def test_public_profile_view_returns_404_when_username_empty(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_public_profile_view_returns_404_when_username_empty`."""
+        """Проверяет сценарий `test_public_profile_view_returns_404_when_username_empty`."""
         request = self.factory.get('/api/auth/users//')
         response = api.public_profile_view(request, username='')
         self.assertEqual(response.status_code, 404)
 
 
 class AuthApiEdgeTests(TestCase):
-    """Р“СЂСѓРїРїРёСЂСѓРµС‚ С‚РµСЃС‚РѕРІС‹Рµ СЃС†РµРЅР°СЂРёРё РєР»Р°СЃСЃР° `AuthApiEdgeTests`."""
+    """Группирует тестовые сценарии класса `AuthApiEdgeTests`."""
     def setUp(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `setUp`."""
+        """Проверяет сценарий `setUp`."""
         cache.clear()
         self.client = Client(enforce_csrf_checks=True)
         self.user = User.objects.create_user(username='auth_edge_user', password='pass12345')
 
     def _csrf(self) -> str:
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `_csrf`."""
+        """Проверяет сценарий `_csrf`."""
         response = self.client.get('/api/auth/csrf/')
         return response.cookies['csrftoken'].value
 
     def test_session_view_for_guest(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_session_view_for_guest`."""
+        """Проверяет сценарий `test_session_view_for_guest`."""
         response = self.client.get('/api/auth/session/')
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()['authenticated'])
 
     def test_login_rejects_empty_json_body(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_login_rejects_empty_json_body`."""
+        """Проверяет сценарий `test_login_rejects_empty_json_body`."""
         csrf = self._csrf()
         response = self.client.post(
             '/api/auth/login/',
@@ -115,7 +115,7 @@ class AuthApiEdgeTests(TestCase):
         self.assertIn('body', response.json()['errors'])
 
     def test_login_requires_both_username_and_password(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_login_requires_both_username_and_password`."""
+        """Проверяет сценарий `test_login_requires_both_username_and_password`."""
         csrf = self._csrf()
         response = self.client.post(
             '/api/auth/login/',
@@ -127,13 +127,13 @@ class AuthApiEdgeTests(TestCase):
         self.assertIn('credentials', response.json()['errors'])
 
     def test_register_get_returns_usage_hint(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_register_get_returns_usage_hint`."""
+        """Проверяет сценарий `test_register_get_returns_usage_hint`."""
         response = self.client.get('/api/auth/register/')
         self.assertEqual(response.status_code, 200)
         self.assertIn('POST', response.json()['detail'])
 
     def test_register_rejects_empty_payload(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_register_rejects_empty_payload`."""
+        """Проверяет сценарий `test_register_rejects_empty_payload`."""
         csrf = self._csrf()
         response = self.client.post(
             '/api/auth/register/',
@@ -145,7 +145,7 @@ class AuthApiEdgeTests(TestCase):
         self.assertIn('body', response.json()['errors'])
 
     def test_register_rejects_missing_username(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_register_rejects_missing_username`."""
+        """Проверяет сценарий `test_register_rejects_missing_username`."""
         csrf = self._csrf()
         response = self.client.post(
             '/api/auth/register/',
@@ -157,7 +157,7 @@ class AuthApiEdgeTests(TestCase):
         self.assertIn('username', response.json()['errors'])
 
     def test_register_rejects_missing_password(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_register_rejects_missing_password`."""
+        """Проверяет сценарий `test_register_rejects_missing_password`."""
         csrf = self._csrf()
         response = self.client.post(
             '/api/auth/register/',
@@ -169,7 +169,7 @@ class AuthApiEdgeTests(TestCase):
         self.assertIn('password', response.json()['errors'])
 
     def test_register_rejects_password_mismatch(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_register_rejects_password_mismatch`."""
+        """Проверяет сценарий `test_register_rejects_password_mismatch`."""
         csrf = self._csrf()
         response = self.client.post(
             '/api/auth/register/',
@@ -187,7 +187,7 @@ class AuthApiEdgeTests(TestCase):
         self.assertIn('password', response.json()['errors'])
 
     def test_register_returns_summary_for_non_password_form_errors(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_register_returns_summary_for_non_password_form_errors`."""
+        """Проверяет сценарий `test_register_returns_summary_for_non_password_form_errors`."""
         csrf = self._csrf()
         response = self.client.post(
             '/api/auth/register/',
@@ -208,7 +208,7 @@ class AuthApiEdgeTests(TestCase):
         self.assertTrue(payload['error'])
 
     def test_logout_handles_operational_error_when_updating_last_seen(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_logout_handles_operational_error_when_updating_last_seen`."""
+        """Проверяет сценарий `test_logout_handles_operational_error_when_updating_last_seen`."""
         self.client.force_login(self.user)
         csrf = self._csrf()
 
@@ -219,7 +219,7 @@ class AuthApiEdgeTests(TestCase):
         self.assertTrue(response.json()['ok'])
 
     def test_public_profile_not_found(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_public_profile_not_found`."""
+        """Проверяет сценарий `test_public_profile_not_found`."""
         response = self.client.get('/api/auth/users/missing-user/')
         self.assertEqual(response.status_code, 404)
 

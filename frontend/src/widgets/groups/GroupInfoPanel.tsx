@@ -183,13 +183,18 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
   }, [])
 
   const loadRolesData = useCallback(async () => {
+    if (!perms.canManageRoles) {
+      setRoles([])
+      setOverrides([])
+      return
+    }
     const [rolesResult, overridesResult] = await Promise.all([
       rolesController.getRoomRoles(slug).catch(() => []),
       rolesController.getRoomOverrides(slug).catch(() => []),
     ])
     setRoles(rolesResult)
     setOverrides(overridesResult)
-  }, [slug])
+  }, [perms.canManageRoles, slug])
 
   const clearPendingAvatar = useCallback((revoke = true) => {
     if (revoke) {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 
@@ -25,6 +26,7 @@ _ROOM_AVATAR_CROP_FIELDS = (
     "avatar_crop_width",
     "avatar_crop_height",
 )
+_DEFAULT_GROUP_AVATAR = str(getattr(settings, "GROUP_DEFAULT_AVATAR", "default.jpg"))
 
 
 class GroupError(Exception):
@@ -104,6 +106,12 @@ def _serialize_group_avatar(request, room: Room) -> tuple[str | None, dict[str, 
                     avatar_url = room.avatar.url
                 except (AttributeError, ValueError):
                     avatar_url = None
+    elif _DEFAULT_GROUP_AVATAR:
+        if request is not None:
+            avatar_url = build_profile_url_from_request(request, _DEFAULT_GROUP_AVATAR)
+        else:
+            media_url = str(getattr(settings, "MEDIA_URL", "/media/") or "/media/")
+            avatar_url = f"{media_url.rstrip('/')}/{_DEFAULT_GROUP_AVATAR.lstrip('/')}"
     return avatar_url, serialize_avatar_crop(room)
 
 

@@ -57,6 +57,9 @@ const myPermissionsSchema = z
   .object({
     permissions: z.number(),
     roles: z.array(z.number()).optional(),
+    isMember: z.boolean().optional(),
+    isBanned: z.boolean().optional(),
+    canJoin: z.boolean().optional(),
   })
   .passthrough()
 
