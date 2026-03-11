@@ -155,6 +155,8 @@ def create_group(
     name = group_rules.validate_group_name(name)
     description = group_rules.validate_group_description(description)
     username = group_rules.validate_group_username(username)
+    if is_public and not username:
+        raise GroupError("Для публичной группы необходимо указать username")
 
     if username and Room.objects.filter(username=username).exists():
         raise GroupConflictError("Это имя пользователя уже занято")
@@ -267,7 +269,10 @@ def update_group(
     elif not isinstance(crop_update, _UnsetType):
         _apply_room_avatar_crop(room, crop_update, changed_fields)
 
-    # username is optional for all groups
+    if room.is_public and not room.username and (
+        "is_public" in changed_fields or "username" in changed_fields
+    ):
+        raise GroupError("Для публичной группы необходимо указать username")
 
     if "username" in changed_fields and room.username:
         conflict = Room.objects.filter(username=room.username).exclude(pk=room.pk).exists()

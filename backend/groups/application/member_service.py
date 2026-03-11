@@ -141,21 +141,10 @@ def leave_group(actor, room_slug: str) -> None:
 
     membership = _get_membership_or_raise(room, actor)
 
-    # Check if actor is the owner — owner leaving deletes the group
+    # Owners must transfer ownership before leaving.
     owner_role = Role.objects.filter(room=room, name=Role.OWNER).first()
     if owner_role and membership.roles.filter(pk=owner_role.pk).exists():
-        room_slug = room.slug
-        with transaction.atomic():
-            room.delete()
-        audit_security_event(
-            "group.deleted_by_owner_leave",
-            actor_user=actor,
-            actor_user_id=getattr(actor, "pk", None),
-            actor_username=getattr(actor, "username", None),
-            is_authenticated=True,
-            room_slug=room_slug,
-        )
-        return
+        raise GroupError("Владелец не может покинуть группу без передачи владения")
 
     with transaction.atomic():
         membership.delete()
