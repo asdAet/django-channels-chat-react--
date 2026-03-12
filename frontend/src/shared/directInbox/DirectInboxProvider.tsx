@@ -9,6 +9,7 @@ import { useReconnectingWebSocket } from '../../hooks/useReconnectingWebSocket'
 import { invalidateDirectChats } from '../cache/cacheManager'
 import { debugLog } from '../lib/debug'
 import { getWebSocketBase } from '../lib/ws'
+import { clearUnreadOverride, useUnreadOverrides } from '../unreadOverrides/store'
 import { DirectInboxContext } from './context'
 
 const DIRECT_INBOX_PING_MS = 15_000
@@ -44,9 +45,9 @@ export function DirectInboxProvider({ user, ready = true, children }: ProviderPr
   const [items, setItems] = useState<DirectChatListItemDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [unreadSlugs, setUnreadSlugs] = useState<string[]>([])
+  const [, setUnreadSlugs] = useState<string[]>([])
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
-  const [unreadDialogsCount, setUnreadDialogsCount] = useState(0)
+  const unreadOverrides = useUnreadOverrides()
 
   const activeRoomRef = useRef<string | null>(null)
 
@@ -58,7 +59,6 @@ export function DirectInboxProvider({ user, ready = true, children }: ProviderPr
   const applyUnreadState = useCallback((next: { dialogs: number; slugs: string[]; counts: Record<string, number> }) => {
     setUnreadSlugs(next.slugs)
     setUnreadCounts(next.counts)
-    setUnreadDialogsCount(next.dialogs)
   }, [])
 
   const refresh = useCallback(async () => {
@@ -131,12 +131,11 @@ export function DirectInboxProvider({ user, ready = true, children }: ProviderPr
     (roomSlug: string) => {
       const slug = roomSlug.trim()
       if (!slug) return
+      clearUnreadOverride(slug)
 
       setUnreadSlugs((prev) => {
         if (!prev.includes(slug)) return prev
-        const next = prev.filter((item) => item !== slug)
-        setUnreadDialogsCount(next.length)
-        return next
+        return prev.filter((item) => item !== slug)
       })
 
       setUnreadCounts((prev) => {
@@ -152,6 +151,30 @@ export function DirectInboxProvider({ user, ready = true, children }: ProviderPr
     [send, status],
   )
 
+  const unreadCountsWithOverrides = useMemo(() => {
+    const knownDirectSlugs = new Set(items.map((item) => item.slug))
+    const nextCounts = { ...unreadCounts }
+
+    for (const [slug, overrideCount] of Object.entries(unreadOverrides)) {
+      if (!slug.startsWith('dm_')) continue
+      if (!knownDirectSlugs.has(slug) && !(slug in nextCounts)) continue
+      if (overrideCount > 0) {
+        nextCounts[slug] = overrideCount
+      } else {
+        delete nextCounts[slug]
+      }
+    }
+
+    return nextCounts
+  }, [items, unreadCounts, unreadOverrides])
+
+  const unreadSlugsWithOverrides = useMemo(
+    () => Object.keys(unreadCountsWithOverrides).filter((slug) => unreadCountsWithOverrides[slug] > 0),
+    [unreadCountsWithOverrides],
+  )
+
+  const unreadDialogsCountWithOverrides = unreadSlugsWithOverrides.length
+
   useEffect(() => {
     let active = true
 
@@ -161,7 +184,6 @@ export function DirectInboxProvider({ user, ready = true, children }: ProviderPr
         setItems([])
         setUnreadSlugs([])
         setUnreadCounts({})
-        setUnreadDialogsCount(0)
         setLoading(false)
         setError(null)
       })
@@ -203,9 +225,9 @@ export function DirectInboxProvider({ user, ready = true, children }: ProviderPr
       loading,
       error,
       status,
-      unreadSlugs,
-      unreadCounts,
-      unreadDialogsCount,
+      unreadSlugs: unreadSlugsWithOverrides,
+      unreadCounts: unreadCountsWithOverrides,
+      unreadDialogsCount: unreadDialogsCountWithOverrides,
       setActiveRoom,
       markRead,
       refresh,
@@ -218,12 +240,11 @@ export function DirectInboxProvider({ user, ready = true, children }: ProviderPr
       refresh,
       setActiveRoom,
       status,
-      unreadDialogsCount,
-      unreadSlugs,
-      unreadCounts,
+      unreadCountsWithOverrides,
+      unreadDialogsCountWithOverrides,
+      unreadSlugsWithOverrides,
     ],
   )
 
   return <DirectInboxContext.Provider value={value}>{children}</DirectInboxContext.Provider>
 }
-

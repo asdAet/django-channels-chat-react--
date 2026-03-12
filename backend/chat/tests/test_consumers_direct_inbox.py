@@ -163,8 +163,8 @@ class DirectInboxConsumerTests(TransactionTestCase):
 
         async_to_sync(run)()
 
-    def test_active_room_does_not_become_unread_for_open_dialog(self):
-        """Проверяет сценарий `test_active_room_does_not_become_unread_for_open_dialog`."""
+    def test_active_room_stays_unread_until_explicit_mark_read(self):
+        """Проверяет сценарий `test_active_room_stays_unread_until_explicit_mark_read`."""
         async def run():
             """Проверяет сценарий `run`."""
             inbox, connected, _ = await self._connect_inbox(self.member)
@@ -184,9 +184,9 @@ class DirectInboxConsumerTests(TransactionTestCase):
             inbox_payload = json.loads(await inbox.receive_from(timeout=2))
             self.assertEqual(inbox_payload.get('type'), 'direct_inbox_item')
             self.assertEqual(inbox_payload['item']['slug'], self.direct_room.slug)
-            self.assertEqual(inbox_payload['unread']['dialogs'], 0)
-            self.assertFalse(inbox_payload['unread']['isUnread'])
-            self.assertEqual(inbox_payload['unread']['counts'], {})
+            self.assertEqual(inbox_payload['unread']['dialogs'], 1)
+            self.assertTrue(inbox_payload['unread']['isUnread'])
+            self.assertEqual(inbox_payload['unread']['counts'].get(self.direct_room.slug), 1)
 
             await chat.disconnect()
             await inbox.disconnect()

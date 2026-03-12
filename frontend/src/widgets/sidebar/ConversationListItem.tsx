@@ -35,7 +35,7 @@ export function ConversationListItem({ item, isActive, onClick }: Props) {
           )}
         </div>
         <div className={styles.itemBottom}>
-          <p className={styles.itemPreview}>{item.lastMessage || '\u00A0'}</p>
+          <p className={styles.itemPreview}>{item.lastMessage || '\u00A0' }</p>
           {item.unreadCount > 0 && (
             <span className={styles.badge}>{item.unreadCount}</span>
           )}

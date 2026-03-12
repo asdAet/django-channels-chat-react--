@@ -784,14 +784,17 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
           </section>
 
           <section className={styles.quickActions}>
-            <button type="button" className={styles.quickAction} data-testid="group-quick-media" onClick={() => setView('media')}>Media</button>
-            <button type="button" className={styles.quickAction} data-testid="group-quick-members" onClick={() => setView('members')}>Members</button>
-            <button type="button" className={styles.quickAction} data-testid="group-quick-links" onClick={() => setView('links')}>Links</button>
             <button type="button" className={styles.quickAction} data-testid="group-quick-settings" onClick={() => setView('settings')}>Настройка</button>
             <button type="button" className={styles.quickAction} data-testid="group-quick-invites" onClick={() => setView('invites')}>Приглашения</button>
             <button type="button" className={styles.quickAction} data-testid="group-quick-users" onClick={() => setView('users')}>Управление пользователями</button>
             <button type="button" className={[styles.quickAction, styles.quickActionDanger].join(' ')} onClick={() => setConfirmLeave(true)}>Покинуть группу</button>
             {perms.isAdmin && <button type="button" className={[styles.quickAction, styles.quickActionDanger].join(' ')} onClick={() => setConfirmDelete(true)}>Удалить группу</button>}
+          </section>
+          
+          <section className={styles.GroupData}>
+            <button type="button" className={styles.quickAction} data-testid="group-quick-media" onClick={() => setView('media')}>Media</button>
+            <button type="button" className={styles.quickAction} data-testid="group-quick-members" onClick={() => setView('members')}>Members</button>
+            <button type="button" className={styles.quickAction} data-testid="group-quick-links" onClick={() => setView('links')}>Links</button>
           </section>
 
           <section className={styles.section}>

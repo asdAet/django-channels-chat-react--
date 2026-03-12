@@ -35,6 +35,7 @@ vi.mock('../../hooks/useReconnectingWebSocket', () => ({
 
 import { DirectInboxProvider } from './DirectInboxProvider'
 import { useDirectInbox } from './useDirectInbox'
+import { resetUnreadOverrides, setUnreadOverride } from '../unreadOverrides/store'
 
 const user = {
   username: 'demo',
@@ -91,6 +92,7 @@ describe('DirectInboxProvider', () => {
     wsMock.send.mockReset().mockReturnValue(true)
     wsMock.options = null
     chatMock.getDirectChats.mockReset().mockResolvedValue({ items: [] })
+    resetUnreadOverrides()
   })
 
   /**
@@ -398,5 +400,46 @@ describe('DirectInboxProvider', () => {
      */
 
     expect(payloads.some((payload) => payload?.type === 'set_active_room' && payload?.roomSlug === 'dm_1')).toBe(true)
+  })
+
+  it('applies local unread override for active direct chat to counts and dialogs', async () => {
+    chatMock.getDirectChats.mockResolvedValue({
+      items: [
+        {
+          slug: 'dm_1',
+          peer: { username: 'alice', profileImage: null },
+          lastMessage: 'hello',
+          lastMessageAt: '2026-02-13T10:00:00Z',
+        },
+      ],
+    })
+
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('items-order').textContent).toBe('dm_1')
+    })
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent('message', {
+          data: JSON.stringify({
+            type: 'direct_unread_state',
+            unread: { dialogs: 0, slugs: [], counts: {} },
+          }),
+        }),
+      )
+    })
+
+    act(() => {
+      setUnreadOverride({ roomSlug: 'dm_1', unreadCount: 4 })
+    })
+
+    expect(screen.getByTestId('unread-count').textContent).toBe('1')
+    expect(screen.getByTestId('unread-counts').textContent).toBe('{"dm_1":4}')
   })
 })

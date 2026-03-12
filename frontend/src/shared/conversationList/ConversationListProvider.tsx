@@ -10,6 +10,7 @@ import { groupController } from '../../controllers/GroupController'
 import { useDirectInbox } from '../directInbox'
 import { usePresence } from '../presence'
 import { debugLog } from '../lib/debug'
+import { useUnreadOverrides } from '../unreadOverrides/store'
 import { CONVERSATION_LIST_REFRESH_EVENT } from './events'
 
 type FilterTab = 'all' | 'personal' | 'groups'
@@ -58,6 +59,7 @@ type Props = {
 
 export function ConversationListProvider({ user, ready, children }: Props) {
   const { items: directItems, unreadCounts } = useDirectInbox()
+  const unreadOverrides = useUnreadOverrides()
   const { online: presenceOnline, status: presenceStatus } = usePresence()
   const [filter, setFilter] = useState<FilterTab>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -161,6 +163,13 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   }, [isGlobalMode, searchQuery, user])
 
   const items = useMemo<ConversationItem[]>(() => {
+    const resolveUnreadCount = (slug: string, wsUnreadCount?: number) => {
+      const overrideUnread = unreadOverrides[slug]
+      if (typeof overrideUnread === 'number') return overrideUnread
+      if (typeof wsUnreadCount === 'number') return wsUnreadCount
+      return roomUnreads[slug] ?? 0
+    }
+
     const conversations: ConversationItem[] = []
 
     if (filter === 'all') {
@@ -172,7 +181,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
         avatarCrop: null,
         lastMessage: 'Общий чат сообщества',
         lastMessageAt: null,
-        unreadCount: roomUnreads.public ?? 0,
+        unreadCount: resolveUnreadCount('public'),
         isOnline: false,
         isMuted: false,
         isPinned: true,
@@ -181,7 +190,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
     if (filter !== 'groups') {
       for (const dm of directItems) {
-        const dmUnread = unreadCounts[dm.slug] ?? roomUnreads[dm.slug] ?? 0
+        const dmUnread = resolveUnreadCount(dm.slug, unreadCounts[dm.slug])
         conversations.push({
           type: 'direct',
           slug: dm.slug,
@@ -208,7 +217,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
           avatarCrop: group.avatarCrop ?? null,
           lastMessage: group.description || '',
           lastMessageAt: null,
-          unreadCount: roomUnreads[group.slug] ?? 0,
+          unreadCount: resolveUnreadCount(group.slug),
           isOnline: false,
           isMuted: false,
         })
@@ -235,6 +244,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     groupItems,
     isGlobalMode,
     onlineUsernames,
+    unreadOverrides,
     roomUnreads,
     searchQuery,
     unreadCounts,

@@ -1,4 +1,4 @@
-﻿import { act, fireEvent, render, screen } from '@testing-library/react'
+﻿import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Message } from '../entities/message/types'
@@ -152,6 +152,19 @@ const user = {
   registeredAt: null,
 }
 
+const makeForeignMessage = (id: number, content: string): Message => ({
+  id,
+  username: 'alice',
+  content,
+  profilePic: null,
+  createdAt: `2026-02-13T12:0${Math.max(0, id - 1)}:00.000Z`,
+  editedAt: null,
+  isDeleted: false,
+  replyTo: null,
+  attachments: [],
+  reactions: [],
+})
+
 describe('ChatRoomPage', () => {
   beforeEach(() => {
     wsState.status = 'online'
@@ -168,6 +181,12 @@ describe('ChatRoomPage', () => {
     chatRoomMock.loadMore.mockReset()
     chatRoomMock.reload.mockReset()
     chatRoomMock.setMessages.mockReset()
+    chatRoomMock.setMessages.mockImplementation((updater: ((prev: Message[]) => Message[]) | Message[]) => {
+      chatRoomMock.messages =
+        typeof updater === 'function'
+          ? updater(chatRoomMock.messages)
+          : updater
+    })
     permissionsMock.loading = false
     permissionsMock.raw = null
     permissionsMock.isMember = true
@@ -355,19 +374,40 @@ describe('ChatRoomPage', () => {
       },
     ]
 
-    const { rerender } = render(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    const { container, rerender } = render(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    const chatLog = container.querySelector('[aria-live="polite"]') as HTMLDivElement
+
+    const mockViewport = () => {
+      Object.defineProperty(chatLog, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ bottom: 600 }),
+      })
+      chatLog.querySelectorAll<HTMLElement>('article[data-message-id]').forEach((node, index) => {
+        Object.defineProperty(node, 'getBoundingClientRect', {
+          configurable: true,
+          value: () => ({ bottom: 120 + (index * 120) }),
+        })
+      })
+    }
+    mockViewport()
 
     await act(async () => {
-      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 220))
     })
-    expect(chatControllerMock.markRead).toHaveBeenCalledWith('dm_1', 2)
+    fireEvent.scroll(chatLog)
+
+    await waitFor(() => {
+      expect(chatControllerMock.markRead).toHaveBeenCalledWith('dm_1', 2)
+    })
     expect(chatControllerMock.markRead).toHaveBeenCalledTimes(1)
 
     chatRoomMock.messages = [...chatRoomMock.messages]
     rerender(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    mockViewport()
+    fireEvent.scroll(chatLog)
 
     await act(async () => {
-      await Promise.resolve()
+      await new Promise((resolve) => window.setTimeout(resolve, 220))
     })
     expect(chatControllerMock.markRead).toHaveBeenCalledTimes(1)
 
@@ -387,11 +427,12 @@ describe('ChatRoomPage', () => {
       },
     ]
     rerender(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    mockViewport()
+    fireEvent.scroll(chatLog)
 
-    await act(async () => {
-      await Promise.resolve()
+    await waitFor(() => {
+      expect(chatControllerMock.markRead).toHaveBeenCalledWith('dm_1', 3)
     })
-    expect(chatControllerMock.markRead).toHaveBeenCalledWith('dm_1', 3)
     expect(chatControllerMock.markRead).toHaveBeenCalledTimes(2)
   })
 
@@ -440,5 +481,225 @@ describe('ChatRoomPage', () => {
     expect(
       screen.getByText('Тип файла не поддерживается. Разрешены: text/plain.'),
     ).toBeInTheDocument()
+  })
+
+  it('keeps unread divider anchored while partially reading and after full read in current chat', async () => {
+    chatRoomMock.details = {
+      slug: 'dm_1',
+      name: 'dm',
+      kind: 'direct',
+      created: false,
+      createdBy: null,
+      peer: { username: 'alice', profileImage: null, lastSeen: null },
+      lastReadMessageId: 0,
+    } as RoomDetails
+    chatRoomMock.messages = [
+      makeForeignMessage(1, 'first'),
+      makeForeignMessage(2, 'second'),
+      makeForeignMessage(3, 'third'),
+    ]
+
+    const { container } = render(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    const chatLog = container.querySelector('[aria-live="polite"]') as HTMLDivElement
+
+    const setScrollMetrics = (scrollTop: number, scrollHeight = 1200, clientHeight = 400) => {
+      Object.defineProperty(chatLog, 'scrollTop', { configurable: true, value: scrollTop, writable: true })
+      Object.defineProperty(chatLog, 'scrollHeight', { configurable: true, value: scrollHeight })
+      Object.defineProperty(chatLog, 'clientHeight', { configurable: true, value: clientHeight })
+    }
+
+    const setViewport = (listBottom: number, bottoms: Record<number, number>) => {
+      Object.defineProperty(chatLog, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ bottom: listBottom }),
+      })
+      chatLog.querySelectorAll<HTMLElement>('article[data-message-id]').forEach((node) => {
+        const id = Number(node.dataset.messageId)
+        Object.defineProperty(node, 'getBoundingClientRect', {
+          configurable: true,
+          value: () => ({ bottom: bottoms[id] ?? Number.MAX_SAFE_INTEGER }),
+        })
+      })
+    }
+
+    setScrollMetrics(160)
+    setViewport(220, { 1: 180, 2: 360, 3: 520 })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 260))
+    })
+    fireEvent.scroll(chatLog)
+
+    let divider = chatLog.querySelector<HTMLElement>('[data-unread-divider]')
+    expect(divider).not.toBeNull()
+    expect(divider?.dataset.unreadAnchorId).toBe('1')
+
+    const firstMessage = chatLog.querySelector('article[data-message-id="1"]')
+    const indexOfDivider = Array.from(chatLog.children).findIndex((node) => node === divider)
+    const indexOfFirstMessage = Array.from(chatLog.children).findIndex((node) => node === firstMessage)
+    expect(indexOfDivider).toBeGreaterThanOrEqual(0)
+    expect(indexOfDivider).toBeLessThan(indexOfFirstMessage)
+
+    setScrollMetrics(200)
+    setViewport(220, { 1: 120, 2: 180, 3: 410 })
+    fireEvent.scroll(chatLog)
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 220))
+    })
+
+    divider = chatLog.querySelector<HTMLElement>('[data-unread-divider]')
+    expect(divider).not.toBeNull()
+    expect(divider?.dataset.unreadAnchorId).toBe('1')
+
+    setScrollMetrics(780, 1200, 400)
+    setViewport(220, { 1: 110, 2: 150, 3: 190 })
+    fireEvent.scroll(chatLog)
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 260))
+    })
+
+    divider = chatLog.querySelector<HTMLElement>('[data-unread-divider]')
+    expect(divider).not.toBeNull()
+    expect(divider?.dataset.unreadAnchorId).toBe('1')
+  })
+
+  it('hides unread divider when current user sends a message', async () => {
+    chatRoomMock.details = {
+      slug: 'dm_1',
+      name: 'dm',
+      kind: 'direct',
+      created: false,
+      createdBy: null,
+      peer: { username: 'alice', profileImage: null, lastSeen: null },
+      lastReadMessageId: 0,
+    } as RoomDetails
+    chatRoomMock.messages = [
+      makeForeignMessage(1, 'first'),
+      makeForeignMessage(2, 'second'),
+    ]
+
+    const { container } = render(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    const chatLog = container.querySelector('[aria-live="polite"]') as HTMLDivElement
+
+    Object.defineProperty(chatLog, 'scrollTop', { configurable: true, value: 160, writable: true })
+    Object.defineProperty(chatLog, 'scrollHeight', { configurable: true, value: 1200 })
+    Object.defineProperty(chatLog, 'clientHeight', { configurable: true, value: 400 })
+    Object.defineProperty(chatLog, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ bottom: 220 }),
+    })
+    chatLog.querySelectorAll<HTMLElement>('article[data-message-id]').forEach((node, index) => {
+      Object.defineProperty(node, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ bottom: 180 + (index * 180) }),
+      })
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 260))
+    })
+    fireEvent.scroll(chatLog)
+
+    expect(chatLog.querySelector('[data-unread-divider]')).not.toBeNull()
+
+    fireEvent.change(screen.getByLabelText('Сообщение'), {
+      target: { value: 'my message' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Отправить сообщение' }))
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 60))
+    })
+
+    expect(chatLog.querySelector('[data-unread-divider]')).toBeNull()
+  })
+
+  it('does not show unread divider for incoming message when user is at bottom', async () => {
+    chatRoomMock.details = {
+      slug: 'dm_1',
+      name: 'dm',
+      kind: 'direct',
+      created: false,
+      createdBy: null,
+      peer: { username: 'alice', profileImage: null, lastSeen: null },
+      lastReadMessageId: 2,
+    } as RoomDetails
+    chatRoomMock.messages = [makeForeignMessage(1, 'first'), makeForeignMessage(2, 'second')]
+
+    const { container, rerender } = render(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    const chatLog = container.querySelector('[aria-live="polite"]') as HTMLDivElement
+
+    const setScrollMetrics = (scrollTop: number, scrollHeight = 1200, clientHeight = 400) => {
+      Object.defineProperty(chatLog, 'scrollTop', { configurable: true, value: scrollTop, writable: true })
+      Object.defineProperty(chatLog, 'scrollHeight', { configurable: true, value: scrollHeight })
+      Object.defineProperty(chatLog, 'clientHeight', { configurable: true, value: clientHeight })
+    }
+
+    const setViewport = (listBottom: number, bottoms: Record<number, number>) => {
+      Object.defineProperty(chatLog, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ bottom: listBottom }),
+      })
+      chatLog.querySelectorAll<HTMLElement>('article[data-message-id]').forEach((node) => {
+        const id = Number(node.dataset.messageId)
+        Object.defineProperty(node, 'getBoundingClientRect', {
+          configurable: true,
+          value: () => ({ bottom: bottoms[id] ?? Number.MAX_SAFE_INTEGER }),
+        })
+      })
+    }
+
+    setScrollMetrics(800, 1200, 400)
+    setViewport(260, { 1: 120, 2: 170 })
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 220))
+    })
+    fireEvent.scroll(chatLog)
+
+    act(() => {
+      wsState.options?.onMessage?.(new MessageEvent('message', {
+        data: JSON.stringify({
+          id: 3,
+          message: 'third',
+          username: 'alice',
+          profile_pic: null,
+          room: 'dm_1',
+          createdAt: '2026-02-13T12:03:00.000Z',
+          attachments: [],
+        }),
+      }))
+    })
+
+    rerender(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />)
+    setViewport(260, { 1: 120, 2: 170, 3: 210 })
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 240))
+    })
+    fireEvent.scroll(chatLog)
+
+    expect(chatLog.querySelector('[data-unread-divider]')).toBeNull()
+  })
+
+  it('smoothly scrolls to bottom after sending own message', () => {
+    const { container } = render(<ChatRoomPage slug="public" user={user} onNavigate={vi.fn()} />)
+    const chatLog = container.querySelector('[aria-live="polite"]') as HTMLDivElement
+    expect(chatLog).toBeTruthy()
+
+    const scrollToSpy = vi.fn()
+    Object.defineProperty(chatLog, 'scrollTo', {
+      configurable: true,
+      value: scrollToSpy,
+    })
+    Object.defineProperty(chatLog, 'scrollHeight', {
+      configurable: true,
+      value: 840,
+    })
+
+    fireEvent.change(screen.getByLabelText('Сообщение'), {
+      target: { value: 'scroll test' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Отправить сообщение' }))
+
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 840, behavior: 'smooth' })
   })
 })

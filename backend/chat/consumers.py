@@ -16,7 +16,6 @@ from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
 
 from direct_inbox.state import (
-    is_room_active,
     mark_read,
     mark_unread,
     user_group_name,
@@ -577,7 +576,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 peer_image_name = getattr(peer_image, "name", "") or ""
                 peer_avatar_crop = serialize_avatar_crop(peer_profile)
 
-            if participant.pk == sender_id or is_room_active(participant.pk, room.slug):
+            if participant.pk == sender_id:
                 unread_state = mark_read(participant.pk, room.slug, self.direct_inbox_unread_ttl)
             else:
                 unread_state = mark_unread(participant.pk, room.slug, self.direct_inbox_unread_ttl)

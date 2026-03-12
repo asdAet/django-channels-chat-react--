@@ -20,12 +20,14 @@ import {
   useChatMessageMaxLength,
 } from '../shared/config/limits'
 import { invalidateDirectChats, invalidateRoomMessages } from '../shared/cache/cacheManager'
+import { useReadTracker } from '../shared/chat/readTracker'
 import { useDirectInbox } from '../shared/directInbox'
 import { useInfoPanel } from '../shared/layout/useInfoPanel'
 import { normalizeAvatarCrop } from '../shared/lib/avatarCrop'
 import { debugLog } from '../shared/lib/debug'
 import { formatDayLabel, formatLastSeen, formatTimestamp } from '../shared/lib/format'
 import { sanitizeText } from '../shared/lib/sanitize'
+import { clearUnreadOverride, setUnreadOverride } from '../shared/unreadOverrides/store'
 import { getWebSocketBase } from '../shared/lib/ws'
 import { usePresence } from '../shared/presence'
 import { Avatar, Button, Modal, Panel, Toast } from '../shared/ui'
@@ -46,9 +48,12 @@ type Props = {
   onNavigate: (path: string) => void
 }
 
+type InitialPositioningPhase = 'pending' | 'positioning' | 'settled'
+
 const RATE_LIMIT_COOLDOWN_MS = 10_000
 const TYPING_TIMEOUT_MS = 5_000
 const MAX_HISTORY_JUMP_ATTEMPTS = 60
+const MARK_READ_DEBOUNCE_MS = 180
 
 const isOwnMessage = (message: Message, currentUsername: string | null | undefined) =>
   Boolean(currentUsername && message.username === currentUsername)
@@ -129,7 +134,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const isPublicRoom = slug === 'public'
   const isOnline = useOnlineStatus()
   const { open: openInfoPanel } = useInfoPanel()
-  const { setActiveRoom, markRead } = useDirectInbox()
+  const { setActiveRoom, markRead: markDirectRoomRead } = useDirectInbox()
   const { online: presenceOnline, status: presenceStatus } = usePresence()
   const maxMessageLength = useChatMessageMaxLength()
   const maxAttachmentSizeMb = useChatAttachmentMaxSizeMb()
@@ -169,9 +174,6 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const [headerSearchLoading, setHeaderSearchLoading] = useState(false)
   const [headerSearchResults, setHeaderSearchResults] = useState<SearchResultItem[]>([])
 
-  const [unreadDividerId, setUnreadDividerId] = useState<number | null>(null)
-  const initialUnreadScrollDoneRef = useRef(false)
-
   const normalizedAllowedAttachmentTypes = useMemo(
     () => new Set(allowedAttachmentTypes.map((item) => normalizeAttachmentType(item))),
     [allowedAttachmentTypes],
@@ -191,6 +193,79 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const deepLinkedMessageRef = useRef<number | null>(null)
   const uploadAbortRef = useRef<AbortController | null>(null)
   const lastReadSentRef = useRef(0)
+  const markReadTimerRef = useRef<number | null>(null)
+  const viewportReadRafRef = useRef<number | null>(null)
+  const programmaticScrollTimerRef = useRef<number | null>(null)
+  const isProgrammaticScrollRef = useRef(false)
+  const initialPositioningPhaseRef = useRef<InitialPositioningPhase>('pending')
+  const [initialPositioningPhase, setInitialPositioningPhase] = useState<InitialPositioningPhase>('pending')
+  const unreadDividerAnchorRef = useRef<number | null>(null)
+  const [unreadDividerAnchorId, setUnreadDividerAnchorId] = useState<number | null>(null)
+
+  const updateInitialPositioningPhase = useCallback((next: InitialPositioningPhase) => {
+    if (initialPositioningPhaseRef.current === next) return
+    initialPositioningPhaseRef.current = next
+    setInitialPositioningPhase(next)
+  }, [])
+
+  const beginProgrammaticScroll = useCallback(() => {
+    isProgrammaticScrollRef.current = true
+    if (programmaticScrollTimerRef.current !== null) {
+      window.clearTimeout(programmaticScrollTimerRef.current)
+      programmaticScrollTimerRef.current = null
+    }
+  }, [])
+
+  const endProgrammaticScroll = useCallback((onDone?: () => void, delayMs = 140) => {
+    if (programmaticScrollTimerRef.current !== null) {
+      window.clearTimeout(programmaticScrollTimerRef.current)
+    }
+    programmaticScrollTimerRef.current = window.setTimeout(() => {
+      isProgrammaticScrollRef.current = false
+      programmaticScrollTimerRef.current = null
+      onDone?.()
+    }, delayMs)
+  }, [])
+
+  const updateUnreadDividerAnchor = useCallback((nextAnchorId: number | null) => {
+    unreadDividerAnchorRef.current = nextAnchorId
+    setUnreadDividerAnchorId((prev) => (prev === nextAnchorId ? prev : nextAnchorId))
+  }, [])
+
+  const {
+    localLastReadMessageId,
+    firstUnreadMessageId,
+    localUnreadCount,
+    applyViewportRead,
+  } = useReadTracker({
+    messages,
+    currentUsername: user?.username,
+    serverLastReadMessageId: details?.lastReadMessageId,
+    enabled: Boolean(user && initialPositioningPhase === 'settled'),
+    resetKey: slug,
+  })
+
+  const unreadDividerRenderTarget = useMemo(() => {
+    if (unreadDividerAnchorId !== null && messages.some((msg) => msg.id === unreadDividerAnchorId)) {
+      return { messageId: unreadDividerAnchorId, insertAtTop: false }
+    }
+
+    const fallbackAllowed = initialPositioningPhase !== 'settled' || showScrollFab
+
+    if (unreadDividerAnchorId !== null) {
+      return { messageId: null as number | null, insertAtTop: messages.length > 0 }
+    }
+
+    if (localUnreadCount < 1) {
+      return { messageId: null as number | null, insertAtTop: false }
+    }
+
+    if (fallbackAllowed && firstUnreadMessageId && messages.some((msg) => msg.id === firstUnreadMessageId)) {
+      return { messageId: firstUnreadMessageId, insertAtTop: false }
+    }
+
+    return { messageId: null as number | null, insertAtTop: fallbackAllowed && messages.length > 0 }
+  }, [firstUnreadMessageId, initialPositioningPhase, localUnreadCount, messages, showScrollFab, unreadDividerAnchorId])
 
   const wsUrl = useMemo(() => {
     if (!user && !isPublicRoom) return null
@@ -209,7 +284,11 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     const el = list.querySelector<HTMLElement>(`article[data-message-id="${messageId}"]`)
     if (!el) return false
 
-    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    } else {
+      list.scrollTop = Math.max(0, el.offsetTop - list.clientHeight / 2)
+    }
     setHighlightedMessageId(messageId)
     window.setTimeout(() => {
       setHighlightedMessageId((prev) => (prev === messageId ? null : prev))
@@ -251,17 +330,42 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     uploadAbortRef.current?.abort()
     uploadAbortRef.current = null
     lastReadSentRef.current = 0
+    if (markReadTimerRef.current !== null) {
+      window.clearTimeout(markReadTimerRef.current)
+      markReadTimerRef.current = null
+    }
+    if (viewportReadRafRef.current !== null) {
+      window.cancelAnimationFrame(viewportReadRafRef.current)
+      viewportReadRafRef.current = null
+    }
+    if (programmaticScrollTimerRef.current !== null) {
+      window.clearTimeout(programmaticScrollTimerRef.current)
+      programmaticScrollTimerRef.current = null
+    }
+    isProgrammaticScrollRef.current = false
     setQueuedFiles([])
     setUploadProgress(null)
-    initialUnreadScrollDoneRef.current = false
-    setUnreadDividerId(null)
-  }, [slug])
+    updateUnreadDividerAnchor(null)
+    updateInitialPositioningPhase('pending')
+    clearUnreadOverride(slug)
+  }, [slug, updateInitialPositioningPhase, updateUnreadDividerAnchor])
 
   useEffect(() => {
     return () => {
       uploadAbortRef.current?.abort()
+      if (markReadTimerRef.current !== null) {
+        window.clearTimeout(markReadTimerRef.current)
+      }
+      if (viewportReadRafRef.current !== null) {
+        window.cancelAnimationFrame(viewportReadRafRef.current)
+      }
+      if (programmaticScrollTimerRef.current !== null) {
+        window.clearTimeout(programmaticScrollTimerRef.current)
+      }
+      isProgrammaticScrollRef.current = false
+      clearUnreadOverride(slug)
     }
-  }, [])
+  }, [slug])
 
   useEffect(() => {
     if (headerSearchTimerRef.current !== null) {
@@ -356,58 +460,120 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     })
   }, [slug, user])
 
-  // Mark room as read when entering
+  const scheduleMarkRead = useCallback((lastReadMessageId: number | null | undefined) => {
+    if (!lastReadMessageId || lastReadMessageId < 1) return
+    if (markReadTimerRef.current !== null) {
+      window.clearTimeout(markReadTimerRef.current)
+    }
+
+    markReadTimerRef.current = window.setTimeout(() => {
+      markReadTimerRef.current = null
+      sendMarkReadIfNeeded(lastReadMessageId)
+      if (user && slug.startsWith('dm_')) {
+        markDirectRoomRead(slug)
+      }
+    }, MARK_READ_DEBOUNCE_MS)
+  }, [markDirectRoomRead, sendMarkReadIfNeeded, slug, user])
+
+  const scheduleViewportReadSync = useCallback(() => {
+    if (!user) return
+    if (initialPositioningPhaseRef.current !== 'settled') return
+    if (isProgrammaticScrollRef.current) return
+    if (viewportReadRafRef.current !== null) return
+    viewportReadRafRef.current = window.requestAnimationFrame(() => {
+      viewportReadRafRef.current = null
+      applyViewportRead(listRef.current)
+    })
+  }, [applyViewportRead, user])
+
   useEffect(() => {
     if (!user || !slug.startsWith('dm_')) return
     setActiveRoom(slug)
-    markRead(slug)
     return () => {
       setActiveRoom(null)
     }
-  }, [markRead, setActiveRoom, slug, user])
+  }, [setActiveRoom, slug, user])
 
-  // Set unread divider from backend lastReadMessageId on initial load
   useEffect(() => {
-    if (initialUnreadScrollDoneRef.current) return
-    if (!details?.lastReadMessageId || messages.length === 0 || loading) return
-    const lastReadId = details.lastReadMessageId
-    const lastMsg = messages[messages.length - 1]
-    // All messages are already read — no divider needed
-    if (!lastMsg || lastMsg.id <= lastReadId) return
-    // Find first unread message from OTHER users (skip own messages)
-    const currentUsername = user?.username
-    const firstUnread = messages.find((m) =>
-      m.id > lastReadId && m.username !== currentUsername,
-    )
-    if (firstUnread) {
-      setUnreadDividerId(firstUnread.id)
+    setUnreadOverride({ roomSlug: slug, unreadCount: localUnreadCount })
+  }, [localUnreadCount, slug])
+
+  useEffect(() => {
+    if (initialPositioningPhaseRef.current !== 'pending') return
+    if (unreadDividerAnchorRef.current !== null) return
+    if (localUnreadCount < 1 || !firstUnreadMessageId) return
+    updateUnreadDividerAnchor(firstUnreadMessageId)
+  }, [firstUnreadMessageId, localUnreadCount, updateUnreadDividerAnchor])
+
+  useEffect(() => {
+    if (initialPositioningPhase !== 'settled') return
+    if (localUnreadCount < 1 || !firstUnreadMessageId) return
+    if (unreadDividerAnchorRef.current !== null) return
+    if (isAtBottomRef.current) return
+    updateUnreadDividerAnchor(firstUnreadMessageId)
+  }, [firstUnreadMessageId, initialPositioningPhase, localUnreadCount, updateUnreadDividerAnchor])
+
+  useEffect(() => {
+    if (initialPositioningPhase !== 'settled' || loading || messages.length === 0 || !user) return
+    scheduleViewportReadSync()
+  }, [initialPositioningPhase, loading, messages, scheduleViewportReadSync, user])
+
+  useEffect(() => {
+    if (initialPositioningPhase !== 'settled' || !user || localLastReadMessageId < 1) return
+    scheduleMarkRead(localLastReadMessageId)
+  }, [initialPositioningPhase, localLastReadMessageId, scheduleMarkRead, user])
+
+  useEffect(() => {
+    if (loading) return
+    if (initialPositioningPhaseRef.current !== 'pending') return
+    if (localUnreadCount > 0 && firstUnreadMessageId && unreadDividerAnchorRef.current === null) return
+
+    updateInitialPositioningPhase('positioning')
+
+    const list = listRef.current
+    if (!list) {
+      updateInitialPositioningPhase('settled')
+      scheduleViewportReadSync()
+      return
     }
-  }, [details?.lastReadMessageId, loading, messages, user?.username])
 
-  // Scroll to unread divider on initial load
-  useEffect(() => {
-    if (initialUnreadScrollDoneRef.current || loading || !unreadDividerId) return
-    initialUnreadScrollDoneRef.current = true
-    requestAnimationFrame(() => {
-      const list = listRef.current
-      if (!list) return
-      const el = list.querySelector<HTMLElement>('[data-unread-divider]')
-      if (el) {
-        el.scrollIntoView({ block: 'center' })
-        isAtBottomRef.current = false
-        setShowScrollFab(true)
+    beginProgrammaticScroll()
+    window.requestAnimationFrame(() => {
+      const unreadDivider = unreadDividerAnchorRef.current !== null
+        ? list.querySelector<HTMLElement>('[data-unread-divider]')
+        : null
+
+      if (unreadDivider) {
+        if (typeof unreadDivider.scrollIntoView === 'function') {
+          unreadDivider.scrollIntoView({ block: 'center' })
+        } else {
+          list.scrollTop = Math.max(0, unreadDivider.offsetTop - list.clientHeight / 2)
+        }
+      } else {
+        list.scrollTop = list.scrollHeight
       }
-    })
-  }, [loading, unreadDividerId])
 
-  // Send read receipt to backend when messages load or new messages arrive while at bottom
-  useEffect(() => {
-    if (!user || messages.length === 0) return
-    if (!isAtBottomRef.current) return
-    const lastMsg = messages[messages.length - 1]
-    if (!lastMsg || lastMsg.id < 1) return
-    sendMarkReadIfNeeded(lastMsg.id)
-  }, [messages, sendMarkReadIfNeeded, user])
+      const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80
+      isAtBottomRef.current = atBottom
+      setShowScrollFab(!atBottom)
+      if (atBottom) {
+        setNewMsgCount(0)
+      }
+
+      endProgrammaticScroll(() => {
+        updateInitialPositioningPhase('settled')
+        scheduleViewportReadSync()
+      })
+    })
+  }, [
+    beginProgrammaticScroll,
+    endProgrammaticScroll,
+    firstUnreadMessageId,
+    loading,
+    localUnreadCount,
+    scheduleViewportReadSync,
+    updateInitialPositioningPhase,
+  ])
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search)
@@ -475,7 +641,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
         if (!isAtBottomRef.current && decoded.message.username !== user?.username) {
           setNewMsgCount((count) => count + 1)
-          setUnreadDividerId((prev) => prev ?? messageId)
+          if (unreadDividerAnchorRef.current === null) {
+            updateUnreadDividerAnchor(messageId)
+          }
         }
 
         setTypingUsers((prev) => {
@@ -568,7 +736,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       default:
         debugLog('WS payload parse failed', event.data)
     }
-  }, [applyRateLimit, details?.kind, maxMessageLength, setMessages, slug, user?.username])
+  }, [applyRateLimit, details?.kind, maxMessageLength, setMessages, slug, updateUnreadDividerAnchor, user?.username])
 
   const { status, lastError, send } = useReconnectingWebSocket({
     url: wsUrl,
@@ -614,34 +782,40 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const handleScroll = useCallback(() => {
     const list = listRef.current
     if (!list) return
+    if (initialPositioningPhaseRef.current !== 'settled') return
+    if (isProgrammaticScrollRef.current) return
     const { scrollTop, scrollHeight, clientHeight } = list
     const atBottom = scrollHeight - scrollTop - clientHeight < 80
     isAtBottomRef.current = atBottom
     setShowScrollFab(!atBottom)
     if (atBottom) {
       setNewMsgCount(0)
-      // Send read receipt when user scrolls to bottom
-      const lastMsg = messagesRef.current[messagesRef.current.length - 1]
-      if (lastMsg && lastMsg.id >= 1) {
-        sendMarkReadIfNeeded(lastMsg.id)
-      }
     }
+    scheduleViewportReadSync()
 
     if (scrollTop < 120 && hasMore && !loadingMore && !loading) {
       prependingRef.current = true
       prevScrollHeightRef.current = scrollHeight
       void loadMore()
     }
-  }, [hasMore, loadMore, loading, loadingMore, sendMarkReadIfNeeded])
+  }, [hasMore, loadMore, loading, loadingMore, scheduleViewportReadSync])
 
   const scrollToBottom = useCallback(() => {
     const list = listRef.current
     if (!list) return
-    list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' })
+    if (typeof list.scrollTo === 'function') {
+      list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' })
+    } else {
+      list.scrollTop = list.scrollHeight
+    }
+    isAtBottomRef.current = true
+    setShowScrollFab(false)
     setNewMsgCount(0)
-  }, [])
+    window.setTimeout(() => scheduleViewportReadSync(), 220)
+  }, [scheduleViewportReadSync])
 
   useEffect(() => {
+    if (initialPositioningPhase !== 'settled') return
     const list = listRef.current
     if (!list) return
 
@@ -652,15 +826,13 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       return
     }
 
-    // Don't auto-scroll to bottom if we're about to scroll to unread divider
-    if (!initialUnreadScrollDoneRef.current && unreadDividerId) return
-
     if (isAtBottomRef.current) {
       requestAnimationFrame(() => {
         list.scrollTop = list.scrollHeight
       })
     }
-  }, [messages, unreadDividerId])
+    scheduleViewportReadSync()
+  }, [initialPositioningPhase, messages, scheduleViewportReadSync])
 
   const rateLimitRemainingMs = rateLimitUntil ? Math.max(0, rateLimitUntil - now) : 0
   const rateLimitActive = rateLimitRemainingMs > 0
@@ -739,6 +911,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
         setDraft('')
         setReplyTo(null)
         setQueuedFiles([])
+        updateUnreadDividerAnchor(null)
+        scrollToBottom()
       } catch (err) {
         if (!abortController.signal.aborted) {
           debugLog('Upload failed', err)
@@ -768,6 +942,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
     setDraft('')
     setReplyTo(null)
+    updateUnreadDividerAnchor(null)
+    scrollToBottom()
   }, [
     draft,
     editingMessage,
@@ -780,7 +956,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     send,
     setMessages,
     slug,
+    scrollToBottom,
     status,
+    updateUnreadDividerAnchor,
     user,
   ])
 
@@ -986,6 +1164,12 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     const nowDate = new Date()
     let lastKey: string | null = null
     let unreadInserted = false
+    const unreadDividerId = unreadDividerRenderTarget.messageId
+
+    if (unreadDividerRenderTarget.insertAtTop) {
+      items.push({ type: 'unread' })
+      unreadInserted = true
+    }
 
     for (const msg of messages) {
       if (!unreadInserted && unreadDividerId && msg.id === unreadDividerId) {
@@ -1007,7 +1191,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     }
 
     return items
-  }, [messages, unreadDividerId])
+  }, [messages, unreadDividerRenderTarget])
 
   const activeTypingUsers = useMemo(
     () => Array.from(typingUsers.keys()),
@@ -1265,7 +1449,13 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                   <span>{item.label}</span>
                 </div>
               ) : item.type === 'unread' ? (
-                <div className={styles.unreadDivider} role="separator" key="unread-divider" data-unread-divider>
+                <div
+                  className={styles.unreadDivider}
+                  role="separator"
+                  key="unread-divider"
+                  data-unread-divider
+                  data-unread-anchor-id={unreadDividerAnchorId ?? ''}
+                >
                   <span>Новые сообщения</span>
                 </div>
               ) : (
