@@ -69,6 +69,10 @@
   margin: 4px 0 0;
 }
 
+.errorNote {
+  color: #ff9b9b;
+}
+
 .authSwitch {
   margin-top: 12px;
   color: #b7c2d6;
@@ -79,3 +83,42 @@
   padding: 0;
 }
 
+.oauthSection {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oauthHint {
+  margin: 0;
+  color: #b7c2d6;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .auth {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .card {
+    max-width: 100%;
+  }
+
+  .field input {
+    font-size: 16px;
+    min-height: var(--touch-target-min, 44px);
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    margin: 4px 0 8px;
+  }
+
+  .note,
+  .authSwitch {
+    font-size: 13px;
+  }
+}

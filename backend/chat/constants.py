@@ -1,16 +1,17 @@
-"""Содержит логику модуля `constants` подсистемы `chat`."""
-
+"""Chat subsystem constants and backward-compatible re-exports."""
 
 PUBLIC_ROOM_SLUG = "public"
 PUBLIC_ROOM_NAME = "Public Chat"
 
-PRESENCE_GROUP_AUTH = "presence_auth"
-PRESENCE_GROUP_GUEST = "presence_guest"
-PRESENCE_CACHE_KEY_AUTH = "presence:online"
-PRESENCE_CACHE_KEY_GUEST = "presence:guests"
-PRESENCE_CACHE_TTL_SECONDS = 60 * 60
-
 CHAT_CLOSE_IDLE_CODE = 4001
-PRESENCE_CLOSE_IDLE_CODE = 4000
 
-DIRECT_INBOX_CLOSE_IDLE_CODE = 4002
+# Backward-compatible re-exports
+from presence.constants import (  # noqa: F401, E402
+    PRESENCE_CACHE_KEY_AUTH,
+    PRESENCE_CACHE_KEY_GUEST,
+    PRESENCE_CACHE_TTL_SECONDS,
+    PRESENCE_CLOSE_IDLE_CODE,
+    PRESENCE_GROUP_AUTH,
+    PRESENCE_GROUP_GUEST,
+)
+from direct_inbox.constants import DIRECT_INBOX_CLOSE_IDLE_CODE  # noqa: F401, E402

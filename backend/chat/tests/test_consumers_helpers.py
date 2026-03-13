@@ -1,7 +1,7 @@
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false
 """Содержит тесты модуля `test_consumers_helpers` подсистемы `chat`."""
 
 
-import asyncio
 import json
 import time
 from datetime import timedelta
@@ -15,15 +15,17 @@ from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
-from chat.constants import CHAT_CLOSE_IDLE_CODE, PRESENCE_CLOSE_IDLE_CODE
+from chat.constants import CHAT_CLOSE_IDLE_CODE
 from chat.consumers import (
     ChatConsumer,
-    DirectInboxConsumer,
-    PresenceConsumer,
-    _is_valid_room_slug,
     _ws_connect_rate_limited,
 )
-from chat.models import ChatRole, Room
+from chat.utils import is_valid_room_slug as _is_valid_room_slug
+from direct_inbox.consumers import DirectInboxConsumer
+from presence.constants import PRESENCE_CLOSE_IDLE_CODE
+from presence.consumers import PresenceConsumer, _ws_connect_rate_limited as _presence_ws_connect_rate_limited
+from rooms.services import ensure_membership
+from rooms.models import Room
 from users.models import SecurityRateLimitBucket
 
 User = get_user_model()
@@ -52,6 +54,31 @@ class WsConnectRateLimitTests(TestCase):
         bucket.reset_at = timezone.now() - timedelta(seconds=1)
         bucket.save(update_fields=["reset_at", "updated_at"])
         self.assertFalse(_ws_connect_rate_limited(scope, "chat"))
+
+
+class PresenceWsConnectRateLimitTests(TestCase):
+    """Проверяет endpoint-specific настройки rate limit для presence websocket."""
+
+    def setUp(self):
+        cache.clear()
+
+    @override_settings(
+        WS_CONNECT_RATE_LIMIT=1,
+        WS_CONNECT_RATE_WINDOW=60,
+        WS_CONNECT_RATE_LIMIT_PRESENCE=3,
+        WS_CONNECT_RATE_WINDOW_PRESENCE=60,
+    )
+    def test_presence_uses_dedicated_limits_without_changing_chat_limit(self):
+        scope = {"client": ("127.0.0.1", 50501), "headers": []}
+
+        self.assertFalse(_presence_ws_connect_rate_limited(scope, "presence"))
+        self.assertFalse(_presence_ws_connect_rate_limited(scope, "presence"))
+        self.assertFalse(_presence_ws_connect_rate_limited(scope, "presence"))
+        self.assertTrue(_presence_ws_connect_rate_limited(scope, "presence"))
+
+        # Chat endpoint should still follow global stricter limit.
+        self.assertFalse(_ws_connect_rate_limited(scope, "chat"))
+        self.assertTrue(_ws_connect_rate_limited(scope, "chat"))
 
 
 class ChatConsumerInternalTests(TestCase):
@@ -89,13 +116,14 @@ class ChatConsumerInternalTests(TestCase):
         """Проверяет сценарий `test_slug_validation_handles_invalid_regex`."""
         self.assertFalse(_is_valid_room_slug('private123'))
 
-    def test_get_profile_image_name_returns_empty_when_profile_missing(self):
-        """Проверяет сценарий `test_get_profile_image_name_returns_empty_when_profile_missing`."""
+    def test_get_profile_avatar_state_returns_empty_when_profile_missing(self):
+        """Проверяет сценарий `test_get_profile_avatar_state_returns_empty_when_profile_missing`."""
         consumer = self._consumer()
         user_without_profile = SimpleNamespace()
 
-        result = async_to_sync(consumer._get_profile_image_name)(user_without_profile)
-        self.assertEqual(result, '')
+        name, crop = async_to_sync(consumer._get_profile_avatar_state)(user_without_profile)
+        self.assertEqual(name, '')
+        self.assertIsNone(crop)
 
     @override_settings(CHAT_MESSAGE_RATE_LIMIT=2, CHAT_MESSAGE_RATE_WINDOW=60)
     def test_rate_limit_counts_and_resets(self):
@@ -109,7 +137,7 @@ class ChatConsumerInternalTests(TestCase):
         cache.clear()
         self.assertTrue(async_to_sync(consumer._rate_limited)(self.user))
 
-        key = f'rl:chat:message:{self.user.id}'
+        key = f'rl:chat:message:{self.user.pk}'
         bucket = SecurityRateLimitBucket.objects.get(scope_key=key)
         bucket.reset_at = timezone.now() - timedelta(seconds=1)
         bucket.save(update_fields=['reset_at', 'updated_at'])
@@ -304,7 +332,7 @@ class PresenceConsumerInternalTests(TestCase):
             """Проверяет сценарий `_fast_sleep`."""
             return None
 
-        with patch('chat.consumers.asyncio.sleep', new=_fast_sleep):
+        with patch('presence.consumers.asyncio.sleep', new=_fast_sleep):
             async_to_sync(consumer._heartbeat)()
 
         consumer.send.assert_awaited_once()
@@ -318,8 +346,8 @@ class PresenceConsumerInternalTests(TestCase):
             """Проверяет сценарий `_fast_sleep`."""
             return None
 
-        with patch('chat.consumers.asyncio.sleep', new=_fast_sleep), patch(
-            'chat.consumers.time.monotonic', return_value=10.0
+        with patch('presence.consumers.asyncio.sleep', new=_fast_sleep), patch(
+            'presence.consumers.time.monotonic', return_value=10.0
         ):
             async_to_sync(consumer._idle_watchdog)()
 
@@ -447,7 +475,7 @@ class PresenceConsumerInternalTests(TestCase):
             coro.close()
             return AsyncMock(cancel=Mock())
 
-        with patch('chat.consumers.asyncio.create_task', side_effect=_fake_task):
+        with patch('presence.consumers.asyncio.create_task', side_effect=_fake_task):
             async_to_sync(guest_consumer.connect)()
 
         guest_consumer._add_guest.assert_awaited_once_with('session-presence-helper')
@@ -459,7 +487,7 @@ class PresenceConsumerInternalTests(TestCase):
         auth_consumer._add_user = AsyncMock()
         auth_consumer._broadcast = AsyncMock()
 
-        with patch('chat.consumers.asyncio.create_task', side_effect=_fake_task):
+        with patch('presence.consumers.asyncio.create_task', side_effect=_fake_task):
             async_to_sync(auth_consumer.connect)()
 
         auth_consumer._add_guest.assert_not_awaited()
@@ -471,7 +499,7 @@ class PresenceConsumerInternalTests(TestCase):
         consumer.accept = AsyncMock()
 
         with self.assertLogs('security.audit', level='INFO') as captured:
-            with patch("chat.consumers._ws_connect_rate_limited", return_value=True):
+            with patch("presence.consumers._ws_connect_rate_limited", return_value=True):
                 async_to_sync(consumer.connect)()
 
         consumer.close.assert_awaited_once_with(code=4429)
@@ -501,11 +529,11 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
     def test_build_targets_returns_empty_for_missing_room(self):
         """Проверяет сценарий `test_build_targets_returns_empty_for_missing_room`."""
         consumer = self._consumer()
-        result = async_to_sync(consumer._build_direct_inbox_targets)(999999, self.owner.id, 'msg', '2026-01-01T00:00:00Z')
+        result = async_to_sync(consumer._build_direct_inbox_targets)(999999, self.owner.pk, 'msg', '2026-01-01T00:00:00Z')
         self.assertEqual(result, [])
 
     def test_build_targets_handles_invalid_pair_key(self):
-        """Проверяет сценарий `test_build_targets_handles_invalid_pair_key`."""
+        """Invalid pair_key disables direct-inbox target fanout."""
         room = Room.objects.create(
             slug='dm_badpair',
             name='badpair',
@@ -513,43 +541,26 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
             direct_pair_key='bad:value',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.owner, role_name='Owner')
 
         consumer = self._consumer()
-        result = async_to_sync(consumer._build_direct_inbox_targets)(room.id, self.owner.id, 'msg', '2026-01-01T00:00:00Z')
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]['payload']['item']['slug'], room.slug)
-
-    def test_build_targets_fills_missing_pair_participant_from_pair_key(self):
-        """Проверяет сценарий `test_build_targets_fills_missing_pair_participant_from_pair_key`."""
+        result = async_to_sync(consumer._build_direct_inbox_targets)(room.pk, self.owner.pk, 'msg', '2026-01-01T00:00:00Z')
+        self.assertEqual(result, [])
+    def test_build_targets_requires_pair_memberships(self):
+        """Strict DM mode: without membership for both pair users, no targets are built."""
         room = Room.objects.create(
             slug='dm_missingpair',
             name='missingpair',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.owner, role_name='Owner')
 
         consumer = self._consumer()
-        targets = async_to_sync(consumer._build_direct_inbox_targets)(room.id, self.owner.id, 'hello', '2026-01-01T00:00:00Z')
+        targets = async_to_sync(consumer._build_direct_inbox_targets)(room.pk, self.owner.pk, 'hello', '2026-01-01T00:00:00Z')
 
-        groups = {item['group'] for item in targets}
-        self.assertIn(f'direct_inbox_user_{self.owner.id}', groups)
-        self.assertIn(f'direct_inbox_user_{self.member.id}', groups)
-
+        self.assertEqual(targets, [])
 
 class DirectInboxConsumerInternalTests(TestCase):
     """Группирует тестовые сценарии класса `DirectInboxConsumerInternalTests`."""
@@ -644,15 +655,15 @@ class DirectInboxConsumerInternalTests(TestCase):
             """Проверяет сценарий `_fast_sleep`."""
             return None
 
-        with patch('chat.consumers.asyncio.sleep', new=_fast_sleep):
+        with patch('direct_inbox.consumers.asyncio.sleep', new=_fast_sleep):
             async_to_sync(heartbeat_consumer._heartbeat)()
 
         idle_consumer = self._consumer()
         idle_consumer.idle_timeout = 1
         idle_consumer._last_client_activity = 0.0
 
-        with patch('chat.consumers.asyncio.sleep', new=_fast_sleep), patch(
-            'chat.consumers.time.monotonic', return_value=10.0
+        with patch('direct_inbox.consumers.asyncio.sleep', new=_fast_sleep), patch(
+            'direct_inbox.consumers.time.monotonic', return_value=10.0
         ):
             async_to_sync(idle_consumer._idle_watchdog)()
 
@@ -664,8 +675,9 @@ class DirectInboxConsumerInternalTests(TestCase):
         consumer.accept = AsyncMock()
         consumer._send_unread_state = AsyncMock()
 
-        with patch("chat.consumers._ws_connect_rate_limited", return_value=True):
+        with patch("direct_inbox.consumers._ws_connect_rate_limited", return_value=True):
             async_to_sync(consumer.connect)()
 
         consumer.close.assert_awaited_once_with(code=4429)
         consumer.accept.assert_not_awaited()
+

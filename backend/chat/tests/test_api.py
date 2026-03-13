@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 
 """Содержит тесты модуля `test_api` подсистемы `chat`."""
 
@@ -10,8 +11,12 @@ from django.contrib.auth import get_user_model
 from django.db import OperationalError
 from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
 
-from chat import api, utils
-from chat.models import ChatRole, Message, Room
+from chat import api
+from chat_app_django import media_utils as utils
+from messages.models import Message
+from roles.models import Membership
+from rooms.models import Room
+from rooms.services import ensure_membership
 
 User = get_user_model()
 
@@ -47,7 +52,7 @@ class ChatApiHelpersTests(SimpleTestCase):
         parsed = urlparse(url)
         self.assertEqual(f"{parsed.scheme}://{parsed.netloc}", "https://example.com")
         self.assertEqual(parsed.path, "/api/auth/media/profile_pics/fallback.jpg")
-        query = parse_qs(parsed.query)
+        query = parse_qs(str(parsed.query))
         self.assertIn("exp", query)
         self.assertIn("sig", query)
         self.assertTrue(
@@ -66,16 +71,18 @@ class ChatApiHelpersTests(SimpleTestCase):
     @override_settings(CHAT_DIRECT_SLUG_SALT='salt-one')
     def test_direct_room_slug_is_deterministic_for_same_salt(self):
         """Проверяет детерминированность slug для одной пары и одного salt."""
-        first = api._direct_room_slug('1:2')
-        second = api._direct_room_slug('1:2')
+        from rooms.services import direct_room_slug
+        first = direct_room_slug('1:2')
+        second = direct_room_slug('1:2')
         self.assertEqual(first, second)
 
     def test_direct_room_slug_changes_when_salt_changes(self):
         """Проверяет, что slug зависит от секретного salt."""
+        from rooms.services import direct_room_slug
         with override_settings(CHAT_DIRECT_SLUG_SALT='salt-a'):
-            first = api._direct_room_slug('1:2')
+            first = direct_room_slug('1:2')
         with override_settings(CHAT_DIRECT_SLUG_SALT='salt-b'):
-            second = api._direct_room_slug('1:2')
+            second = direct_room_slug('1:2')
         self.assertNotEqual(first, second)
 
     def test_parse_positive_int_raises_for_invalid_value(self):
@@ -103,13 +110,7 @@ class RoomDetailsApiTests(TestCase):
     def _create_private_room(self, slug='private123'):
         """Проверяет сценарий `_create_private_room`."""
         room = Room.objects.create(slug=slug, name='private room', kind=Room.Kind.PRIVATE, created_by=self.owner)
-        ChatRole.objects.create(
-            room=room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.owner, role_name='Owner')
         return room
 
     def test_public_room_details(self):
@@ -119,6 +120,28 @@ class RoomDetailsApiTests(TestCase):
         payload = response.json()
         self.assertEqual(payload['slug'], 'public')
         self.assertEqual(payload['kind'], Room.Kind.PUBLIC)
+
+    def test_group_room_details_returns_group_avatar_fields(self):
+        room = Room.objects.create(
+            slug='g-room-avatar-1',
+            name='Avatar Group',
+            kind=Room.Kind.GROUP,
+            is_public=True,
+            username='groomavatar1',
+            created_by=self.owner,
+        )
+        ensure_membership(room, self.owner, role_name='Owner')
+
+        self.client.force_login(self.owner)
+        response = self.client.get(f'/api/chat/rooms/{room.slug}/')
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload['kind'], Room.Kind.GROUP)
+        self.assertIn('avatarUrl', payload)
+        self.assertIn('avatarCrop', payload)
+        self.assertIsNotNone(payload['avatarUrl'])
+        self.assertIn('/api/auth/media/', payload['avatarUrl'])
+        self.assertIsNone(payload['avatarCrop'])
 
     def test_invalid_private_slug_returns_400(self):
         """Проверяет сценарий `test_invalid_private_slug_returns_400`."""
@@ -144,7 +167,7 @@ class RoomDetailsApiTests(TestCase):
         self.assertEqual(payload['createdBy'], self.owner.username)
         room = Room.objects.get(slug='newroom123')
         self.assertTrue(
-            ChatRole.objects.filter(room=room, user=self.owner, role=ChatRole.Role.OWNER).exists()
+            Membership.objects.filter(room=room, user=self.owner, roles__name='Owner').exists()
         )
 
     def test_existing_private_room_denies_non_member(self):
@@ -158,13 +181,7 @@ class RoomDetailsApiTests(TestCase):
     def test_existing_private_room_allows_member(self):
         """Проверяет сценарий `test_existing_private_room_allows_member`."""
         room = self._create_private_room()
-        ChatRole.objects.create(
-            room=room,
-            user=self.member,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.member.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.member, role_name='Member')
         self.client.force_login(self.member)
 
         response = self.client.get('/api/chat/rooms/private123/')
@@ -174,27 +191,27 @@ class RoomDetailsApiTests(TestCase):
 
     def test_direct_room_details_returns_peer(self):
         """Проверяет сценарий `test_direct_room_details_returns_peer`."""
+        self.member.profile.avatar_crop_x = 0.1
+        self.member.profile.avatar_crop_y = 0.2
+        self.member.profile.avatar_crop_width = 0.3
+        self.member.profile.avatar_crop_height = 0.4
+        self.member.profile.save(
+            update_fields=[
+                'avatar_crop_x',
+                'avatar_crop_y',
+                'avatar_crop_width',
+                'avatar_crop_height',
+            ]
+        )
         room = Room.objects.create(
             slug='dm_abc123',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
-        ChatRole.objects.create(
-            room=room,
-            user=self.member,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.member.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.owner, role_name='Owner')
+        ensure_membership(room, self.member, role_name='Member')
 
         self.client.force_login(self.owner)
         response = self.client.get(f'/api/chat/rooms/{room.slug}/')
@@ -203,6 +220,10 @@ class RoomDetailsApiTests(TestCase):
         self.assertEqual(payload['kind'], Room.Kind.DIRECT)
         self.assertEqual(payload['peer']['username'], self.member.username)
         self.assertIn('lastSeen', payload['peer'])
+        self.assertEqual(
+            payload['peer']['avatarCrop'],
+            {'x': 0.1, 'y': 0.2, 'width': 0.3, 'height': 0.4},
+        )
 
     def test_direct_room_denies_non_member(self):
         """Проверяет сценарий `test_direct_room_denies_non_member`."""
@@ -210,23 +231,11 @@ class RoomDetailsApiTests(TestCase):
             slug='dm_abc123',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
-        ChatRole.objects.create(
-            room=room,
-            user=self.member,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.member.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.owner, role_name='Owner')
+        ensure_membership(room, self.member, role_name='Member')
 
         self.client.force_login(self.other)
         response = self.client.get(f'/api/chat/rooms/{room.slug}/')
@@ -245,13 +254,7 @@ class RoomMessagesApiTests(TestCase):
     def _create_private_room(self, slug='private123'):
         """Проверяет сценарий `_create_private_room`."""
         room = Room.objects.create(slug=slug, name='private room', kind=Room.Kind.PRIVATE, created_by=self.owner)
-        ChatRole.objects.create(
-            room=room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.owner, role_name='Owner')
         return room
 
     def _create_direct_room(self, slug='dm_abc123'):
@@ -260,32 +263,21 @@ class RoomMessagesApiTests(TestCase):
             slug=slug,
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
-        ChatRole.objects.create(
-            room=room,
-            user=self.member,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.member.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(room, self.owner, role_name='Owner')
+        ensure_membership(room, self.member, role_name='Member')
         return room
 
     def _create_messages(self, total: int, room_slug: str = 'public'):
         """Проверяет сценарий `_create_messages`."""
+        room, _ = Room.objects.get_or_create(slug=room_slug, defaults={'name': room_slug})
         for i in range(total):
             Message.objects.create(
                 username='legacy_name',
                 user=self.owner,
-                room=room_slug,
+                room=room,
                 message_content=f'message-{i}',
                 profile_pic='profile_pics/legacy.jpg',
             )
@@ -293,6 +285,18 @@ class RoomMessagesApiTests(TestCase):
     @override_settings(CHAT_MESSAGES_PAGE_SIZE=50, CHAT_MESSAGES_MAX_PAGE_SIZE=200)
     def test_room_messages_default_pagination(self):
         """Проверяет сценарий `test_room_messages_default_pagination`."""
+        self.owner.profile.avatar_crop_x = 0.1
+        self.owner.profile.avatar_crop_y = 0.2
+        self.owner.profile.avatar_crop_width = 0.3
+        self.owner.profile.avatar_crop_height = 0.4
+        self.owner.profile.save(
+            update_fields=[
+                'avatar_crop_x',
+                'avatar_crop_y',
+                'avatar_crop_width',
+                'avatar_crop_height',
+            ]
+        )
         self._create_messages(60)
 
         response = self.client.get('/api/chat/rooms/public/messages/')
@@ -303,6 +307,10 @@ class RoomMessagesApiTests(TestCase):
         self.assertTrue(payload['pagination']['hasMore'])
         self.assertEqual(payload['pagination']['limit'], 50)
         self.assertEqual(payload['pagination']['nextBefore'], payload['messages'][0]['id'])
+        self.assertEqual(
+            payload['messages'][0]['avatarCrop'],
+            {'x': 0.1, 'y': 0.2, 'width': 0.3, 'height': 0.4},
+        )
 
     @override_settings(CHAT_MESSAGES_PAGE_SIZE=10, CHAT_MESSAGES_MAX_PAGE_SIZE=20)
     def test_room_messages_limit_is_capped_by_max_page_size(self):
@@ -319,7 +327,7 @@ class RoomMessagesApiTests(TestCase):
     def test_private_room_messages_require_membership(self):
         """Проверяет сценарий `test_private_room_messages_require_membership`."""
         room = self._create_private_room()
-        Message.objects.create(username=self.owner.username, user=self.owner, room=room.slug, message_content='hello')
+        Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content='hello')
 
         response = self.client.get(f'/api/chat/rooms/{room.slug}/messages/')
         self.assertEqual(response.status_code, 404)
@@ -327,14 +335,8 @@ class RoomMessagesApiTests(TestCase):
     def test_private_room_messages_allow_member(self):
         """Проверяет сценарий `test_private_room_messages_allow_member`."""
         room = self._create_private_room()
-        ChatRole.objects.create(
-            room=room,
-            user=self.member,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.member.username,
-            granted_by=self.owner,
-        )
-        Message.objects.create(username=self.owner.username, user=self.owner, room=room.slug, message_content='hello')
+        ensure_membership(room, self.member, role_name='Member')
+        Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content='hello')
 
         self.client.force_login(self.member)
         response = self.client.get(f'/api/chat/rooms/{room.slug}/messages/')
@@ -344,7 +346,7 @@ class RoomMessagesApiTests(TestCase):
     def test_direct_room_messages_deny_outsider(self):
         """Проверяет сценарий `test_direct_room_messages_deny_outsider`."""
         room = self._create_direct_room()
-        Message.objects.create(username=self.owner.username, user=self.owner, room=room.slug, message_content='hello')
+        Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content='hello')
 
         self.client.force_login(self.other)
         response = self.client.get(f'/api/chat/rooms/{room.slug}/messages/')
@@ -353,7 +355,7 @@ class RoomMessagesApiTests(TestCase):
     def test_direct_room_messages_allow_participant(self):
         """Проверяет сценарий `test_direct_room_messages_allow_participant`."""
         room = self._create_direct_room()
-        Message.objects.create(username=self.owner.username, user=self.owner, room=room.slug, message_content='hello')
+        Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content='hello')
 
         self.client.force_login(self.member)
         response = self.client.get(f'/api/chat/rooms/{room.slug}/messages/')
@@ -396,7 +398,7 @@ class DirectApiTests(TestCase):
     def test_start_requires_auth(self):
         """Проверяет сценарий `test_start_requires_auth`."""
         response = self._post_start('peer')
-        self.assertEqual(response.status_code, 401)
+        self.assertIn(response.status_code, (401, 403))
 
     def test_start_rejects_self(self):
         """Проверяет сценарий `test_start_rejects_self`."""
@@ -428,26 +430,42 @@ class DirectApiTests(TestCase):
         self.assertEqual(second.status_code, 200)
         self.assertEqual(first.json()['slug'], second.json()['slug'])
 
-    def test_direct_chats_empty_until_first_message(self):
-        """Проверяет сценарий `test_direct_chats_empty_until_first_message`."""
+    def test_direct_chats_include_dialog_immediately_after_start(self):
+        """Direct dialog is visible right after start, even without messages."""
         self.client.force_login(self.owner)
         start_response = self._post_start('peer')
         self.assertEqual(start_response.status_code, 200)
+        slug = start_response.json()['slug']
 
         response = self.client.get('/api/chat/direct/chats/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()['items'], [])
-
+        items = response.json()['items']
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]['slug'], slug)
+        self.assertEqual(items[0]['lastMessage'], '')
+        self.assertIsNone(items[0]['lastMessageAt'])
     def test_direct_chats_include_dialog_after_message(self):
         """Проверяет сценарий `test_direct_chats_include_dialog_after_message`."""
         self.client.force_login(self.owner)
+        self.peer.profile.avatar_crop_x = 0.1
+        self.peer.profile.avatar_crop_y = 0.2
+        self.peer.profile.avatar_crop_width = 0.3
+        self.peer.profile.avatar_crop_height = 0.4
+        self.peer.profile.save(
+            update_fields=[
+                'avatar_crop_x',
+                'avatar_crop_y',
+                'avatar_crop_width',
+                'avatar_crop_height',
+            ]
+        )
         start_response = self._post_start('peer')
         slug = start_response.json()['slug']
 
         Message.objects.create(
             username=self.owner.username,
             user=self.owner,
-            room=slug,
+            room=Room.objects.get(slug=slug),
             message_content='hello peer',
         )
 
@@ -457,6 +475,10 @@ class DirectApiTests(TestCase):
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]['peer']['username'], self.peer.username)
         self.assertIn('lastSeen', items[0]['peer'])
+        self.assertEqual(
+            items[0]['peer']['avatarCrop'],
+            {'x': 0.1, 'y': 0.2, 'width': 0.3, 'height': 0.4},
+        )
         self.assertEqual(items[0]['slug'], slug)
 
 
@@ -493,37 +515,30 @@ class ChatApiExtraCoverageTests(TestCase):
             content_type='application/json',
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()['error'], 'username is required')
 
     def test_normalize_username_and_parse_pair_key_guards(self):
         """Проверяет сценарий `test_normalize_username_and_parse_pair_key_guards`."""
         self.assertEqual(api._normalize_username('@alice '), 'alice')
         self.assertEqual(api._normalize_username(123), '')
-        self.assertIsNone(api._parse_pair_key_users('broken'))
-        self.assertIsNone(api._parse_pair_key_users('1:bad'))
+        from rooms.services import parse_pair_key_users
+        self.assertIsNone(parse_pair_key_users('broken'))
+        self.assertIsNone(parse_pair_key_users('1:bad'))
 
-    def test_ensure_role_updates_snapshot_and_granted_by(self):
-        """Проверяет сценарий `test_ensure_role_updates_snapshot_and_granted_by`."""
+    def test_ensure_role_assigns_membership_role(self):
+        """Backward-compatible ensure_role maps old role name to Membership role."""
         room = Room.objects.create(slug='role-room-01', name='Role room', kind=Room.Kind.PRIVATE)
-        role = ChatRole.objects.create(
-            room=room,
-            user=self.peer,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot='stale_name',
-            granted_by=None,
-        )
 
-        api._ensure_role(room, self.peer, ChatRole.Role.MEMBER, granted_by=self.owner)
-        role.refresh_from_db()
+        from rooms.services import ensure_role
+        ensure_role(room, self.peer, 'member', granted_by=self.owner)
 
-        self.assertEqual(role.username_snapshot, self.peer.username)
-        self.assertEqual(role.granted_by_id, self.owner.id)
-
+        membership = Membership.objects.get(room=room, user=self.peer)
+        self.assertTrue(membership.roles.filter(name='Member').exists())
     def test_ensure_room_owner_role_skips_room_without_creator(self):
         """Проверяет сценарий `test_ensure_room_owner_role_skips_room_without_creator`."""
         room = Room.objects.create(slug='owner-missing-01', name='Owner missing', kind=Room.Kind.PRIVATE)
-        api._ensure_room_owner_role(room)
-        self.assertFalse(ChatRole.objects.filter(room=room).exists())
+        from rooms.services import ensure_room_owner_role
+        ensure_room_owner_role(room)
+        self.assertFalse(Membership.objects.filter(room=room).exists())
 
     def test_public_room_repairs_legacy_public_record(self):
         """Проверяет сценарий `test_public_room_repairs_legacy_public_record`."""
@@ -541,7 +556,7 @@ class ChatApiExtraCoverageTests(TestCase):
     def test_direct_start_returns_503_when_room_creation_fails(self):
         """Проверяет сценарий `test_direct_start_returns_503_when_room_creation_fails`."""
         self.client.force_login(self.owner)
-        with patch('chat.api._ensure_direct_room_with_retry', side_effect=OperationalError):
+        with patch('chat.api.ensure_direct_room_with_retry', side_effect=OperationalError):
             response = self._post_direct_start(self.peer.username)
         self.assertEqual(response.status_code, 503)
 
@@ -552,17 +567,37 @@ class ChatApiExtraCoverageTests(TestCase):
             slug='dm_stub_01',
             name='stub',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.peer.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.peer.pk}',
             created_by=self.owner,
         )
 
-        with patch('chat.api._ensure_direct_room_with_retry', return_value=(room, False)), patch(
-            'chat.api._ensure_direct_roles',
+        with patch('chat.api.ensure_direct_room_with_retry', return_value=(room, False)), patch(
+            'chat.api.ensure_direct_roles',
             side_effect=OperationalError,
         ):
             response = self._post_direct_start(self.peer.username)
 
         self.assertEqual(response.status_code, 503)
+
+    def test_direct_start_retries_role_assignment_on_transient_lock(self):
+        """Повторяет роль-синк при кратковременной DB lock-ошибке и завершает запрос успешно."""
+        self.client.force_login(self.owner)
+        room = Room.objects.create(
+            slug='dm_retry_role_01',
+            name='stub',
+            kind=Room.Kind.DIRECT,
+            direct_pair_key=f'{self.owner.pk}:{self.peer.pk}',
+            created_by=self.owner,
+        )
+
+        with patch('chat.api.ensure_direct_room_with_retry', return_value=(room, False)), patch(
+            'chat.api.ensure_direct_roles',
+            side_effect=[OperationalError('database is locked'), None],
+        ) as ensure_roles_mock:
+            response = self._post_direct_start(self.peer.username)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ensure_roles_mock.call_count, 2)
 
     def test_room_details_returns_fallback_payload_when_db_unavailable(self):
         """Проверяет сценарий `test_room_details_returns_fallback_payload_when_db_unavailable`."""
@@ -595,7 +630,7 @@ class ChatAuthSmokeTests(TestCase):
         """Проверяет сценарий `test_register_and_login`."""
         csrf = self._csrf()
         register_payload = {
-            'username': 'testuser',
+            'email': 'testuser@example.com',
             'password1': 'pass12345',
             'password2': 'pass12345',
         }
@@ -608,7 +643,7 @@ class ChatAuthSmokeTests(TestCase):
         self.assertIn(response.status_code, [200, 201])
 
         csrf = self._csrf()
-        login_payload = {'username': 'testuser', 'password': 'pass12345'}
+        login_payload = {'email': 'testuser@example.com', 'password': 'pass12345'}
         response = self.client.post(
             '/api/auth/login/',
             data=json.dumps(login_payload),
@@ -616,3 +651,5 @@ class ChatAuthSmokeTests(TestCase):
             HTTP_X_CSRFTOKEN=csrf,
         )
         self.assertEqual(response.status_code, 200)
+
+

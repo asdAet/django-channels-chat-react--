@@ -1,11 +1,12 @@
+# pyright: reportAttributeAccessIssue=false
 """Содержит тесты модуля `test_utils` подсистемы `chat`."""
 
 from urllib.parse import parse_qs, urlparse
 
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
-from chat import utils
-from chat.utils import build_profile_url, build_profile_url_from_request
+from chat_app_django import media_utils as utils
+from chat_app_django.media_utils import build_profile_url, build_profile_url_from_request
 
 
 class UtilityHelpersTests(SimpleTestCase):
@@ -42,13 +43,23 @@ class UtilityHelpersTests(SimpleTestCase):
     def test_normalize_media_path_and_signed_path(self):
         """Проверяет нормализацию media пути и сборку подписанного URL."""
         self.assertEqual(utils.normalize_media_path("/media/profile_pics/a.jpg"), "profile_pics/a.jpg")
+        self.assertEqual(
+            utils.normalize_media_path("chat_attachments/2026/03/%D0%A6%D0%B2%D0%B5%D1%82%D0%BE%D0%BA.mp3"),
+            "chat_attachments/2026/03/Цветок.mp3",
+        )
+        self.assertEqual(
+            utils.normalize_media_path(
+                "chat_attachments/2026/03/%25D0%25A6%25D0%25B2%25D0%25B5%25D1%2582%25D0%25BE%25D0%25BA.mp3"
+            ),
+            "chat_attachments/2026/03/Цветок.mp3",
+        )
         self.assertIsNone(utils.normalize_media_path("../secret.txt"))
 
         signed = utils._signed_media_url_path("profile_pics/a.jpg", expires_at=12345)
         self.assertIsNotNone(signed)
         parsed = urlparse(signed)
         self.assertEqual(parsed.path, "/api/auth/media/profile_pics/a.jpg")
-        query = parse_qs(parsed.query)
+        query = parse_qs(str(parsed.query))
         self.assertEqual(query["exp"][0], "12345")
         self.assertTrue(
             utils.is_valid_media_signature(
@@ -57,6 +68,14 @@ class UtilityHelpersTests(SimpleTestCase):
                 query["sig"][0],
             )
         )
+
+        signed_cyr = utils._signed_media_url_path(
+            "chat_attachments/2026/03/%D0%A6%D0%B2%D0%B5%D1%82%D0%BE%D0%BA.mp3",
+            expires_at=12345,
+        )
+        self.assertIsNotNone(signed_cyr)
+        parsed_cyr = urlparse(signed_cyr or "")
+        self.assertNotIn("%25D0", parsed_cyr.path)
 
     @override_settings(MEDIA_SIGNING_KEY="test-key")
     def test_media_signature_validation_rejects_bad_signature(self):
@@ -121,7 +140,7 @@ class _SignedUrlAssertionsMixin:
             self.assertEqual(f"{parsed.scheme}://{parsed.netloc}", expected_base)
 
         self.assertEqual(parsed.path, "/api/auth/media/profile_pics/a.jpg")
-        query = parse_qs(parsed.query)
+        query = parse_qs(str(parsed.query))
         self.assertIn("exp", query)
         self.assertIn("sig", query)
         expires_at = int(query["exp"][0])

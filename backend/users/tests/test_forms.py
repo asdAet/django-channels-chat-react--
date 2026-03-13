@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Содержит тесты модуля `test_forms` подсистемы `users`."""
 
 
@@ -95,3 +96,57 @@ class ProfileUpdateFormTests(TestCase):
             )
             self.assertFalse(form.is_valid())
             self.assertIn("image", form.errors)
+
+    def test_accepts_complete_avatar_crop_payload(self):
+        """Сохраняет валидный набор crop-метаданных аватарки."""
+        user = User.objects.create_user(username="crop_ok", password="pass12345")
+        form = ProfileUpdateForm(
+            data={
+                "bio": "ok",
+                "avatarCropX": "0.1",
+                "avatarCropY": "0.2",
+                "avatarCropWidth": "0.3",
+                "avatarCropHeight": "0.4",
+            },
+            instance=user.profile,
+        )
+
+        self.assertTrue(form.is_valid())
+        profile = form.save()
+        self.assertEqual(profile.avatar_crop_x, 0.1)
+        self.assertEqual(profile.avatar_crop_y, 0.2)
+        self.assertEqual(profile.avatar_crop_width, 0.3)
+        self.assertEqual(profile.avatar_crop_height, 0.4)
+
+    def test_rejects_partial_avatar_crop_payload(self):
+        """Отклоняет неполный набор crop-метаданных."""
+        user = User.objects.create_user(username="crop_partial", password="pass12345")
+        form = ProfileUpdateForm(
+            data={
+                "bio": "ok",
+                "avatarCropX": "0.1",
+                "avatarCropY": "0.2",
+            },
+            instance=user.profile,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("image", form.errors)
+
+    def test_rejects_out_of_bounds_avatar_crop_payload(self):
+        """Отклоняет crop-метаданные, выходящие за границы изображения."""
+        user = User.objects.create_user(username="crop_bad", password="pass12345")
+        form = ProfileUpdateForm(
+            data={
+                "bio": "ok",
+                "avatarCropX": "0.8",
+                "avatarCropY": "0.2",
+                "avatarCropWidth": "0.4",
+                "avatarCropHeight": "0.4",
+            },
+            instance=user.profile,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("image", form.errors)
+

@@ -66,10 +66,10 @@
   box-shadow: 0 0 0 3px rgba(122, 178, 255, 0.2);
 }
 
-.profileAvatar img {
+.profileAvatar > img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 
@@ -129,6 +129,16 @@
   gap: 18px;
 }
 
+.usernameHandle {
+  margin: 4px 0 0;
+  color: var(--tg-text-secondary, #9ab1d0);
+  font-size: 14px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .muted {
   color: var(--color-muted);
 }
@@ -158,7 +168,7 @@
   width: 100%;
 }
 
-@media (max-width: 881px) {
+@media (max-width: 768px) {
   .profileAvatarWrapper {
     width: 140px;
     height: 140px;
@@ -170,3 +180,14 @@
   }
 }
 
+@media (max-width: 480px) {
+  .profileAvatarWrapper {
+    width: 120px;
+    height: 120px;
+  }
+
+  .eyebrowProfile {
+    font-size: 18px;
+    padding-bottom: 6%;
+  }
+}

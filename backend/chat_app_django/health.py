@@ -1,6 +1,4 @@
-
-"""Содержит логику модуля `health` подсистемы `chat_app_django`."""
-
+"""Health endpoints for liveness and readiness checks."""
 
 import logging
 import uuid
@@ -8,17 +6,19 @@ import uuid
 from django.core.cache import cache
 from django.db import connections
 from django.db.utils import DatabaseError
-from django.http import JsonResponse
 from django.utils import timezone
-from django.views.decorators.http import require_GET
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
 
 
-@require_GET
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def live(_request):
-    """Выполняет логику `live` с параметрами из сигнатуры."""
-    return JsonResponse(
+    """Returns liveness status."""
+    return Response(
         {
             "status": "ok",
             "check": "live",
@@ -27,9 +27,10 @@ def live(_request):
     )
 
 
-@require_GET
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def ready(_request):
-    """Выполняет логику `ready` с параметрами из сигнатуры."""
+    """Returns readiness status for database and cache dependencies."""
     components: dict[str, str] = {}
     ok = True
 
@@ -41,7 +42,7 @@ def ready(_request):
     except DatabaseError:
         ok = False
         components["database"] = "error"
-        logger.exception("Health check failed: database is unavailable")
+        logger.exception("Проверка здоровья не пройдена: база данных недоступна")
 
     cache_key = f"health:{uuid.uuid4().hex}"
     cache_value = "ok"
@@ -54,7 +55,7 @@ def ready(_request):
     except Exception:
         ok = False
         components["cache"] = "error"
-        logger.exception("Health check failed: cache is unavailable")
+        logger.exception("Проверка здоровья не пройдена: кэш недоступен")
 
     status_code = 200 if ok else 503
     payload = {
@@ -63,4 +64,4 @@ def ready(_request):
         "timestamp": timezone.now().isoformat(),
         "components": components,
     }
-    return JsonResponse(payload, status=status_code)
+    return Response(payload, status=status_code)

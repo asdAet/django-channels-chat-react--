@@ -1,6 +1,11 @@
-﻿import { apiService } from '../adapters/ApiService'
-import type { LoginRequestDto as LoginDto, RegisterRequestDto as RegisterDto, UpdateProfileRequestDto as UpdateProfileDto, SessionResponseDto as SessionDto } from '../dto'
-import type { UserProfile as UserProfileDto } from '../entities/user/types'
+﻿import { apiService } from "../adapters/ApiService";
+import type {
+  LoginRequestDto as LoginDto,
+  RegisterRequestDto as RegisterDto,
+  UpdateProfileRequestDto as UpdateProfileDto,
+  SessionResponseDto as SessionDto,
+} from "../dto";
+import type { UserProfile as UserProfileDto } from "../entities/user/types";
 
 /**
  * Описывает назначение класса AuthController.
@@ -13,16 +18,15 @@ class AuthController {
    */
 
   public async ensureCsrf(): Promise<{ csrfToken: string }> {
-    return await apiService.ensureCsrf()
+    return await apiService.ensureCsrf();
   }
 
   /**
    * Выполняет метод getSession.
    * @returns Результат выполнения getSession.
    */
-
   public async getSession(): Promise<SessionDto> {
-    return await apiService.getSession()
+    return await apiService.getSession();
   }
 
   /**
@@ -32,7 +36,11 @@ class AuthController {
    */
 
   public async login(dto: LoginDto): Promise<SessionDto> {
-    return await apiService.login(dto.username, dto.password)
+    return await apiService.login(dto.email, dto.password);
+  }
+
+  public async oauthGoogle(accessToken: string): Promise<SessionDto> {
+    return await apiService.oauthGoogle(accessToken);
   }
 
   /**
@@ -42,7 +50,11 @@ class AuthController {
    */
 
   public async register(dto: RegisterDto): Promise<SessionDto> {
-    return await apiService.register(dto.username, dto.password1, dto.password2)
+    return await apiService.register(
+      dto.email,
+      dto.password1,
+      dto.password2,
+    );
   }
 
   /**
@@ -51,7 +63,7 @@ class AuthController {
    */
 
   public async getPasswordRules(): Promise<{ rules: string[] }> {
-    return await apiService.getPasswordRules()
+    return await apiService.getPasswordRules();
   }
 
   /**
@@ -60,7 +72,7 @@ class AuthController {
    */
 
   public async logout(): Promise<{ ok: boolean }> {
-    return await apiService.logout()
+    return await apiService.logout();
   }
 
   /**
@@ -69,10 +81,11 @@ class AuthController {
    * @returns Результат выполнения updateProfile.
    */
 
-  public async updateProfile(dto: UpdateProfileDto): Promise<{ user: UserProfileDto }> {
-    return await apiService.updateProfile(dto)
+  public async updateProfile(
+    dto: UpdateProfileDto,
+  ): Promise<{ user: UserProfileDto }> {
+    return await apiService.updateProfile(dto);
   }
 }
 
-export const authController = new AuthController()
-
+export const authController = new AuthController();

@@ -1,0 +1,29 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  gap: 12px;
+  color: var(--color-muted);
+}
+
+.icon {
+  font-size: 40px;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.description {
+  font-size: 14px;
+  margin: 0;
+  max-width: 280px;
+}

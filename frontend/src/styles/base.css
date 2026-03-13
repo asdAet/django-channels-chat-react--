@@ -1,15 +1,19 @@
 @import './tokens.css';
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap');
 
 :root {
-  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  line-height: 1.6;
+  font-family: var(--tg-font);
+  line-height: 1.5;
   font-weight: 400;
-  color: #0b1221;
-  background-color: #070a14;
+  color: var(--tg-text-primary);
+  background-color: var(--tg-bg-secondary);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  
+}
+
+html {
+  width: 100%;
+  height: 100%;
+  min-height: var(--app-height);
 }
 
 *,
@@ -20,20 +24,22 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
-  background: radial-gradient(circle at 20% 20%, #162447 0, transparent 25%),
-    radial-gradient(circle at 80% 10%, #173b5f 0, transparent 30%),
-    radial-gradient(circle at 40% 70%, #0c223f 0, transparent 35%),
-    #060912;
-  color: #0b1221;
+  width: 100%;
+  min-height: var(--app-height);
+  background: var(--tg-bg-secondary);
+  color: var(--tg-text-primary);
+  overflow-x: hidden;
 }
 
 #root {
-  min-height: 100vh;
+  min-height: var(--app-height);
+  height: var(--app-height);
+  width: 100%;
+  max-width: 100%;
 }
 
 a {
-  color: inherit;
+  color: var(--tg-text-link);
   text-decoration: none;
 }
 
@@ -48,3 +54,54 @@ button {
   outline: none;
 }
 
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---- mobile overrides ---- */
+
+@media (max-width: 768px) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: none;
+  }
+
+  /* prevent iOS zoom on input focus */
+  input, textarea, select {
+    font-size: 16px;
+  }
+
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+
+  /* hide scrollbars on mobile */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}

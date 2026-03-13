@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false, reportGeneralTypeIssues=false
 """Содержит тесты модуля `test_consumers_direct_inbox` подсистемы `chat`."""
 
 
@@ -11,12 +12,14 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.test import TransactionTestCase, override_settings
 
-from chat.direct_inbox import mark_unread
-from chat.models import ChatRole, Room
-from chat.routing import websocket_urlpatterns
+from direct_inbox.state import mark_unread
+from rooms.services import ensure_membership
+from rooms.models import Room
+from chat.routing import websocket_urlpatterns as chat_ws
+from direct_inbox.routing import websocket_urlpatterns as di_ws
 
 User = get_user_model()
-application = URLRouter(websocket_urlpatterns)
+application = URLRouter(chat_ws + di_ws)
 
 
 class DirectInboxConsumerTests(TransactionTestCase):
@@ -32,45 +35,21 @@ class DirectInboxConsumerTests(TransactionTestCase):
             slug='dm_direct_inbox',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=self.direct_room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
-        ChatRole.objects.create(
-            room=self.direct_room,
-            user=self.member,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.member.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(self.direct_room, self.owner, role_name='Owner')
+        ensure_membership(self.direct_room, self.member, role_name='Member')
 
         self.unrelated_room = Room.objects.create(
             slug='dm_unrelated_inbox',
             name='dm2',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.member.id}:{self.other.id}',
+            direct_pair_key=f'{self.member.pk}:{self.other.pk}',
             created_by=self.member,
         )
-        ChatRole.objects.create(
-            room=self.unrelated_room,
-            user=self.member,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.member.username,
-            granted_by=self.member,
-        )
-        ChatRole.objects.create(
-            room=self.unrelated_room,
-            user=self.other,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.other.username,
-            granted_by=self.member,
-        )
+        ensure_membership(self.unrelated_room, self.member, role_name='Owner')
+        ensure_membership(self.unrelated_room, self.other, role_name='Member')
 
     async def _connect_inbox(self, user=None):
         """Проверяет сценарий `_connect_inbox`."""
@@ -124,7 +103,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
 
     def test_authenticated_user_receives_initial_unread_state(self):
         """Проверяет сценарий `test_authenticated_user_receives_initial_unread_state`."""
-        mark_unread(self.member.id, self.direct_room.slug, ttl_seconds=60)
+        mark_unread(self.member.pk, self.direct_room.slug, ttl_seconds=60)
 
         async def run():
             """Проверяет сценарий `run`."""
@@ -143,8 +122,8 @@ class DirectInboxConsumerTests(TransactionTestCase):
 
     def test_mark_read_decreases_unread_dialogs(self):
         """Проверяет сценарий `test_mark_read_decreases_unread_dialogs`."""
-        mark_unread(self.member.id, self.direct_room.slug, ttl_seconds=60)
-        mark_unread(self.member.id, self.unrelated_room.slug, ttl_seconds=60)
+        mark_unread(self.member.pk, self.direct_room.slug, ttl_seconds=60)
+        mark_unread(self.member.pk, self.unrelated_room.slug, ttl_seconds=60)
 
         async def run():
             """Проверяет сценарий `run`."""
@@ -184,8 +163,8 @@ class DirectInboxConsumerTests(TransactionTestCase):
 
         async_to_sync(run)()
 
-    def test_active_room_does_not_become_unread_for_open_dialog(self):
-        """Проверяет сценарий `test_active_room_does_not_become_unread_for_open_dialog`."""
+    def test_active_room_stays_unread_until_explicit_mark_read(self):
+        """Проверяет сценарий `test_active_room_stays_unread_until_explicit_mark_read`."""
         async def run():
             """Проверяет сценарий `run`."""
             inbox, connected, _ = await self._connect_inbox(self.member)
@@ -205,11 +184,12 @@ class DirectInboxConsumerTests(TransactionTestCase):
             inbox_payload = json.loads(await inbox.receive_from(timeout=2))
             self.assertEqual(inbox_payload.get('type'), 'direct_inbox_item')
             self.assertEqual(inbox_payload['item']['slug'], self.direct_room.slug)
-            self.assertEqual(inbox_payload['unread']['dialogs'], 0)
-            self.assertFalse(inbox_payload['unread']['isUnread'])
-            self.assertEqual(inbox_payload['unread']['counts'], {})
+            self.assertEqual(inbox_payload['unread']['dialogs'], 1)
+            self.assertTrue(inbox_payload['unread']['isUnread'])
+            self.assertEqual(inbox_payload['unread']['counts'].get(self.direct_room.slug), 1)
 
             await chat.disconnect()
             await inbox.disconnect()
 
         async_to_sync(run)()
+

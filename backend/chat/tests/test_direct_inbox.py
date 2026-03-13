@@ -5,7 +5,7 @@
 from django.core.cache import cache
 from django.test import TestCase
 
-from chat.direct_inbox import (
+from direct_inbox.state import (
     active_key,
     clear_active_room,
     get_unread_slugs,

@@ -1,26 +1,32 @@
-import { AuthForm } from '../widgets/auth/AuthForm'
-import styles from '../styles/pages/LoginPage.module.css'
+﻿import { AuthForm } from "../widgets/auth/AuthForm";
+import styles from "../styles/pages/LoginPage.module.css";
 
 type Props = {
-  onSubmit: (username: string, password: string) => void
-  onNavigate: (path: string) => void
-  error?: string | null
-}
+  onSubmit: (email: string, password: string) => void;
+  onGoogleAuth?: () => Promise<void> | void;
+  googleAuthDisabledReason?: string | null;
+  onNavigate: (path: string) => void;
+  error?: string | null;
+};
 
-/**
- * Страница входа пользователя.
- * @param props Обработчики формы входа и навигации.
- * @returns JSX-разметка страницы входа.
- */
-export function LoginPage({ onSubmit, onNavigate, error = null }: Props) {
+export function LoginPage({
+  onSubmit,
+  onGoogleAuth,
+  googleAuthDisabledReason = null,
+  onNavigate,
+  error = null,
+}: Props) {
   return (
     <AuthForm
+      mode="login"
       title="Вход"
       submitLabel="Войти"
-      onSubmit={(username, password) => onSubmit(username, password)}
+      onSubmit={onSubmit}
+      onGoogleAuth={onGoogleAuth}
+      googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
       error={error}
       className={styles.page}
     />
-  )
+  );
 }

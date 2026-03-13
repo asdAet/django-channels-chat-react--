@@ -1,0 +1,149 @@
+﻿.root {
+  padding: 16px 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 12px;
+  border-bottom: 1px solid var(--color-border, #2a2a2a);
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text, #e2e8f5);
+  flex: 1;
+}
+
+.addBtn {
+  background: none;
+  border: 1px solid var(--color-accent, #8ae6ff);
+  color: var(--color-accent, #8ae6ff);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.addBtn:hover {
+  background: rgba(47, 179, 163, 0.1);
+}
+
+/* Role row */
+.roleItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  transition: background 0.12s;
+}
+
+.roleItem:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.roleColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.roleName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text, #e2e8f5);
+  flex: 1;
+}
+
+.roleDefault {
+  font-size: 10px;
+  color: var(--color-muted, #9eb0c7);
+  background: rgba(158, 176, 199, 0.15);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.roleActions {
+  display: flex;
+  gap: 4px;
+}
+
+.roleActionBtn {
+  background: none;
+  border: none;
+  color: var(--color-muted, #9eb0c7);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.roleActionBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text, #e2e8f5);
+}
+
+.roleActionBtnDanger:hover {
+  color: #ff6b6b;
+}
+
+/* Create role form */
+.createForm {
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border, #2a2a2a);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.createInput {
+  flex: 1;
+  padding: 6px 10px;
+  background: #1a1a1a;
+  border: 1px solid var(--color-border, #2a2a2a);
+  border-radius: 6px;
+  color: var(--color-text, #e2e8f5);
+  font-size: 13px;
+  outline: none;
+}
+
+.createInput:focus {
+  border-color: var(--color-accent, #8ae6ff);
+}
+
+.createColorInput {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+}
+
+.createSubmitBtn {
+  background: var(--color-accent, #8ae6ff);
+  border: none;
+  color: #181818;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.createSubmitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.centered {
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--color-muted, #9eb0c7);
+  font-size: 13px;
+}

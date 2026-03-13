@@ -1,0 +1,60 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lbEnter 200ms ease;
+  cursor: zoom-out;
+}
+
+.exiting {
+  animation: lbExit 200ms ease forwards;
+}
+
+@keyframes lbEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lbExit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.image {
+  max-width: 92vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: default;
+  animation: lbImgEnter 200ms ease;
+}
+
+@keyframes lbImgEnter {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.closeBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease;
+}
+
+.closeBtn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}

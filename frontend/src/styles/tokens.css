@@ -1,13 +1,97 @@
-:root {
-  --color-text: #e2e8f5;
-  --color-muted: #9eb0c7;
-  --color-surface: rgba(255, 255, 255, 0.03);
-  --color-surface-border: rgba(255, 255, 255, 0.06);
-  --color-accent: #8ae6ff;
-  --color-accent-2: #7c5bff;
-  --color-success: #6be899;
-  --color-danger: #ffb4b4;
-  --radius-lg: 16px;
-  --radius-md: 12px;
+﻿:root {
+  /* ---- Telegram Web Dark Theme ---- */
+
+  /* Primary */
+  --tg-primary: #2fb3a3;
+  --tg-primary-hover: #278f82;
+  --tg-primary-light: rgba(47, 179, 163, 0.15);
+
+  /* Backgrounds */
+  --tg-bg-primary: #212121;
+  --tg-bg-secondary: #181818;
+  --tg-bg-surface: #2b2b2b;
+  --tg-bg-sidebar: #181818;
+  --tg-bg-chat: #0e0e0e;
+  --tg-bg-input: #2b2b2b;
+
+  /* Message bubbles */
+  --tg-msg-out-bg: #5f50a7;
+  --tg-msg-in-bg: #212121;
+  --tg-msg-out-text: #ffffff;
+  --tg-msg-in-text: #ffffff;
+  /* Message replay */
+  --tg-msg-replay-bg: #5f50a731;
+
+  /* Text */
+  --tg-text-primary: #ffffff;
+  --tg-text-secondary: #aaaaaa;
+  --tg-text-link: #2fb3a3;
+
+  /* Borders */
+  --tg-border: #303030;
+
+  /* Status */
+  --tg-danger: #ff595a;
+  --tg-success: #5cc85e;
+  --tg-online: #5cc85e;
+  --tg-warning: #e5a64e;
+
+  /* Badges & accents */
+  --tg-unread-badge: #2fb3a3;
+
+  /* Interactive */
+  --tg-hover: rgba(255, 255, 255, 0.05);
+  --tg-active: rgba(255, 255, 255, 0.08);
+  --tg-ripple: rgba(255, 255, 255, 0.08);
+
+  /* Shadows */
+  --tg-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --tg-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+  /* Radii */
+  --tg-radius-sm: 6px;
+  --tg-radius-md: 10px;
+  --tg-radius-lg: 16px;
+  --tg-radius-bubble: 12px;
+  --tg-radius-round: 50%;
+
+  /* Typography */
+  --tg-font: "Manrope", "Segoe UI", sans-serif;
+
+  /* Layout */
+  --tg-sidebar-w: 308px;
+  --tg-info-w: 360px;
+  --bp-compact: 480px;
+  --bp-phone: 768px;
+  --bp-tablet: 1024px;
+  --app-height: 100vh;
+  --app-width: 100vw;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --app-gutter: clamp(12px, 2.5vw, 20px);
+  --touch-target-min: 44px;
+
+  /* Transitions */
+  --tg-transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --tg-transition-fast: 150ms ease;
+
+  /* ---- Backward-compatible aliases ---- */
+  --color-text: var(--tg-text-primary);
+  --color-muted: var(--tg-text-secondary);
+  --color-surface: var(--tg-hover);
+  --color-surface-border: var(--tg-border);
+  --color-accent: var(--tg-primary);
+  --color-accent-2: var(--tg-primary-hover);
+  --color-success: var(--tg-success);
+  --color-danger: var(--tg-danger);
+  --radius-lg: var(--tg-radius-lg);
+  --radius-md: var(--tg-radius-md);
 }
 
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+  }
+}

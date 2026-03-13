@@ -14,7 +14,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `${backendPython} manage.py migrate && ${backendPython} manage.py runserver 127.0.0.1:8000`,
+      command: `${backendPython} manage.py migrate && ${backendPython} manage.py shell -c "from users.models import SecurityRateLimitBucket; SecurityRateLimitBucket.objects.all().delete()" && ${backendPython} manage.py runserver 127.0.0.1:8000`,
       url: 'http://127.0.0.1:8000/api/health/live/',
       cwd: '../backend',
       env: {
@@ -35,8 +35,18 @@ export default defineConfig({
   ],
   projects: [
     {
-      name: 'chromium',
+      name: 'Desktop Chrome',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Mobile Chrome',
+      use: { ...devices['Pixel 7'] },
+      testMatch: /mobile-layout\.spec\.ts$/,
+    },
+    {
+      name: 'Mobile Safari',
+      use: { ...devices['iPhone 13'] },
+      testMatch: /mobile-layout\.spec\.ts$/,
     },
   ],
 })

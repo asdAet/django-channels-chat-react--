@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 """Содержит тесты модуля `test_models` подсистемы `users`."""
 
 
@@ -113,3 +114,4 @@ class ProfileImageProcessingTests(TestCase):
         image.save(buff, format="PNG")
         buff.seek(0)
         return SimpleUploadedFile("large.png", buff.read(), content_type="image/png")
+

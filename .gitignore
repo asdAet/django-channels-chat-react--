@@ -179,3 +179,13 @@ frontend/dist/
 backend/media/profile_pics/
 backend/.venv_fresh/
 
+trash/
+.claude/
+.ruff_cache/
+chat_attachments/
+chat_thumbnails/
+group_avatars/
+
+presentation/
+
+db.*

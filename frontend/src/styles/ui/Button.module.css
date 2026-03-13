@@ -12,8 +12,8 @@
 }
 
 .primary {
-  background: linear-gradient(120deg, #8ae6ff, #7c5bff);
-  color: #0a1020;
+  background: #666666;
+  color: #ebebeb;
   border: none;
 }
 
@@ -37,8 +37,12 @@
 }
 
 .dangerLink {
-  composes: link;
+  border: none;
+  background: transparent;
   color: #ff3a3a;
+  opacity: 0.86;
+  padding: 8px 10px;
+  border-radius: 10px;
 }
 
 .button:hover:not(:disabled) {
@@ -46,7 +50,8 @@
   box-shadow: 0 8px 30px rgba(124, 91, 255, 0.25);
 }
 
-.link:hover:not(:disabled) {
+.link:hover:not(:disabled),
+.dangerLink:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: none;
   opacity: 1;
@@ -60,4 +65,3 @@
 .fullWidth {
   width: 100%;
 }
-

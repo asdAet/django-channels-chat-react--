@@ -1,4 +1,4 @@
-.actions {
+﻿.actions {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -100,7 +100,7 @@
   font-size: 12px;
   line-height: 1.2;
   border-radius: 999px;
-  background: rgba(138, 230, 255, 0.18);
+  background: rgba(47, 179, 163, 0.18);
   color: #d8f6ff;
   font-weight: 700;
   letter-spacing: 0.3px;
@@ -115,11 +115,11 @@
 }
 
 .active {
-  border-color: rgba(138, 230, 255, 0.65);
-  box-shadow: 0 0 0 1px rgba(138, 230, 255, 0.25);
+  border-color: rgba(47, 179, 163, 0.65);
+  box-shadow: 0 0 0 1px rgba(47, 179, 163, 0.25);
 }
 
-@media (max-width: 881px) {
+@media (max-width: 1024px) {
   .directInbox {
     background: transparent;
     border: none;
@@ -142,3 +142,33 @@
     padding: 14px;
   }
 }
+
+@media (max-width: 768px) {
+  .itemHead {
+    gap: 8px;
+  }
+
+  .directChatItem {
+    padding: 10px;
+  }
+
+  .preview {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .directChatList {
+    padding: 10px;
+  }
+
+  .directChatItem {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .itemMeta {
+    align-items: flex-start;
+  }
+}
+

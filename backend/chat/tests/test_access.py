@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false
 
 """Содержит тесты модуля `test_access` подсистемы `chat`."""
 
@@ -7,8 +8,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 from django.test import TestCase
 
-from chat.access import can_read, can_write, ensure_can_read_or_404, ensure_can_write, get_user_role
-from chat.models import ChatRole, Room
+from roles.access import can_read, can_write, ensure_can_read_or_404, ensure_can_write, get_user_role
+from rooms.services import ensure_membership
+from rooms.models import Room
 
 User = get_user_model()
 
@@ -27,20 +29,8 @@ class ChatAccessTests(TestCase):
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=self.private_room,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
-        ChatRole.objects.create(
-            room=self.private_room,
-            user=self.member,
-            role=ChatRole.Role.MEMBER,
-            username_snapshot=self.member.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(self.private_room, self.owner, role_name="Owner")
+        ensure_membership(self.private_room, self.member, role_name="Member")
 
     def test_public_room_permissions(self):
         """Проверяет сценарий `test_public_room_permissions`."""
@@ -61,6 +51,23 @@ class ChatAccessTests(TestCase):
         self.assertTrue(can_read(self.private_room, self.member))
         self.assertTrue(can_write(self.private_room, self.member))
 
+    def test_public_group_non_member_is_read_only_until_join(self):
+        group = Room.objects.create(
+            slug='g_access_public_01',
+            name='Public Group',
+            kind=Room.Kind.GROUP,
+            is_public=True,
+            username='gaccess01',
+            created_by=self.owner,
+        )
+        ensure_membership(group, self.owner, role_name="Owner")
+
+        self.assertTrue(can_read(group, self.other))
+        self.assertFalse(can_write(group, self.other))
+
+        ensure_membership(group, self.other, role_name="Member")
+        self.assertTrue(can_write(group, self.other))
+
 
     def test_direct_room_without_pair_key_denied(self):
         """Проверяет сценарий `test_direct_room_without_pair_key_denied`."""
@@ -71,13 +78,7 @@ class ChatAccessTests(TestCase):
             direct_pair_key=None,
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=direct,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(direct, self.owner)
 
         self.assertFalse(can_read(direct, self.owner))
         self.assertFalse(can_write(direct, self.owner))
@@ -91,13 +92,7 @@ class ChatAccessTests(TestCase):
             direct_pair_key='not-valid',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=direct,
-            user=self.owner,
-            role=ChatRole.Role.OWNER,
-            username_snapshot=self.owner.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(direct, self.owner)
 
         self.assertFalse(can_read(direct, self.owner))
         self.assertFalse(can_write(direct, self.owner))
@@ -108,16 +103,10 @@ class ChatAccessTests(TestCase):
             slug='dm_abc124',
             name='dm',
             kind=Room.Kind.DIRECT,
-            direct_pair_key=f'{self.owner.id}:{self.member.id}',
+            direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
             created_by=self.owner,
         )
-        ChatRole.objects.create(
-            room=direct,
-            user=self.other,
-            role=ChatRole.Role.ADMIN,
-            username_snapshot=self.other.username,
-            granted_by=self.owner,
-        )
+        ensure_membership(direct, self.other, role_name="Admin")
 
         self.assertFalse(can_read(direct, self.other))
         self.assertFalse(can_write(direct, self.other))

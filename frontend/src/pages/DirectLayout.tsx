@@ -1,34 +1,27 @@
-import type { UserProfile } from '../entities/user/types'
-import { Panel } from '../shared/ui'
-import styles from '../styles/pages/DirectLayout.module.css'
-import { DirectChatByUsernamePage } from './DirectChatByUsernamePage'
-import { DirectChatsList } from './DirectChatsPage'
+import type { UserProfile } from "../entities/user/types";
+import { Panel } from "../shared/ui";
+import styles from "../styles/pages/DirectLayout.module.css";
+import { DirectChatByUsernamePage } from "./DirectChatByUsernamePage";
 
 type Props = {
-  user: UserProfile | null
-  username?: string
-  onNavigate: (path: string) => void
-}
+  user: UserProfile | null;
+  username?: string;
+  onNavigate: (path: string) => void;
+};
 
 /**
- * Двухколоночный layout личных сообщений (список диалогов + чат).
- * @param props Входные данные пользователя и маршрутизации.
- * @returns JSX-разметка layout для direct-чатов.
+ * Direct chat layout: conversation list is shown in the global sidebar,
+ * this page only renders the active DM thread.
  */
 export function DirectLayout({ user, username, onNavigate }: Props) {
-  const hasActive = Boolean(username)
+  const hasActive = Boolean(username);
 
   return (
-    <div className={[styles.directLayout, hasActive ? styles.chatMode : ''].filter(Boolean).join(' ')}>
-      <aside className={styles.sidebar}>
-        <DirectChatsList
-          user={user}
-          onNavigate={onNavigate}
-          activeUsername={username}
-          resetActiveOnMount={!hasActive}
-          className={styles.sidebarCard}
-        />
-      </aside>
+    <div
+      className={[styles.directLayout, hasActive ? styles.chatMode : ""]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <section className={styles.main}>
         {hasActive && username ? (
           <DirectChatByUsernamePage
@@ -38,10 +31,11 @@ export function DirectLayout({ user, username, onNavigate }: Props) {
             onNavigate={onNavigate}
           />
         ) : (
-          <Panel muted>Выберите диалог слева, чтобы открыть чат.</Panel>
+          <Panel muted>
+            �������� ������ � ������� ������, ����� ������� ���.
+          </Panel>
         )}
       </section>
     </div>
-  )
+  );
 }
-
