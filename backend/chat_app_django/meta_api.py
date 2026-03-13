@@ -26,5 +26,6 @@ def client_config_view(_request):
             ],
             "mediaUrlTtlSeconds": int(getattr(settings, "MEDIA_URL_TTL_SECONDS", 300)),
             "mediaMode": "signed_only",
+            "googleOAuthClientId": str(getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "") or ""),
         }
     )

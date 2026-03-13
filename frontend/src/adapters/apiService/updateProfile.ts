@@ -23,11 +23,9 @@ export async function updateProfile(
   if (dto.name !== undefined) {
     form.append("name", dto.name);
   }
-  if (dto.last_name !== undefined) {
-    form.append("last_name", dto.last_name);
+  if (dto.username !== undefined) {
+    form.append("username", dto.username);
   }
-  form.append("username", dto.username);
-  form.append("email", dto.email);
   if (dto.image) {
     form.append("image", dto.image);
   }

@@ -20,6 +20,7 @@ export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
   ],
   mediaUrlTtlSeconds: 300,
   mediaMode: "signed_only",
+  googleOAuthClientId: "",
 };
 
 let currentRuntimeConfig: ClientRuntimeConfig = { ...DEFAULT_RUNTIME_CONFIG };

@@ -20,6 +20,7 @@ import { ensurePresenceSession } from "./apiService/ensurePresenceSession";
 import { getClientConfig } from "./apiService/getClientConfig";
 import { getSession } from "./apiService/getSession";
 import { login } from "./apiService/login";
+import { oauthGoogle } from "./apiService/oauthGoogle";
 import { register } from "./apiService/register";
 import { logout } from "./apiService/logout";
 import { updateProfile } from "./apiService/updateProfile";
@@ -250,21 +251,21 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => getSession(this.apiClient));
   }
 
-  public async login(username: string, password: string) {
+  public async login(email: string, password: string) {
     return this.runWithDecode(async () =>
-      login(this.apiClient, username, password),
+      login(this.apiClient, email, password),
     );
   }
 
-  public async register(
-    name: string,
-    lastName: string,
-    username: string,
-    password1: string,
-    password2: string,
-  ) {
+  public async oauthGoogle(accessToken: string) {
     return this.runWithDecode(async () =>
-      register(this.apiClient, name, lastName, username, password1, password2),
+      oauthGoogle(this.apiClient, accessToken),
+    );
+  }
+
+  public async register(email: string, password1: string, password2: string) {
+    return this.runWithDecode(async () =>
+      register(this.apiClient, email, password1, password2),
     );
   }
 

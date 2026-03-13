@@ -14,6 +14,7 @@ from friends.application.errors import (
 from friends.domain import rules
 from friends.infrastructure import repositories
 from friends.models import Friendship
+from users.identity import user_public_username
 
 
 def _ensure_authenticated(actor) -> None:
@@ -122,10 +123,10 @@ def send_request(actor, target_username: str) -> Friendship:
             "friendship.auto_accepted",
             actor_user=actor,
             actor_user_id=actor.pk,
-            actor_username=actor.username,
+            actor_username=user_public_username(actor),
             is_authenticated=True,
             target_user_id=target.pk,
-            target_username=target.username,
+            target_username=user_public_username(target),
         )
         return friendship
 
@@ -141,10 +142,10 @@ def send_request(actor, target_username: str) -> Friendship:
         "friendship.request_sent",
         actor_user=actor,
         actor_user_id=actor.pk,
-        actor_username=actor.username,
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         target_user_id=target.pk,
-        target_username=target.username,
+        target_username=user_public_username(target),
     )
     return friendship
 
@@ -177,7 +178,7 @@ def accept_request(actor, friendship_id: int) -> Friendship:
         "friendship.accepted",
         actor_user=actor,
         actor_user_id=actor.pk,
-        actor_username=actor.username,
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         from_user_id=_friend_from_user_id(friendship),
     )
@@ -203,7 +204,7 @@ def decline_request(actor, friendship_id: int) -> Friendship:
         "friendship.declined",
         actor_user=actor,
         actor_user_id=actor.pk,
-        actor_username=actor.username,
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         from_user_id=_friend_from_user_id(friendship),
     )
@@ -227,7 +228,7 @@ def cancel_outgoing_request(actor, friendship_id: int) -> Friendship:
         "friendship.request_canceled",
         actor_user=actor,
         actor_user_id=actor.pk,
-        actor_username=actor.username,
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         target_user_id=_friend_to_user_id(friendship),
     )
@@ -248,10 +249,10 @@ def remove_friend(actor, target_user_id: int) -> None:
         "friendship.removed",
         actor_user=actor,
         actor_user_id=actor.pk,
-        actor_username=actor.username,
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         target_user_id=target.pk,
-        target_username=target.username,
+        target_username=user_public_username(target),
     )
 
 
@@ -286,10 +287,10 @@ def block_user(actor, target_username: str) -> Friendship:
         "friendship.blocked",
         actor_user=actor,
         actor_user_id=actor.pk,
-        actor_username=actor.username,
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         target_user_id=target.pk,
-        target_username=target.username,
+        target_username=user_public_username(target),
     )
     return friendship
 
@@ -310,8 +311,8 @@ def unblock_user(actor, target_user_id: int) -> None:
         "friendship.unblocked",
         actor_user=actor,
         actor_user_id=actor.pk,
-        actor_username=actor.username,
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         target_user_id=target.pk,
-        target_username=target.username,
+        target_username=user_public_username(target),
     )

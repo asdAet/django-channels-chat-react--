@@ -17,6 +17,7 @@ from messages.models import Message
 from roles.application.permission_service import compute_permissions
 from roles.permissions import Perm
 from rooms.models import Room
+from users.identity import user_public_username
 
 
 def pin_message(actor, room_slug: str, message_id: int) -> PinnedMessage:
@@ -48,7 +49,7 @@ def pin_message(actor, room_slug: str, message_id: int) -> PinnedMessage:
             "group.message.pinned",
             actor_user=actor,
             actor_user_id=getattr(actor, "pk", None),
-            actor_username=getattr(actor, "username", None),
+            actor_username=user_public_username(actor),
             is_authenticated=True,
             room_slug=room.slug,
             message_id=message_id,
@@ -77,7 +78,7 @@ def unpin_message(actor, room_slug: str, message_id: int) -> None:
         "group.message.unpinned",
         actor_user=actor,
         actor_user_id=getattr(actor, "pk", None),
-        actor_username=getattr(actor, "username", None),
+        actor_username=user_public_username(actor),
         is_authenticated=True,
         room_slug=room.slug,
         message_id=message_id,
@@ -105,8 +106,8 @@ def list_pinned(room_slug: str, actor) -> list[dict]:
         {
             "messageId": p.message_id,
             "content": p.message.message_content,
-            "author": p.message.user.username if p.message.user else p.message.username,
-            "pinnedBy": p.pinned_by.username if p.pinned_by else None,
+            "author": user_public_username(p.message.user) if p.message.user else p.message.username,
+            "pinnedBy": user_public_username(p.pinned_by) if p.pinned_by else None,
             "pinnedAt": p.pinned_at.isoformat(),
             "createdAt": p.message.date_added.isoformat(),
         }

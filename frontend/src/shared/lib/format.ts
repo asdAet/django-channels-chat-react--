@@ -38,7 +38,7 @@ export const avatarFallback = (username: string) =>
 
 export const formatFullName = (
   name: string | null | undefined,
-  lastName: string | null | undefined,
+  lastName?: string | null | undefined,
 ) => {
   const safeName = (name ?? "").trim();
   const safeLastName = (lastName ?? "").trim();

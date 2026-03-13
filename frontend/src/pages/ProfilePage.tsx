@@ -27,9 +27,7 @@ type Props = {
   user: UserProfile | null;
   onSave: (fields: {
     name?: string;
-    last_name?: string;
-    username: string;
-    email: string;
+    username?: string;
     image?: File | null;
     avatarCrop?: AvatarCrop | null;
     bio?: string;
@@ -45,9 +43,7 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
 
   const [form, setForm] = useState({
     name: user?.name || "",
-    last_name: user?.last_name || "",
     username: user?.username || "",
-    email: user?.email || "",
     bio: user?.bio || "",
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -72,9 +68,9 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
   const hasInvalidUsernameChars =
     trimmedUsername.length > 0 && !USERNAME_ALLOWED_RE.test(trimmedUsername);
   const isUsernameValid =
-    trimmedUsername.length > 0 &&
-    trimmedUsername.length <= usernameMaxLength &&
-    !hasInvalidUsernameChars;
+    (trimmedUsername.length === 0 ||
+      (trimmedUsername.length <= usernameMaxLength &&
+        !hasInvalidUsernameChars));
   const isBioValid = form.bio.length <= 1000;
 
   const clearFieldError = (field: string) => {
@@ -148,12 +144,11 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
 
   const usernameError = fieldErrors.username?.[0];
   const nameError = fieldErrors.name?.[0];
-  const lastNameError = fieldErrors.last_name?.[0];
-  const emailError = fieldErrors.email?.[0];
   const bioError = fieldErrors.bio?.[0];
   const imageError = fieldErrors.image?.[0];
   const genericError =
     formError || fieldErrors.non_field_errors?.[0] || fieldErrors.__all__?.[0];
+  const avatarIdentity = user.username ?? user.name ?? "user";
   const isUserOnline =
     presenceStatus === "online" &&
     presenceOnline.some((entry) => entry.username === user.username);
@@ -252,12 +247,12 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
               {previewUrl ? (
                 <AvatarMedia
                   src={previewUrl}
-                  alt={user.username}
+                  alt={avatarIdentity}
                   avatarCrop={avatarCrop}
                   loading="eager"
                 />
               ) : (
-                <span>{avatarFallback(user.username)}</span>
+                <span>{avatarFallback(avatarIdentity)}</span>
               )}
               <div className={styles.avatarOverlay}>Изменить</div>
             </div>
@@ -327,54 +322,6 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
                 {nameError && (
                   <span className={[styles.note, styles.errorNote].join(" ")}>
                     {nameError}
-                  </span>
-                )}
-              </label>
-
-              <label
-                className={[
-                  styles.field,
-                  lastNameError ? styles.fieldError : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <span>Фамилия (необязательно)</span>
-                <input
-                  type="text"
-                  data-testid="profile-last-name-input"
-                  value={form.last_name}
-                  onChange={(event) => {
-                    setForm({ ...form, last_name: event.target.value });
-                    setFormError(null);
-                    clearFieldError("last_name");
-                  }}
-                />
-                {lastNameError && (
-                  <span className={[styles.note, styles.errorNote].join(" ")}>
-                    {lastNameError}
-                  </span>
-                )}
-              </label>
-
-              <label
-                className={[styles.field, emailError ? styles.fieldError : ""]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <span>Email</span>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => {
-                    setForm({ ...form, email: event.target.value });
-                    setFormError(null);
-                    clearFieldError("email");
-                  }}
-                />
-                {emailError && (
-                  <span className={[styles.note, styles.errorNote].join(" ")}>
-                    {emailError}
                   </span>
                 )}
               </label>

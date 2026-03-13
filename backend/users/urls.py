@@ -11,6 +11,7 @@ urlpatterns = [
     path("session/", api.session_view, name="api-session"),
     path("presence-session/", api.presence_session_view, name="api-presence-session"),
     path("login/", api.login_view, name="api-login"),
+    path("oauth/google/", api.oauth_google_view, name="api-oauth-google"),
     path("logout/", api.logout_view, name="api-logout"),
     path("register/", api.register_view, name="api-register"),
     path("password-rules/", api.password_rules, name="api-password-rules"),

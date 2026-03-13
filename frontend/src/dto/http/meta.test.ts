@@ -13,12 +13,14 @@ describe("dto/http/meta", () => {
       chatAttachmentAllowedTypes: ["audio/mpeg", "text/plain"],
       mediaUrlTtlSeconds: 300,
       mediaMode: "signed_only",
+      googleOAuthClientId: "google-client-id",
       extra: true,
     });
 
     expect(decoded.usernameMaxLength).toBe(30);
     expect(decoded.mediaMode).toBe("signed_only");
     expect(decoded.chatAttachmentMaxSizeMb).toBe(10);
+    expect(decoded.googleOAuthClientId).toBe("google-client-id");
   });
 
   it("throws for invalid payload", () => {

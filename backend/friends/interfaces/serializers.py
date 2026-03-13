@@ -7,6 +7,7 @@ from rest_framework import serializers
 from chat_app_django.media_utils import build_profile_url_from_request, serialize_avatar_crop
 from friends.models import Friendship
 from friends.utils import get_from_user_id, get_to_user_id
+from users.identity import user_public_username
 
 
 def _require_from_user_id(obj: Friendship) -> int:
@@ -45,7 +46,7 @@ def _serialize_user_brief(user, request) -> dict:
                     profile_image = None
     return {
         "id": user.pk,
-        "username": user.username,
+        "username": user_public_username(user),
         "profileImage": profile_image,
         "avatarCrop": serialize_avatar_crop(profile),
     }

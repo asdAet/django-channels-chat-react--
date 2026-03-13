@@ -8,6 +8,8 @@ import { debugLog } from "../shared/lib/debug";
 import { PresenceProvider } from "../shared/presence";
 import { DirectInboxProvider } from "../shared/directInbox";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
+import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
+import { GoogleOAuthError, signInWithGoogle } from "../shared/auth/googleIdentity";
 import { AppShell } from "../widgets/layout/AppShell";
 import { AppRoutes } from "./routes";
 import shellStyles from "../styles/layout/AppShell.module.css";
@@ -23,7 +25,8 @@ type ProfileSaveResult =
 function AppInner() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { auth, login, register, logout, updateProfile } = useAuth();
+  const { config: runtimeConfig } = useRuntimeConfig();
+  const { auth, login, loginWithGoogle, register, logout, updateProfile } = useAuth();
   const { rules: passwordRules } = usePasswordRules(
     location.pathname === "/register",
   );
@@ -153,10 +156,10 @@ function AppInner() {
   );
 
   const handleLogin = useCallback(
-    async (username: string, password: string) => {
+    async (email: string, password: string) => {
       setError(null);
       try {
-        await login({ username, password });
+        await login({ email, password });
         setBanner("Добро пожаловать обратно!");
         onNavigate("/");
       } catch (err) {
@@ -168,19 +171,11 @@ function AppInner() {
   );
 
   const handleRegister = useCallback(
-    async (
-      name: string,
-      lastName: string,
-      username: string,
-      password1: string,
-      password2: string,
-    ) => {
+    async (email: string, password1: string, password2: string) => {
       setError(null);
       try {
         await register({
-          name,
-          last_name: lastName,
-          username,
+          email,
           password1,
           password2,
         });
@@ -194,6 +189,31 @@ function AppInner() {
     [onNavigate, register],
   );
 
+  const googleAuthDisabledReason = runtimeConfig.googleOAuthClientId.trim()
+    ? null
+    : "Google OAuth не настроен.";
+
+  const handleGoogleOAuth = useCallback(async () => {
+    if (!runtimeConfig.googleOAuthClientId.trim()) {
+      setError("Google OAuth не настроен.");
+      return;
+    }
+    setError(null);
+    try {
+      const accessToken = await signInWithGoogle(runtimeConfig.googleOAuthClientId);
+      await loginWithGoogle(accessToken);
+      setBanner("Вход через Google выполнен успешно.");
+      onNavigate("/");
+    } catch (err) {
+      debugLog("Google OAuth failed", err);
+      if (err instanceof GoogleOAuthError) {
+        setError(err.message);
+        return;
+      }
+      setError("Не удалось выполнить вход через Google.");
+    }
+  }, [loginWithGoogle, onNavigate, runtimeConfig.googleOAuthClientId]);
+
   const handleLogout = useCallback(async () => {
     await logout();
     setBanner("Вы вышли из аккаунта");
@@ -203,9 +223,7 @@ function AppInner() {
   const handleProfileSave = useCallback(
     async (fields: {
       name?: string;
-      last_name?: string;
-      username: string;
-      email: string;
+      username?: string;
       image?: File | null;
       bio?: string;
     }): Promise<ProfileSaveResult> => {
@@ -215,7 +233,8 @@ function AppInner() {
       try {
         await updateProfile(fields);
         setBanner("Профиль обновлен");
-        const nextUsername = fields.username?.trim() || auth.user?.username;
+        const nextUsername =
+          (fields.username?.trim() || auth.user?.username || "").trim() || null;
         if (nextUsername) {
           onNavigate(`/users/${encodeURIComponent(nextUsername)}`);
         }
@@ -265,8 +284,10 @@ function AppInner() {
       user={auth.user}
       error={error}
       passwordRules={passwordRules}
+      googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
       onLogin={handleLogin}
+      onGoogleOAuth={handleGoogleOAuth}
       onRegister={handleRegister}
       onLogout={handleLogout}
       onProfileSave={handleProfileSave}

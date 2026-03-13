@@ -105,7 +105,7 @@ describe("ApiService", () => {
       }),
     );
 
-    await apiService.login("demo", "pass12345");
+    await apiService.login("demo@example.com", "pass12345");
     expect(receivedToken).toBe("cookie-token");
   });
 
@@ -126,7 +126,7 @@ describe("ApiService", () => {
       }),
     );
 
-    await apiService.login("demo", "pass12345");
+    await apiService.login("demo@example.com", "pass12345");
 
     expect(sessionStorage.getItem("csrfToken")).toBe("stored-token");
     expect(receivedToken).toBe("stored-token");
@@ -173,7 +173,7 @@ describe("ApiService", () => {
     );
 
     await expect(
-      apiService.register("Taken", "", "taken", "pass12345", "pass12345"),
+      apiService.register("taken@example.com", "pass12345", "pass12345"),
     ).rejects.toMatchObject({
       status: 400,
       message: expect.stringContaining("already used"),
@@ -190,7 +190,7 @@ describe("ApiService", () => {
     );
 
     await expect(
-      apiService.register("Name", "", "name", "pass12345", "pass12345"),
+      apiService.register("name@example.com", "pass12345", "pass12345"),
     ).rejects.toMatchObject({
       status: 500,
       message: expect.stringContaining("fatal error"),
@@ -204,7 +204,9 @@ describe("ApiService", () => {
       ),
     );
 
-    await expect(apiService.login("demo", "pass12345")).rejects.toMatchObject({
+    await expect(
+      apiService.login("demo@example.com", "pass12345"),
+    ).rejects.toMatchObject({
       status: 403,
       message: expect.stringContaining("forbidden"),
       data: expect.objectContaining({ detail: "forbidden" }),
@@ -303,6 +305,7 @@ describe("ApiService", () => {
           chatAttachmentAllowedTypes: ["text/plain", "audio/mpeg"],
           mediaUrlTtlSeconds: 3600,
           mediaMode: "signed_only",
+          googleOAuthClientId: "",
         }),
       ),
     );
@@ -312,7 +315,36 @@ describe("ApiService", () => {
     });
     await expect(apiService.getClientConfig()).resolves.toMatchObject({
       mediaMode: "signed_only",
+      googleOAuthClientId: "",
     });
+  });
+
+  it("supports oauth google endpoint", async () => {
+    let receivedToken = "";
+
+    server.use(
+      http.post("/api/auth/oauth/google/", async ({ request }) => {
+        const payload = (await request.json()) as { accessToken?: string };
+        receivedToken = payload.accessToken ?? "";
+        return HttpResponse.json({
+          authenticated: true,
+          user: {
+            name: "Google User",
+            username: "googleuser",
+            email: "google@example.com",
+            profileImage: null,
+            avatarCrop: null,
+            bio: "",
+            lastSeen: null,
+            registeredAt: null,
+          },
+        });
+      }),
+    );
+
+    const result = await apiService.oauthGoogle("access-token-123");
+    expect(result.authenticated).toBe(true);
+    expect(receivedToken).toBe("access-token-123");
   });
 
   it("supports friends endpoints", async () => {

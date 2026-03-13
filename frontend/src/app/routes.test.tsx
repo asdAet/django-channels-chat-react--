@@ -39,6 +39,7 @@ import { AppRoutes } from "./routes";
 const handlers = {
   onNavigate: vi.fn(),
   onLogin: vi.fn(async () => {}),
+  onGoogleOAuth: vi.fn(async () => {}),
   onRegister: vi.fn(async () => {}),
   onLogout: vi.fn(async () => {}),
   onProfileSave: vi.fn(async () => ({ ok: true as const })),
@@ -48,7 +49,13 @@ describe("AppRoutes", () => {
   it("renders login route", () => {
     render(
       <MemoryRouter initialEntries={["/login"]}>
-        <AppRoutes user={null} error={null} passwordRules={[]} {...handlers} />
+        <AppRoutes
+          user={null}
+          error={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByText("LOGIN_PAGE")).toBeInTheDocument();
@@ -57,7 +64,13 @@ describe("AppRoutes", () => {
   it("renders register route", () => {
     render(
       <MemoryRouter initialEntries={["/register"]}>
-        <AppRoutes user={null} error={null} passwordRules={[]} {...handlers} />
+        <AppRoutes
+          user={null}
+          error={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByText("REGISTER_PAGE")).toBeInTheDocument();
@@ -66,7 +79,13 @@ describe("AppRoutes", () => {
   it("renders direct by username route", () => {
     render(
       <MemoryRouter initialEntries={["/@alice"]}>
-        <AppRoutes user={null} error={null} passwordRules={[]} {...handlers} />
+        <AppRoutes
+          user={null}
+          error={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByText("DIRECT_PAGE:alice")).toBeInTheDocument();
@@ -75,7 +94,13 @@ describe("AppRoutes", () => {
   it("treats legacy direct username route as invalid and redirects to home", () => {
     render(
       <MemoryRouter initialEntries={["/direct/alice"]}>
-        <AppRoutes user={null} error={null} passwordRules={[]} {...handlers} />
+        <AppRoutes
+          user={null}
+          error={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByText("HOME_PAGE")).toBeInTheDocument();
@@ -84,7 +109,13 @@ describe("AppRoutes", () => {
   it("renders room route for valid slug", () => {
     render(
       <MemoryRouter initialEntries={["/rooms/public"]}>
-        <AppRoutes user={null} error={null} passwordRules={[]} {...handlers} />
+        <AppRoutes
+          user={null}
+          error={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByText("ROOM_PAGE:public")).toBeInTheDocument();
@@ -93,7 +124,13 @@ describe("AppRoutes", () => {
   it("keeps usernames that start with multiple @ symbols", () => {
     render(
       <MemoryRouter initialEntries={["/users/%40%40%40%40"]}>
-        <AppRoutes user={null} error={null} passwordRules={[]} {...handlers} />
+        <AppRoutes
+          user={null}
+          error={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByText("USER_PAGE:@@@@")).toBeInTheDocument();
@@ -102,7 +139,13 @@ describe("AppRoutes", () => {
   it("redirects invalid room slug to home", () => {
     render(
       <MemoryRouter initialEntries={["/rooms/a"]}>
-        <AppRoutes user={null} error={null} passwordRules={[]} {...handlers} />
+        <AppRoutes
+          user={null}
+          error={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByText("HOME_PAGE")).toBeInTheDocument();

@@ -21,6 +21,12 @@ class ChatMessageFeatureApiTests(TestCase):
         self.owner = User.objects.create_user(username="owner_feat", password="pass12345")
         self.peer = User.objects.create_user(username="peer_feat", password="pass12345")
         self.outsider = User.objects.create_user(username="outsider_feat", password="pass12345")
+        self.owner.profile.username = self.owner.username
+        self.owner.profile.save(update_fields=["username"])
+        self.peer.profile.username = self.peer.username
+        self.peer.profile.save(update_fields=["username"])
+        self.outsider.profile.username = self.outsider.username
+        self.outsider.profile.save(update_fields=["username"])
 
         self.direct_room = Room.objects.create(
             slug="dm_features_01",
@@ -68,6 +74,8 @@ class ChatMessageFeatureApiTests(TestCase):
         ensure_membership(visible_group, self.owner, role_name="Owner")
 
         scope_friend = User.objects.create_user(username="scope_friend", password="pass12345")
+        scope_friend.profile.username = scope_friend.username
+        scope_friend.profile.save(update_fields=["username"])
         ensure_membership(visible_group, scope_friend, role_name="Member")
 
         hidden_group = Room.objects.create(
@@ -81,6 +89,8 @@ class ChatMessageFeatureApiTests(TestCase):
         ensure_membership(hidden_group, self.outsider, role_name="Owner")
 
         hidden_scope_user = User.objects.create_user(username="scope_hidden", password="pass12345")
+        hidden_scope_user.profile.username = hidden_scope_user.username
+        hidden_scope_user.profile.save(update_fields=["username"])
         ensure_membership(hidden_group, hidden_scope_user, role_name="Member")
 
         visible_msg = Message.objects.create(
@@ -224,15 +234,15 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertIn(public_group.slug, found_group_slugs)
 
     def test_global_search_supports_handle_query_for_updated_username(self):
-        self.peer.username = "peer_feature_updated"
-        self.peer.save(update_fields=["username"])
+        self.peer.profile.username = "peerfeatureupdated"
+        self.peer.profile.save(update_fields=["username"])
 
         self.client.force_login(self.owner)
-        response = self.client.get("/api/chat/search/global/?q=@peer_feature_updated")
+        response = self.client.get("/api/chat/search/global/?q=@peerfeatureupdated")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         found_usernames = {item["username"] for item in payload["users"]}
-        self.assertIn("peer_feature_updated", found_usernames)
+        self.assertIn("peerfeatureupdated", found_usernames)
 
     def test_attachment_upload_accepts_reply_to_and_get_lists_items(self):
         reply_target = Message.objects.create(

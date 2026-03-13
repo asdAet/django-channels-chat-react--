@@ -170,6 +170,26 @@ class ChatConsumerTests(TransactionTestCase):
 
         async_to_sync(run)()
 
+    def test_typing_event_does_not_crash_socket_and_message_send_still_works(self):
+        """Typing event should not close socket; message send must continue to work."""
+        async def run():
+            communicator, connected, _ = await self._connect('/ws/chat/private123/', user=self.member)
+            self.assertTrue(connected)
+
+            await communicator.send_to(text_data=json.dumps({'type': 'typing'}))
+            self.assertTrue(await communicator.receive_nothing(timeout=0.3))
+
+            await communicator.send_to(text_data=json.dumps({'message': 'typing-safe'}))
+            event = json.loads(await communicator.receive_from(timeout=2))
+            self.assertEqual(event.get('message'), 'typing-safe')
+
+            await communicator.disconnect()
+
+        async_to_sync(run)()
+        self.assertTrue(
+            Message.objects.filter(room=self.private_room, message_content='typing-safe').exists()
+        )
+
     def test_unauthenticated_public_user_cannot_send_messages(self):
         """Проверяет сценарий `test_unauthenticated_public_user_cannot_send_messages`."""
         async def run():
@@ -364,3 +384,4 @@ class ChatConsumerTests(TransactionTestCase):
             await communicator.disconnect()
 
         async_to_sync(run)()
+

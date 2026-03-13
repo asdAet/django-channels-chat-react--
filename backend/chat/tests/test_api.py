@@ -630,7 +630,7 @@ class ChatAuthSmokeTests(TestCase):
         """Проверяет сценарий `test_register_and_login`."""
         csrf = self._csrf()
         register_payload = {
-            'username': 'testuser',
+            'email': 'testuser@example.com',
             'password1': 'pass12345',
             'password2': 'pass12345',
         }
@@ -643,7 +643,7 @@ class ChatAuthSmokeTests(TestCase):
         self.assertIn(response.status_code, [200, 201])
 
         csrf = self._csrf()
-        login_payload = {'username': 'testuser', 'password': 'pass12345'}
+        login_payload = {'email': 'testuser@example.com', 'password': 'pass12345'}
         response = self.client.post(
             '/api/auth/login/',
             data=json.dumps(login_payload),

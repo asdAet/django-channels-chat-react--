@@ -332,7 +332,12 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
     );
   }
 
-  const fullName = formatFullName(user.name, user.last_name) || "Без имени";
+  const fullName =
+    formatFullName(
+      user.name,
+      (user as { last_name?: string | null }).last_name,
+    ) || "Без имени";
+  const publicUsername = (user.username || "").trim();
   const isSelf = relation.state === "self";
   const lastSeenLabel = formatLastSeen(user.lastSeen ?? null);
   const presenceLabel = isUserOnline
@@ -350,7 +355,9 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
           size="default"
         />
         <h4 className={styles.peerName}>{fullName}</h4>
-        <p className={styles.usernameHandle}>@{user.username}</p>
+        {publicUsername && (
+          <p className={styles.usernameHandle}>@{publicUsername}</p>
+        )}
         <p className={styles.meta}>{presenceLabel}</p>
 
         {user.bio?.trim() ? (

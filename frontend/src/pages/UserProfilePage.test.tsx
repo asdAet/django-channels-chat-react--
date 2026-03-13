@@ -93,6 +93,31 @@ describe("UserProfilePage", () => {
     expect(screen.getByText("@alice")).toBeInTheDocument();
   });
 
+  it("hides empty @username and send message button", () => {
+    profileMock.user = {
+      username: "   ",
+      email: "",
+      profileImage: null,
+      avatarCrop: null,
+      bio: "",
+      lastSeen: null as string | null,
+      registeredAt: null,
+    };
+
+    render(
+      <UserProfilePage
+        user={makeUser("bob")}
+        currentUser={makeUser("bob")}
+        username="alice"
+        onNavigate={vi.fn()}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/^@/)).toBeNull();
+    expect(screen.queryByTestId("send-dm-button")).toBeNull();
+  });
+
   it("hides bio block when bio is empty", () => {
     render(
       <UserProfilePage

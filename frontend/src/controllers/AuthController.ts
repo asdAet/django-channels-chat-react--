@@ -36,7 +36,11 @@ class AuthController {
    */
 
   public async login(dto: LoginDto): Promise<SessionDto> {
-    return await apiService.login(dto.username, dto.password);
+    return await apiService.login(dto.email, dto.password);
+  }
+
+  public async oauthGoogle(accessToken: string): Promise<SessionDto> {
+    return await apiService.oauthGoogle(accessToken);
   }
 
   /**
@@ -47,9 +51,7 @@ class AuthController {
 
   public async register(dto: RegisterDto): Promise<SessionDto> {
     return await apiService.register(
-      dto.name,
-      dto.last_name ?? "",
-      dto.username,
+      dto.email,
       dto.password1,
       dto.password2,
     );

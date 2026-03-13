@@ -83,6 +83,19 @@
   padding: 0;
 }
 
+.oauthSection {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oauthHint {
+  margin: 0;
+  color: #b7c2d6;
+  font-size: 13px;
+}
+
 @media (max-width: 768px) {
   .auth {
     width: 100%;

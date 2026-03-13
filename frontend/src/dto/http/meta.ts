@@ -15,6 +15,7 @@ const clientConfigSchema = z
     chatAttachmentAllowedTypes: z.array(z.string().min(1)),
     mediaUrlTtlSeconds: z.number().int().min(1),
     mediaMode: mediaModeSchema,
+    googleOAuthClientId: z.string().optional().transform((value) => value ?? ""),
   })
   .passthrough();
 

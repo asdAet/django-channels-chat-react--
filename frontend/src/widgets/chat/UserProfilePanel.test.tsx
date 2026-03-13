@@ -125,6 +125,23 @@ describe("UserProfilePanel", () => {
     });
   });
 
+  it("hides empty @username", async () => {
+    profileMock.user = {
+      ...profileMock.user,
+      username: "   ",
+    };
+
+    render(
+      <MemoryRouter>
+        <UserProfilePanel username="alice" currentUsername="bob" />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText(/^@/)).toBeNull();
+    });
+  });
+
   it("hides bio block when bio is empty", async () => {
     render(
       <MemoryRouter>

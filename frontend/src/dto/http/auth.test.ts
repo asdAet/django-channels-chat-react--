@@ -1,7 +1,8 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   buildLoginRequestDto,
+  buildRegisterRequestDto,
   decodeAuthErrorPayload,
   decodeProfileEnvelopeResponse,
   decodeSessionResponse,
@@ -12,6 +13,7 @@ describe("auth DTO decoders", () => {
     const decoded = decodeSessionResponse({
       authenticated: true,
       user: {
+        name: "Alice",
         username: "alice",
         email: "alice@example.com",
         profileImage: null,
@@ -23,6 +25,7 @@ describe("auth DTO decoders", () => {
     });
 
     expect(decoded.authenticated).toBe(true);
+    expect(decoded.user?.name).toBe("Alice");
     expect(decoded.user?.username).toBe("alice");
     expect(decoded.user?.avatarCrop).toEqual({
       x: 0.1,
@@ -35,14 +38,13 @@ describe("auth DTO decoders", () => {
   it("decodes profile envelope with defaults", () => {
     const decoded = decodeProfileEnvelopeResponse({
       user: {
-        username: "bob",
+        username: null,
       },
     });
 
     expect(decoded.user).toEqual({
       name: "",
-      last_name: "",
-      username: "bob",
+      username: "",
       email: "",
       profileImage: null,
       avatarCrop: null,
@@ -54,15 +56,29 @@ describe("auth DTO decoders", () => {
 
   it("validates outgoing login payload", () => {
     expect(
-      buildLoginRequestDto({ username: "  demo ", password: "pass" }),
+      buildLoginRequestDto({ email: "  demo@example.com ", password: "pass" }),
     ).toEqual({
-      username: "demo",
+      email: "demo@example.com",
       password: "pass",
     });
   });
 
+  it("validates outgoing register payload", () => {
+    expect(
+      buildRegisterRequestDto({
+        email: "new@example.com",
+        password1: "pass12345",
+        password2: "pass12345",
+      }),
+    ).toEqual({
+      email: "new@example.com",
+      password1: "pass12345",
+      password2: "pass12345",
+    });
+  });
+
   it("safely decodes auth error payload", () => {
-    const decoded = decodeAuthErrorPayload({ errors: { username: ["taken"] } });
-    expect(decoded?.errors?.username).toEqual(["taken"]);
+    const decoded = decodeAuthErrorPayload({ errors: { email: ["taken"] } });
+    expect(decoded?.errors?.email).toEqual(["taken"]);
   });
 });

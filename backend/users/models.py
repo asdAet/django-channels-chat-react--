@@ -1,6 +1,6 @@
+﻿"""Data models for users/auth/profile subsystem."""
 
-"""Содержит логику модуля `models` подсистемы `users`."""
-
+from __future__ import annotations
 
 import uuid
 import warnings
@@ -19,8 +19,9 @@ JPEG_EXTENSIONS = {".jpg", ".jpeg"}
 
 
 class Profile(models.Model):
-    """Инкапсулирует логику класса `Profile`."""
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=150, blank=True, default="")
+    username = models.CharField(max_length=30, null=True, blank=True, unique=True)
     image = models.ImageField(default="default.jpg", upload_to="profile_pics")
     avatar_crop_x = models.FloatField(null=True, blank=True)
     avatar_crop_y = models.FloatField(null=True, blank=True)
@@ -30,25 +31,26 @@ class Profile(models.Model):
     bio = models.TextField(blank=True, max_length=1000)
 
     def __init__(self, *args, **kwargs):
-        """Инициализирует экземпляр `Profile`."""
         super().__init__(*args, **kwargs)
-        # Track previous image for cleanup after avatar update.
         self._old_image_name = self.image.name
 
     def __str__(self):
-        """Возвращает строковое представление `Profile`."""
-        return f"{self.user.username} profile"
+        handle = self.username or self.user.username
+        return f"{handle} profile"
 
     def save(self, *args, **kwargs):
-        """Выполняет логику `save` с параметрами из сигнатуры."""
         if isinstance(self.bio, str):
             self.bio = strip_tags(self.bio).strip()
+        if isinstance(self.name, str):
+            self.name = strip_tags(self.name).strip()
+        if isinstance(self.username, str):
+            normalized = self.username.strip()
+            self.username = normalized or None
 
         default_name = self._meta.get_field("image").default
         old_image_name = getattr(self, "_old_image_name", None)
         new_image_name = self.image.name if self.image else None
 
-        # Generate unique image name for new uploads.
         if new_image_name and new_image_name != old_image_name:
             ext = Path(new_image_name).suffix or ".jpg"
             self.image.name = f"{uuid.uuid4().hex}{ext}"
@@ -95,8 +97,46 @@ class Profile(models.Model):
         self._old_image_name = self.image.name
 
 
+class EmailIdentity(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="email_identity")
+    email_normalized = models.EmailField(unique=True, db_index=True)
+    email_verified = models.BooleanField(default=False)
+    password_hash = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"email:{self.email_normalized}"
+
+
+class OAuthIdentity(models.Model):
+    class Provider(models.TextChoices):
+        GOOGLE = "google", "Google"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="oauth_identities")
+    provider = models.CharField(max_length=32, choices=Provider.choices)
+    provider_user_id = models.CharField(max_length=191)
+    email_from_provider = models.EmailField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "provider_user_id"],
+                name="users_oauth_provider_uid_uniq",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["provider", "provider_user_id"], name="users_oauth_provider_uid_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.provider}:{self.provider_user_id}"
+
+
 class SecurityRateLimitBucket(models.Model):
-    """Хранит персистентные счетчики rate-limit для security-ограничений."""
+    """Persistent rate-limit buckets for security restrictions."""
 
     scope_key = models.CharField(max_length=191, unique=True, db_index=True)
     count = models.PositiveIntegerField(default=0)
@@ -104,12 +144,9 @@ class SecurityRateLimitBucket(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        """Настраивает индексы для периодической очистки и быстрого поиска."""
-
         indexes = [
             models.Index(fields=["reset_at"], name="users_rl_reset_idx"),
         ]
 
     def __str__(self):
-        """Возвращает человекочитаемое представление bucket-записи."""
         return f"{self.scope_key}:{self.count}"

@@ -15,6 +15,7 @@ from chat_app_django.ip_utils import get_client_ip_from_scope
 from chat_app_django.media_utils import build_profile_url, serialize_avatar_crop
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
+from users.identity import user_public_username
 
 from .constants import (
     PRESENCE_CACHE_KEY_AUTH,
@@ -185,15 +186,18 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             break
 
     def _add_user_sync(self, user: Any) -> None:
+        username = user_public_username(user)
+        if not username:
+            return
         data = cache.get(self.cache_key, {})
-        current = data.get(user.username, {})
+        current = data.get(username, {})
         count = current.get("count", 0) + 1
         profile = getattr(user, "profile", None)
         image_name = getattr(profile, "image", None)
         image_name = image_name.name if image_name else ""
         image_url = build_profile_url(self.scope, image_name) if image_name else None
         avatar_crop = serialize_avatar_crop(profile)
-        data[user.username] = {
+        data[username] = {
             "count": count,
             "profileImage": image_url,
             "avatarCrop": avatar_crop,
@@ -206,24 +210,27 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         await _to_async(self._add_user_sync)(user)
 
     def _remove_user_sync(self, user: Any, graceful: bool = False) -> None:
+        username = user_public_username(user)
+        if not username:
+            return
         data = cache.get(self.cache_key, {})
-        if user.username in data:
-            entry = data[user.username]
+        if username in data:
+            entry = data[username]
             count = entry.get("count", 1) - 1
             now = time.time()
             if count <= 0:
                 if graceful or self.presence_grace <= 0:
-                    data.pop(user.username, None)
+                    data.pop(username, None)
                 else:
                     entry["count"] = 0
                     entry["last_seen"] = now
                     entry["grace_until"] = now + self.presence_grace
-                    data[user.username] = entry
+                    data[username] = entry
             else:
                 entry["count"] = count
                 entry["last_seen"] = now
                 entry["grace_until"] = 0
-                data[user.username] = entry
+                data[username] = entry
             cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _remove_user(self, user: Any, graceful: bool = False) -> None:
@@ -332,15 +339,18 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         return await _to_async(self._get_guest_count_sync)()
 
     def _touch_user_sync(self, user: Any) -> None:
+        username = user_public_username(user)
+        if not username:
+            return
         data = cache.get(self.cache_key, {})
-        current = data.get(user.username)
+        current = data.get(username)
         profile = getattr(user, "profile", None)
         image_name = getattr(profile, "image", None)
         image_name = image_name.name if image_name else ""
         image_url = build_profile_url(self.scope, image_name) if image_name else None
         avatar_crop = serialize_avatar_crop(profile)
         if not current:
-            data[user.username] = {
+            data[username] = {
                 "count": 1,
                 "profileImage": image_url,
                 "avatarCrop": avatar_crop,
@@ -352,7 +362,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             current["grace_until"] = 0
             current["profileImage"] = image_url
             current["avatarCrop"] = avatar_crop
-            data[user.username] = current
+            data[username] = current
         cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _touch_user(self, user: Any) -> None:

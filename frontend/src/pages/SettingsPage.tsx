@@ -39,7 +39,12 @@ export function SettingsPage({ user, onNavigate, onLogout }: Props) {
     );
   }
 
-  const fullName = formatFullName(user.name, user.last_name) || "Без имени";
+  const fullName =
+    formatFullName(
+      user.name,
+      (user as { last_name?: string | null }).last_name,
+    ) || "Без имени";
+  const publicUsername = user.username.trim();
 
   return (
     <div className={styles.root}>
@@ -50,7 +55,9 @@ export function SettingsPage({ user, onNavigate, onLogout }: Props) {
         <div className={styles.row}>
           <div>
             <div className={styles.rowLabel}>{fullName}</div>
-            <div className={styles.rowDesc}>@{user.username}</div>
+            {publicUsername && (
+              <div className={styles.rowDesc}>@{publicUsername}</div>
+            )}
             <div className={styles.rowDesc}>{user.email}</div>
           </div>
           <button

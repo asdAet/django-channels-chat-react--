@@ -14,6 +14,7 @@ class ClientConfigApiTests(TestCase):
         CHAT_ATTACHMENT_MAX_PER_MESSAGE=7,
         CHAT_ATTACHMENT_ALLOWED_TYPES=["audio/mpeg", "audio/webm"],
         MEDIA_URL_TTL_SECONDS=120,
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
     )
     def test_client_config_returns_expected_shape(self):
         response = self.client.get("/api/meta/client-config/")
@@ -27,3 +28,4 @@ class ClientConfigApiTests(TestCase):
         self.assertEqual(payload["chatAttachmentAllowedTypes"], ["audio/mpeg", "audio/webm"])
         self.assertEqual(payload["mediaUrlTtlSeconds"], 120)
         self.assertEqual(payload["mediaMode"], "signed_only")
+        self.assertEqual(payload["googleOAuthClientId"], "google-client-id")

@@ -1,16 +1,19 @@
-"""Forms for users auth/profile flows."""
+﻿"""Forms for auth/profile workflows."""
+
+from __future__ import annotations
 
 import re
 import warnings
 
 from django import forms
 from django.conf import settings
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import password_validation
 from django.contrib.auth.models import User
 from django.utils.html import strip_tags
 from PIL import Image
 
-from .models import MAX_PROFILE_IMAGE_PIXELS, MAX_PROFILE_IMAGE_SIDE, Profile
+from .identity import normalize_email
+from .models import EmailIdentity, MAX_PROFILE_IMAGE_PIXELS, MAX_PROFILE_IMAGE_SIDE, Profile
 
 
 USERNAME_MAX_LENGTH = max(1, min(int(getattr(settings, "USERNAME_MAX_LENGTH", 30)), 150))
@@ -23,99 +26,78 @@ def _validate_username_symbols(username: str) -> None:
         raise forms.ValidationError(USERNAME_ALLOWED_HINT)
 
 
-class UserRegisterForm(UserCreationForm):
-    name = forms.CharField(required=True, max_length=150)
-    last_name = forms.CharField(required=False, max_length=150)
-
-    class Meta:
-        model = User
-        fields = ["username", "password1", "password2", "name", "last_name"]
-
-    def clean_username(self):
-        username = (self.cleaned_data.get("username") or "").strip()
-        if not username:
-            return username
-        if len(username) > USERNAME_MAX_LENGTH:
-            raise forms.ValidationError(f"Максимум {USERNAME_MAX_LENGTH} символов.")
-        _validate_username_symbols(username)
-        if User.objects.filter(username=username).exists():
-            raise forms.ValidationError("Имя пользователя уже занято")
-        return username
-
-    def clean_name(self):
-        return (self.cleaned_data.get("name") or "").strip()
-
-    def clean_last_name(self):
-        return (self.cleaned_data.get("last_name") or "").strip()
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.first_name = self.cleaned_data.get("name", "")
-        instance.last_name = self.cleaned_data.get("last_name", "")
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
-
-
-class UserUpdateForm(forms.ModelForm):
-    email = forms.EmailField(required=False)
-    name = forms.CharField(required=False, max_length=150)
-    last_name = forms.CharField(required=False, max_length=150)
-
-    class Meta:
-        model = User
-        fields = ["username", "email", "first_name", "last_name"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields.pop("first_name", None)
-        self.fields.pop("last_name", None)
-        if self.instance and self.instance.pk:
-            if "name" not in self.initial:
-                self.initial["name"] = (self.instance.first_name or "").strip()
-            if "last_name" not in self.initial:
-                self.initial["last_name"] = (self.instance.last_name or "").strip()
-
-    def clean_username(self):
-        username = self.cleaned_data.get("username", "").strip()
-        if not username:
-            return username
-        if len(username) > USERNAME_MAX_LENGTH:
-            raise forms.ValidationError(f"Максимум {USERNAME_MAX_LENGTH} символов.")
-        _validate_username_symbols(username)
-        qs = User.objects.filter(username=username)
-        if self.instance and self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise forms.ValidationError("Имя пользователя уже занято")
-        return username
+class EmailRegisterForm(forms.Form):
+    email = forms.EmailField(required=True)
+    password1 = forms.CharField(required=True)
+    password2 = forms.CharField(required=True)
 
     def clean_email(self):
-        email = (self.cleaned_data.get("email") or "").strip()
+        email = normalize_email(self.cleaned_data.get("email"))
         if not email:
-            return ""
-        qs = User.objects.filter(email__iexact=email)
-        if self.instance and self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
+            raise forms.ValidationError("Укажите email")
+        if EmailIdentity.objects.filter(email_normalized=email).exists():
             raise forms.ValidationError("Email уже используется")
         return email
 
+    def clean(self):
+        cleaned = super().clean()
+        password1 = cleaned.get("password1")
+        password2 = cleaned.get("password2")
+        if not password1 or not password2:
+            return cleaned
+        if password1 != password2:
+            self.add_error("password2", "Пароли не совпадают")
+            return cleaned
+
+        probe_user = User(email=cleaned.get("email", ""), username="temp")
+        try:
+            password_validation.validate_password(password1, user=probe_user)
+        except forms.ValidationError as exc:
+            self.add_error("password1", exc)
+        except Exception:
+            # Normalized as weak password for API layer.
+            self.add_error("password1", "Пароль слишком слабый")
+        return cleaned
+
+
+class ProfileIdentityUpdateForm(forms.Form):
+    name = forms.CharField(required=False, max_length=150)
+    username = forms.CharField(required=False, max_length=USERNAME_MAX_LENGTH)
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
     def clean_name(self):
-        return (self.cleaned_data.get("name") or "").strip()
+        return strip_tags((self.cleaned_data.get("name") or "").strip())
 
-    def clean_last_name(self):
-        return (self.cleaned_data.get("last_name") or "").strip()
+    def clean_username(self):
+        raw = self.cleaned_data.get("username")
+        if raw is None:
+            return None
+        username = str(raw).strip()
+        if not username:
+            return None
+        if len(username) > USERNAME_MAX_LENGTH:
+            raise forms.ValidationError(f"Максимум {USERNAME_MAX_LENGTH} символов.")
+        _validate_username_symbols(username)
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.first_name = self.cleaned_data.get("name", "")
-        instance.last_name = self.cleaned_data.get("last_name", "")
-        if commit:
-            instance.save()
-            self.save_m2m()
-        return instance
+        qs = Profile.objects.filter(username=username)
+        user_id = getattr(self.user, "pk", None)
+        if user_id is not None:
+            qs = qs.exclude(user_id=user_id)
+        if qs.exists():
+            raise forms.ValidationError("Имя пользователя уже занято")
+        return username
+
+    def save(self, profile: Profile) -> Profile:
+        cleaned = self.cleaned_data
+        if "name" in cleaned:
+            profile.name = cleaned.get("name") or ""
+        if "username" in cleaned:
+            profile.username = cleaned.get("username")
+        profile.save(update_fields=["name", "username"])
+        return profile
 
 
 class ProfileUpdateForm(forms.ModelForm):
@@ -199,9 +181,7 @@ class ProfileUpdateForm(forms.ModelForm):
                             f"Максимальный размер аватара: {MAX_PROFILE_IMAGE_SIDE}x{MAX_PROFILE_IMAGE_SIDE}."
                         )
                     if (width * height) > MAX_PROFILE_IMAGE_PIXELS:
-                        raise forms.ValidationError(
-                            f"Максимум {MAX_PROFILE_IMAGE_PIXELS} пикселей."
-                        )
+                        raise forms.ValidationError(f"Максимум {MAX_PROFILE_IMAGE_PIXELS} пикселей.")
                     uploaded.verify()
         except forms.ValidationError:
             raise

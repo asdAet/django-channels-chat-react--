@@ -174,8 +174,16 @@ export function Sidebar({ user, onNavigate, onLogout }: Props) {
   }, [drawerOpen]);
 
   const fullName = user
-    ? formatFullName(user.name, user.last_name) || "Без имени"
+    ? formatFullName(
+        user.name,
+        (user as { last_name?: string | null }).last_name,
+      ) || "Без имени"
     : "Без имени";
+  const publicUsername = (user?.username || "").trim();
+  const profileIdentity = publicUsername || fullName;
+  const profilePath = publicUsername
+    ? `/users/${encodeURIComponent(publicUsername)}`
+    : "/profile";
 
   return (
     <aside className={styles.sidebar}>
@@ -193,14 +201,16 @@ export function Sidebar({ user, onNavigate, onLogout }: Props) {
             {user && (
               <div className={styles.drawerHeader}>
                 <Avatar
-                  username={user.username}
+                  username={profileIdentity}
                   profileImage={user.profileImage}
                   avatarCrop={user.avatarCrop}
                   size="default"
                 />
                 <div className={styles.userIdentity}>
                   <span className={styles.drawerUserName}>{fullName}</span>
-                  <span className={styles.userHandle}>@{user.username}</span>
+                  {publicUsername && (
+                    <span className={styles.userHandle}>@{publicUsername}</span>
+                  )}
                 </div>
               </div>
             )}
@@ -303,7 +313,7 @@ export function Sidebar({ user, onNavigate, onLogout }: Props) {
             <input
               type="text"
               className={styles.searchInput}
-              placeholder="Поиск: @username для пользователей/групп, текст для сообщений..."
+              placeholder="Поиск"
               aria-label="Поиск"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -336,19 +346,19 @@ export function Sidebar({ user, onNavigate, onLogout }: Props) {
           <button
             type="button"
             className={styles.userInfo}
-            onClick={() =>
-              onNavigate(`/users/${encodeURIComponent(user.username)}`)
-            }
+            onClick={() => onNavigate(profilePath)}
           >
             <Avatar
-              username={user.username}
+              username={profileIdentity}
               profileImage={user.profileImage}
               avatarCrop={user.avatarCrop}
               size="tiny"
             />
             <div className={styles.userIdentity}>
               <span className={styles.userName}>{fullName}</span>
-              <span className={styles.userHandle}>@{user.username}</span>
+              {publicUsername && (
+                <span className={styles.userHandle}>@{publicUsername}</span>
+              )}
             </div>
           </button>
           {unreadDialogsCount > 0 && (

@@ -14,14 +14,8 @@ describe("RegisterPage", () => {
       />,
     );
 
-    fireEvent.change(screen.getByTestId("auth-name-input"), {
-      target: { value: "Alice" },
-    });
-    fireEvent.change(screen.getByTestId("auth-last-name-input"), {
-      target: { value: "Smith" },
-    });
-    fireEvent.change(screen.getByTestId("auth-username-input"), {
-      target: { value: "newuser" },
+    fireEvent.change(screen.getByTestId("auth-email-input"), {
+      target: { value: "alice@example.com" },
     });
     fireEvent.change(screen.getByTestId("auth-password-input"), {
       target: { value: "secret123" },
@@ -32,11 +26,23 @@ describe("RegisterPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Создать аккаунт" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
-      "Alice",
-      "Smith",
-      "newuser",
+      "alice@example.com",
       "secret123",
       "secret123",
     );
+  });
+
+  it("renders google oauth button disabled when oauth is unavailable", () => {
+    render(
+      <RegisterPage
+        onSubmit={vi.fn()}
+        onNavigate={vi.fn()}
+        passwordRules={[]}
+        googleAuthDisabledReason="Google OAuth не настроен."
+      />,
+    );
+
+    expect(screen.getByTestId("auth-google-button")).toBeDisabled();
+    expect(screen.getByText("Google OAuth не настроен.")).toBeInTheDocument();
   });
 });

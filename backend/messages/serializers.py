@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from .models import Message, MessageAttachment
+from users.identity import user_public_username
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
@@ -91,7 +92,7 @@ class MessageSerializer(serializers.ModelSerializer):
             return {"id": reply.id, "username": None, "content": "[deleted]"}
         return {
             "id": reply.id,
-            "username": reply.user.username if reply.user else reply.username,
+            "username": user_public_username(reply.user) if reply.user else reply.username,
             "content": reply.message_content[:150],
         }
 
@@ -116,7 +117,7 @@ class MessageSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         user = getattr(instance, "user", None)
         if user:
-            ret["username"] = user.username
+            ret["username"] = user_public_username(user)
         if instance.is_deleted:
             ret["content"] = "[deleted]"
         return ret

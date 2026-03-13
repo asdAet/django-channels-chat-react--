@@ -108,6 +108,14 @@ export const useAuth = () => {
     return session;
   }, []);
 
+  const loginWithGoogle = useCallback(async (accessToken: string) => {
+    await authController.ensureCsrf();
+    const session = await authController.oauthGoogle(accessToken);
+    setAuth({ user: session.user, loading: false });
+    clearAllUserCaches();
+    return session;
+  }, []);
+
   const register = useCallback(async (dto: RegisterDto) => {
     await authController.ensureCsrf();
     const session = await authController.register(dto);
@@ -196,6 +204,7 @@ export const useAuth = () => {
   return {
     auth,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateProfile,

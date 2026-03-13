@@ -1,20 +1,18 @@
-import type { FormEvent } from "react";
-import { useState } from "react";
+﻿import type { FormEvent } from "react";
+import { useMemo, useState } from "react";
 
-import { useUsernameMaxLength } from "../../shared/config/limits";
 import { Button, Card, Toast } from "../../shared/ui";
 import styles from "./AuthForm.module.css";
 
+type AuthMode = "login" | "register";
+
 type AuthFormProps = {
+  mode: AuthMode;
   title: string;
   submitLabel: string;
-  onSubmit: (
-    name: string,
-    lastName: string,
-    username: string,
-    password: string,
-    confirm?: string,
-  ) => void;
+  onSubmit: (email: string, password: string, confirm?: string) => void;
+  onGoogleAuth?: () => Promise<void> | void;
+  googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
   requireConfirm?: boolean;
   error?: string | null;
@@ -22,44 +20,47 @@ type AuthFormProps = {
   className?: string;
 };
 
-const USERNAME_ALLOWED_RE = /^[A-Za-z]+$/;
-
 export function AuthForm({
+  mode,
   title,
   submitLabel,
   onSubmit,
+  onGoogleAuth,
+  googleAuthDisabledReason = null,
   onNavigate,
   requireConfirm = false,
   error = null,
   passwordRules = [],
   className,
 }: AuthFormProps) {
-  const usernameMaxLength = useUsernameMaxLength();
-  const [name, setName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [googleAuthPending, setGoogleAuthPending] = useState(false);
 
-  const normalizedName = name.trim();
-  const normalizedLastName = lastName.trim();
-  const normalizedUsername = username.trim();
-  const usernameHasInvalidChars =
-    normalizedUsername.length > 0 &&
-    !USERNAME_ALLOWED_RE.test(normalizedUsername);
+  const normalizedEmail = email.trim();
+  const canSubmit = useMemo(() => {
+    if (!normalizedEmail || !password) return false;
+    if (!requireConfirm) return true;
+    return confirm.length > 0;
+  }, [confirm.length, normalizedEmail, password, requireConfirm]);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    if (requireConfirm && !normalizedName) return;
-    if (!normalizedUsername || !password || usernameHasInvalidChars) return;
+    if (!canSubmit) return;
+    onSubmit(normalizedEmail, password, requireConfirm ? confirm : undefined);
+  };
 
-    onSubmit(
-      normalizedName,
-      normalizedLastName,
-      normalizedUsername,
-      password,
-      confirm,
-    );
+  const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
+
+  const handleGoogleAuth = async () => {
+    if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) return;
+    setGoogleAuthPending(true);
+    try {
+      await onGoogleAuth();
+    } finally {
+      setGoogleAuthPending(false);
+    }
   };
 
   return (
@@ -73,48 +74,17 @@ export function AuthForm({
           </Toast>
         )}
         <form className={styles.form} onSubmit={handleSubmit}>
-          {requireConfirm && (
-            <>
-              <label className={styles.field}>
-                <span>Имя</span>
-                <input
-                  type="text"
-                  data-testid="auth-name-input"
-                  autoComplete="given-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-              <label className={styles.field}>
-                <span>Фамилия (необязательно)</span>
-                <input
-                  type="text"
-                  data-testid="auth-last-name-input"
-                  autoComplete="family-name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                />
-              </label>
-            </>
-          )}
           <label className={styles.field}>
-            <span>Имя пользователя</span>
+            <span>Email</span>
             <input
-              type="text"
-              data-testid="auth-username-input"
-              autoComplete="username"
-              value={username}
-              maxLength={usernameMaxLength}
-              pattern="[A-Za-z]+"
-              title="Используйте только латинские буквы (A-Z, a-z)."
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              data-testid="auth-email-input"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
             />
-            {usernameHasInvalidChars && (
-              <span className={[styles.note, styles.errorNote].join(" ")}>
-                Допустимы только латинские буквы (A-Z, a-z).
-              </span>
-            )}
           </label>
+
           <label className={styles.field}>
             <span>Пароль</span>
             <input
@@ -122,9 +92,10 @@ export function AuthForm({
               data-testid="auth-password-input"
               autoComplete={requireConfirm ? "new-password" : "current-password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
             />
           </label>
+
           {requireConfirm && (
             <label className={styles.field}>
               <span>Повторите пароль</span>
@@ -133,10 +104,11 @@ export function AuthForm({
                 data-testid="auth-confirm-input"
                 autoComplete="new-password"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={(event) => setConfirm(event.target.value)}
               />
             </label>
           )}
+
           {requireConfirm && passwordRules.length > 0 && (
             <div className={styles.passwordRules}>
               <p className={styles.note}>Пароль должен соответствовать требованиям:</p>
@@ -147,22 +119,34 @@ export function AuthForm({
               </ul>
             </div>
           )}
+
           <Button
             variant="primary"
             type="submit"
             data-testid="auth-submit-button"
-            disabled={
-              !normalizedUsername ||
-              !password ||
-              usernameHasInvalidChars ||
-              (requireConfirm && !normalizedName)
-            }
+            disabled={!canSubmit}
           >
             {submitLabel}
           </Button>
         </form>
+
+        <div className={styles.oauthSection}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={!canUseGoogleAuth || googleAuthPending}
+            data-testid="auth-google-button"
+          >
+            {googleAuthPending ? "Подключение к Google..." : "Продолжить с Google"}
+          </Button>
+          {googleAuthDisabledReason && (
+            <p className={styles.oauthHint}>{googleAuthDisabledReason}</p>
+          )}
+        </div>
+
         <div className={styles.authSwitch}>
-          {title === "Вход" ? (
+          {mode === "login" ? (
             <p>
               Нет аккаунта?{" "}
               <Button

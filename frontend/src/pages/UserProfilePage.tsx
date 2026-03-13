@@ -273,7 +273,11 @@ export function UserProfilePage({
 
   const isSelf = currentUser?.username === profileUser.username;
   const fullName =
-    formatFullName(profileUser.name, profileUser.last_name) || "Без имени";
+    formatFullName(
+      profileUser.name,
+      (profileUser as { last_name?: string | null }).last_name,
+    ) || "Без имени";
+  const publicUsername = (profileUser.username || "").trim();
   const isUserOnline =
     presenceStatus === "online" &&
     presenceOnline.some((entry) => entry.username === profileUser.username);
@@ -364,7 +368,9 @@ export function UserProfilePage({
       <div className={styles.stack}>
         <div>
           <h2>{fullName}</h2>
-          <p className={styles.usernameHandle}>@{profileUser.username}</p>
+          {publicUsername && (
+            <p className={styles.usernameHandle}>@{publicUsername}</p>
+          )}
           {profileUser.bio?.trim() ? (
             <div data-testid="profile-bio-section">
               <p className={styles.muted}>О себе</p>
@@ -403,11 +409,11 @@ export function UserProfilePage({
               Редактировать
             </Button>
           )}
-          {!isSelf && currentUser && (
+          {!isSelf && currentUser && publicUsername && (
             <Button
               variant="link"
               onClick={() =>
-                onNavigate(`/@${encodeURIComponent(profileUser.username)}`)
+                onNavigate(`/@${encodeURIComponent(publicUsername)}`)
               }
               data-testid="send-dm-button"
             >

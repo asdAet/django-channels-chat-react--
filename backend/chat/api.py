@@ -46,6 +46,7 @@ from rooms.services import (
     ensure_room_owner_role,
     parse_pair_key_users,
 )
+from users.identity import get_user_by_public_username, normalize_public_username, user_public_username
 
 from .constants import PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
 from chat_app_django.media_utils import build_profile_url_from_request, serialize_avatar_crop
@@ -81,7 +82,7 @@ def _serialize_peer(request, user, *, is_blocked: bool = False):
         last_seen = None
     return {
         "userId": user.pk,
-        "username": user.username,
+        "username": user_public_username(user),
         "profileImage": profile_pic,
         "avatarCrop": serialize_avatar_crop(profile),
         "lastSeen": last_seen.isoformat() if last_seen else None,
@@ -97,7 +98,7 @@ def _serialize_reply_to(message: Message | None):
         return {"id": message.pk, "username": None, "content": "[удалено]"}
     return {
         "id": message.pk,
-        "username": message.user.username if message.user else message.username,
+        "username": user_public_username(message.user) if message.user else message.username,
         "content": message.message_content[:150],
     }
 
@@ -133,12 +134,7 @@ def _serialize_group_avatar_for_room(request, room: Room) -> tuple[str | None, d
 
 
 def _normalize_username(raw_username):
-    if not isinstance(raw_username, str):
-        return ""
-    value = raw_username.strip()
-    if value.startswith("@"):
-        value = value[1:]
-    return value.strip()
+    return normalize_public_username(raw_username)
 
 
 def _public_room():
@@ -219,7 +215,7 @@ def _serialize_room_details(request, room: Room, created: bool):
         "name": room.name,
         "kind": room.kind,
         "created": created,
-        "createdBy": room.created_by.username if room.created_by else None,
+        "createdBy": user_public_username(room.created_by) if room.created_by else None,
         "peer": None,
         "avatarUrl": group_avatar_url,
         "avatarCrop": group_avatar_crop,
@@ -270,7 +266,7 @@ class DirectStartApiView(GenericAPIView):
         if not target_username:
             return Response({"error": "Требуется имя пользователя"}, status=http_status.HTTP_400_BAD_REQUEST)
 
-        target = User.objects.filter(username=target_username).select_related("profile").first()
+        target = get_user_by_public_username(target_username)
         if not target:
             return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
@@ -373,7 +369,7 @@ def room_details(request, room_slug):
 
             room = Room.objects.create(
                 slug=room_slug,
-                name=request.user.username,
+                name=user_public_username(request.user) or request.user.username,
                 kind=Room.Kind.PRIVATE,
                 created_by=request.user,
             )
@@ -546,7 +542,7 @@ def message_detail(request, room_slug, message_id):
                 "messageId": msg.pk,
                 "content": msg.message_content,
                 "editedAt": edited_at.isoformat(),
-                "editedBy": request.user.username,
+                "editedBy": user_public_username(request.user),
             })
             return Response({
                 "id": msg.pk,
@@ -558,7 +554,7 @@ def message_detail(request, room_slug, message_id):
             _broadcast_to_room(room, {
                 "type": "chat_message_delete",
                 "messageId": msg.pk,
-                "deletedBy": request.user.username,
+                "deletedBy": user_public_username(request.user),
             })
             return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -597,13 +593,13 @@ def message_reactions(request, room_slug, message_id):
             "messageId": message_id,
             "emoji": reaction.emoji,
             "userId": request.user.pk,
-            "username": request.user.username,
+            "username": user_public_username(request.user),
         })
         return Response({
             "messageId": message_id,
             "emoji": reaction.emoji,
             "userId": request.user.pk,
-            "username": request.user.username,
+            "username": user_public_username(request.user),
         })
     except MessageNotFoundError:
         return Response({"error": "Сообщение не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
@@ -633,7 +629,7 @@ def message_reaction_remove(request, room_slug, message_id, emoji):
         "messageId": message_id,
         "emoji": emoji,
         "userId": request.user.pk,
-        "username": request.user.username,
+        "username": user_public_username(request.user),
     })
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -693,7 +689,7 @@ def upload_attachments(request, room_slug):
                 **_serialize_attachment_item(request, attachment),
                 "messageId": attachment.message_id,
                 "createdAt": attachment.message.date_added.isoformat(),
-                "username": attachment.message.user.username
+                "username": user_public_username(attachment.message.user)
                 if attachment.message.user
                 else attachment.message.username,
             }
@@ -850,7 +846,7 @@ def upload_attachments(request, room_slug):
     profile_pic = getattr(image, "name", "") or ""
     message_kwargs = {
         "message_content": message_content,
-        "username": user.username,
+        "username": user_public_username(user),
         "user": user,
         "profile_pic": profile_pic,
         "room": room,
@@ -887,7 +883,7 @@ def upload_attachments(request, room_slug):
     _broadcast_to_room(room, {
         "type": "chat_message",
         "message": message_content,
-        "username": user.username,
+        "username": user_public_username(user),
         "profile_pic": profile_url,
         "avatar_crop": serialize_avatar_crop(profile),
         "room": room.slug,
@@ -976,7 +972,7 @@ def search_messages(request, room_slug):
     for msg in batch:
         results.append({
             "id": msg.pk,
-            "username": msg.user.username if msg.user else msg.username,
+            "username": user_public_username(msg.user) if msg.user else msg.username,
             "content": msg.message_content,
             "createdAt": msg.date_added.isoformat(),
             "highlight": getattr(msg, "headline", None),
@@ -1067,9 +1063,9 @@ def global_search(request):
     if is_handle_query:
         users_qs = (
             User.objects.filter(pk__in=interaction_user_ids)
-            .filter(username__icontains=q)
+            .filter(profile__username__icontains=q)
             .select_related("profile")
-            .order_by("username")[:users_limit]
+            .order_by("profile__username", "username")[:users_limit]
         )
         users = [_serialize_peer(request, found_user) for found_user in users_qs]
 
@@ -1112,7 +1108,7 @@ def global_search(request):
     messages = [
         {
             "id": msg.pk,
-            "username": msg.user.username if msg.user else msg.username,
+            "username": user_public_username(msg.user) if msg.user else msg.username,
             "content": msg.message_content,
             "createdAt": msg.date_added.isoformat(),
             "roomSlug": msg.room.slug if msg.room else "",
@@ -1139,6 +1135,9 @@ def mark_read_view(request, room_slug):
         return error_response
     if room is None:
         return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+
+    if room.slug == PUBLIC_ROOM_SLUG:
+        return Response({"roomSlug": room.slug, "lastReadMessageId": None})
 
     try:
         _ensure_room_read_access(request, room)
@@ -1171,7 +1170,7 @@ def mark_read_view(request, room_slug):
     _broadcast_to_room(room, {
         "type": "chat_read_receipt",
         "userId": request.user.pk,
-        "username": request.user.username,
+        "username": user_public_username(request.user),
         "lastReadMessageId": state.last_read_message_id,
         "roomSlug": room.slug,
     })

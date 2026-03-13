@@ -28,7 +28,6 @@ vi.mock("../sidebar/ConversationList", () => ({
 
 const user: UserProfile = {
   name: "Demo",
-  last_name: "",
   username: "demo",
   email: "demo@example.com",
   profileImage: null,
@@ -59,4 +58,22 @@ describe("Sidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Меню" }));
     expect(screen.getAllByText("@demo")).toHaveLength(2);
   });
+
+  it("hides empty @username and falls back to /profile navigation", () => {
+    const onNavigate = vi.fn();
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Sidebar
+          user={{ ...user, username: "   " }}
+          onNavigate={onNavigate}
+          onLogout={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Demo/ }));
+    expect(onNavigate).toHaveBeenCalledWith("/profile");
+    expect(screen.queryByText(/^@/)).toBeNull();
+  });
 });
+

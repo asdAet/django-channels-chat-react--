@@ -31,6 +31,7 @@ from roles.domain.rules import can_manage_target
 from roles.models import Membership, Role
 from roles.permissions import Perm
 from rooms.models import Room
+from users.identity import user_public_username
 
 User = get_user_model()
 
@@ -415,7 +416,7 @@ def list_members(
             avatar_crop = serialize_avatar_crop(profile)
         return {
             "userId": m.user_id,
-            "username": m.user.username,
+            "username": user_public_username(m.user),
             "nickname": m.nickname or None,
             "profileImage": profile_image,
             "avatarCrop": avatar_crop,
@@ -462,9 +463,9 @@ def list_banned(
         "items": [
             {
                 "userId": m.user_id,
-                "username": m.user.username,
+                "username": user_public_username(m.user),
                 "reason": m.ban_reason,
-                "bannedBy": m.banned_by.username if m.banned_by else None,
+                "bannedBy": user_public_username(m.banned_by) if m.banned_by else None,
             }
             for m in banned
         ],

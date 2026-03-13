@@ -24,6 +24,7 @@ from messages.models import Message
 from roles.access import can_read, can_write
 from roles.models import Membership
 from rooms.models import Room
+from users.identity import user_public_username
 
 from .constants import CHAT_CLOSE_IDLE_CODE, PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
 from .utils import is_valid_room_slug as _is_valid_room_slug
@@ -85,6 +86,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4403)
             return
 
+        self.actor_username = await self._resolve_public_username(user)
         self.room = room
         self.room_name = room.slug
         room_identifier = room.pk if getattr(room, "pk", None) else room.slug
@@ -196,7 +198,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({"error": "slow_mode"}))
             return
 
-        username = getattr(user, "username", "")
+        username = (getattr(self, "actor_username", "") or "").strip()
+        if not username:
+            username = await self._resolve_public_username(user)
+            self.actor_username = username
         if not username:
             audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_user")
             return
@@ -316,6 +321,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return can_write(room, user)
 
     @sync_to_async
+    def _resolve_public_username(self, user) -> str:
+        return user_public_username(user)
+
+    @sync_to_async
     def save_message(self, message, user, username, profile_pic, room, reply_to_id=None):
         kwargs = {
             "message_content": message,
@@ -392,11 +401,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if now - self._last_typing_broadcast < 3.0:
             return
         self._last_typing_broadcast = now
+        username = (getattr(self, "actor_username", "") or "").strip()
+        if not username:
+            username = await self._resolve_public_username(user)
+            self.actor_username = username
+        if not username:
+            return
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "chat_typing",
-                "username": user.username,
+                "username": username,
                 "userId": user.pk,
                 "sender_channel": self.channel_name,
             },
@@ -422,7 +437,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return {"id": reply.pk, "username": None, "content": "[deleted]"}
         return {
             "id": reply.pk,
-            "username": reply.user.username if reply.user else reply.username,
+            "username": user_public_username(reply.user) if reply.user else reply.username,
             "content": reply.message_content[:150],
         }
 
@@ -519,7 +534,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         async_to_sync(channel_layer.group_send)(group_name, {
             "type": "chat_read_receipt",
             "userId": user.pk,
-            "username": user.username,
+            "username": user_public_username(user),
             "lastReadMessageId": state.last_read_message_id,
             "roomSlug": room.slug,
         })
@@ -592,7 +607,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "item": {
                     "slug": room.slug,
                     "peer": {
-                        "username": peer.username if peer else "",
+                        "username": user_public_username(peer) if peer else "",
                         "profileImage": build_profile_url(self.scope, peer_image_name) if peer_image_name else None,
                         "avatarCrop": peer_avatar_crop,
                     },

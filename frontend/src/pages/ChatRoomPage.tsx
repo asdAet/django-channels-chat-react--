@@ -432,18 +432,27 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     pendingReadFlushRef.current,
   );
 
+  const readStateEnabled = Boolean(user && !isPublicRoom);
+
   const {
-    localLastReadMessageId,
-    firstUnreadMessageId,
-    localUnreadCount,
+    localLastReadMessageId: trackedLocalLastReadMessageId,
+    firstUnreadMessageId: trackedFirstUnreadMessageId,
+    localUnreadCount: trackedLocalUnreadCount,
     applyViewportRead,
   } = useReadTracker({
     messages,
     currentUsername: user?.username,
     serverLastReadMessageId: effectiveServerLastReadMessageId,
-    enabled: Boolean(user && initialPositioningPhase === "settled"),
+    enabled: Boolean(readStateEnabled && initialPositioningPhase === "settled"),
     resetKey: slug,
   });
+  const localLastReadMessageId = readStateEnabled
+    ? trackedLocalLastReadMessageId
+    : 0;
+  const firstUnreadMessageId = readStateEnabled
+    ? trackedFirstUnreadMessageId
+    : null;
+  const localUnreadCount = readStateEnabled ? trackedLocalUnreadCount : 0;
   const roomDataReady = !loading && (details?.slug === slug || Boolean(error));
 
   const unreadDividerRenderTarget = useMemo(() => {
@@ -690,7 +699,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
   const sendMarkReadIfNeeded = useCallback(
     (lastReadMessageId: number | null | undefined) => {
-      if (!user || !lastReadMessageId || lastReadMessageId < 1) return;
+      if (!readStateEnabled || !lastReadMessageId || lastReadMessageId < 1) {
+        return;
+      }
       persistPendingRead(lastReadMessageId);
       if (lastReadMessageId <= lastReadSentRef.current) return;
       lastReadSentRef.current = lastReadMessageId;
@@ -705,11 +716,12 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
           }
         });
     },
-    [clearPendingRead, persistPendingRead, slug, user],
+    [clearPendingRead, persistPendingRead, readStateEnabled, slug],
   );
 
   const scheduleMarkRead = useCallback(
     (lastReadMessageId: number | null | undefined) => {
+      if (!readStateEnabled) return;
       if (!lastReadMessageId || lastReadMessageId < 1) return;
       persistPendingRead(lastReadMessageId);
       if (markReadTimerRef.current !== null) {
@@ -724,11 +736,18 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
         }
       }, MARK_READ_DEBOUNCE_MS);
     },
-    [markDirectRoomRead, persistPendingRead, sendMarkReadIfNeeded, slug, user],
+    [
+      markDirectRoomRead,
+      persistPendingRead,
+      readStateEnabled,
+      sendMarkReadIfNeeded,
+      slug,
+      user,
+    ],
   );
 
   const flushPendingRead = useCallback(() => {
-    if (!user) return;
+    if (!readStateEnabled) return;
     const baseline = normalizeReadMessageId(details?.lastReadMessageId);
     const candidate = Math.max(
       pendingReadFlushRef.current,
@@ -776,11 +795,11 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     localLastReadMessageId,
     persistPendingRead,
     slug,
-    user,
+    readStateEnabled,
   ]);
 
   const scheduleViewportReadSync = useCallback(() => {
-    if (!user) return;
+    if (!readStateEnabled) return;
     if (initialPositioningPhaseRef.current !== "settled") return;
     if (isProgrammaticScrollRef.current) return;
     if (viewportReadRafRef.current !== null) return;
@@ -789,10 +808,10 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       const nextLastRead = applyViewportRead(listRef.current);
       persistPendingRead(nextLastRead);
     });
-  }, [applyViewportRead, persistPendingRead, user]);
+  }, [applyViewportRead, persistPendingRead, readStateEnabled]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!readStateEnabled) return;
 
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
@@ -815,17 +834,17 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       window.removeEventListener("pagehide", onPageHide);
       window.removeEventListener("beforeunload", onBeforeUnload);
     };
-  }, [flushPendingRead, user]);
+  }, [flushPendingRead, readStateEnabled]);
 
   useEffect(() => {
     return () => {
-      if (!user) return;
+      if (!readStateEnabled) return;
       const baseline = normalizeReadMessageId(details?.lastReadMessageId);
       const pending = pendingReadFlushRef.current;
       if (pending <= baseline) return;
       sendMarkReadIfNeeded(pending);
     };
-  }, [details?.lastReadMessageId, sendMarkReadIfNeeded, user]);
+  }, [details?.lastReadMessageId, readStateEnabled, sendMarkReadIfNeeded]);
 
   useEffect(() => {
     if (!user || !slug.startsWith("dm_")) return;
@@ -1034,7 +1053,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             decoded.message.username !== user?.username
           ) {
             setNewMsgCount((count) => count + 1);
-            if (unreadDividerAnchorRef.current === null) {
+            if (readStateEnabled && unreadDividerAnchorRef.current === null) {
               updateUnreadDividerAnchor(messageId);
             }
           }
@@ -1143,6 +1162,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       applyRateLimit,
       details?.kind,
       maxMessageLength,
+      readStateEnabled,
       setMessages,
       slug,
       updateUnreadDividerAnchor,

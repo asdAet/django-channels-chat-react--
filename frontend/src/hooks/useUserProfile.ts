@@ -57,7 +57,6 @@ export const useUserProfile = (username: string) => {
           user: {
             ...user,
             name: user.name ?? "",
-            last_name: user.last_name ?? "",
             email: user.email || "",
             profileImage: user.profileImage || null,
             avatarCrop: user.avatarCrop ?? null,

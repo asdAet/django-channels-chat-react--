@@ -33,8 +33,8 @@ import type { AvatarCrop } from "../../shared/api/users";
 export type UpdateProfileInput = {
   name?: string;
   last_name?: string;
-  username: string;
-  email: string;
+  username?: string;
+  email?: string;
   image?: File | null;
   avatarCrop?: AvatarCrop | null;
   bio?: string;
@@ -86,6 +86,7 @@ export type ClientRuntimeConfig = {
   chatAttachmentAllowedTypes: string[];
   mediaUrlTtlSeconds: number;
   mediaMode: "signed_only";
+  googleOAuthClientId: string;
 };
 
 /**
@@ -100,15 +101,11 @@ export interface IApiService {
 
   getSession(): Promise<SessionResponse>;
 
-  login(username: string, password: string): Promise<SessionResponse>;
+  login(email: string, password: string): Promise<SessionResponse>;
 
-  register(
-    name: string,
-    lastName: string,
-    username: string,
-    password1: string,
-    password2: string,
-  ): Promise<SessionResponse>;
+  oauthGoogle(accessToken: string): Promise<SessionResponse>;
+
+  register(email: string, password1: string, password2: string): Promise<SessionResponse>;
 
   getPasswordRules(): Promise<{ rules: string[] }>;
 

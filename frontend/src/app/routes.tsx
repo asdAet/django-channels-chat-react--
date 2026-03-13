@@ -23,21 +23,19 @@ type AppRoutesProps = {
   user: UserProfile | null;
   error: string | null;
   passwordRules: string[];
+  googleAuthDisabledReason: string | null;
   onNavigate: (path: string) => void;
-  onLogin: (username: string, password: string) => Promise<void>;
+  onLogin: (email: string, password: string) => Promise<void>;
+  onGoogleOAuth: () => Promise<void>;
   onRegister: (
-    name: string,
-    lastName: string,
-    username: string,
+    email: string,
     password1: string,
     password2: string,
   ) => Promise<void>;
   onLogout: () => Promise<void>;
   onProfileSave: (fields: {
     name?: string;
-    last_name?: string;
-    username: string;
-    email: string;
+    username?: string;
     image?: File | null;
     bio?: string;
   }) => Promise<ProfileSaveResult>;
@@ -128,8 +126,10 @@ export function AppRoutes({
   user,
   error,
   passwordRules,
+  googleAuthDisabledReason,
   onNavigate,
   onLogin,
+  onGoogleOAuth,
   onRegister,
   onLogout,
   onProfileSave,
@@ -143,7 +143,13 @@ export function AppRoutes({
       <Route
         path="/login"
         element={
-          <LoginPage onSubmit={onLogin} onNavigate={onNavigate} error={error} />
+          <LoginPage
+            onSubmit={onLogin}
+            onGoogleAuth={onGoogleOAuth}
+            onNavigate={onNavigate}
+            googleAuthDisabledReason={googleAuthDisabledReason}
+            error={error}
+          />
         }
       />
       <Route
@@ -151,6 +157,8 @@ export function AppRoutes({
         element={
           <RegisterPage
             onSubmit={onRegister}
+            onGoogleAuth={onGoogleOAuth}
+            googleAuthDisabledReason={googleAuthDisabledReason}
             onNavigate={onNavigate}
             error={error}
             passwordRules={passwordRules}

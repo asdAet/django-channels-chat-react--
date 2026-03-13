@@ -13,16 +13,18 @@ const authControllerMock = vi.hoisted(() => ({
   login:
     vi.fn<
       (dto: {
-        username: string;
+        email: string;
         password: string;
       }) => Promise<{ authenticated: boolean; user: UserProfile | null }>
+    >(),
+  oauthGoogle:
+    vi.fn<
+      (idToken: string) => Promise<{ authenticated: boolean; user: UserProfile | null }>
     >(),
   register:
     vi.fn<
       (dto: {
-        name: string;
-        last_name?: string;
-        username: string;
+        email: string;
         password1: string;
         password2: string;
       }) => Promise<{ authenticated: boolean; user: UserProfile | null }>
@@ -40,7 +42,6 @@ import { useAuth } from "./useAuth";
 
 const sessionUser = {
   name: "Demo",
-  last_name: "",
   username: "demo",
   email: "demo@example.com",
   profileImage: null,
@@ -63,6 +64,9 @@ describe("useAuth", () => {
       .mockReset()
       .mockResolvedValue({ authenticated: true, user: sessionUser });
     authControllerMock.login
+      .mockReset()
+      .mockResolvedValue({ authenticated: true, user: sessionUser });
+    authControllerMock.oauthGoogle
       .mockReset()
       .mockResolvedValue({ authenticated: true, user: sessionUser });
     authControllerMock.register
@@ -135,11 +139,9 @@ describe("useAuth", () => {
     await waitFor(() => expect(result.current.auth.loading).toBe(false));
 
     await act(async () => {
-      await result.current.login({ username: "demo", password: "pass12345" });
+      await result.current.login({ email: "demo@example.com", password: "pass12345" });
       await result.current.register({
-        name: "Demo",
-        last_name: "",
-        username: "demo",
+        email: "demo@example.com",
         password1: "pass12345",
         password2: "pass12345",
       });
@@ -151,7 +153,7 @@ describe("useAuth", () => {
      */
 
     expect(authControllerMock.login).toHaveBeenCalledWith({
-      username: "demo",
+      email: "demo@example.com",
       password: "pass12345",
     });
     /**
@@ -160,9 +162,7 @@ describe("useAuth", () => {
      */
 
     expect(authControllerMock.register).toHaveBeenCalledWith({
-      name: "Demo",
-      last_name: "",
-      username: "demo",
+      email: "demo@example.com",
       password1: "pass12345",
       password2: "pass12345",
     });
@@ -171,6 +171,18 @@ describe("useAuth", () => {
      * @returns Результат выполнения `expect`.
      */
 
+    expect(result.current.auth.user?.username).toBe("demo");
+  });
+
+  it("google oauth login refreshes auth user", async () => {
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.auth.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.loginWithGoogle("id-token");
+    });
+
+    expect(authControllerMock.oauthGoogle).toHaveBeenCalledWith("id-token");
     expect(result.current.auth.user?.username).toBe("demo");
   });
 
@@ -214,7 +226,7 @@ describe("useAuth", () => {
     });
 
     await act(async () => {
-      await result.current.updateProfile({ username: "demo", email: "" });
+      await result.current.updateProfile({ username: "demo" });
     });
 
     /**
@@ -242,7 +254,7 @@ describe("useAuth", () => {
     let thrown: unknown = null;
     await act(async () => {
       try {
-        await result.current.updateProfile({ username: "demo", email: "" });
+        await result.current.updateProfile({ username: "demo" });
       } catch (error) {
         thrown = error;
       }
