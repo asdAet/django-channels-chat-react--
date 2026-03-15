@@ -20,9 +20,6 @@ describe("RegisterPage", () => {
     fireEvent.change(screen.getByTestId("auth-name-input"), {
       target: { value: "Alice" },
     });
-    fireEvent.change(screen.getByTestId("auth-email-input"), {
-      target: { value: "alice@example.com" },
-    });
     fireEvent.change(screen.getByTestId("auth-password-input"), {
       target: { value: "secret123" },
     });
@@ -37,7 +34,7 @@ describe("RegisterPage", () => {
       passwordConfirm: "secret123",
       name: "Alice",
       username: undefined,
-      email: "alice@example.com",
+      email: undefined,
     });
   });
 
