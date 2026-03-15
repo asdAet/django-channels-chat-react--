@@ -296,8 +296,6 @@ if (
 
 
 RELAX_PASSWORDS = env_bool("DJANGO_RELAX_PASSWORDS", DEBUG)
-if not DEBUG and RELAX_PASSWORDS:
-    raise ImproperlyConfigured("DJANGO_RELAX_PASSWORDS нельзя включать в production.")
 
 if RELAX_PASSWORDS:
     AUTH_PASSWORD_VALIDATORS = [

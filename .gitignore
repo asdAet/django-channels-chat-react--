@@ -191,3 +191,4 @@ tmp_test_medi/
 presentation/
 
 db.*
+.tmp*
