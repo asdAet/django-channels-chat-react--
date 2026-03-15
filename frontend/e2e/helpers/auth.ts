@@ -77,14 +77,12 @@ export async function registerWithRetry(
   const login = normalized.includes("@")
     ? normalized.split("@", 1)[0]
     : normalized;
-  const email = normalized.includes("@") ? normalized : "";
   const name = login || "user";
 
   for (let attempt = 1; attempt <= 4; attempt += 1) {
     await page.goto("/register");
     await page.getByTestId("auth-login-input").fill(login);
     await page.getByTestId("auth-name-input").fill(name);
-    await page.getByTestId("auth-email-input").fill(email);
     await page.getByTestId("auth-password-input").fill(password);
     await page.getByTestId("auth-confirm-input").fill(password);
 

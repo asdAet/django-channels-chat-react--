@@ -2,10 +2,9 @@
 import { ensureAuthenticated, registerWithRetry } from "./helpers/auth";
 
 async function register(page: Page, username: string, password: string) {
-  const email = `${username}@e2e.local`;
-  await registerWithRetry(page, email, password);
-  await ensureAuthenticated(page, email, password);
-  return email;
+  await registerWithRetry(page, username, password);
+  await ensureAuthenticated(page, username, password);
+  return username;
 }
 
 test("public chat allows authenticated send and keeps guest read-only mode", async ({
@@ -16,12 +15,12 @@ test("public chat allows authenticated send and keeps guest read-only mode", asy
   const password = "pass12345";
   const text = `hello-${Date.now()}`;
 
-  const email = await register(page, username, password);
+  const login = await register(page, username, password);
 
   await page.goto("/rooms/public");
   const authCallout = page.getByTestId("chat-auth-callout");
   if (await authCallout.isVisible().catch(() => false)) {
-    await ensureAuthenticated(page, email, password);
+    await ensureAuthenticated(page, login, password);
     await page.goto("/rooms/public");
   }
 

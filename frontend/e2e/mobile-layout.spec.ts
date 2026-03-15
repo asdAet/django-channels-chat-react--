@@ -15,8 +15,7 @@ const isElementInViewport = async (locator: Locator) =>
   });
 
 async function register(page: Page, username: string, password: string) {
-  const email = `${username}@e2e.local`;
-  await registerWithRetry(page, email, password);
+  await registerWithRetry(page, username, password);
 }
 
 async function login(page: Page, identifier: string, password: string) {
@@ -85,7 +84,6 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
 }) => {
   const username = `k${Math.random().toString(36).slice(2, 9)}`;
   const password = "pass12345";
-  const email = `${username}@e2e.local`;
 
   await register(page, username, password);
   await page.goto("/rooms/public");
@@ -110,7 +108,7 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
     .toBeTruthy();
 
   if (await authCallout.isVisible()) {
-    await login(page, email, password);
+    await login(page, username, password);
     await page.goto("/rooms/public");
     await page.waitForLoadState("networkidle");
   }

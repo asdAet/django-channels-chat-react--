@@ -16,9 +16,7 @@ async function registerAndSetUsername(
   username: string,
   password: string,
 ) {
-  const email = `${username}@e2e.local`;
-
-  await registerWithRetry(page, email, password);
+  await registerWithRetry(page, username, password);
 
   await page.goto("/profile");
   await expect(page.getByTestId("profile-username-input")).toBeVisible({

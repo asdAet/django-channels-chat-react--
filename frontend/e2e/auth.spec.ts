@@ -16,9 +16,7 @@ async function registerAndSetUsername(
   username: string,
   password: string,
 ) {
-  const email = `${username}@e2e.local`;
-
-  await registerWithRetry(page, email, password);
+  await registerWithRetry(page, username, password);
 
   await page.goto("/profile");
   await expect(page.getByTestId("profile-username-input")).toBeVisible({
@@ -52,7 +50,7 @@ test("register and login flow keeps session", async ({ page }) => {
   await page.goto("/login");
   await expect(page).toHaveURL("/login");
 
-  await loginWithRetry(page, `${username}@e2e.local`, password);
+  await loginWithRetry(page, username, password);
 
   await page.goto("/profile");
   await expect(page.getByTestId("profile-username-input")).toBeVisible();

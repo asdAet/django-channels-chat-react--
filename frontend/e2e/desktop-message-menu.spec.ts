@@ -3,8 +3,7 @@
 import { registerWithRetry } from "./helpers/auth";
 
 async function register(page: Page, username: string, password: string) {
-  const email = `${username}@e2e.local`;
-  await registerWithRetry(page, email, password);
+  await registerWithRetry(page, username, password);
 }
 
 test("desktop opens message action menu with right click", async ({ page }) => {
