@@ -142,6 +142,75 @@ describe("useChatRoom", () => {
     expect(result.current.hasMore).toBe(false);
   });
 
+  it("uses latest pagination cursor even with previously captured loadMore callback", async () => {
+    controllerMocks.getRoomDetails.mockResolvedValue({
+      slug: "public",
+      name: "Public",
+      kind: "public",
+      created: false,
+      createdBy: null,
+    });
+    controllerMocks.getRoomMessages
+      .mockResolvedValueOnce({
+        messages: [
+          makeMessage({
+            id: 100,
+            username: "alice",
+            content: "latest",
+            createdAt: "2026-01-01T00:10:00.000Z",
+          }),
+        ],
+        pagination: { limit: 50, hasMore: true, nextBefore: 100 },
+      })
+      .mockResolvedValueOnce({
+        messages: [
+          makeMessage({
+            id: 99,
+            username: "alice",
+            content: "older-1",
+            createdAt: "2026-01-01T00:09:00.000Z",
+          }),
+        ],
+        pagination: { limit: 50, hasMore: true, nextBefore: 99 },
+      })
+      .mockResolvedValueOnce({
+        messages: [
+          makeMessage({
+            id: 98,
+            username: "alice",
+            content: "older-2",
+            createdAt: "2026-01-01T00:08:00.000Z",
+          }),
+        ],
+        pagination: { limit: 50, hasMore: false, nextBefore: null },
+      });
+
+    const { result } = renderHook(() => useChatRoom("public", authUser));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const staleLoadMore = result.current.loadMore;
+    await act(async () => {
+      await staleLoadMore();
+    });
+    await act(async () => {
+      await staleLoadMore();
+    });
+
+    expect(controllerMocks.getRoomMessages).toHaveBeenNthCalledWith(
+      2,
+      "public",
+      { limit: 50, beforeId: 100 },
+    );
+    expect(controllerMocks.getRoomMessages).toHaveBeenNthCalledWith(
+      3,
+      "public",
+      { limit: 50, beforeId: 99 },
+    );
+    expect(result.current.messages.map((item) => item.id)).toEqual([
+      98, 99, 100,
+    ]);
+  });
+
   it("sets load_failed when initial request fails", async () => {
     controllerMocks.getRoomDetails.mockRejectedValue(new Error("boom"));
     controllerMocks.getRoomMessages.mockResolvedValue({

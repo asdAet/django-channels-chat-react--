@@ -69,9 +69,9 @@ type Props = {
 type InitialPositioningPhase = "pending" | "positioning" | "settled";
 type InitialPositioningTarget = "unread" | "bottom";
 
-const RATE_LIMIT_COOLDOWN_MS = 10_000;
 const TYPING_TIMEOUT_MS = 5_000;
 const MAX_HISTORY_JUMP_ATTEMPTS = 60;
+const MAX_HISTORY_NO_PROGRESS_ATTEMPTS = 2;
 const MARK_READ_DEBOUNCE_MS = 180;
 const PENDING_READ_STORAGE_PREFIX = "chat.pendingRead.";
 const CSRF_SESSION_STORAGE_KEY = "csrfToken";
@@ -568,6 +568,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const ensureMessageLoaded = useCallback(
     async (messageId: number) => {
       let attempts = 0;
+      let noProgressAttempts = 0;
+      let previousOldestId = messagesRef.current[0]?.id ?? null;
       while (
         !messagesRef.current.some((msg) => msg.id === messageId) &&
         hasMoreRef.current &&
@@ -578,6 +580,17 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
         }
         attempts += 1;
         await new Promise((resolve) => window.setTimeout(resolve, 70));
+
+        const currentOldestId = messagesRef.current[0]?.id ?? null;
+        if (currentOldestId === previousOldestId) {
+          noProgressAttempts += 1;
+          if (noProgressAttempts >= MAX_HISTORY_NO_PROGRESS_ATTEMPTS) {
+            break;
+          }
+        } else {
+          previousOldestId = currentOldestId;
+          noProgressAttempts = 0;
+        }
       }
       return messagesRef.current.some((msg) => msg.id === messageId);
     },
@@ -1057,11 +1070,11 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
       switch (decoded.type) {
         case "rate_limited": {
-          const retryAfter = Number(decoded.retryAfterSeconds ?? NaN);
-          const cooldownMs = Number.isFinite(retryAfter)
-            ? Math.max(1, retryAfter) * 1000
-            : RATE_LIMIT_COOLDOWN_MS;
-          applyRateLimit(cooldownMs);
+          const retryAfterSeconds = Math.max(
+            1,
+            Number(decoded.retryAfterSeconds ?? 1),
+          );
+          applyRateLimit(retryAfterSeconds * 1000);
           break;
         }
         case "message_too_long":
@@ -1416,7 +1429,6 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     ? Math.max(0, rateLimitUntil - now)
     : 0;
   const rateLimitActive = rateLimitRemainingMs > 0;
-  const rateLimitSeconds = Math.ceil(rateLimitRemainingMs / 1000);
 
   const sendMessage = useCallback(async () => {
     if (!user) {
@@ -1429,7 +1441,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     if (!raw.trim() && !hasQueuedFiles) return;
 
     if (rateLimitActive) {
-      setRoomError(`Слишком часто. Подождите ${rateLimitSeconds} сек.`);
+      setRoomError("Йоу, не так быстро, Вы отправляете сообщения слишком быстро!");
       return;
     }
     if (raw.length > maxMessageLength) {
@@ -1545,7 +1557,6 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     maxMessageLength,
     queuedFiles,
     rateLimitActive,
-    rateLimitSeconds,
     replyTo,
     roomIdForRequests,
     send,
@@ -2330,7 +2341,6 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
               onTyping={sendTyping}
               disabled={status !== "online" || !isOnline}
               rateLimitActive={rateLimitActive}
-              rateLimitSeconds={rateLimitSeconds}
               replyTo={editingMessage ?? replyTo}
               onCancelReply={handleCancelReply}
               onAttach={handleAttach}

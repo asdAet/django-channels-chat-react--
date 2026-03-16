@@ -39,7 +39,11 @@ class WsConnectRateLimitTests(TestCase):
         """Очищает кэш перед каждым сценарием."""
         cache.clear()
 
-    @override_settings(WS_CONNECT_RATE_LIMIT=2, WS_CONNECT_RATE_WINDOW=60)
+    @override_settings(
+        RATE_LIMITS={
+            "ws_connect_default": {"limit": 2, "window_seconds": 60},
+        }
+    )
     def test_ws_connect_rate_limit_counts_and_resets(self):
         """Ограничивает частые connect-запросы и сбрасывает окно по reset."""
         scope = {"client": ("127.0.0.1", 50500), "headers": []}
@@ -64,10 +68,10 @@ class PresenceWsConnectRateLimitTests(TestCase):
         cache.clear()
 
     @override_settings(
-        WS_CONNECT_RATE_LIMIT=1,
-        WS_CONNECT_RATE_WINDOW=60,
-        WS_CONNECT_RATE_LIMIT_PRESENCE=3,
-        WS_CONNECT_RATE_WINDOW_PRESENCE=60,
+        RATE_LIMITS={
+            "ws_connect_default": {"limit": 1, "window_seconds": 60},
+            "ws_connect_presence": {"limit": 3, "window_seconds": 60},
+        }
     )
     def test_presence_uses_dedicated_limits_without_changing_chat_limit(self):
         scope = {"client": ("127.0.0.1", 50501), "headers": []}
@@ -88,6 +92,11 @@ class ChatConsumerInternalTests(TestCase):
         """Проверяет сценарий `setUp`."""
         cache.clear()
         self.user = User.objects.create_user(username='chat_internal_user', password='pass12345')
+        self.superuser = User.objects.create_superuser(
+            username='chat_internal_superuser',
+            email='chat_internal_superuser@example.com',
+            password='pass12345',
+        )
 
     def _consumer(self, user=None):
         """Проверяет сценарий `_consumer`."""
@@ -126,7 +135,11 @@ class ChatConsumerInternalTests(TestCase):
         self.assertEqual(name, '')
         self.assertIsNone(crop)
 
-    @override_settings(CHAT_MESSAGE_RATE_LIMIT=2, CHAT_MESSAGE_RATE_WINDOW=60)
+    @override_settings(
+        RATE_LIMITS={
+            "chat_message_send": {"limit": 2, "window_seconds": 60},
+        }
+    )
     def test_rate_limit_counts_and_resets(self):
         """Проверяет сценарий `test_rate_limit_counts_and_resets`."""
         consumer = self._consumer()
@@ -143,6 +156,21 @@ class ChatConsumerInternalTests(TestCase):
         bucket.reset_at = timezone.now() - timedelta(seconds=1)
         bucket.save(update_fields=['reset_at', 'updated_at'])
         self.assertFalse(async_to_sync(consumer._rate_limited)(self.user))
+
+    @override_settings(
+        RATE_LIMITS={
+            "chat_message_send": {"limit": 1, "window_seconds": 60},
+        }
+    )
+    def test_rate_limit_ignored_for_superuser(self):
+        """Суперпользователь не ограничивается chat message rate-limit."""
+        consumer = self._consumer(user=self.superuser)
+
+        self.assertFalse(async_to_sync(consumer._rate_limited)(self.superuser))
+        self.assertFalse(async_to_sync(consumer._rate_limited)(self.superuser))
+
+        key = f'rl:chat:message:{self.superuser.pk}'
+        self.assertFalse(SecurityRateLimitBucket.objects.filter(scope_key=key).exists())
 
     def test_chat_message_serializes_and_sends_payload(self):
         """Проверяет сценарий `test_chat_message_serializes_and_sends_payload`."""

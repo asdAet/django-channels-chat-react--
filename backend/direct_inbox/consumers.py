@@ -13,7 +13,11 @@ from django.conf import settings
 
 from chat_app_django.ip_utils import get_client_ip_from_scope
 from chat_app_django.security.audit import audit_ws_event
-from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
+from chat_app_django.security.rate_limit import DbRateLimiter
+from chat_app_django.security.rate_limit_config import (
+    ws_connect_rate_limit_disabled,
+    ws_connect_rate_limit_policy,
+)
 from roles.access import can_read
 from rooms.models import Room
 
@@ -36,23 +40,21 @@ def _to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
     """Checks websocket connect rate limit per endpoint and IP."""
-    if bool(getattr(settings, "WS_CONNECT_RATE_LIMIT_DISABLED", False)):
+    if ws_connect_rate_limit_disabled():
         return False
-    limit = int(getattr(settings, "WS_CONNECT_RATE_LIMIT", 60))
-    window = int(getattr(settings, "WS_CONNECT_RATE_WINDOW", 60))
     ip = get_client_ip_from_scope(scope) or "unknown"
     scope_key = f"rl:ws:connect:{endpoint}:{ip}"
-    policy = RateLimitPolicy(limit=limit, window_seconds=window)
+    policy = ws_connect_rate_limit_policy(endpoint)
     return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
 
 
 class DirectInboxConsumer(AsyncWebsocketConsumer):
     """Manages unread/active state for direct message conversations."""
 
-    unread_ttl = int(getattr(settings, "DIRECT_INBOX_UNREAD_TTL", 30 * 24 * 60 * 60))
-    active_ttl = int(getattr(settings, "DIRECT_INBOX_ACTIVE_TTL", 90))
-    heartbeat_seconds = int(getattr(settings, "DIRECT_INBOX_HEARTBEAT", 20))
-    idle_timeout = int(getattr(settings, "DIRECT_INBOX_IDLE_TIMEOUT", 90))
+    unread_ttl = int(settings.DIRECT_INBOX_UNREAD_TTL)
+    active_ttl = int(settings.DIRECT_INBOX_ACTIVE_TTL)
+    heartbeat_seconds = int(settings.DIRECT_INBOX_HEARTBEAT)
+    idle_timeout = int(settings.DIRECT_INBOX_IDLE_TIMEOUT)
 
     async def connect(self):
         user = self.scope.get("user")

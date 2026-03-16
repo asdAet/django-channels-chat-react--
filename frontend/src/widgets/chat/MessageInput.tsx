@@ -17,7 +17,6 @@ type Props = {
   onTyping?: () => void;
   disabled?: boolean;
   rateLimitActive?: boolean;
-  rateLimitSeconds?: number;
   replyTo?: Message | null;
   onCancelReply?: () => void;
   onAttach?: (files: File[]) => void;
@@ -81,7 +80,6 @@ export function MessageInput({
   onTyping,
   disabled,
   rateLimitActive,
-  rateLimitSeconds,
   replyTo,
   onCancelReply,
   onAttach,
@@ -158,8 +156,7 @@ export function MessageInput({
           role="status"
           aria-live="polite"
         >
-          Слишком много сообщений. Подождите{" "}
-          <span className={styles.rateLimitTimer}>{rateLimitSeconds} сек</span>
+          Йоу, не так быстро, Вы отправляете сообщения слишком быстро!
         </div>
       )}
 

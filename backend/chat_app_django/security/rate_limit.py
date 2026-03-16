@@ -1,9 +1,10 @@
-"""Централизованный сервис персистентного rate-limit на базе БД."""
+"""Centralized persistent rate-limit service backed by the DB."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
+import math
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -13,30 +14,30 @@ from users.models import SecurityRateLimitBucket
 
 @dataclass(frozen=True)
 class RateLimitPolicy:
-    """Описывает лимит и окно для конкретного security-сценария."""
+    """Policy with request limit and window in seconds."""
 
     limit: int
     window_seconds: int
 
     def normalized_limit(self) -> int:
-        """Возвращает безопасное значение лимита (не меньше 1)."""
+        """Return a safe limit value (minimum 1)."""
         return max(1, int(self.limit))
 
     def normalized_window(self) -> int:
-        """Возвращает безопасное значение окна в секундах (не меньше 1)."""
+        """Return a safe window value (minimum 1 second)."""
         return max(1, int(self.window_seconds))
 
 
 class DbRateLimiter:
-    """Инкапсулирует атомарное rate-limit состояние в таблице БД."""
+    """Atomic DB-based rate limiter."""
 
     _MAX_RETRIES = 3
 
     @classmethod
     def is_limited(cls, scope_key: str, policy: RateLimitPolicy) -> bool:
-        """Проверяет и увеличивает счетчик для ключа, возвращая факт блокировки."""
+        """Increment bucket and return whether the scope is currently limited."""
         if not scope_key:
-            # Пустой ключ считаем нарушением контракта и блокируем.
+            # Security fail-closed for invalid scope keys.
             return True
 
         limit = policy.normalized_limit()
@@ -74,12 +75,38 @@ class DbRateLimiter:
                     bucket.save(update_fields=["count", "updated_at"])
                     return False
             except IntegrityError:
-                # При гонке повторяем (ограничено _MAX_RETRIES).
+                # Retry on unique-key races.
                 continue
             except Exception:
-                # Security-критичный fail-closed.
+                # Security fail-closed.
                 return True
 
-        # Все попытки исчерпаны — fail-closed.
+        # Too many retries, fail-closed.
         return True
+
+    @classmethod
+    def retry_after_seconds(cls, scope_key: str) -> int | None:
+        """Return remaining bucket lifetime in seconds for `scope_key`."""
+        if not scope_key:
+            # Keep fail-closed behavior for callers that need a cooldown value.
+            return 1
+
+        try:
+            reset_at = (
+                SecurityRateLimitBucket.objects
+                .filter(scope_key=scope_key)
+                .values_list("reset_at", flat=True)
+                .first()
+            )
+            if reset_at is None:
+                return None
+
+            now = timezone.now()
+            if reset_at <= now:
+                return None
+
+            remaining = math.ceil((reset_at - now).total_seconds())
+            return max(1, int(remaining))
+        except Exception:
+            return None
 

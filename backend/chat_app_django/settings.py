@@ -383,16 +383,47 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 
-AUTH_RATE_LIMIT = int(os.getenv("AUTH_RATE_LIMIT", "10"))
-AUTH_RATE_WINDOW = int(os.getenv("AUTH_RATE_WINDOW", "60"))
+# -- Unified rate-limit configuration -----------------------------------------
+# Single source of truth for security throttling.
+#
+# Structure:
+# RATE_LIMITS["<policy_name>"] = {
+#   "limit": <max actions in window>,
+#   "window_seconds": <window duration in seconds>,
+# }
+RATE_LIMITS = {
+    # Login/register attempts per action and client IP.
+    "auth_attempts": {
+        "limit": env_int("AUTH_RATE_LIMIT", 10, minimum=1),
+        "window_seconds": env_int("AUTH_RATE_WINDOW", 60, minimum=1),
+    },
+    # Chat message send throttle per authenticated user.
+    "chat_message_send": {
+        "limit": env_int("CHAT_MESSAGE_RATE_LIMIT", 20, minimum=1),
+        "window_seconds": env_int("CHAT_MESSAGE_RATE_WINDOW", 10, minimum=1),
+    },
+    # Default websocket connect throttle per endpoint/IP pair.
+    "ws_connect_default": {
+        "limit": env_int("WS_CONNECT_RATE_LIMIT", 60, minimum=1),
+        "window_seconds": env_int("WS_CONNECT_RATE_WINDOW", 60, minimum=1),
+    },
+    # Dedicated websocket connect throttle for presence endpoint.
+    "ws_connect_presence": {
+        "limit": env_int("WS_CONNECT_RATE_LIMIT_PRESENCE", 180, minimum=1),
+        "window_seconds": env_int("WS_CONNECT_RATE_WINDOW_PRESENCE", 60, minimum=1),
+    },
+    # Emergency switch to disable websocket connect throttling globally.
+    "ws_connect": {
+        "disabled": env_bool("WS_CONNECT_RATE_LIMIT_DISABLED", False),
+    },
+}
+
 USERNAME_MAX_LENGTH = env_int("USERNAME_MAX_LENGTH", 30, minimum=1)
 if USERNAME_MAX_LENGTH > 150:
     raise ImproperlyConfigured("USERNAME_MAX_LENGTH должен быть <= 150.")
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
 CHAT_MESSAGE_EDIT_WINDOW_SECONDS = env_int("CHAT_MESSAGE_EDIT_WINDOW_SECONDS", 900, minimum=0)
 CHAT_MESSAGE_MAX_LENGTH = int(os.getenv("CHAT_MESSAGE_MAX_LENGTH", "1000"))
-CHAT_MESSAGE_RATE_LIMIT = int(os.getenv("CHAT_MESSAGE_RATE_LIMIT", "20"))
-CHAT_MESSAGE_RATE_WINDOW = int(os.getenv("CHAT_MESSAGE_RATE_WINDOW", "10"))
 CHAT_MESSAGES_PAGE_SIZE = int(os.getenv("CHAT_MESSAGES_PAGE_SIZE", "50"))
 CHAT_MESSAGES_MAX_PAGE_SIZE = int(os.getenv("CHAT_MESSAGES_MAX_PAGE_SIZE", "200"))
 CHAT_WS_IDLE_TIMEOUT = int(os.getenv("CHAT_WS_IDLE_TIMEOUT", "600"))
@@ -408,11 +439,6 @@ CHAT_ATTACHMENT_ALLOWED_TYPES = env_list("CHAT_ATTACHMENT_ALLOWED_TYPES", [
 ])
 CHAT_THUMBNAIL_MAX_SIDE = env_int("CHAT_THUMBNAIL_MAX_SIDE", 400, minimum=50)
 CHAT_DIRECT_SLUG_SALT = os.getenv("CHAT_DIRECT_SLUG_SALT", "").strip() or SECRET_KEY
-WS_CONNECT_RATE_LIMIT = env_int("WS_CONNECT_RATE_LIMIT", 60, minimum=1)
-WS_CONNECT_RATE_WINDOW = env_int("WS_CONNECT_RATE_WINDOW", 60, minimum=1)
-WS_CONNECT_RATE_LIMIT_PRESENCE = env_int("WS_CONNECT_RATE_LIMIT_PRESENCE", 180, minimum=1)
-WS_CONNECT_RATE_WINDOW_PRESENCE = env_int("WS_CONNECT_RATE_WINDOW_PRESENCE", 60, minimum=1)
-WS_CONNECT_RATE_LIMIT_DISABLED = env_bool("WS_CONNECT_RATE_LIMIT_DISABLED", False)
 PRESENCE_TTL = int(os.getenv("PRESENCE_TTL", "40"))
 PRESENCE_GRACE = int(os.getenv("PRESENCE_GRACE", "5"))
 PRESENCE_HEARTBEAT = int(os.getenv("PRESENCE_HEARTBEAT", "20"))
