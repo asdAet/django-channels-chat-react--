@@ -210,7 +210,11 @@ class AuthApiTests(TestCase):
         self.assertEqual(login_response.status_code, 200)
         self.assertTrue(login_response.json().get("authenticated"))
 
-    @override_settings(AUTH_RATE_LIMIT=1, AUTH_RATE_WINDOW=60)
+    @override_settings(
+        RATE_LIMITS={
+            "auth_attempts": {"limit": 1, "window_seconds": 60},
+        }
+    )
     def test_login_rate_limit(self):
         csrf = self._csrf()
         first = self.client.post(

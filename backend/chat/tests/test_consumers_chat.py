@@ -81,7 +81,11 @@ class ChatConsumerTests(TransactionTestCase):
 
         async_to_sync(run)()
 
-    @override_settings(WS_CONNECT_RATE_LIMIT=1, WS_CONNECT_RATE_WINDOW=60)
+    @override_settings(
+        RATE_LIMITS={
+            "ws_connect_default": {"limit": 1, "window_seconds": 60},
+        }
+    )
     def test_chat_connect_rate_limit(self):
         """Отклоняет второе подключение с того же IP при жестком лимите."""
         async def run():
@@ -416,7 +420,11 @@ class ChatConsumerTests(TransactionTestCase):
 
         async_to_sync(run)()
 
-    @override_settings(CHAT_MESSAGE_RATE_LIMIT=1, CHAT_MESSAGE_RATE_WINDOW=30)
+    @override_settings(
+        RATE_LIMITS={
+            "chat_message_send": {"limit": 1, "window_seconds": 30},
+        }
+    )
     def test_rate_limit(self):
         """Проверяет сценарий `test_rate_limit`."""
         async def run():
@@ -433,6 +441,9 @@ class ChatConsumerTests(TransactionTestCase):
             await communicator.send_to(text_data=json.dumps({'message': 'second'}))
             payload = json.loads(await communicator.receive_from(timeout=2))
             self.assertEqual(payload.get('error'), 'rate_limited')
+            self.assertIsInstance(payload.get("retry_after"), int)
+            self.assertGreaterEqual(payload.get("retry_after"), 1)
+            self.assertLessEqual(payload.get("retry_after"), 30)
             await communicator.disconnect()
 
         async_to_sync(run)()

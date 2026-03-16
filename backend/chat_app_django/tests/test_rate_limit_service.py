@@ -1,9 +1,12 @@
 from unittest.mock import patch
+from datetime import timedelta
 
 from django.db import IntegrityError
 from django.test import TestCase
+from django.utils import timezone
 
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
+from users.models import SecurityRateLimitBucket
 
 
 class RateLimitServiceTests(TestCase):
@@ -31,3 +34,30 @@ class RateLimitServiceTests(TestCase):
             side_effect=RuntimeError("boom"),
         ):
             self.assertTrue(DbRateLimiter.is_limited(scope_key="auth:login:5.6.7.8", policy=policy))
+
+    def test_retry_after_seconds_returns_remaining_time(self):
+        key = "rl:test:remaining"
+        SecurityRateLimitBucket.objects.create(
+            scope_key=key,
+            count=3,
+            reset_at=timezone.now() + timedelta(seconds=5),
+        )
+        retry_after = DbRateLimiter.retry_after_seconds(key)
+        self.assertIsNotNone(retry_after)
+        self.assertIsInstance(retry_after, int)
+        self.assertGreaterEqual(int(retry_after), 1)
+        self.assertLessEqual(int(retry_after), 5)
+
+    def test_retry_after_seconds_returns_none_for_missing_or_expired_bucket(self):
+        self.assertIsNone(DbRateLimiter.retry_after_seconds("rl:test:missing"))
+
+        key = "rl:test:expired"
+        SecurityRateLimitBucket.objects.create(
+            scope_key=key,
+            count=3,
+            reset_at=timezone.now() - timedelta(seconds=1),
+        )
+        self.assertIsNone(DbRateLimiter.retry_after_seconds(key))
+
+    def test_retry_after_seconds_empty_scope_is_fail_closed_value(self):
+        self.assertEqual(DbRateLimiter.retry_after_seconds(""), 1)

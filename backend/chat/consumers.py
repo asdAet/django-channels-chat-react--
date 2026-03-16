@@ -14,6 +14,11 @@ from chat_app_django.ip_utils import get_client_ip_from_scope
 from chat_app_django.media_utils import build_profile_url, serialize_avatar_crop
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
+from chat_app_django.security.rate_limit_config import (
+    chat_message_rate_limit_policy,
+    ws_connect_rate_limit_disabled,
+    ws_connect_rate_limit_policy,
+)
 
 from direct_inbox.state import (
     mark_read,
@@ -36,21 +41,19 @@ from .constants import CHAT_CLOSE_IDLE_CODE
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
     """Checks websocket connect rate limit per endpoint and IP."""
-    if bool(getattr(settings, "WS_CONNECT_RATE_LIMIT_DISABLED", False)):
+    if ws_connect_rate_limit_disabled():
         return False
-    limit = int(getattr(settings, "WS_CONNECT_RATE_LIMIT", 60))
-    window = int(getattr(settings, "WS_CONNECT_RATE_WINDOW", 60))
     ip = get_client_ip_from_scope(scope) or "unknown"
     scope_key = f"rl:ws:connect:{endpoint}:{ip}"
-    policy = RateLimitPolicy(limit=limit, window_seconds=window)
+    policy = ws_connect_rate_limit_policy(endpoint)
     return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     """WebSocket consumer for chat room messaging."""
 
-    chat_idle_timeout = int(getattr(settings, "CHAT_WS_IDLE_TIMEOUT", 600))
-    direct_inbox_unread_ttl = int(getattr(settings, "DIRECT_INBOX_UNREAD_TTL", 30 * 24 * 60 * 60))
+    chat_idle_timeout = int(settings.CHAT_WS_IDLE_TIMEOUT)
+    direct_inbox_unread_ttl = int(settings.DIRECT_INBOX_UNREAD_TTL)
 
     async def connect(self):
         user = self.scope.get("user")
@@ -187,7 +190,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="empty_message")
             return
 
-        max_len = int(getattr(settings, "CHAT_MESSAGE_MAX_LENGTH", 1000))
+        max_len = int(settings.CHAT_MESSAGE_MAX_LENGTH)
         if len(message) > max_len:
             audit_ws_event(
                 "ws.message.rejected",
@@ -222,7 +225,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if await self._rate_limited(user):
             audit_ws_event("ws.message.rate_limited", self.scope, endpoint="chat", room_id=self.room.pk)
-            await self.send(text_data=json.dumps({"error": "rate_limited"}))
+            payload: dict[str, object] = {"error": "rate_limited"}
+            retry_after = await self._rate_limit_retry_after_seconds(user)
+            if isinstance(retry_after, int) and retry_after > 0:
+                payload["retry_after"] = retry_after
+            await self.send(text_data=json.dumps(payload))
             return
 
         if await self._slow_mode_limited(user):
@@ -406,11 +413,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @sync_to_async
     def _rate_limited(self, user) -> bool:
         """Checks chat message rate limit for the current user."""
-        limit = int(getattr(settings, "CHAT_MESSAGE_RATE_LIMIT", 20))
-        window = int(getattr(settings, "CHAT_MESSAGE_RATE_WINDOW", 10))
-        scope_key = f"rl:chat:message:{user.pk}"
-        policy = RateLimitPolicy(limit=limit, window_seconds=window)
+        if bool(getattr(user, "is_superuser", False)):
+            return False
+        scope_key = self._chat_message_rate_limit_scope_key(user)
+        policy = chat_message_rate_limit_policy()
         return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
+
+    @sync_to_async
+    def _rate_limit_retry_after_seconds(self, user) -> int | None:
+        """Returns remaining chat message cooldown for current user."""
+        if bool(getattr(user, "is_superuser", False)):
+            return None
+        scope_key = self._chat_message_rate_limit_scope_key(user)
+        return DbRateLimiter.retry_after_seconds(scope_key)
+
+    @staticmethod
+    def _chat_message_rate_limit_scope_key(user) -> str:
+        return f"rl:chat:message:{user.pk}"
 
     @sync_to_async
     def _slow_mode_limited(self, user) -> bool:

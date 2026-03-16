@@ -30,7 +30,8 @@ from chat_app_django.media_utils import (
     serialize_avatar_crop,
 )
 from chat_app_django.security.audit import audit_http_event
-from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
+from chat_app_django.security.rate_limit import DbRateLimiter
+from chat_app_django.security.rate_limit_config import auth_rate_limit_policy
 
 from users.application import auth_service
 from users.application.errors import IdentityServiceError
@@ -110,11 +111,9 @@ def _get_client_ip(request) -> str:
 
 
 def _rate_limited(request, action: str) -> bool:
-    limit = int(getattr(settings, "AUTH_RATE_LIMIT", 10))
-    window = int(getattr(settings, "AUTH_RATE_WINDOW", 60))
     ip = _get_client_ip(request) or "unknown"
     scope_key = f"rl:auth:{action}:{ip}"
-    policy = RateLimitPolicy(limit=limit, window_seconds=window)
+    policy = auth_rate_limit_policy()
     return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
 
 

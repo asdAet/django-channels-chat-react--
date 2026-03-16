@@ -80,14 +80,29 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
   const [state, setState] = useState<ChatRoomState>(() =>
     createInitialRoomState(slug),
   );
+  const stateRef = useRef<ChatRoomState>(state);
 
   const requestIdRef = useRef(0);
+
+  const setStateSynced = useCallback(
+    (updater: ChatRoomState | ((prev: ChatRoomState) => ChatRoomState)) => {
+      setState((prev) => {
+        const next =
+          typeof updater === "function"
+            ? (updater as (prev: ChatRoomState) => ChatRoomState)(prev)
+            : updater;
+        stateRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
 
   const loadInitial = useCallback(() => {
     if (!canView) return;
 
     const requestId = ++requestIdRef.current;
-    setState(createInitialRoomState(slug));
+    setStateSynced(createInitialRoomState(slug));
 
     Promise.all([
       chatController.getRoomDetails(slug),
@@ -99,7 +114,7 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
           sanitizeMessage(message, messageMaxLength),
         );
         const unique = dedupeMessages(sanitized);
-        setState({
+        setStateSynced({
           roomSlug: slug,
           details: info,
           messages: unique,
@@ -113,14 +128,14 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
       .catch((err) => {
         if (requestId !== requestIdRef.current) return;
         debugLog("Room load failed", err);
-        setState((prev) => ({
+        setStateSynced((prev) => ({
           ...prev,
           roomSlug: slug,
           loading: false,
           error: "load_failed",
         }));
       });
-  }, [canView, messageMaxLength, slug]);
+  }, [canView, messageMaxLength, setStateSynced, slug]);
 
   useEffect(() => {
     const taskId = window.setTimeout(() => {
@@ -132,16 +147,17 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
   }, [loadInitial]);
 
   const loadMore = useCallback(async () => {
-    if (!canView || state.loadingMore || !state.hasMore) return;
+    const current = stateRef.current;
+    if (!canView || current.loadingMore || !current.hasMore) return;
 
-    const cursor = state.nextBefore;
+    const cursor = current.nextBefore;
     if (!cursor) {
-      setState((prev) => ({ ...prev, hasMore: false, nextBefore: null }));
+      setStateSynced((prev) => ({ ...prev, hasMore: false, nextBefore: null }));
       return;
     }
 
     const requestId = ++requestIdRef.current;
-    setState((prev) => ({ ...prev, loadingMore: true }));
+    setStateSynced((prev) => ({ ...prev, loadingMore: true }));
 
     try {
       const payload = await chatController.getRoomMessages(slug, {
@@ -154,7 +170,7 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
       const sanitized = payload.messages.map((message) =>
         sanitizeMessage(message, messageMaxLength),
       );
-      setState((prev) => ({
+      setStateSynced((prev) => ({
         ...prev,
         roomSlug: slug,
         messages: dedupeMessages([...sanitized, ...prev.messages]),
@@ -165,20 +181,17 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
       debugLog("Room load more failed", err);
-      setState((prev) => ({ ...prev, roomSlug: slug, loadingMore: false }));
+      setStateSynced((prev) => ({
+        ...prev,
+        roomSlug: slug,
+        loadingMore: false,
+      }));
     }
-  }, [
-    canView,
-    messageMaxLength,
-    slug,
-    state.hasMore,
-    state.loadingMore,
-    state.nextBefore,
-  ]);
+  }, [canView, messageMaxLength, setStateSynced, slug]);
 
   const setMessages = useCallback(
     (updater: Message[] | ((prev: Message[]) => Message[])) => {
-      setState((prev) => {
+      setStateSynced((prev) => {
         const nextMessages =
           typeof updater === "function" ? updater(prev.messages) : updater;
         const sanitized = nextMessages.map((message) =>
@@ -187,12 +200,12 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
         return { ...prev, messages: dedupeMessages(sanitized) };
       });
     },
-    [messageMaxLength],
+    [messageMaxLength, setStateSynced],
   );
 
   const setError = useCallback((error: string | null) => {
-    setState((prev) => ({ ...prev, error }));
-  }, []);
+    setStateSynced((prev) => ({ ...prev, error }));
+  }, [setStateSynced]);
 
   const visibleState =
     state.roomSlug === slug ? state : createInitialRoomState(slug);
