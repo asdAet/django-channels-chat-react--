@@ -87,6 +87,7 @@ def _serialize_peer(request, user, *, is_blocked: bool = False):
         last_seen = None
     return {
         "userId": user.pk,
+        "publicRef": user_public_ref(user),
         "username": user_public_username(user),
         "displayName": user_display_name(user),
         "profileImage": profile_pic,
@@ -101,9 +102,16 @@ def _serialize_reply_to(message: Message | None):
     if not message:
         return None
     if message.is_deleted:
-        return {"id": message.pk, "username": None, "displayName": None, "content": "[удалено]"}
+        return {
+            "id": message.pk,
+            "publicRef": None,
+            "username": None,
+            "displayName": None,
+            "content": "[удалено]",
+        }
     return {
         "id": message.pk,
+        "publicRef": user_public_ref(message.user) if message.user else None,
         "username": user_public_username(message.user) if message.user else message.username,
         "displayName": user_display_name(message.user) if message.user else (message.username or ""),
         "content": message.message_content[:150],
@@ -210,7 +218,7 @@ def _serialize_room_details(request, room: Room, created: bool):
         "kind": room.kind,
         "created": created,
         "createdBy": user_display_name(room.created_by) if room.created_by else None,
-        "createdByRef": user_public_username(room.created_by) if room.created_by else None,
+        "createdByRef": user_public_ref(room.created_by) if room.created_by else None,
         "publicRef": room_public_ref(room) if room.kind == Room.Kind.GROUP else None,
         "peer": None,
         "avatarUrl": group_avatar_url,
@@ -522,6 +530,7 @@ def message_detail(request, room_id: int, message_id):
                 "messageId": msg.pk,
                 "content": msg.message_content,
                 "editedAt": edited_at.isoformat(),
+                "editedByRef": user_public_ref(request.user),
                 "editedBy": user_public_username(request.user),
             })
             return Response({
@@ -534,6 +543,7 @@ def message_detail(request, room_id: int, message_id):
             _broadcast_to_room(room, {
                 "type": "chat_message_delete",
                 "messageId": msg.pk,
+                "deletedByRef": user_public_ref(request.user),
                 "deletedBy": user_public_username(request.user),
             })
             return Response(status=http_status.HTTP_204_NO_CONTENT)
@@ -573,6 +583,7 @@ def message_reactions(request, room_id: int, message_id):
             "messageId": message_id,
             "emoji": reaction.emoji,
             "userId": request.user.pk,
+            "publicRef": user_public_ref(request.user),
             "username": user_public_username(request.user),
             "displayName": user_display_name(request.user),
         })
@@ -580,6 +591,7 @@ def message_reactions(request, room_id: int, message_id):
             "messageId": message_id,
             "emoji": reaction.emoji,
             "userId": request.user.pk,
+            "publicRef": user_public_ref(request.user),
             "username": user_public_username(request.user),
             "displayName": user_display_name(request.user),
         })
@@ -611,6 +623,7 @@ def message_reaction_remove(request, room_id: int, message_id, emoji):
         "messageId": message_id,
         "emoji": emoji,
         "userId": request.user.pk,
+        "publicRef": user_public_ref(request.user),
         "username": user_public_username(request.user),
         "displayName": user_display_name(request.user),
     })
@@ -672,6 +685,9 @@ def upload_attachments(request, room_id: int):
                 **_serialize_attachment_item(request, attachment),
                 "messageId": attachment.message_id,
                 "createdAt": attachment.message.date_added.isoformat(),
+                "publicRef": user_public_ref(attachment.message.user)
+                if attachment.message.user
+                else attachment.message.username,
                 "username": user_public_username(attachment.message.user)
                 if attachment.message.user
                 else attachment.message.username,
@@ -875,6 +891,7 @@ def upload_attachments(request, room_id: int):
     _broadcast_to_room(room, {
         "type": "chat_message",
         "message": message_content,
+        "publicRef": user_public_ref(user),
         "username": user_public_username(user),
         "displayName": user_display_name(user),
         "profile_pic": profile_url,
@@ -932,27 +949,31 @@ def search_messages(request, room_id: int):
         qs = qs.filter(id__lt=before_id)
 
     if connection.vendor == "postgresql":
-        from django.contrib.postgres import search as pg_search
+        try:
+            from django.contrib.postgres import search as pg_search
 
-        vector = pg_search.SearchVector("message_content", config="russian")
-        query = pg_search.SearchQuery(q, config="russian", search_type="websearch")
-        qs = (
-            qs.annotate(search=vector, rank=pg_search.SearchRank(vector, query))
-            .filter(search=query)
-            .order_by("-rank", "-id")
-        )
-        search_headline = getattr(pg_search, "SearchHeadline", None)
-        if search_headline is not None:
-            qs = qs.annotate(
-                headline=search_headline(
-                    "message_content",
-                    query,
-                    start_sel="<mark>",
-                    stop_sel="</mark>",
-                    max_words=50,
-                    min_words=20,
-                )
+            vector = pg_search.SearchVector("message_content", config="russian")
+            query = pg_search.SearchQuery(q, config="russian", search_type="websearch")
+            qs = (
+                qs.annotate(search=vector, rank=pg_search.SearchRank(vector, query))
+                .filter(Q(search=query) | Q(message_content__icontains=q))
+                .order_by("-rank", "-id")
             )
+            search_headline = getattr(pg_search, "SearchHeadline", None)
+            if search_headline is not None:
+                qs = qs.annotate(
+                    headline=search_headline(
+                        "message_content",
+                        query,
+                        start_sel="<mark>",
+                        stop_sel="</mark>",
+                        max_words=50,
+                        min_words=20,
+                    )
+                )
+        except Exception:
+            # Fallback to deterministic substring search if FTS parser/config fails.
+            qs = qs.filter(message_content__icontains=q).order_by("-id")
     else:
         qs = qs.filter(message_content__icontains=q).order_by("-id")
 
@@ -965,6 +986,7 @@ def search_messages(request, room_id: int):
     for msg in batch:
         results.append({
             "id": msg.pk,
+            "publicRef": user_public_ref(msg.user) if msg.user else msg.username,
             "username": user_public_username(msg.user) if msg.user else msg.username,
             "displayName": user_display_name(msg.user) if msg.user else (msg.username or ""),
             "content": msg.message_content,
@@ -1040,7 +1062,10 @@ def _interaction_user_ids(user, room_ids: set[int]) -> set[int]:
 @permission_classes([IsAuthenticated])
 def global_search(request):
     raw_q = request.query_params.get("q", "").strip()
-    q = raw_q[1:].strip() if raw_q.startswith("@") else raw_q
+    if len(raw_q) < 2:
+        return Response({"error": "Запрос должен содержать минимум 2 символа"}, status=http_status.HTTP_400_BAD_REQUEST)
+    is_handle_query = raw_q.startswith("@")
+    q = raw_q[1:].strip() if is_handle_query else raw_q
     if len(q) < 2:
         return Response({"error": "Запрос должен содержать минимум 2 символа"}, status=http_status.HTTP_400_BAD_REQUEST)
 
@@ -1048,35 +1073,38 @@ def global_search(request):
     groups_limit = _parse_section_limit(request, "groupsLimit", 8, 20)
     messages_limit = _parse_section_limit(request, "messagesLimit", 15, 50)
 
-    interaction_room_ids = _interaction_room_ids(request.user)
-    interaction_user_ids = _interaction_user_ids(request.user, interaction_room_ids)
+    actor_is_superuser = bool(getattr(request.user, "is_superuser", False))
+    interaction_room_ids: set[int] = set()
+    interaction_user_ids: set[int] = set()
+    if not actor_is_superuser:
+        interaction_room_ids = _interaction_room_ids(request.user)
+        interaction_user_ids = _interaction_user_ids(request.user, interaction_room_ids)
 
     users = []
     groups = []
-    handle_query = q.lower()
-    user_ids_by_handle = list(
-        PublicHandle.objects.filter(user_id__isnull=False, handle__icontains=handle_query)
-        .values_list("user_id", flat=True)
-    )
-    users_qs = (
-        User.objects.filter(pk__in=interaction_user_ids)
-        .filter(pk__in=user_ids_by_handle)
-        .select_related("profile")
-        .order_by("id")[:users_limit]
-    )
-    users = [_serialize_peer(request, found_user) for found_user in users_qs]
+    if is_handle_query:
+        handle_query = q.lower()
+        user_ids_by_handle = list(
+            PublicHandle.objects.filter(user_id__isnull=False, handle__icontains=handle_query)
+            .values_list("user_id", flat=True)
+        )
+        users_qs = User.objects.filter(pk__in=user_ids_by_handle)
+        if actor_is_superuser:
+            users_qs = users_qs.exclude(pk=request.user.pk)
+        else:
+            users_qs = users_qs.filter(pk__in=interaction_user_ids)
+        users_qs = users_qs.select_related("profile").order_by("id")[:users_limit]
+        users = [_serialize_peer(request, found_user) for found_user in users_qs]
 
+    group_handle_query = q.lower()
     group_room_ids = list(
-        PublicHandle.objects.filter(room_id__isnull=False, handle__icontains=handle_query)
+        PublicHandle.objects.filter(room_id__isnull=False, handle__icontains=group_handle_query)
         .values_list("room_id", flat=True)
     )
-    groups_qs = (
-        Room.objects.filter(kind=Room.Kind.GROUP)
-        .filter(Q(id__in=interaction_room_ids) | Q(is_public=True))
-        .filter(id__in=group_room_ids)
-        .distinct()
-        .order_by("-member_count", "name")[:groups_limit]
-    )
+    groups_qs = Room.objects.filter(kind=Room.Kind.GROUP).filter(id__in=group_room_ids)
+    if not actor_is_superuser:
+        groups_qs = groups_qs.filter(Q(id__in=interaction_room_ids) | Q(is_public=True))
+    groups_qs = groups_qs.distinct().order_by("-member_count", "name")[:groups_limit]
     groups = []
     for room in groups_qs:
         groups.append(
@@ -1090,7 +1118,16 @@ def global_search(request):
             }
         )
 
-    if interaction_room_ids:
+    if actor_is_superuser:
+        messages_qs = (
+            Message.objects.filter(
+                is_deleted=False,
+                message_content__icontains=q,
+            )
+            .select_related("room", "user")
+            .order_by("-id")[:messages_limit]
+        )
+    elif interaction_room_ids:
         messages_qs = (
             Message.objects.filter(
                 room_id__in=interaction_room_ids,
@@ -1106,6 +1143,7 @@ def global_search(request):
     messages = [
         {
             "id": msg.pk,
+            "publicRef": user_public_ref(msg.user) if msg.user else msg.username,
             "username": user_public_username(msg.user) if msg.user else msg.username,
             "displayName": user_display_name(msg.user) if msg.user else (msg.username or ""),
             "content": msg.message_content,
@@ -1169,6 +1207,7 @@ def mark_read_view(request, room_id: int):
     _broadcast_to_room(room, {
         "type": "chat_read_receipt",
         "userId": request.user.pk,
+        "publicRef": user_public_ref(request.user),
         "username": user_public_username(request.user),
         "displayName": user_display_name(request.user),
         "lastReadMessageId": state.last_read_message_id,

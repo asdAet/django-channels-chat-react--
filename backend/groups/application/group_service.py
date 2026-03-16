@@ -452,14 +452,18 @@ def list_my_groups(
     _ensure_authenticated(actor)
     limit = max(1, min(int(limit), 100))
 
-    qs = (
-        Room.objects.filter(
-            kind=Room.Kind.GROUP,
-            memberships__user=actor,
-            memberships__is_banned=False,
+    actor_is_superuser = bool(getattr(actor, "is_superuser", False))
+    if actor_is_superuser:
+        qs = Room.objects.filter(kind=Room.Kind.GROUP)
+    else:
+        qs = (
+            Room.objects.filter(
+                kind=Room.Kind.GROUP,
+                memberships__user=actor,
+                memberships__is_banned=False,
+            )
+            .distinct()
         )
-        .distinct()
-    )
 
     if search:
         value = search.strip().lower()

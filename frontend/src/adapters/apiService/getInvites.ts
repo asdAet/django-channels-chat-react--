@@ -5,10 +5,10 @@ import type { GroupInvite } from "../../entities/group/types";
 
 export async function getInvites(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
 ): Promise<GroupInvite[]> {
   const response = await apiClient.get<unknown>(
-    `/groups/${encodeURIComponent(slug)}/invites/`,
+    `/groups/${encodeURIComponent(roomId)}/invites/`,
   );
   return decodeInvitesResponse(response.data);
 }

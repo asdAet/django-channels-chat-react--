@@ -26,7 +26,7 @@ from presence.constants import PRESENCE_CLOSE_IDLE_CODE
 from presence.consumers import PresenceConsumer, _ws_connect_rate_limited as _presence_ws_connect_rate_limited
 from rooms.services import ensure_membership
 from rooms.models import Room
-from users.identity import set_user_public_handle
+from users.identity import set_user_public_handle, user_public_ref
 from users.models import SecurityRateLimitBucket
 
 User = get_user_model()
@@ -429,7 +429,7 @@ class PresenceConsumerInternalTests(TestCase):
 
         async_to_sync(consumer._touch_user)(self.user)
         state = cache.get(consumer.cache_key)
-        self.assertEqual(state[self.user.username]['count'], 1)
+        self.assertEqual(state[user_public_ref(self.user)]['count'], 1)
 
         async_to_sync(consumer._touch_guest)(None)
         async_to_sync(consumer._touch_guest)('203.0.113.20')

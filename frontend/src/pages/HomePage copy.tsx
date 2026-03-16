@@ -19,6 +19,7 @@ import { useReconnectingWebSocket } from "../hooks/useReconnectingWebSocket";
 import { usePresence } from "../shared/presence";
 
 import { debugLog } from "../shared/lib/debug";
+import { buildUserProfilePath, normalizePublicRef } from "../shared/lib/publicRef";
 
 import { sanitizeText } from "../shared/lib/sanitize";
 
@@ -67,7 +68,15 @@ export function HomePage({ user, onNavigate }: Props) {
 
   const onlineUsernames = useMemo(
     () =>
-      new Set(status === "online" ? online.map((entry) => entry.username) : []),
+      new Set(
+        status === "online"
+          ? online
+              .map((entry) =>
+                normalizePublicRef(entry.publicRef || entry.username).toLowerCase(),
+              )
+              .filter(Boolean)
+          : [],
+      ),
 
     [online, status],
   );
@@ -79,10 +88,9 @@ export function HomePage({ user, onNavigate }: Props) {
   const publicRoomLabel = visiblePublicRoom?.name || "Комната для всех";
 
   const openUserProfile = useCallback(
-    (username: string) => {
-      if (!username) return;
-
-      onNavigate(`/users/${encodeURIComponent(username)}`);
+    (publicRef: string) => {
+      if (!publicRef) return;
+      onNavigate(buildUserProfilePath(publicRef));
     },
 
     [onNavigate],
@@ -141,6 +149,8 @@ export function HomePage({ user, onNavigate }: Props) {
 
       const next: Message = {
         id: buildTempId(tempIdRef.current),
+
+        publicRef: decoded.message.publicRef,
 
         username: decoded.message.username,
 
@@ -457,18 +467,27 @@ export function HomePage({ user, onNavigate }: Props) {
           ) : online.length ? (
             <div className={styles.onlineList}>
               {online.map((entry) => (
-                <div className={styles.onlineItem} key={entry.username}>
+                <div
+                  className={styles.onlineItem}
+                  key={entry.publicRef || entry.username}
+                >
                   <button
                     type="button"
                     className={styles.avatarLink}
                     aria-label={`Открыть профиль пользователя ${entry.username}`}
-                    onClick={() => openUserProfile(entry.username)}
+                    onClick={() =>
+                      openUserProfile(entry.publicRef || entry.username)
+                    }
                   >
                     <Avatar
                       username={entry.username}
                       profileImage={entry.profileImage}
                       size="tiny"
-                      online={onlineUsernames.has(entry.username)}
+                      online={onlineUsernames.has(
+                        normalizePublicRef(
+                          entry.publicRef || entry.username,
+                        ).toLowerCase(),
+                      )}
                     />
                   </button>
 

@@ -5,10 +5,10 @@ import type { PermissionOverride } from "../../entities/role/types";
 
 export async function getRoomOverrides(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
 ): Promise<PermissionOverride[]> {
   const response = await apiClient.get<unknown>(
-    `/chat/rooms/${encodeURIComponent(slug)}/overrides/`,
+    `/chat/rooms/${encodeURIComponent(roomId)}/overrides/`,
   );
   return decodeOverridesResponse(response.data);
 }

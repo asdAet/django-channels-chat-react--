@@ -2,12 +2,12 @@ import type { AxiosInstance } from "axios";
 
 export async function muteMember(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   userId: number,
   durationSeconds = 3600,
 ): Promise<void> {
   await apiClient.post(
-    `/groups/${encodeURIComponent(slug)}/members/${userId}/mute/`,
+    `/groups/${encodeURIComponent(roomId)}/members/${userId}/mute/`,
     { durationSeconds },
   );
 }

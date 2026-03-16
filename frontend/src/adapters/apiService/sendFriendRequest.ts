@@ -5,10 +5,10 @@ import type { SendFriendRequestResponse } from "../../dto/http/friends";
 
 export async function sendFriendRequest(
   apiClient: AxiosInstance,
-  username: string,
+  publicRef: string,
 ): Promise<SendFriendRequestResponse> {
   const response = await apiClient.post<unknown>("/friends/requests/", {
-    username,
+    ref: publicRef,
   });
   return decodeSendFriendRequestResponse(response.data);
 }

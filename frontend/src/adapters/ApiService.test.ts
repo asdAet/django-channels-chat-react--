@@ -10,6 +10,7 @@ const friendItem = {
   id: 10,
   user: {
     id: 22,
+    publicRef: "alice",
     username: "alice",
     profileImage: null,
     avatarCrop: null,
@@ -381,15 +382,15 @@ describe("ApiService", () => {
   });
 
   it("supports friends endpoints", async () => {
-    let sentUsername = "";
+    let sentRef = "";
 
     server.use(
       http.get("/api/friends/", () =>
         HttpResponse.json({ items: [friendItem] }),
       ),
       http.post("/api/friends/requests/", async ({ request }) => {
-        const payload = (await request.json()) as { username?: string };
-        sentUsername = payload.username ?? "";
+        const payload = (await request.json()) as { ref?: string };
+        sentRef = payload.ref ?? "";
         return HttpResponse.json({ item: friendItem });
       }),
       http.get("/api/friends/requests/incoming/", () =>
@@ -434,7 +435,7 @@ describe("ApiService", () => {
     await apiService.unblockUser(22);
 
     expect(await apiService.getBlockedUsers()).toHaveLength(1);
-    expect(sentUsername).toBe("alice");
+    expect(sentRef).toBe("alice");
   });
 
   it("supports group core and moderation endpoints", async () => {
@@ -774,6 +775,7 @@ describe("ApiService", () => {
         return HttpResponse.json({
           users: [
             {
+              publicRef: "alice",
               username: "alice",
               profileImage: null,
               avatarCrop: null,
@@ -793,6 +795,7 @@ describe("ApiService", () => {
           messages: [
             {
               id: 44,
+              publicRef: "alice",
               username: "alice",
               content: "hello",
               createdAt: now,
@@ -819,6 +822,7 @@ describe("ApiService", () => {
               height: null,
               messageId: 44,
               createdAt: now,
+              publicRef: "alice",
               username: "alice",
             },
           ],
@@ -879,6 +883,81 @@ describe("ApiService", () => {
 
     expect(listRoomRef).toBe("777");
     expect(readRoomRef).toBe("777");
+  });
+
+  it("resolves public room ref to numeric roomId for message mutation/search endpoints", async () => {
+    let editRoomRef = "";
+    let deleteRoomRef = "";
+    let addReactionRoomRef = "";
+    let removeReactionRoomRef = "";
+    let searchRoomRef = "";
+    let searchQuery = "";
+
+    server.use(
+      http.get("/api/chat/public-room/", () =>
+        HttpResponse.json({
+          roomId: 777,
+          name: "Public",
+          kind: "public",
+        }),
+      ),
+      http.patch("/api/chat/rooms/:slug/messages/:messageId/", ({ params }) => {
+        editRoomRef = String(params.slug);
+        return HttpResponse.json({
+          id: Number(params.messageId),
+          content: "edited",
+          editedAt: now,
+        });
+      }),
+      http.delete(
+        "/api/chat/rooms/:slug/messages/:messageId/",
+        ({ params }) => {
+          deleteRoomRef = String(params.slug);
+          return HttpResponse.json({ ok: true });
+        },
+      ),
+      http.post(
+        "/api/chat/rooms/:slug/messages/:messageId/reactions/",
+        ({ params }) => {
+          addReactionRoomRef = String(params.slug);
+          return HttpResponse.json({
+            messageId: Number(params.messageId),
+            emoji: "👍",
+            userId: 1,
+            publicRef: "alice",
+            username: "alice",
+          });
+        },
+      ),
+      http.delete(
+        "/api/chat/rooms/:slug/messages/:messageId/reactions/:emoji/",
+        ({ params }) => {
+          removeReactionRoomRef = String(params.slug);
+          return HttpResponse.json({ ok: true });
+        },
+      ),
+      http.get("/api/chat/rooms/:slug/messages/search/", ({ params, request }) => {
+        searchRoomRef = String(params.slug);
+        searchQuery = new URL(request.url).searchParams.get("q") ?? "";
+        return HttpResponse.json({
+          results: [],
+          pagination: { limit: 50, hasMore: false, nextBefore: null },
+        });
+      }),
+    );
+
+    await apiService.editMessage("public", 188, "edited");
+    await apiService.deleteMessage("public", 188);
+    await apiService.addReaction("public", 188, "👍");
+    await apiService.removeReaction("public", 188, "👍");
+    await apiService.searchMessages("public", "hello");
+
+    expect(editRoomRef).toBe("777");
+    expect(deleteRoomRef).toBe("777");
+    expect(addReactionRoomRef).toBe("777");
+    expect(removeReactionRoomRef).toBe("777");
+    expect(searchRoomRef).toBe("777");
+    expect(searchQuery).toBe("hello");
   });
 
   it("normalizes role endpoint errors in extended matrix scenarios", async () => {

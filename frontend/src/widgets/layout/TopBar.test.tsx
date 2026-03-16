@@ -7,7 +7,11 @@ const directInboxMock = vi.hoisted(() => ({
 }));
 
 const presenceMock = vi.hoisted(() => ({
-  online: [] as Array<{ username: string; profileImage: string | null }>,
+  online: [] as Array<{
+    publicRef: string;
+    username: string;
+    profileImage: string | null;
+  }>,
   guests: 0,
   status: "online" as const,
   lastError: null as string | null,
@@ -24,6 +28,7 @@ vi.mock("../../shared/presence", () => ({
 import { TopBar } from "./TopBar";
 
 const user = {
+  publicRef: "demo",
   username: "demo",
   email: "demo@example.com",
   profileImage: null,
@@ -47,7 +52,9 @@ describe("TopBar", () => {
 
   it("shows unread badge only for authenticated users", () => {
     directInboxMock.unreadDialogsCount = 2;
-    presenceMock.online = [{ username: "demo", profileImage: null }];
+    presenceMock.online = [
+      { publicRef: "demo", username: "demo", profileImage: null },
+    ];
     const { container } = render(
       <TopBar user={user} onNavigate={vi.fn()} onLogout={vi.fn()} />,
     );

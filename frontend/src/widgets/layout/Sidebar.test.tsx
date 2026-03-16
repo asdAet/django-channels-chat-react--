@@ -28,6 +28,7 @@ vi.mock("../sidebar/ConversationList", () => ({
 
 const user: UserProfile = {
   name: "Demo",
+  publicRef: "demo",
   username: "demo",
   email: "demo@example.com",
   profileImage: null,
@@ -64,7 +65,7 @@ describe("Sidebar", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <Sidebar
-          user={{ ...user, username: "   " }}
+          user={{ ...user, username: "   ", publicRef: "   " }}
           onNavigate={onNavigate}
           onLogout={vi.fn()}
         />

@@ -5,12 +5,12 @@ import type { PermissionOverride } from "../../entities/role/types";
 
 export async function updateRoomOverride(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   overrideId: number,
   data: Partial<{ allow: number; deny: number }>,
 ): Promise<PermissionOverride> {
   const response = await apiClient.patch<unknown>(
-    `/chat/rooms/${encodeURIComponent(slug)}/overrides/${overrideId}/`,
+    `/chat/rooms/${encodeURIComponent(roomId)}/overrides/${overrideId}/`,
     data,
   );
   return decodeOverrideResponse(response.data);

@@ -9,14 +9,18 @@ import type {
 } from "../../entities/friend/types";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { formatFullName, formatLastSeen } from "../../shared/lib/format";
-import { buildDirectPath, formatPublicRef } from "../../shared/lib/publicRef";
+import {
+  buildDirectPath,
+  formatPublicRef,
+  normalizePublicRef,
+} from "../../shared/lib/publicRef";
 import { usePresence } from "../../shared/presence";
 import { Avatar, Spinner } from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
 
 type Props = {
-  username: string;
-  currentUsername?: string | null;
+  publicRef: string;
+  currentPublicRef?: string | null;
 };
 
 type RelationState =
@@ -39,25 +43,29 @@ const EMPTY_RELATION: RelationSnapshot = {
   requestId: null,
 };
 
-const normalize = (value: string) =>
-  value.trim().replace(/^@+/, "").toLowerCase();
+const normalize = (value: string) => normalizePublicRef(value).toLowerCase();
+
+const resolveUserRef = (item: {
+  publicRef: string;
+  username: string;
+}): string => item.publicRef;
 
 const resolveRelation = (
-  targetUsername: string,
-  currentUsername: string | null | undefined,
+  targetPublicRef: string,
+  currentPublicRef: string | null | undefined,
   friends: Friend[],
   incoming: FriendRequest[],
   outgoing: FriendRequest[],
   blocked: BlockedUser[],
 ): RelationSnapshot => {
-  const target = normalize(targetUsername);
-  const current = currentUsername ? normalize(currentUsername) : null;
+  const target = normalize(targetPublicRef);
+  const current = currentPublicRef ? normalize(currentPublicRef) : null;
   if (current && current === target) {
     return { state: "self", userId: null, requestId: null };
   }
 
   const blockedItem = blocked.find(
-    (item) => normalize(item.username) === target,
+    (item) => normalize(resolveUserRef(item)) === target,
   );
   if (blockedItem) {
     return {
@@ -68,7 +76,7 @@ const resolveRelation = (
   }
 
   const incomingItem = incoming.find(
-    (item) => normalize(item.username) === target,
+    (item) => normalize(resolveUserRef(item)) === target,
   );
   if (incomingItem) {
     return {
@@ -79,7 +87,7 @@ const resolveRelation = (
   }
 
   const outgoingItem = outgoing.find(
-    (item) => normalize(item.username) === target,
+    (item) => normalize(resolveUserRef(item)) === target,
   );
   if (outgoingItem) {
     return {
@@ -90,7 +98,7 @@ const resolveRelation = (
   }
 
   const friendItem = friends.find(
-    (item) => normalize(item.username) === target,
+    (item) => normalize(resolveUserRef(item)) === target,
   );
   if (friendItem) {
     return {
@@ -103,20 +111,20 @@ const resolveRelation = (
   return EMPTY_RELATION;
 };
 
-export function UserProfilePanel({ username, currentUsername }: Props) {
+export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
   const navigate = useNavigate();
   const { online: presenceOnline } = usePresence();
-  const { user, loading, error } = useUserProfile(username);
+  const { user, loading, error } = useUserProfile(publicRef);
   const [relation, setRelation] = useState<RelationSnapshot>(EMPTY_RELATION);
   const [relationLoading, setRelationLoading] = useState(true);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const loadRelationState = useCallback(async () => {
-    const normalizedCurrent = currentUsername
-      ? normalize(currentUsername)
+    const normalizedCurrent = currentPublicRef
+      ? normalize(currentPublicRef)
       : null;
-    const normalizedTarget = normalize(username);
+    const normalizedTarget = normalize(publicRef);
     if (normalizedCurrent && normalizedCurrent === normalizedTarget) {
       setRelation({ state: "self", userId: null, requestId: null });
       setRelationLoading(false);
@@ -133,8 +141,8 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
       ]);
       setRelation(
         resolveRelation(
-          username,
-          currentUsername,
+          publicRef,
+          currentPublicRef,
           friends,
           incoming,
           outgoing,
@@ -146,7 +154,7 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
     } finally {
       setRelationLoading(false);
     }
-  }, [currentUsername, username]);
+  }, [currentPublicRef, publicRef]);
 
   useEffect(() => {
     let active = true;
@@ -155,10 +163,10 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
 
     const run = async () => {
       try {
-        const normalizedCurrent = currentUsername
-          ? normalize(currentUsername)
+        const normalizedCurrent = currentPublicRef
+          ? normalize(currentPublicRef)
           : null;
-        const normalizedTarget = normalize(username);
+        const normalizedTarget = normalize(publicRef);
         if (normalizedCurrent && normalizedCurrent === normalizedTarget) {
           if (active) {
             setRelation({ state: "self", userId: null, requestId: null });
@@ -175,8 +183,8 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
         if (!active) return;
         setRelation(
           resolveRelation(
-            username,
-            currentUsername,
+            publicRef,
+            currentPublicRef,
             friends,
             incoming,
             outgoing,
@@ -197,7 +205,7 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
     return () => {
       active = false;
     };
-  }, [currentUsername, username]);
+  }, [currentPublicRef, publicRef]);
 
   const runAction = useCallback(
     async (
@@ -227,12 +235,12 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
   const handleAddFriend = useCallback(() => {
     void runAction(
       async () => {
-        await friendsController.sendFriendRequest(username);
+        await friendsController.sendFriendRequest(publicRef);
       },
       "Запрос в друзья отправлен",
       "Не удалось отправить запрос",
     );
-  }, [runAction, username]);
+  }, [publicRef, runAction]);
 
   const handleCancelRequest = useCallback(() => {
     if (!relation.requestId) return;
@@ -287,12 +295,12 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
   const handleBlock = useCallback(() => {
     void runAction(
       async () => {
-        await friendsController.blockUser(username);
+        await friendsController.blockUser(publicRef);
       },
       "Пользователь заблокирован",
       "Не удалось заблокировать пользователя",
     );
-  }, [runAction, username]);
+  }, [publicRef, runAction]);
 
   const handleUnblock = useCallback(() => {
     if (!relation.userId) return;
@@ -306,16 +314,18 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
   }, [relation.userId, runAction]);
 
   const handleStartDirect = useCallback(() => {
-    navigate(buildDirectPath(username));
-  }, [navigate, username]);
+    const targetRef = (user?.publicRef ?? publicRef).trim();
+    navigate(buildDirectPath(targetRef));
+  }, [navigate, publicRef, user?.publicRef]);
 
-  const isUserOnline = useMemo(
-    () =>
-      presenceOnline.some(
-        (entry) => normalize(entry.username) === normalize(username),
-      ),
-    [presenceOnline, username],
-  );
+  const isUserOnline = useMemo(() => {
+    const targetRef = (user?.publicRef ?? publicRef).trim();
+    if (!targetRef) return false;
+    const normalizedTarget = normalize(targetRef);
+    return presenceOnline.some(
+      (entry) => normalize(entry.publicRef) === normalizedTarget,
+    );
+  }, [presenceOnline, publicRef, user?.publicRef]);
 
   if (loading) {
     return (
@@ -338,7 +348,7 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
       user.name,
       (user as { last_name?: string | null }).last_name,
     ) || "Без имени";
-  const publicUsername = (user.username || "").trim();
+  const targetPublicRef = (user.publicRef || publicRef || "").trim();
   const isSelf = relation.state === "self";
   const lastSeenLabel = formatLastSeen(user.lastSeen ?? null);
   const presenceLabel = isUserOnline
@@ -350,14 +360,14 @@ export function UserProfilePanel({ username, currentUsername }: Props) {
     <div className={styles.root}>
       <div className={styles.profile}>
         <Avatar
-          username={user.username}
+          username={fullName || user.username || targetPublicRef || "user"}
           profileImage={user.profileImage}
           avatarCrop={user.avatarCrop}
           size="default"
         />
         <h4 className={styles.peerName}>{fullName}</h4>
-        {publicUsername && (
-          <p className={styles.usernameHandle}>{formatPublicRef(publicUsername)}</p>
+        {targetPublicRef && (
+          <p className={styles.usernameHandle}>{formatPublicRef(targetPublicRef)}</p>
         )}
         <p className={styles.meta}>{presenceLabel}</p>
 

@@ -17,8 +17,8 @@ vi.mock("../chat/DirectInfoPanel", () => ({
 }));
 
 vi.mock("../chat/UserProfilePanel", () => ({
-  UserProfilePanel: ({ username }: { username: string }) => (
-    <div>profile:{username}</div>
+  UserProfilePanel: ({ publicRef }: { publicRef: string }) => (
+    <div>profile:{publicRef}</div>
   ),
 }));
 
@@ -40,7 +40,7 @@ function Harness() {
       <button type="button" onClick={close}>
         close-panel
       </button>
-      <InfoPanel currentUsername="me" />
+      <InfoPanel currentPublicRef="me" />
     </>
   );
 }

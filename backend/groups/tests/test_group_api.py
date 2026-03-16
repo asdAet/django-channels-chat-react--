@@ -160,6 +160,26 @@ class TestGroupDetail(APITestCase):
         resp = self.api_client.delete(f"/api/groups/{self.room_id}/")
         assert resp.status_code == 403
 
+    def test_superuser_can_update_and_delete_group_without_membership(self):
+        superuser = User.objects.create_superuser(
+            username="group_superuser_detail",
+            email="group_superuser_detail@example.com",
+            password="testpass123",
+        )
+        self.api_client.force_authenticate(user=superuser)
+
+        update_resp = self.api_client.patch(
+            f"/api/groups/{self.room_id}/",
+            {"description": "Updated by superuser"},
+            format="json",
+        )
+        assert update_resp.status_code == 200
+        assert update_resp.json()["description"] == "Updated by superuser"
+
+        delete_resp = self.api_client.delete(f"/api/groups/{self.room_id}/")
+        assert delete_resp.status_code == 204
+        assert not Room.objects.filter(pk=int(self.room_id)).exists()
+
     def test_update_group_avatar_with_multipart_patch(self):
         avatar = SimpleUploadedFile("avatar.png", b"fake-image-content", content_type="image/png")
         resp = self.api_client.patch(
@@ -343,6 +363,19 @@ class TestMyGroupList(APITestCase):
         self.api_client.force_authenticate(user=None)
         resp = self.api_client.get("/api/groups/my/")
         assert resp.status_code == 403
+
+    def test_superuser_lists_all_groups_in_my_groups_endpoint(self):
+        superuser = User.objects.create_superuser(
+            username="group_superuser_list",
+            email="group_superuser_list@example.com",
+            password="testpass123",
+        )
+        self.api_client.force_authenticate(user=superuser)
+
+        resp = self.api_client.get("/api/groups/my/")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 3
 
     def test_my_groups_cursor_pagination_by_id(self):
         resp = self.api_client.get("/api/groups/my/?limit=1")

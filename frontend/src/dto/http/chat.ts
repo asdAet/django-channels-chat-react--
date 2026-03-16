@@ -21,6 +21,7 @@ const avatarCropSchema = z
 
 const roomPeerSchema = z
   .object({
+    publicRef: z.string().min(1),
     username: z.string().min(1),
     displayName: z.string().optional(),
     profileImage: z.string().nullable().optional(),
@@ -46,6 +47,7 @@ const roomDetailsSchema = z
 const replyToSchema = z
   .object({
     id: z.number(),
+    publicRef: z.string().nullable().optional(),
     username: z.string().nullable(),
     displayName: z.string().nullable().optional(),
     content: z.string(),
@@ -76,6 +78,7 @@ const reactionSummarySchema = z
 const messageSchema = z
   .object({
     id: z.number(),
+    publicRef: z.string().min(1),
     username: z.string().min(1),
     displayName: z.string().optional(),
     content: z.string(),
@@ -132,6 +135,7 @@ const mapPeer = (dto: z.infer<typeof roomPeerSchema>): RoomPeer => {
   const raw = dto as Record<string, unknown>;
   return {
     userId: typeof raw.userId === "number" ? raw.userId : undefined,
+    publicRef: dto.publicRef,
     username: dto.username,
     displayName: dto.displayName ?? dto.username,
     profileImage: dto.profileImage ?? null,
@@ -172,6 +176,7 @@ const mapRoomDetails = (
 
 const mapMessage = (dto: z.infer<typeof messageSchema>): Message => ({
   id: dto.id,
+  publicRef: dto.publicRef,
   username: dto.username,
   displayName: dto.displayName ?? dto.username,
   content: dto.content,
@@ -183,6 +188,11 @@ const mapMessage = (dto: z.infer<typeof messageSchema>): Message => ({
   replyTo: dto.replyTo
     ? {
         ...dto.replyTo,
+        publicRef:
+          typeof dto.replyTo.publicRef === "string" &&
+          dto.replyTo.publicRef.trim().length > 0
+            ? dto.replyTo.publicRef.trim()
+            : null,
         displayName: dto.replyTo.displayName ?? dto.replyTo.username,
       }
     : null,
@@ -296,6 +306,7 @@ const reactionResponseSchema = z
     messageId: z.number(),
     emoji: z.string(),
     userId: z.number(),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
   })
@@ -304,6 +315,7 @@ const reactionResponseSchema = z
 const searchResultSchema = z
   .object({
     id: z.number(),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
     content: z.string(),
@@ -331,6 +343,7 @@ const roomAttachmentItemSchema = attachmentSchema
   .extend({
     messageId: z.number(),
     createdAt: z.string(),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
   })
@@ -367,7 +380,7 @@ const globalSearchGroupSchema = z
     roomId: z.union([z.number(), z.string()]),
     name: z.string(),
     description: z.string().optional(),
-    publicRef: z.string().optional(),
+    publicRef: z.string().min(1),
     memberCount: z.number().optional(),
     isPublic: z.boolean().optional(),
   })
@@ -376,6 +389,7 @@ const globalSearchGroupSchema = z
 const globalSearchMessageSchema = z
   .object({
     id: z.number(),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
     content: z.string(),
@@ -409,11 +423,13 @@ export type ReactionResponse = {
   messageId: number;
   emoji: string;
   userId: number;
+  publicRef: string;
   username: string;
   displayName?: string;
 };
 export type SearchResult = {
   id: number;
+  publicRef: string;
   username: string;
   displayName?: string;
   content: string;
@@ -442,6 +458,7 @@ export type RoomAttachmentsResponse = {
 };
 export type GlobalSearchResponse = {
   users: {
+    publicRef: string;
     username: string;
     displayName?: string;
     profileImage: string | null;
@@ -458,6 +475,7 @@ export type GlobalSearchResponse = {
   }[];
   messages: {
     id: number;
+    publicRef: string;
     username: string;
     displayName?: string;
     content: string;
@@ -483,6 +501,7 @@ export const decodeSearchResponse = (input: unknown): SearchResponse => {
   return {
     results: parsed.results.map((r) => ({
       id: r.id,
+      publicRef: r.publicRef,
       username: r.username,
       displayName: r.displayName ?? r.username,
       content: r.content,
@@ -553,6 +572,7 @@ export const decodeRoomAttachmentsResponse = (
       height: a.height ?? null,
       messageId: a.messageId,
       createdAt: a.createdAt,
+      publicRef: a.publicRef,
       username: a.username,
       displayName: a.displayName ?? a.username,
     })),
@@ -570,6 +590,7 @@ export const decodeGlobalSearchResponse = (
   );
   return {
     users: parsed.users.map((u) => ({
+      publicRef: u.publicRef,
       username: u.username,
       displayName: u.displayName ?? u.username,
       profileImage: u.profileImage ?? null,
@@ -580,12 +601,13 @@ export const decodeGlobalSearchResponse = (
       roomId: toRoomId(g.roomId),
       name: g.name,
       description: g.description ?? "",
-      publicRef: g.publicRef ?? "",
+      publicRef: g.publicRef,
       memberCount: g.memberCount ?? 0,
       isPublic: g.isPublic ?? false,
     })),
     messages: parsed.messages.map((m) => ({
       id: m.id,
+      publicRef: m.publicRef,
       username: m.username,
       displayName: m.displayName ?? m.username,
       content: m.content,

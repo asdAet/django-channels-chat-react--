@@ -1,7 +1,10 @@
 ﻿import type { UserProfile } from "../../entities/user/types";
 import { useDirectInbox } from "../../shared/directInbox";
 import { usePresence } from "../../shared/presence";
-import { buildUserProfilePath } from "../../shared/lib/publicRef";
+import {
+  buildUserProfilePath,
+  normalizePublicRef,
+} from "../../shared/lib/publicRef";
 import { Avatar, Button } from "../../shared/ui";
 import styles from "./TopBar.module.css";
 
@@ -14,12 +17,17 @@ type Props = {
 export function TopBar({ user, onNavigate }: Props) {
   const { unreadDialogsCount } = useDirectInbox();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
-  const profileRef = (user?.publicRef || user?.username || "").trim();
+  const profileRef = (user?.publicRef || "").trim();
+  const normalizedProfileRef = normalizePublicRef(profileRef).toLowerCase();
   const isCurrentUserOnline =
     Boolean(user) &&
     Boolean(profileRef) &&
     presenceStatus === "online" &&
-    presenceOnline.some((entry) => entry.username === profileRef);
+    presenceOnline.some(
+      (entry) =>
+        normalizePublicRef(entry.publicRef).toLowerCase() ===
+        normalizedProfileRef,
+    );
 
   return (
     <header className={styles.root} data-testid="topbar">
@@ -114,3 +122,4 @@ export function TopBar({ user, onNavigate }: Props) {
     </header>
   );
 }
+

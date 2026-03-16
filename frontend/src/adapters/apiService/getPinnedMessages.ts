@@ -5,10 +5,10 @@ import type { PinnedMessage } from "../../entities/group/types";
 
 export async function getPinnedMessages(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
 ): Promise<PinnedMessage[]> {
   const response = await apiClient.get<unknown>(
-    `/groups/${encodeURIComponent(slug)}/pins/`,
+    `/groups/${encodeURIComponent(roomId)}/pins/`,
   );
   return decodePinnedMessagesResponse(response.data);
 }

@@ -5,7 +5,7 @@ import type { PermissionOverride } from "../../entities/role/types";
 
 export async function createRoomOverride(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   data: {
     targetRoleId?: number;
     targetUserId?: number;
@@ -14,7 +14,7 @@ export async function createRoomOverride(
   },
 ): Promise<PermissionOverride> {
   const response = await apiClient.post<unknown>(
-    `/chat/rooms/${encodeURIComponent(slug)}/overrides/`,
+    `/chat/rooms/${encodeURIComponent(roomId)}/overrides/`,
     data,
   );
   return decodeOverrideResponse(response.data);

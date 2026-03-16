@@ -17,12 +17,12 @@ const TITLES: Record<string, string> = {
 function PanelContent({
   content,
   targetId,
-  currentUsername,
+  currentPublicRef,
   onJumpToMessage,
 }: {
   content: string;
   targetId: string | null;
-  currentUsername: string | null;
+  currentPublicRef: string | null;
   onJumpToMessage: (slug: string, messageId: number) => void;
 }) {
   if (content === "search" && targetId) {
@@ -35,7 +35,7 @@ function PanelContent({
   }
 
   if (content === "group" && targetId) {
-    return <GroupInfoPanel slug={targetId} currentUsername={currentUsername} />;
+    return <GroupInfoPanel slug={targetId} />;
   }
 
   if (content === "direct" && targetId) {
@@ -44,7 +44,10 @@ function PanelContent({
 
   if (content === "profile" && targetId) {
     return (
-      <UserProfilePanel username={targetId} currentUsername={currentUsername} />
+      <UserProfilePanel
+        publicRef={targetId}
+        currentPublicRef={currentPublicRef}
+      />
     );
   }
 
@@ -56,9 +59,9 @@ function PanelContent({
 }
 
 export function InfoPanel({
-  currentUsername,
+  currentPublicRef,
 }: {
-  currentUsername: string | null;
+  currentPublicRef: string | null;
 }) {
   const { isOpen, content, targetId, close, clearClosed } = useInfoPanel();
   const navigate = useNavigate();
@@ -128,7 +131,7 @@ export function InfoPanel({
           <PanelContent
             content={content}
             targetId={targetId}
-            currentUsername={currentUsername}
+            currentPublicRef={currentPublicRef}
             onJumpToMessage={onJumpToMessage}
           />
         </div>

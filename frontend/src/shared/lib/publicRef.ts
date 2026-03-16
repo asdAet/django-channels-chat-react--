@@ -2,8 +2,10 @@ const HANDLE_RE = /^[a-z][a-z0-9_]{2,29}$/;
 const USER_PUBLIC_ID_RE = /^[1-9]\d{9}$/;
 const GROUP_PUBLIC_ID_RE = /^-[1-9]\d{9}$/;
 
-export const normalizePublicRef = (value: string): string => {
-  const trimmed = value.trim();
+export const normalizePublicRef = (
+  value: string | null | undefined,
+): string => {
+  const trimmed = typeof value === "string" ? value.trim() : "";
   if (!trimmed) return "";
   if (trimmed.startsWith("@")) return trimmed.slice(1).trim();
   return trimmed;

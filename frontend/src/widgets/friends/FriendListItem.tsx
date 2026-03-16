@@ -5,9 +5,9 @@ import styles from "../../styles/friends/FriendsPage.module.css";
 type Props = {
   friend: Friend;
   isOnline: boolean;
-  onMessage: (username: string) => void;
+  onMessage: (publicRef: string) => void;
   onRemove: (userId: number) => void;
-  onBlock: (username: string) => void;
+  onBlock: (publicRef: string) => void;
 };
 
 export function FriendListItem({
@@ -17,17 +17,20 @@ export function FriendListItem({
   onRemove,
   onBlock,
 }: Props) {
+  const peerRef = friend.publicRef;
+  const displayName = friend.displayName ?? friend.username;
+
   return (
     <div className={styles.item}>
       <Avatar
-        username={friend.username}
+        username={displayName}
         profileImage={friend.profileImage}
         avatarCrop={friend.avatarCrop ?? undefined}
         size="small"
         online={isOnline}
       />
       <div className={styles.itemInfo}>
-        <div className={styles.itemName}>{friend.username}</div>
+        <div className={styles.itemName}>{displayName}</div>
         <div className={styles.itemMeta}>
           {isOnline ? "В сети" : "Не в сети"}
         </div>
@@ -36,7 +39,7 @@ export function FriendListItem({
         <button
           type="button"
           className={styles.actionBtn}
-          onClick={() => onMessage(friend.username)}
+          onClick={() => onMessage(peerRef)}
         >
           Написать
         </button>
@@ -50,7 +53,7 @@ export function FriendListItem({
         <button
           type="button"
           className={[styles.actionBtn, styles.actionBtnDanger].join(" ")}
-          onClick={() => onBlock(friend.username)}
+          onClick={() => onBlock(peerRef)}
         >
           Блок
         </button>

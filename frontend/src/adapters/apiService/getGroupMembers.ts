@@ -15,11 +15,11 @@ export type GroupMembersResult = {
 
 export async function getGroupMembers(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   params?: { limit?: number; before?: number },
 ): Promise<GroupMembersResult> {
   const response = await apiClient.get<unknown>(
-    `/groups/${encodeURIComponent(slug)}/members/`,
+    `/groups/${encodeURIComponent(roomId)}/members/`,
     { params },
   );
   return decodeGroupMembersResponse(response.data);

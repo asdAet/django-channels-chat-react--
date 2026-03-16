@@ -25,6 +25,7 @@ describe("direct inbox WS DTO decoder", () => {
         item: {
           roomId: 1,
           peer: {
+            publicRef: "alice",
             username: "alice",
             profileImage: null,
             avatarCrop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
@@ -37,6 +38,7 @@ describe("direct inbox WS DTO decoder", () => {
 
     expect(decoded.type).toBe("direct_inbox_item");
     if (decoded.type === "direct_inbox_item") {
+      expect(decoded.item?.peer.publicRef).toBe("alice");
       expect(decoded.item?.peer.username).toBe("alice");
       expect(decoded.item?.peer.avatarCrop).toEqual({
         x: 0.1,

@@ -2,7 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const presenceMock = vi.hoisted(() => ({
-  online: [] as Array<{ username: string; profileImage: string | null }>,
+  online: [] as Array<{
+    publicRef: string;
+    username: string;
+    profileImage: string | null;
+  }>,
   guests: 0,
   status: "online" as const,
   lastError: null as string | null,
@@ -53,6 +57,7 @@ vi.mock("../shared/ui", async () => {
 import { ProfilePage } from "./ProfilePage";
 
 const user = {
+  publicRef: "demo",
   name: "",
   last_name: "",
   username: "demo",
@@ -133,7 +138,9 @@ describe("ProfilePage", () => {
   });
 
   it("shows online label when current user is online", () => {
-    presenceMock.online = [{ username: "demo", profileImage: null }];
+    presenceMock.online = [
+      { publicRef: "demo", username: "demo", profileImage: null },
+    ];
 
     const { container } = render(
       <ProfilePage

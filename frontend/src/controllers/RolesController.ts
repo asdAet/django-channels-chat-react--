@@ -7,19 +7,19 @@ import type {
 } from "../entities/role/types";
 
 class RolesController {
-  public async getRoomRoles(slug: string): Promise<Role[]> {
-    return apiService.getRoomRoles(slug);
+  public async getRoomRoles(roomId: string): Promise<Role[]> {
+    return apiService.getRoomRoles(roomId);
   }
 
   public async createRoomRole(
-    slug: string,
+    roomId: string,
     data: { name: string; color?: string; permissions?: number },
   ): Promise<Role> {
-    return apiService.createRoomRole(slug, data);
+    return apiService.createRoomRole(roomId, data);
   }
 
   public async updateRoomRole(
-    slug: string,
+    roomId: string,
     roleId: number,
     data: Partial<{
       name: string;
@@ -28,34 +28,34 @@ class RolesController {
       position: number;
     }>,
   ): Promise<Role> {
-    return apiService.updateRoomRole(slug, roleId, data);
+    return apiService.updateRoomRole(roomId, roleId, data);
   }
 
-  public async deleteRoomRole(slug: string, roleId: number): Promise<void> {
-    return apiService.deleteRoomRole(slug, roleId);
+  public async deleteRoomRole(roomId: string, roleId: number): Promise<void> {
+    return apiService.deleteRoomRole(roomId, roleId);
   }
 
   public async getMemberRoles(
-    slug: string,
+    roomId: string,
     userId: number,
   ): Promise<MemberRoles> {
-    return apiService.getMemberRoles(slug, userId);
+    return apiService.getMemberRoles(roomId, userId);
   }
 
   public async setMemberRoles(
-    slug: string,
+    roomId: string,
     userId: number,
     roleIds: number[],
   ): Promise<MemberRoles> {
-    return apiService.setMemberRoles(slug, userId, roleIds);
+    return apiService.setMemberRoles(roomId, userId, roleIds);
   }
 
-  public async getRoomOverrides(slug: string): Promise<PermissionOverride[]> {
-    return apiService.getRoomOverrides(slug);
+  public async getRoomOverrides(roomId: string): Promise<PermissionOverride[]> {
+    return apiService.getRoomOverrides(roomId);
   }
 
   public async createRoomOverride(
-    slug: string,
+    roomId: string,
     data: {
       targetRoleId?: number;
       targetUserId?: number;
@@ -63,26 +63,26 @@ class RolesController {
       deny?: number;
     },
   ): Promise<PermissionOverride> {
-    return apiService.createRoomOverride(slug, data);
+    return apiService.createRoomOverride(roomId, data);
   }
 
   public async updateRoomOverride(
-    slug: string,
+    roomId: string,
     overrideId: number,
     data: Partial<{ allow: number; deny: number }>,
   ): Promise<PermissionOverride> {
-    return apiService.updateRoomOverride(slug, overrideId, data);
+    return apiService.updateRoomOverride(roomId, overrideId, data);
   }
 
   public async deleteRoomOverride(
-    slug: string,
+    roomId: string,
     overrideId: number,
   ): Promise<void> {
-    return apiService.deleteRoomOverride(slug, overrideId);
+    return apiService.deleteRoomOverride(roomId, overrideId);
   }
 
-  public async getMyPermissions(slug: string): Promise<MyPermissions> {
-    return apiService.getMyPermissions(slug);
+  public async getMyPermissions(roomId: string): Promise<MyPermissions> {
+    return apiService.getMyPermissions(roomId);
   }
 }
 

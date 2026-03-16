@@ -97,6 +97,11 @@ class TestOwnershipTransfer(APITestCase):
         self.api_client = TypedAPIClient()
         self.owner = User.objects.create_user(username="owner", password="testpass123")
         self.member = User.objects.create_user(username="member", password="testpass123")
+        self.superuser = User.objects.create_superuser(
+            username="group_superuser_owner_transfer",
+            email="group_superuser_owner_transfer@example.com",
+            password="testpass123",
+        )
         self.api_client.force_authenticate(user=self.owner)
 
         resp = self.api_client.post("/api/groups/", {"name": "Transfer Group"}, format="json")
@@ -153,3 +158,20 @@ class TestOwnershipTransfer(APITestCase):
         )
         resp = self.api_client.post(f"/api/groups/{self.room_id}/leave/")
         assert resp.status_code == 204
+
+    def test_superuser_can_transfer_ownership_without_membership(self):
+        self.api_client.force_authenticate(user=self.superuser)
+        resp = self.api_client.post(
+            f"/api/groups/{self.room_id}/transfer-ownership/",
+            {"userId": self.member.pk},
+            format="json",
+        )
+        assert resp.status_code == 200
+
+        room = Room.objects.get(pk=self.room_id)
+        assert room.created_by_id == self.member.pk
+
+        owner_ms = Membership.objects.get(room=room, user=self.owner)
+        owner_roles = set(owner_ms.roles.values_list("name", flat=True))
+        assert "Owner" not in owner_roles
+        assert "Admin" in owner_roles

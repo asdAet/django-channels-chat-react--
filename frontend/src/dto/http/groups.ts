@@ -69,6 +69,8 @@ const memberSchema = z
   .object({
     userId: z.number(),
     username: z.string(),
+    displayName: z.string().optional(),
+    publicRef: z.string().optional(),
     nickname: z.string().nullable().optional(),
     roles: z
       .array(
@@ -140,6 +142,8 @@ const joinRequestSchema = z
     id: z.number(),
     userId: z.number(),
     username: z.string(),
+    displayName: z.string().optional(),
+    publicRef: z.string().optional(),
     message: z.string().optional(),
     createdAt: z.string(),
   })
@@ -166,6 +170,8 @@ const bannedSchema = z
   .object({
     userId: z.number(),
     username: z.string(),
+    displayName: z.string().optional(),
+    publicRef: z.string().optional(),
     reason: z.string().optional(),
     bannedBy: z.string().nullable().optional(),
   })
@@ -239,6 +245,8 @@ export const decodeGroupMembersResponse = (
     items: parsed.items.map((m) => ({
       userId: m.userId,
       username: m.username,
+      displayName: m.displayName ?? m.nickname ?? m.username,
+      publicRef: m.publicRef ?? m.username,
       nickname: m.nickname ?? "",
       profileImage: m.profileImage ?? null,
       avatarCrop: m.avatarCrop ?? null,
@@ -316,6 +324,8 @@ export const decodeJoinRequestsResponse = (input: unknown): JoinRequest[] => {
     id: r.id,
     userId: r.userId,
     username: r.username,
+    displayName: r.displayName ?? r.username,
+    publicRef: r.publicRef ?? r.username,
     message: r.message ?? "",
     createdAt: r.createdAt,
   }));
@@ -348,6 +358,8 @@ export const decodeBannedMembersResponse = (
     items: parsed.items.map((b) => ({
       userId: b.userId,
       username: b.username,
+      displayName: b.displayName ?? b.username,
+      publicRef: b.publicRef ?? b.username,
       reason: b.reason ?? "",
       bannedBy: b.bannedBy ?? null,
     })),

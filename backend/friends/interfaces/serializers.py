@@ -7,7 +7,7 @@ from rest_framework import serializers
 from chat_app_django.media_utils import build_profile_url_from_request, serialize_avatar_crop
 from friends.models import Friendship
 from friends.utils import get_from_user_id, get_to_user_id
-from users.identity import user_public_username
+from users.identity import user_display_name, user_public_ref, user_public_username
 
 
 def _require_from_user_id(obj: Friendship) -> int:
@@ -26,7 +26,9 @@ def _require_to_user_id(obj: Friendship) -> int:
 
 class _UserBriefSerializer(serializers.Serializer):
     id = serializers.IntegerField()
+    publicRef = serializers.CharField()
     username = serializers.CharField()
+    displayName = serializers.CharField()
     profileImage = serializers.CharField(allow_null=True)
     avatarCrop = serializers.DictField(allow_null=True)
 
@@ -46,7 +48,9 @@ def _serialize_user_brief(user, request) -> dict:
                     profile_image = None
     return {
         "id": user.pk,
+        "publicRef": user_public_ref(user),
         "username": user_public_username(user),
+        "displayName": user_display_name(user),
         "profileImage": profile_image,
         "avatarCrop": serialize_avatar_crop(profile),
     }
@@ -108,5 +112,15 @@ class BlockedOutputSerializer(serializers.ModelSerializer):
         return _serialize_user_brief(obj.to_user, request)
 
 
-class UsernameInputSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
+class PublicRefInputSerializer(serializers.Serializer):
+    ref = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        ref = str(attrs.get("ref") or "").strip()
+        username = str(attrs.get("username") or "").strip()
+        value = ref or username
+        if not value:
+            raise serializers.ValidationError({"ref": ["Требуется публичный идентификатор"]})
+        attrs["ref"] = value
+        return attrs

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo } from "react";
 
 import type { UserProfile } from "../entities/user/types";
-import { buildDirectPath } from "../shared/lib/publicRef";
+import { buildDirectPath, normalizePublicRef } from "../shared/lib/publicRef";
 import { formatTimestamp } from "../shared/lib/format";
 import { useDirectInbox } from "../shared/directInbox";
 import { usePresence } from "../shared/presence";
@@ -19,6 +19,9 @@ type ListProps = Props & {
   className?: string;
 };
 
+const normalizeActorRef = (value: string): string =>
+  normalizePublicRef(value).toLowerCase();
+
 export function DirectChatsList({
   user,
   onNavigate,
@@ -33,7 +36,9 @@ export function DirectChatsList({
     () =>
       new Set(
         presenceStatus === "online"
-          ? presenceOnline.map((entry) => entry.username)
+          ? presenceOnline.map((entry) =>
+              normalizeActorRef(entry.publicRef || ""),
+            )
           : [],
       ),
     [presenceOnline, presenceStatus],
@@ -81,10 +86,14 @@ export function DirectChatsList({
       {!loading && !error && items.length > 0 && (
         <div className={styles.directChatList}>
           {items.map((item) => {
+            const peerRef = item.peer.publicRef;
             const isActive = Boolean(
-              activeUsername && item.peer.username === activeUsername,
+              activeUsername &&
+                normalizePublicRef(peerRef) === normalizePublicRef(activeUsername),
             );
-            const isPeerOnline = onlineUsernames.has(item.peer.username);
+            const isPeerOnline = onlineUsernames.has(
+              normalizeActorRef(peerRef),
+            );
             return (
               <button
                 key={item.slug}
@@ -95,7 +104,7 @@ export function DirectChatsList({
                   .filter(Boolean)
                   .join(" ")}
                 aria-current={isActive ? "page" : undefined}
-                onClick={() => onNavigate(buildDirectPath(item.peer.username))}
+                onClick={() => onNavigate(buildDirectPath(peerRef))}
                 type="button"
               >
                 <Avatar
@@ -138,3 +147,4 @@ export function DirectChatsList({
 export function DirectChatsPage({ user, onNavigate }: Props) {
   return <DirectChatsList user={user} onNavigate={onNavigate} />;
 }
+

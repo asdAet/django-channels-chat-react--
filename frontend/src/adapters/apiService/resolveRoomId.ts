@@ -17,7 +17,7 @@ const toPositiveRoomIdString = (value: unknown): string | null => {
  * Resolves UI room ref into backend API room ref.
  * Backend room endpoints are roomId-based, so "public" must be converted.
  */
-export async function resolveRoomApiRef(
+export async function resolveRoomId(
   apiClient: AxiosInstance,
   roomRef: string,
 ): Promise<string> {

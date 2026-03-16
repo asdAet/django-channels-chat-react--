@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useRef,
   useState,
@@ -33,6 +33,9 @@ type Props = {
   onNavigate: (path: string) => void;
 };
 
+const normalizeActorRef = (value: string): string =>
+  normalizePublicRef(value).toLowerCase();
+
 /**
  * Публичная страница профиля пользователя.
  * @param props Данные маршрута, текущей сессии и обработчики действий.
@@ -47,7 +50,7 @@ export function UserProfilePage({
   const { user, loading, error } = useUserProfile(username);
   const { online: presenceOnline, status: presenceStatus } = usePresence();
   const currentPublicRef = normalizePublicRef(
-    currentUser?.publicRef || currentUser?.username || "",
+    currentUser?.publicRef || "",
   );
   const routePublicRef = normalizePublicRef(username);
   const isSelfRoute = Boolean(currentPublicRef) && currentPublicRef === routePublicRef;
@@ -281,7 +284,7 @@ export function UserProfilePage({
   }
 
   const profilePublicRef = normalizePublicRef(
-    profileUser.publicRef || profileUser.username || "",
+    profileUser.publicRef || routePublicRef,
   );
   const isSelf = Boolean(currentPublicRef) && currentPublicRef === profilePublicRef;
   const fullName =
@@ -290,12 +293,15 @@ export function UserProfilePage({
       (profileUser as { last_name?: string | null }).last_name,
     ) || "Без имени";
   const publicHandle = (profileUser.username || "").trim();
-  const publicRef = (profileUser.publicRef || publicHandle).trim();
+  const publicRef = (profileUser.publicRef || routePublicRef).trim();
   const avatarIdentity = profileUser.name || publicHandle || publicRef || "user";
+  const normalizedTargetRef = normalizeActorRef(publicRef);
   const isUserOnline =
     presenceStatus === "online" &&
     presenceOnline.some(
-      (entry) => normalizePublicRef(entry.username) === normalizePublicRef(publicRef),
+      (entry) =>
+        normalizeActorRef(entry.publicRef) ===
+        normalizedTargetRef,
     );
 
   return (
@@ -451,3 +457,6 @@ export function UserProfilePage({
     </Card>
   );
 }
+
+
+

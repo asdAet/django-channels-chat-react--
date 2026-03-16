@@ -14,6 +14,7 @@ describe("chat WS DTO decoder", () => {
     const decoded = decodeChatWsEvent(
       JSON.stringify({
         message: "hello",
+        publicRef: "alice",
         username: "alice",
         profile_pic: null,
         avatar_crop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },

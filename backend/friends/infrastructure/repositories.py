@@ -11,8 +11,8 @@ from users.identity import normalize_public_ref, resolve_public_ref
 User = get_user_model()
 
 
-def get_user_by_username(username: str):
-    normalized = normalize_public_ref(username)
+def get_user_by_public_ref(public_ref: str):
+    normalized = normalize_public_ref(public_ref)
     if not normalized:
         return None
     owner_type, owner = resolve_public_ref(normalized)

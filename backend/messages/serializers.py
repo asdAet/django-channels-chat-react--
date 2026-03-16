@@ -1,7 +1,12 @@
 from rest_framework import serializers
 
 from .models import Message, MessageAttachment
-from users.identity import user_display_name, user_profile_avatar_source, user_public_username
+from users.identity import (
+    user_display_name,
+    user_profile_avatar_source,
+    user_public_ref,
+    user_public_username,
+)
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
@@ -33,6 +38,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    publicRef = serializers.SerializerMethodField()
     content = serializers.CharField(source="message_content")
     createdAt = serializers.DateTimeField(source="date_added")
     profilePic = serializers.SerializerMethodField()
@@ -49,7 +55,7 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = (
-            "id", "username", "displayName", "content", "profilePic", "avatarCrop",
+            "id", "publicRef", "username", "displayName", "content", "profilePic", "avatarCrop",
             "createdAt", "editedAt", "isDeleted",
             "replyTo", "attachments", "reactions",
         )
@@ -69,6 +75,12 @@ class MessageSerializer(serializers.ModelSerializer):
                 return build_fn(avatar_source)
 
         return build_fn(obj.profile_pic) if obj.profile_pic else None
+
+    def get_publicRef(self, obj):
+        user = getattr(obj, "user", None)
+        if user:
+            return user_public_ref(user)
+        return obj.username or ""
 
     def get_displayName(self, obj):
         user = getattr(obj, "user", None)
@@ -95,9 +107,16 @@ class MessageSerializer(serializers.ModelSerializer):
         if not reply:
             return None
         if reply.is_deleted:
-            return {"id": reply.id, "username": None, "displayName": None, "content": "[deleted]"}
+            return {
+                "id": reply.id,
+                "publicRef": None,
+                "username": None,
+                "displayName": None,
+                "content": "[deleted]",
+            }
         return {
             "id": reply.id,
+            "publicRef": user_public_ref(reply.user) if reply.user else None,
             "username": user_public_username(reply.user) if reply.user else reply.username,
             "displayName": user_display_name(reply.user) if reply.user else (reply.username or ""),
             "content": reply.message_content[:150],
@@ -124,8 +143,11 @@ class MessageSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         user = getattr(instance, "user", None)
         if user:
+            ret["publicRef"] = user_public_ref(user)
             ret["username"] = user_public_username(user)
             ret["displayName"] = user_display_name(user)
+        else:
+            ret["publicRef"] = ret.get("username") or ""
         if instance.is_deleted:
             ret["content"] = "[deleted]"
         return ret

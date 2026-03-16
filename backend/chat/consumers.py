@@ -24,7 +24,12 @@ from messages.models import Message
 from roles.access import can_read, can_write
 from roles.models import Membership
 from rooms.models import Room
-from users.identity import user_display_name, user_profile_avatar_source, user_public_username
+from users.identity import (
+    user_display_name,
+    user_profile_avatar_source,
+    user_public_ref,
+    user_public_username,
+)
 
 from .constants import CHAT_CLOSE_IDLE_CODE
 
@@ -104,8 +109,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4403)
             return
 
-        self.actor_username = await self._resolve_public_username(user)
-        self.actor_display_name = await self._resolve_display_name(user)
+        is_authenticated = bool(getattr(user, "is_authenticated", False))
+        if is_authenticated:
+            self.actor_username = await self._resolve_public_username(user)
+            self.actor_public_ref = await self._resolve_public_ref(user)
+            self.actor_display_name = await self._resolve_display_name(user)
+        else:
+            self.actor_username = ""
+            self.actor_public_ref = ""
+            self.actor_display_name = ""
         self.room = room
         self.room_id = int(room.pk)
         self.room_name = str(self.room_id)
@@ -217,9 +229,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({"error": "slow_mode"}))
             return
 
+        public_ref = (await self._resolve_public_ref(user)).strip()
         username = (await self._resolve_public_username(user)).strip()
-        self.actor_username = username
         if not username:
+            username = public_ref
+        self.actor_username = username
+        self.actor_public_ref = public_ref
+        if not public_ref:
             audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_user")
             return
         room_id = int(self.room.pk)
@@ -253,6 +269,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 "type": "chat_message",
                 "message": message,
+                "publicRef": public_ref,
                 "username": username,
                 "displayName": display_name,
                 "profile_pic": profile_url,
@@ -289,6 +306,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             text_data=json.dumps(
                 {
                     "message": event["message"],
+                    "publicRef": event.get("publicRef") or event.get("username"),
                     "username": event["username"],
                     "displayName": event.get("displayName") or event["username"],
                     "profile_pic": event["profile_pic"],
@@ -329,6 +347,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     @sync_to_async
     def _resolve_public_username(self, user) -> str:
         return user_public_username(user)
+
+    @sync_to_async
+    def _resolve_public_ref(self, user) -> str:
+        if user is None or not getattr(user, "is_authenticated", False):
+            return ""
+        return user_public_ref(user)
 
     @sync_to_async
     def _resolve_display_name(self, user) -> str:
@@ -414,8 +438,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
         self._last_typing_broadcast = now
         username = (await self._resolve_public_username(user)).strip()
-        self.actor_username = username
+        public_ref = (await self._resolve_public_ref(user)).strip()
         if not username:
+            username = public_ref
+        self.actor_username = username
+        self.actor_public_ref = public_ref
+        if not public_ref:
             return
         display_name = (await self._resolve_display_name(user)).strip()
         self.actor_display_name = display_name
@@ -423,6 +451,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "chat_typing",
+                "publicRef": public_ref,
                 "username": username,
                 "displayName": display_name or username,
                 "userId": user.pk,
@@ -435,6 +464,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
         await self.send(text_data=json.dumps({
             "type": "typing",
+            "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
             "userId": event["userId"],
@@ -448,9 +478,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not reply:
             return None
         if reply.is_deleted:
-            return {"id": reply.pk, "username": None, "displayName": None, "content": "[deleted]"}
+            return {
+                "id": reply.pk,
+                "publicRef": None,
+                "username": None,
+                "displayName": None,
+                "content": "[deleted]",
+            }
         return {
             "id": reply.pk,
+            "publicRef": user_public_ref(reply.user) if reply.user else None,
             "username": user_public_username(reply.user) if reply.user else reply.username,
             "displayName": user_display_name(reply.user) if reply.user else (reply.username or ""),
             "content": reply.message_content[:150],
@@ -465,6 +502,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "messageId": event["messageId"],
             "content": event["content"],
             "editedAt": event["editedAt"],
+            "editedByRef": event.get("editedByRef") or event.get("editedBy"),
             "editedBy": event["editedBy"],
         }))
 
@@ -473,6 +511,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "message_delete",
             "messageId": event["messageId"],
+            "deletedByRef": event.get("deletedByRef") or event.get("deletedBy"),
             "deletedBy": event["deletedBy"],
         }))
 
@@ -483,6 +522,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "messageId": event["messageId"],
             "emoji": event["emoji"],
             "userId": event["userId"],
+            "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
         }))
@@ -494,6 +534,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "messageId": event["messageId"],
             "emoji": event["emoji"],
             "userId": event["userId"],
+            "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
         }))
@@ -503,6 +544,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "read_receipt",
             "userId": event["userId"],
+            "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
             "lastReadMessageId": event["lastReadMessageId"],
@@ -553,6 +595,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         async_to_sync(channel_layer.group_send)(group_name, {
             "type": "chat_read_receipt",
             "userId": user.pk,
+            "publicRef": user_public_ref(user),
             "username": user_public_username(user),
             "displayName": user_display_name(user),
             "lastReadMessageId": state.last_read_message_id,
@@ -624,6 +667,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "item": {
                     "roomId": room.pk,
                     "peer": {
+                        "publicRef": user_public_ref(peer) if peer else "",
                         "username": user_public_username(peer) if peer else "",
                         "displayName": user_display_name(peer) if peer else "",
                         "profileImage": build_profile_url(self.scope, peer_avatar_source) if peer_avatar_source else None,

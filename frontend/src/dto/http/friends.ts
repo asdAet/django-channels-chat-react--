@@ -20,7 +20,9 @@ const avatarCropSchema = z
 const userBriefSchema = z
   .object({
     id: z.number(),
+    publicRef: z.string().min(1),
     username: z.string(),
+    displayName: z.string().optional(),
     profileImage: z.string().nullable().optional(),
     avatarCrop: avatarCropSchema.nullable().optional(),
   })
@@ -44,7 +46,9 @@ const requestListSchema = z
 const mapFriend = (dto: z.infer<typeof friendshipSchema>): Friend => ({
   id: dto.id,
   userId: dto.user.id,
+  publicRef: dto.user.publicRef,
   username: dto.user.username,
+  displayName: dto.user.displayName ?? dto.user.username,
   profileImage: dto.user.profileImage ?? null,
   avatarCrop: dto.user.avatarCrop ?? null,
   lastSeen: null,
@@ -55,7 +59,9 @@ const mapIncomingRequest = (
 ): FriendRequest => ({
   id: dto.id,
   userId: dto.user.id,
+  publicRef: dto.user.publicRef,
   username: dto.user.username,
+  displayName: dto.user.displayName ?? dto.user.username,
   profileImage: dto.user.profileImage ?? null,
   avatarCrop: dto.user.avatarCrop ?? null,
   createdAt: dto.created_at,
@@ -66,7 +72,9 @@ const mapOutgoingRequest = (
 ): FriendRequest => ({
   id: dto.id,
   userId: dto.user.id,
+  publicRef: dto.user.publicRef,
   username: dto.user.username,
+  displayName: dto.user.displayName ?? dto.user.username,
   profileImage: dto.user.profileImage ?? null,
   avatarCrop: dto.user.avatarCrop ?? null,
   createdAt: dto.created_at,
@@ -127,7 +135,15 @@ const blockResponseSchema = z
 
 export const decodeBlockResponse = (input: unknown): BlockedUser => {
   const parsed = decodeOrThrow(blockResponseSchema, input, "friends/block");
-  return { id: parsed.item.id, userId: 0, username: "" };
+  return {
+    id: parsed.item.id,
+    userId: 0,
+    publicRef: "",
+    username: "",
+    displayName: "",
+    profileImage: null,
+    avatarCrop: null,
+  };
 };
 
 const blockedListSchema = z
@@ -139,7 +155,9 @@ const mapBlockedUser = (
 ): BlockedUser => ({
   id: dto.id,
   userId: dto.user.id,
+  publicRef: dto.user.publicRef,
   username: dto.user.username,
+  displayName: dto.user.displayName ?? dto.user.username,
   profileImage: dto.user.profileImage ?? null,
   avatarCrop: dto.user.avatarCrop ?? null,
 });

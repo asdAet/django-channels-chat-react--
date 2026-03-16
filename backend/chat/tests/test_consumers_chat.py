@@ -19,7 +19,7 @@ from rooms.services import ensure_membership
 from rooms.models import Room
 from chat.routing import websocket_urlpatterns as chat_ws
 from direct_inbox.routing import websocket_urlpatterns as di_ws
-from users.identity import user_public_username
+from users.identity import user_public_ref, user_public_username
 
 User = get_user_model()
 application = URLRouter(chat_ws + di_ws)
@@ -349,6 +349,10 @@ class ChatConsumerTests(TransactionTestCase):
             self.assertEqual(
                 inbox_payload['item']['peer']['username'],
                 user_public_username(self.owner),
+            )
+            self.assertEqual(
+                inbox_payload['item']['peer']['publicRef'],
+                user_public_ref(self.owner),
             )
             self.assertEqual(
                 inbox_payload['item']['peer']['avatarCrop'],

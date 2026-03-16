@@ -17,6 +17,7 @@ import type { UserProfile } from "../../entities/user/types";
 import { chatController } from "../../controllers/ChatController";
 import { groupController } from "../../controllers/GroupController";
 import { useDirectInbox } from "../directInbox";
+import { normalizePublicRef } from "../lib/publicRef";
 import { usePresence } from "../presence";
 import { debugLog } from "../lib/debug";
 import { useUnreadOverrides } from "../unreadOverrides/store";
@@ -73,6 +74,9 @@ const canRunGlobalSearchQuery = (query: string) => {
   return normalized.slice(1).trim().length >= 2;
 };
 
+const normalizeActorRef = (value: string): string =>
+  normalizePublicRef(value).toLowerCase();
+
 export function ConversationListProvider({ user, ready, children }: Props) {
   const { items: directItems, unreadCounts } = useDirectInbox();
   const unreadOverrides = useUnreadOverrides();
@@ -99,7 +103,9 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     () =>
       new Set(
         presenceStatus === "online"
-          ? presenceOnline.map((e) => e.username)
+          ? presenceOnline.map((entry) =>
+              normalizeActorRef(entry.publicRef || ""),
+            )
           : [],
       ),
     [presenceOnline, presenceStatus],
@@ -216,17 +222,18 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     if (filter !== "groups") {
       for (const dm of directItems) {
         const dmUnread = resolveUnreadCount(dm.slug, unreadCounts[dm.slug]);
+        const peerRef = dm.peer.publicRef;
         conversations.push({
           type: "direct",
           slug: dm.slug,
           name: dm.peer.displayName ?? dm.peer.username,
-          directRef: dm.peer.username,
+          directRef: peerRef,
           avatarUrl: dm.peer.profileImage ?? null,
           avatarCrop: dm.peer.avatarCrop ?? null,
           lastMessage: dm.lastMessage,
           lastMessageAt: dm.lastMessageAt,
           unreadCount: dmUnread,
-          isOnline: onlineUsernames.has(dm.peer.username),
+          isOnline: onlineUsernames.has(normalizeActorRef(peerRef)),
           isMuted: false,
         });
       }
@@ -302,3 +309,4 @@ export function useConversationList() {
 }
 
 export type { FilterTab };
+

@@ -38,7 +38,11 @@ const chatRoomMock = vi.hoisted(() => ({
 }));
 
 const presenceMock = vi.hoisted(() => ({
-  online: [] as Array<{ username: string; profileImage: string | null }>,
+  online: [] as Array<{
+    publicRef: string;
+    username: string;
+    profileImage: string | null;
+  }>,
   guests: 0,
   status: "online" as const,
   lastError: null as string | null,
@@ -154,6 +158,7 @@ vi.mock("../controllers/GroupController", () => ({
 import { ChatRoomPage } from "./ChatRoomPage";
 
 const user = {
+  publicRef: "demo",
   username: "demo",
   email: "demo@example.com",
   profileImage: null,
@@ -164,6 +169,7 @@ const user = {
 
 const makeForeignMessage = (id: number, content: string): Message => ({
   id,
+  publicRef: "alice",
   username: "alice",
   content,
   profilePic: null,
@@ -305,12 +311,15 @@ describe("ChatRoomPage", () => {
       created: false,
       createdBy: null,
       peer: {
+        publicRef: "alice",
         username: "alice",
         profileImage: null,
         lastSeen: "2026-02-13T10:00:00.000Z",
       },
     } as RoomDetails;
-    presenceMock.online = [{ username: "alice", profileImage: null }];
+    presenceMock.online = [
+      { publicRef: "alice", username: "alice", profileImage: null },
+    ];
 
     render(<ChatRoomPage slug="dm_1" user={user} onNavigate={vi.fn()} />);
     expect(screen.getByText("В сети")).toBeInTheDocument();
@@ -320,6 +329,7 @@ describe("ChatRoomPage", () => {
     chatRoomMock.messages = [
       {
         id: 3,
+        publicRef: "demo",
         username: "demo",
         content: "mine",
         profilePic: null,
@@ -332,6 +342,7 @@ describe("ChatRoomPage", () => {
       },
       {
         id: 4,
+        publicRef: "alice",
         username: "alice",
         content: "other",
         profilePic: null,
@@ -360,6 +371,7 @@ describe("ChatRoomPage", () => {
     chatRoomMock.messages = [
       {
         id: 3,
+        publicRef: "1234567890",
         username: "1234567890",
         content: "mine",
         profilePic: null,
@@ -372,6 +384,7 @@ describe("ChatRoomPage", () => {
       },
       {
         id: 4,
+        publicRef: "alice",
         username: "alice",
         content: "other",
         profilePic: null,
@@ -440,11 +453,17 @@ describe("ChatRoomPage", () => {
       kind: "direct",
       created: false,
       createdBy: null,
-      peer: { username: "alice", profileImage: null, lastSeen: null },
+      peer: {
+        publicRef: "alice",
+        username: "alice",
+        profileImage: null,
+        lastSeen: null,
+      },
     } as RoomDetails;
     chatRoomMock.messages = [
       {
         id: 1,
+        publicRef: "alice",
         username: "alice",
         content: "first",
         profilePic: null,
@@ -457,6 +476,7 @@ describe("ChatRoomPage", () => {
       },
       {
         id: 2,
+        publicRef: "alice",
         username: "alice",
         content: "second",
         profilePic: null,
@@ -516,6 +536,7 @@ describe("ChatRoomPage", () => {
       ...chatRoomMock.messages,
       {
         id: 3,
+        publicRef: "alice",
         username: "alice",
         content: "third",
         profilePic: null,

@@ -5,10 +5,10 @@ import type { Role } from "../../entities/role/types";
 
 export async function getRoomRoles(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
 ): Promise<Role[]> {
   const response = await apiClient.get<unknown>(
-    `/chat/rooms/${encodeURIComponent(slug)}/roles/`,
+    `/chat/rooms/${encodeURIComponent(roomId)}/roles/`,
   );
   return decodeRolesListResponse(response.data);
 }

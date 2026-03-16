@@ -4,7 +4,6 @@ import styles from "../../styles/groups/GroupsPage.module.css";
 
 type Props = {
   members: GroupMember[];
-  currentUsername: string | null;
   isAdmin: boolean;
   onKick?: (userId: number) => void;
   onBan?: (userId: number) => void;
@@ -14,7 +13,6 @@ type Props = {
 
 export function GroupMembersList({
   members,
-  currentUsername,
   isAdmin,
   onKick,
   onBan,
@@ -24,7 +22,7 @@ export function GroupMembersList({
   return (
     <>
       {members.map((m) => {
-        const isSelf = m.username === currentUsername;
+        const isSelf = m.isSelf === true;
         return (
           <div key={m.userId} className={styles.item}>
             <Avatar

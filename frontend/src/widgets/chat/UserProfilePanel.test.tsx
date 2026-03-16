@@ -7,6 +7,7 @@ const profileMock = vi.hoisted(() => ({
     name: "Алиса",
     last_name: "",
     username: "alice",
+    publicRef: "1234567890",
     profileImage: null,
     avatarCrop: null,
     lastSeen: "2026-03-12T12:00:00.000Z" as string | null,
@@ -17,27 +18,43 @@ const profileMock = vi.hoisted(() => ({
 }));
 
 const presenceMock = vi.hoisted(() => ({
-  online: [] as Array<{ username: string; profileImage: string | null }>,
+  online: [] as Array<{
+    publicRef: string;
+    username: string;
+    profileImage: string | null;
+  }>,
   guests: 0,
   status: "online" as const,
   lastError: null as string | null,
 }));
 
 const relationState = vi.hoisted(() => ({
-  friends: [] as Array<{ id: number; userId: number; username: string }>,
+  friends: [] as Array<{
+    id: number;
+    userId: number;
+    username: string;
+    publicRef?: string;
+  }>,
   incoming: [] as Array<{
     id: number;
     userId: number;
     username: string;
+    publicRef?: string;
     createdAt: string;
   }>,
   outgoing: [] as Array<{
     id: number;
     userId: number;
     username: string;
+    publicRef?: string;
     createdAt: string;
   }>,
-  blocked: [] as Array<{ id: number; userId: number; username: string }>,
+  blocked: [] as Array<{
+    id: number;
+    userId: number;
+    username: string;
+    publicRef?: string;
+  }>,
 }));
 
 const friendsControllerMock = vi.hoisted(() => ({
@@ -45,9 +62,15 @@ const friendsControllerMock = vi.hoisted(() => ({
   getIncomingRequests: vi.fn(async () => relationState.incoming),
   getOutgoingRequests: vi.fn(async () => relationState.outgoing),
   getBlockedUsers: vi.fn(async () => relationState.blocked),
-  sendFriendRequest: vi.fn(async (username: string) => {
+  sendFriendRequest: vi.fn(async (publicRef: string) => {
     relationState.outgoing = [
-      { id: 101, userId: 10, username, createdAt: "2026-03-12T12:00:00.000Z" },
+      {
+        id: 101,
+        userId: 10,
+        username: "alice",
+        publicRef,
+        createdAt: "2026-03-12T12:00:00.000Z",
+      },
     ];
   }),
   cancelOutgoingFriendRequest: vi.fn(async () => {
@@ -63,11 +86,11 @@ const friendsControllerMock = vi.hoisted(() => ({
   removeFriend: vi.fn(async () => {
     relationState.friends = [];
   }),
-  blockUser: vi.fn(async (username: string) => {
+  blockUser: vi.fn(async (publicRef: string) => {
     relationState.friends = [];
     relationState.incoming = [];
     relationState.outgoing = [];
-    relationState.blocked = [{ id: 201, userId: 10, username }];
+    relationState.blocked = [{ id: 201, userId: 10, username: "alice", publicRef }];
   }),
   unblockUser: vi.fn(async () => {
     relationState.blocked = [];
@@ -96,6 +119,7 @@ describe("UserProfilePanel", () => {
       name: "Алиса",
       last_name: "",
       username: "alice",
+      publicRef: "1234567890",
       profileImage: null,
       avatarCrop: null,
       lastSeen: "2026-03-12T12:00:00.000Z",
@@ -110,17 +134,19 @@ describe("UserProfilePanel", () => {
     vi.clearAllMocks();
   });
 
-  it("shows online status from presence and renders @username", async () => {
-    presenceMock.online = [{ username: "alice", profileImage: null }];
+  it("shows online status and renders publicRef as primary identifier", async () => {
+    presenceMock.online = [
+      { publicRef: "1234567890", username: "alice", profileImage: null },
+    ];
 
     render(
       <MemoryRouter>
-        <UserProfilePanel username="alice" currentUsername="bob" />
+        <UserProfilePanel publicRef="1234567890" currentPublicRef="2222222222" />
       </MemoryRouter>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText("@alice")).toBeInTheDocument();
+      expect(screen.getByText("1234567890")).toBeInTheDocument();
       expect(screen.getByText("В сети")).toBeInTheDocument();
     });
   });
@@ -133,7 +159,7 @@ describe("UserProfilePanel", () => {
 
     render(
       <MemoryRouter>
-        <UserProfilePanel username="alice" currentUsername="bob" />
+        <UserProfilePanel publicRef="1234567890" currentPublicRef="2222222222" />
       </MemoryRouter>,
     );
 
@@ -145,7 +171,7 @@ describe("UserProfilePanel", () => {
   it("hides bio block when bio is empty", async () => {
     render(
       <MemoryRouter>
-        <UserProfilePanel username="alice" currentUsername="bob" />
+        <UserProfilePanel publicRef="1234567890" currentPublicRef="2222222222" />
       </MemoryRouter>,
     );
 
@@ -157,7 +183,7 @@ describe("UserProfilePanel", () => {
   it("handles add friend -> cancel outgoing flow", async () => {
     render(
       <MemoryRouter>
-        <UserProfilePanel username="alice" currentUsername="bob" />
+        <UserProfilePanel publicRef="1234567890" currentPublicRef="2222222222" />
       </MemoryRouter>,
     );
 
@@ -168,7 +194,7 @@ describe("UserProfilePanel", () => {
 
     await waitFor(() => {
       expect(friendsControllerMock.sendFriendRequest).toHaveBeenCalledWith(
-        "alice",
+        "1234567890",
       );
       expect(
         screen.getByRole("button", { name: "Отменить запрос" }),
@@ -191,11 +217,13 @@ describe("UserProfilePanel", () => {
   });
 
   it("shows only unblock action for blocked relation", async () => {
-    relationState.blocked = [{ id: 201, userId: 10, username: "alice" }];
+    relationState.blocked = [
+      { id: 201, userId: 10, username: "alice", publicRef: "1234567890" },
+    ];
 
     render(
       <MemoryRouter>
-        <UserProfilePanel username="alice" currentUsername="bob" />
+        <UserProfilePanel publicRef="1234567890" currentPublicRef="2222222222" />
       </MemoryRouter>,
     );
 
@@ -220,7 +248,7 @@ describe("UserProfilePanel", () => {
   it("hides friend actions for self profile", async () => {
     render(
       <MemoryRouter>
-        <UserProfilePanel username="alice" currentUsername="alice" />
+        <UserProfilePanel publicRef="1234567890" currentPublicRef="1234567890" />
       </MemoryRouter>,
     );
 

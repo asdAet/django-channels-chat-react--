@@ -257,7 +257,7 @@ describe("ChatController", () => {
       items: [
         {
           slug: "dm_123",
-          peer: { username: "alice", profileImage: null },
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-01-01T00:00:00.000Z",
         },
@@ -272,7 +272,7 @@ describe("ChatController", () => {
       items: [
         {
           slug: "dm_123",
-          peer: { username: "alice", profileImage: null },
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-01-01T00:00:00.000Z",
         },
@@ -292,6 +292,7 @@ describe("ChatController", () => {
       roomId: 1,
       kind: "direct",
       peer: {
+        publicRef: "alice",
         username: "alice",
         profileImage: null,
         avatarCrop: null,
@@ -309,12 +310,14 @@ describe("ChatController", () => {
       messageId: 7,
       emoji: "🔥",
       userId: 2,
+      publicRef: "alice",
       username: "alice",
     };
     const search: SearchResult = {
       results: [
         {
           id: 1,
+          publicRef: "alice",
           username: "alice",
           content: "hello",
           createdAt: "2026-01-01T00:00:00.000Z",
@@ -346,6 +349,7 @@ describe("ChatController", () => {
     const searchResult: GlobalSearchResult = {
       users: [
         {
+          publicRef: "alice",
           username: "alice",
           profileImage: null,
           avatarCrop: null,
@@ -365,6 +369,7 @@ describe("ChatController", () => {
       messages: [
         {
           id: 9,
+          publicRef: "alice",
           username: "alice",
           content: "hello",
           createdAt: "2026-01-01T00:00:00.000Z",
@@ -387,6 +392,7 @@ describe("ChatController", () => {
           height: null,
           messageId: 22,
           createdAt: "2026-01-01T00:00:00.000Z",
+          publicRef: "alice",
           username: "alice",
         },
       ],

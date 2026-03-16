@@ -29,6 +29,8 @@ export type GroupListItem = {
 export type GroupMember = {
   userId: number;
   username: string;
+  displayName?: string;
+  publicRef?: string;
   nickname: string;
   profileImage?: string | null;
   avatarCrop?: AvatarCrop | null;
@@ -63,6 +65,8 @@ export type JoinRequest = {
   id: number;
   userId: number;
   username: string;
+  displayName?: string;
+  publicRef?: string;
   message: string;
   createdAt: string;
 };
@@ -79,6 +83,8 @@ export type PinnedMessage = {
 export type BannedMember = {
   userId: number;
   username: string;
+  displayName?: string;
+  publicRef?: string;
   reason: string;
   bannedBy: string | null;
 };

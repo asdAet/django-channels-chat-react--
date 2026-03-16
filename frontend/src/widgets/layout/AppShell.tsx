@@ -75,7 +75,7 @@ function ShellLayout({
           {children}
         </div>
       </div>
-      <InfoPanel currentUsername={user?.publicRef ?? user?.username ?? null} />
+      <InfoPanel currentPublicRef={user?.publicRef ?? null} />
     </div>
   );
 }

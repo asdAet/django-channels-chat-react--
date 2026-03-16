@@ -15,7 +15,7 @@ from chat_app_django.ip_utils import get_client_ip_from_scope
 from chat_app_django.media_utils import build_profile_url, serialize_avatar_crop
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
-from users.identity import user_public_username
+from users.identity import user_public_ref, user_public_username
 
 from .constants import (
     PRESENCE_CACHE_KEY_AUTH,
@@ -187,20 +187,76 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             await self.close(code=PRESENCE_CLOSE_IDLE_CODE)
             break
 
+    @staticmethod
+    def _normalize_presence_value(value: object) -> str:
+        if not isinstance(value, str):
+            return ""
+        return value.strip()
+
+    @staticmethod
+    def _coerce_presence_int(value: object, default: int = 0) -> int:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            try:
+                return int(value)
+            except (TypeError, ValueError, OverflowError):
+                return default
+        if isinstance(value, str):
+            normalized = value.strip()
+            if not normalized:
+                return default
+            try:
+                return int(normalized)
+            except (TypeError, ValueError, OverflowError):
+                return default
+        return default
+
+    def _resolve_presence_user_identity(self, user: Any) -> tuple[str, str, str]:
+        public_ref = self._normalize_presence_value(user_public_ref(user))
+        username = self._normalize_presence_value(user_public_username(user))
+        key = public_ref or username
+        return key, public_ref, username
+
+    @staticmethod
+    def _resolve_presence_entry(
+        data: dict[str, dict[str, object]],
+        *,
+        key: str,
+        username: str,
+    ) -> tuple[str, dict[str, object] | None]:
+        if key and key in data:
+            return key, data.get(key)
+        if username and username in data:
+            return username, data.get(username)
+        return key, None
+
     def _add_user_sync(self, user: Any) -> None:
-        username = user_public_username(user)
-        if not username:
+        key, public_ref, username = self._resolve_presence_user_identity(user)
+        if not key:
             return
-        data = cache.get(self.cache_key, {})
-        current = data.get(username, {})
-        count = current.get("count", 0) + 1
+        data = cache.get(self.cache_key, {}) or {}
+        existing_key, current = self._resolve_presence_entry(
+            data,
+            key=key,
+            username=username,
+        )
+        if current is None:
+            current = {}
+        elif existing_key != key:
+            data.pop(existing_key, None)
+        count = self._coerce_presence_int(current.get("count", 0), default=0) + 1
         profile = getattr(user, "profile", None)
         image_name = getattr(profile, "image", None)
         image_name = image_name.name if image_name else ""
         image_url = build_profile_url(self.scope, image_name) if image_name else None
         avatar_crop = serialize_avatar_crop(profile)
-        data[username] = {
+        data[key] = {
             "count": count,
+            "publicRef": public_ref or key,
+            "username": username or self._normalize_presence_value(current.get("username")) or key,
             "profileImage": image_url,
             "avatarCrop": avatar_crop,
             "last_seen": time.time(),
@@ -212,37 +268,48 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         await _to_async(self._add_user_sync)(user)
 
     def _remove_user_sync(self, user: Any, graceful: bool = False) -> None:
-        username = user_public_username(user)
-        if not username:
+        key, _public_ref, username = self._resolve_presence_user_identity(user)
+        if not key:
             return
-        data = cache.get(self.cache_key, {})
-        if username in data:
-            entry = data[username]
-            count = entry.get("count", 1) - 1
-            now = time.time()
-            if count <= 0:
-                if graceful or self.presence_grace <= 0:
-                    data.pop(username, None)
-                else:
-                    entry["count"] = 0
-                    entry["last_seen"] = now
-                    entry["grace_until"] = now + self.presence_grace
-                    data[username] = entry
+        data = cache.get(self.cache_key, {}) or {}
+        existing_key, entry = self._resolve_presence_entry(
+            data,
+            key=key,
+            username=username,
+        )
+        if entry is None:
+            return
+        count = self._coerce_presence_int(entry.get("count", 1), default=1) - 1
+        now = time.time()
+        if count <= 0:
+            if graceful or self.presence_grace <= 0:
+                data.pop(existing_key, None)
             else:
-                entry["count"] = count
+                entry["count"] = 0
                 entry["last_seen"] = now
-                entry["grace_until"] = 0
-                data[username] = entry
-            cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
+                entry["grace_until"] = now + self.presence_grace
+                entry["username"] = username or self._normalize_presence_value(entry.get("username")) or key
+                data[key] = entry
+                if existing_key != key:
+                    data.pop(existing_key, None)
+        else:
+            entry["count"] = count
+            entry["last_seen"] = now
+            entry["grace_until"] = 0
+            entry["username"] = username or self._normalize_presence_value(entry.get("username")) or key
+            data[key] = entry
+            if existing_key != key:
+                data.pop(existing_key, None)
+        cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _remove_user(self, user: Any, graceful: bool = False) -> None:
         await _to_async(self._remove_user_sync)(user, graceful)
 
     def _get_online_sync(self) -> list[dict[str, object]]:
-        data = cache.get(self.cache_key, {})
+        data = cache.get(self.cache_key, {}) or {}
         now = time.time()
         cleaned = {}
-        for username, info in data.items():
+        for actor_key, info in data.items():
             try:
                 count = int(info.get("count", 0))
             except (TypeError, ValueError):
@@ -250,23 +317,24 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             last_seen = info.get("last_seen", 0)
             grace_until = info.get("grace_until", 0)
             if count > 0 and (now - last_seen) <= self.presence_ttl:
-                cleaned[username] = info
+                cleaned[actor_key] = info
             elif (
                 count <= 0
                 and grace_until
                 and grace_until > now
                 and (now - last_seen) <= self.presence_ttl
             ):
-                cleaned[username] = info
+                cleaned[actor_key] = info
         if cleaned != data:
             cache.set(self.cache_key, cleaned, timeout=self.cache_timeout_seconds)
         return [
             {
-                "username": username,
+                "publicRef": self._normalize_presence_value(info.get("publicRef")) or actor_key,
+                "username": self._normalize_presence_value(info.get("username")) or actor_key,
                 "profileImage": info.get("profileImage"),
                 "avatarCrop": info.get("avatarCrop"),
             }
-            for username, info in cleaned.items()
+            for actor_key, info in cleaned.items()
         ]
 
     async def _get_online(self) -> list[dict[str, object]]:
@@ -341,30 +409,44 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         return await _to_async(self._get_guest_count_sync)()
 
     def _touch_user_sync(self, user: Any) -> None:
-        username = user_public_username(user)
-        if not username:
+        key, public_ref, username = self._resolve_presence_user_identity(user)
+        if not key:
             return
-        data = cache.get(self.cache_key, {})
-        current = data.get(username)
+        data = cache.get(self.cache_key, {}) or {}
+        existing_key, current = self._resolve_presence_entry(
+            data,
+            key=key,
+            username=username,
+        )
         profile = getattr(user, "profile", None)
         image_name = getattr(profile, "image", None)
         image_name = image_name.name if image_name else ""
         image_url = build_profile_url(self.scope, image_name) if image_name else None
         avatar_crop = serialize_avatar_crop(profile)
         if not current:
-            data[username] = {
+            data[key] = {
                 "count": 1,
+                "publicRef": public_ref or key,
+                "username": username or key,
                 "profileImage": image_url,
                 "avatarCrop": avatar_crop,
                 "last_seen": time.time(),
                 "grace_until": 0,
             }
         else:
+            count_value = self._coerce_presence_int(current.get("count", 1), default=1)
+            if count_value <= 0:
+                count_value = 1
+            current["count"] = count_value
             current["last_seen"] = time.time()
             current["grace_until"] = 0
+            current["publicRef"] = public_ref or key
+            current["username"] = username or self._normalize_presence_value(current.get("username")) or key
             current["profileImage"] = image_url
             current["avatarCrop"] = avatar_crop
-            data[username] = current
+            data[key] = current
+            if existing_key != key:
+                data.pop(existing_key, None)
         cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _touch_user(self, user: Any) -> None:

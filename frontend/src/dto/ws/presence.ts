@@ -14,6 +14,7 @@ const avatarCropSchema = z
 
 const onlineUserSchema = z
   .object({
+    publicRef: z.string().min(1),
     username: z.string().min(1),
     profileImage: z.string().nullable().optional(),
     avatarCrop: avatarCropSchema.nullable().optional(),
@@ -71,6 +72,7 @@ export const decodePresenceWsEvent = (raw: string): PresenceWsEvent => {
     type: "state",
     online: state.online
       ? state.online.map((entry) => ({
+          publicRef: entry.publicRef,
           username: entry.username,
           profileImage: entry.profileImage ?? null,
           avatarCrop: entry.avatarCrop ?? null,

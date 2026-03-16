@@ -192,3 +192,4 @@ presentation/
 
 db.*
 .tmp*
+backend/pytest.out

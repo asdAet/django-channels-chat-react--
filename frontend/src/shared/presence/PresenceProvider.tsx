@@ -7,10 +7,14 @@ import type { UserProfile } from "../../entities/user/types";
 import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import type { OnlineUser } from "../api/users";
 import { debugLog } from "../lib/debug";
+import { normalizePublicRef } from "../lib/publicRef";
 import { getWebSocketBase } from "../lib/ws";
 import { PresenceContext } from "./context";
 
 const PRESENCE_PING_MS = 10000;
+
+const normalizePresenceRef = (value: string | null | undefined): string =>
+  normalizePublicRef(value ?? "").toLowerCase();
 
 type ProviderProps = {
   user: UserProfile | null;
@@ -69,12 +73,13 @@ export function PresenceProvider({
       }
 
       if (decoded.online) {
+        const currentUserRef = normalizePresenceRef(user?.publicRef || "");
         if (user) {
           const nextImage = user.profileImage || null;
           const nextCrop = user.avatarCrop ?? null;
           setOnlineUsers(
             decoded.online.map((entry) =>
-              entry.username === user.username
+              normalizePresenceRef(entry.publicRef || "") === currentUserRef
                 ? { ...entry, profileImage: nextImage, avatarCrop: nextCrop }
                 : entry,
             ),
@@ -112,10 +117,11 @@ export function PresenceProvider({
   const visibleOnline = useMemo(() => {
     if (!user) return [];
 
+    const currentUserRef = normalizePresenceRef(user.publicRef || "");
     const nextImage = user.profileImage || null;
     const nextCrop = user.avatarCrop ?? null;
     return onlineUsers.map((entry) =>
-      entry.username === user.username
+      normalizePresenceRef(entry.publicRef || "") === currentUserRef
         ? { ...entry, profileImage: nextImage, avatarCrop: nextCrop }
         : entry,
     );
@@ -137,3 +143,4 @@ export function PresenceProvider({
     </PresenceContext.Provider>
   );
 }
+

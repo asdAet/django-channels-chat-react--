@@ -40,89 +40,89 @@ class GroupController {
     return apiService.getMyGroups(params);
   }
 
-  public async getGroupDetails(slug: string): Promise<Group> {
-    return apiService.getGroupDetails(slug);
+  public async getGroupDetails(roomId: string): Promise<Group> {
+    return apiService.getGroupDetails(roomId);
   }
 
   public async updateGroup(
-    slug: string,
+    roomId: string,
     data: UpdateGroupInput,
   ): Promise<Group> {
-    const group = await apiService.updateGroup(slug, data);
+    const group = await apiService.updateGroup(roomId, data);
     emitConversationListRefresh();
     return group;
   }
 
-  public async deleteGroup(slug: string): Promise<void> {
-    await apiService.deleteGroup(slug);
+  public async deleteGroup(roomId: string): Promise<void> {
+    await apiService.deleteGroup(roomId);
     emitConversationListRefresh();
   }
 
-  public async joinGroup(slug: string): Promise<void> {
-    await apiService.joinGroup(slug);
+  public async joinGroup(roomId: string): Promise<void> {
+    await apiService.joinGroup(roomId);
     emitConversationListRefresh();
   }
 
-  public async leaveGroup(slug: string): Promise<void> {
-    await apiService.leaveGroup(slug);
+  public async leaveGroup(roomId: string): Promise<void> {
+    await apiService.leaveGroup(roomId);
     emitConversationListRefresh();
   }
 
   public async getGroupMembers(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{ items: GroupMember[]; total: number }> {
-    return apiService.getGroupMembers(slug, params);
+    return apiService.getGroupMembers(roomId, params);
   }
 
-  public async kickMember(slug: string, userId: number): Promise<void> {
-    return apiService.kickMember(slug, userId);
+  public async kickMember(roomId: string, userId: number): Promise<void> {
+    return apiService.kickMember(roomId, userId);
   }
 
   public async banMember(
-    slug: string,
+    roomId: string,
     userId: number,
     reason?: string,
   ): Promise<void> {
-    return apiService.banMember(slug, userId, reason);
+    return apiService.banMember(roomId, userId, reason);
   }
 
-  public async unbanMember(slug: string, userId: number): Promise<void> {
-    return apiService.unbanMember(slug, userId);
+  public async unbanMember(roomId: string, userId: number): Promise<void> {
+    return apiService.unbanMember(roomId, userId);
   }
 
   public async muteMember(
-    slug: string,
+    roomId: string,
     userId: number,
     durationSeconds = 3600,
   ): Promise<void> {
-    return apiService.muteMember(slug, userId, durationSeconds);
+    return apiService.muteMember(roomId, userId, durationSeconds);
   }
 
-  public async unmuteMember(slug: string, userId: number): Promise<void> {
-    return apiService.unmuteMember(slug, userId);
+  public async unmuteMember(roomId: string, userId: number): Promise<void> {
+    return apiService.unmuteMember(roomId, userId);
   }
 
   public async getBannedMembers(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{ items: BannedMember[]; total: number }> {
-    return apiService.getBannedMembers(slug, params);
+    return apiService.getBannedMembers(roomId, params);
   }
 
   public async createInvite(
-    slug: string,
+    roomId: string,
     data?: { maxUses?: number; expiresInHours?: number },
   ): Promise<GroupInvite> {
-    return apiService.createInvite(slug, data);
+    return apiService.createInvite(roomId, data);
   }
 
-  public async getInvites(slug: string): Promise<GroupInvite[]> {
-    return apiService.getInvites(slug);
+  public async getInvites(roomId: string): Promise<GroupInvite[]> {
+    return apiService.getInvites(roomId);
   }
 
-  public async revokeInvite(slug: string, code: string): Promise<void> {
-    return apiService.revokeInvite(slug, code);
+  public async revokeInvite(roomId: string, code: string): Promise<void> {
+    return apiService.revokeInvite(roomId, code);
   }
 
   public async getInvitePreview(code: string): Promise<InvitePreview> {
@@ -135,38 +135,38 @@ class GroupController {
     return result;
   }
 
-  public async getJoinRequests(slug: string): Promise<JoinRequest[]> {
-    return apiService.getJoinRequests(slug);
+  public async getJoinRequests(roomId: string): Promise<JoinRequest[]> {
+    return apiService.getJoinRequests(roomId);
   }
 
   public async approveJoinRequest(
-    slug: string,
+    roomId: string,
     requestId: number,
   ): Promise<void> {
-    return apiService.approveJoinRequest(slug, requestId);
+    return apiService.approveJoinRequest(roomId, requestId);
   }
 
   public async rejectJoinRequest(
-    slug: string,
+    roomId: string,
     requestId: number,
   ): Promise<void> {
-    return apiService.rejectJoinRequest(slug, requestId);
+    return apiService.rejectJoinRequest(roomId, requestId);
   }
 
-  public async getPinnedMessages(slug: string): Promise<PinnedMessage[]> {
-    return apiService.getPinnedMessages(slug);
+  public async getPinnedMessages(roomId: string): Promise<PinnedMessage[]> {
+    return apiService.getPinnedMessages(roomId);
   }
 
-  public async pinMessage(slug: string, messageId: number): Promise<void> {
-    return apiService.pinMessage(slug, messageId);
+  public async pinMessage(roomId: string, messageId: number): Promise<void> {
+    return apiService.pinMessage(roomId, messageId);
   }
 
-  public async unpinMessage(slug: string, messageId: number): Promise<void> {
-    return apiService.unpinMessage(slug, messageId);
+  public async unpinMessage(roomId: string, messageId: number): Promise<void> {
+    return apiService.unpinMessage(roomId, messageId);
   }
 
-  public async transferOwnership(slug: string, userId: number): Promise<void> {
-    return apiService.transferOwnership(slug, userId);
+  public async transferOwnership(roomId: string, userId: number): Promise<void> {
+    return apiService.transferOwnership(roomId, userId);
   }
 }
 

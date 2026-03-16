@@ -19,6 +19,11 @@ class RoomRolesApiTests(TestCase):
         self.owner = User.objects.create_user(username="roles_owner", password="pass12345")
         self.member = User.objects.create_user(username="roles_member", password="pass12345")
         self.other = User.objects.create_user(username="roles_other", password="pass12345")
+        self.superuser = User.objects.create_superuser(
+            username="roles_superuser",
+            email="roles_superuser@example.com",
+            password="pass12345",
+        )
 
         self.room = Room.objects.create(
             slug="roles-room-01",
@@ -240,3 +245,24 @@ class RoomRolesApiTests(TestCase):
         self.client.force_login(self.member)
         response = self.client.get(f"/api/chat/rooms/{hidden_room.pk}/permissions/me/")
         self.assertEqual(response.status_code, 404)
+
+    def test_superuser_can_manage_roles_without_room_membership(self):
+        self.client.force_login(self.superuser)
+
+        create_response = self.client.post(
+            self._url("roles/"),
+            data=json.dumps(
+                {
+                    "name": "SuperManaged",
+                    "color": "#AA55EE",
+                    "position": 100,
+                    "permissions": int(Perm.READ_MESSAGES | Perm.SEND_MESSAGES),
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(create_response.status_code, 201)
+        role_id = create_response.json()["item"]["id"]
+
+        delete_response = self.client.delete(self._url(f"roles/{role_id}/"))
+        self.assertEqual(delete_response.status_code, 204)

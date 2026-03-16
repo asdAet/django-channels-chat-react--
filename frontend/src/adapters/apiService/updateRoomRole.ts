@@ -5,7 +5,7 @@ import type { Role } from "../../entities/role/types";
 
 export async function updateRoomRole(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   roleId: number,
   data: Partial<{
     name: string;
@@ -15,7 +15,7 @@ export async function updateRoomRole(
   }>,
 ): Promise<Role> {
   const response = await apiClient.patch<unknown>(
-    `/chat/rooms/${encodeURIComponent(slug)}/roles/${roleId}/`,
+    `/chat/rooms/${encodeURIComponent(roomId)}/roles/${roleId}/`,
     data,
   );
   return decodeRoleResponse(response.data);

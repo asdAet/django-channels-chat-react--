@@ -5,6 +5,7 @@ import type { UserProfile } from "../entities/user/types";
 
 const profileMock = vi.hoisted(() => ({
   user: {
+    publicRef: "alice",
     username: "alice",
     email: "",
     profileImage: null,
@@ -22,7 +23,11 @@ vi.mock("../hooks/useUserProfile", () => ({
 }));
 
 const presenceMock = vi.hoisted(() => ({
-  online: [] as Array<{ username: string; profileImage: string | null }>,
+  online: [] as Array<{
+    publicRef: string;
+    username: string;
+    profileImage: string | null;
+  }>,
   guests: 0,
   status: "online" as const,
   lastError: null as string | null,
@@ -36,6 +41,7 @@ import { UserProfilePage } from "./UserProfilePage";
 
 const makeUser = (username: string) =>
   ({
+    publicRef: username,
     username,
     email: `${username}@example.com`,
     profileImage: null,
@@ -48,6 +54,7 @@ const makeUser = (username: string) =>
 describe("UserProfilePage", () => {
   beforeEach(() => {
     profileMock.user = {
+      publicRef: "alice",
       username: "alice",
       email: "",
       profileImage: null,
@@ -93,8 +100,9 @@ describe("UserProfilePage", () => {
     expect(screen.getByText("@alice")).toBeInTheDocument();
   });
 
-  it("hides empty @username and send message button", () => {
+  it("uses route public ref when profile username is empty", () => {
     profileMock.user = {
+      publicRef: "",
       username: "   ",
       email: "",
       profileImage: null,
@@ -114,8 +122,8 @@ describe("UserProfilePage", () => {
       />,
     );
 
-    expect(screen.queryByText(/^@/)).toBeNull();
-    expect(screen.queryByTestId("send-dm-button")).toBeNull();
+    expect(screen.getByText("@alice")).toBeInTheDocument();
+    expect(screen.getByTestId("send-dm-button")).toBeInTheDocument();
   });
 
   it("hides bio block when bio is empty", () => {
@@ -146,7 +154,9 @@ describe("UserProfilePage", () => {
   });
 
   it("shows online label when user is online", () => {
-    presenceMock.online = [{ username: "alice", profileImage: null }];
+    presenceMock.online = [
+      { publicRef: "alice", username: "alice", profileImage: null },
+    ];
     const { container } = render(
       <UserProfilePage
         user={makeUser("bob")}
@@ -186,6 +196,7 @@ describe("UserProfilePage", () => {
 
   it("shows original image in fullscreen preview even when avatarCrop exists", () => {
     profileMock.user = {
+      publicRef: "alice",
       username: "alice",
       email: "",
       profileImage: "https://cdn.example.com/alice.jpg",

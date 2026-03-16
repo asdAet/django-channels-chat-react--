@@ -25,6 +25,7 @@ const itemSchema = z
     roomId: z.number(),
     peer: z
       .object({
+        publicRef: z.string().min(1),
         username: z.string().min(1),
         displayName: z.string().optional(),
         profileImage: z.string().nullable().optional(),
@@ -106,6 +107,7 @@ const normalizeItem = (
 ): DirectChatListItem => ({
   slug: String(Math.trunc(value.roomId)),
   peer: {
+    publicRef: value.peer.publicRef,
     username: value.peer.username,
     displayName: value.peer.displayName ?? value.peer.username,
     profileImage: value.peer.profileImage ?? null,

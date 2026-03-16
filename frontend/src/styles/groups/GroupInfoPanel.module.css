@@ -284,6 +284,19 @@
   min-width: 0;
 }
 
+.memberMainBtn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.memberMainBtn:hover .memberMeta strong {
+  text-decoration: underline;
+}
+
 .memberMeta {
   display: flex;
   flex-direction: column;

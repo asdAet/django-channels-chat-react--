@@ -5,10 +5,10 @@ import type { Group } from "../../entities/group/types";
 
 export async function getGroupDetails(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
 ): Promise<Group> {
   const response = await apiClient.get<unknown>(
-    `/groups/${encodeURIComponent(slug)}/`,
+    `/groups/${encodeURIComponent(roomId)}/`,
   );
   return decodeGroupResponse(response.data);
 }

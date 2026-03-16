@@ -23,6 +23,7 @@ vi.mock("../controllers/ChatController", () => ({
 import { useChatRoom } from "./useChatRoom";
 
 const authUser = {
+  publicRef: "tester",
   username: "tester",
   email: "tester@example.com",
   profileImage: null,
@@ -36,6 +37,7 @@ const makeMessage = (
     Partial<Message>,
 ): Message => ({
   id: overrides.id,
+  publicRef: overrides.publicRef ?? overrides.username,
   username: overrides.username,
   content: overrides.content,
   createdAt: overrides.createdAt,

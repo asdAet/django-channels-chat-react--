@@ -2,7 +2,7 @@ import type { AxiosInstance } from "axios";
 
 export async function leaveGroup(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
 ): Promise<void> {
-  await apiClient.post(`/groups/${encodeURIComponent(slug)}/leave/`);
+  await apiClient.post(`/groups/${encodeURIComponent(roomId)}/leave/`);
 }

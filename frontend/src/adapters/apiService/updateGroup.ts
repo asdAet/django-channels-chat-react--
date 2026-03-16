@@ -19,7 +19,7 @@ const appendScalar = (formData: FormData, key: string, value: unknown) => {
 
 export async function updateGroup(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   data: UpdateGroupInput,
 ): Promise<Group> {
   const { avatar, avatarAction, avatarCrop, ...rest } = data;
@@ -35,7 +35,7 @@ export async function updateGroup(
     payload.avatarCropHeight = avatarCrop.height;
   }
 
-  const endpoint = `/groups/${encodeURIComponent(slug)}/`;
+  const endpoint = `/groups/${encodeURIComponent(roomId)}/`;
 
   if (!hasMultipartPayload) {
     const response = await apiClient.patch<unknown>(endpoint, payload);

@@ -101,6 +101,19 @@ class PermissionServiceHelpersTests(SimpleTestCase):
 
 
 class PermissionServiceBehaviorTests(SimpleTestCase):
+    def test_compute_permissions_returns_all_for_superuser(self):
+        room = _room_stub(kind=Room.Kind.PRIVATE, is_public=False)
+        superuser = SimpleNamespace(is_authenticated=True, is_superuser=True, pk=999)
+        effective = permission_service.compute_permissions(room, superuser)
+        self.assertEqual(int(effective), int(Perm(-1)))
+
+    def test_get_actor_context_returns_superuser_top_position(self):
+        room = _room_stub(kind=Room.Kind.GROUP, is_public=False)
+        superuser = SimpleNamespace(is_authenticated=True, is_superuser=True, pk=123)
+        context = permission_service.get_actor_context(room, superuser)
+        self.assertEqual(int(context.permissions), int(Perm(-1)))
+        self.assertEqual(context.top_position, (1 << 31) - 1)
+
     def test_compute_permissions_returns_zero_for_membership_when_user_pk_missing(self):
         room = _room_stub(kind=Room.Kind.PRIVATE, is_public=False)
         user = SimpleNamespace(is_authenticated=True, pk=None)

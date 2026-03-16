@@ -15,7 +15,7 @@ from friends.interfaces.serializers import (
     FriendOutputSerializer,
     IncomingRequestOutputSerializer,
     OutgoingRequestOutputSerializer,
-    UsernameInputSerializer,
+    PublicRefInputSerializer,
 )
 
 
@@ -64,19 +64,19 @@ class OutgoingRequestsApiView(APIView):
 
 class SendRequestApiView(GenericAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UsernameInputSerializer
+    serializer_class = PublicRefInputSerializer
 
     def get(self, _request):
-        return Response({"detail": "Используйте POST с именем пользователя"})
+        return Response({"detail": "Используйте POST с публичным идентификатором"})
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data["username"]
+        target_ref = serializer.validated_data["ref"]
         try:
             friendship = friend_service.send_request(
                 request.user,
-                username,
+                target_ref,
             )
         except FriendServiceError as exc:
             return _service_error_response(exc)
@@ -145,19 +145,19 @@ class BlockedListApiView(APIView):
 
 class BlockUserApiView(GenericAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UsernameInputSerializer
+    serializer_class = PublicRefInputSerializer
 
     def get(self, _request):
-        return Response({"detail": "Используйте POST с именем пользователя"})
+        return Response({"detail": "Используйте POST с публичным идентификатором"})
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.validated_data["username"]
+        target_ref = serializer.validated_data["ref"]
         try:
             friendship = friend_service.block_user(
                 request.user,
-                username,
+                target_ref,
             )
         except FriendServiceError as exc:
             return _service_error_response(exc)

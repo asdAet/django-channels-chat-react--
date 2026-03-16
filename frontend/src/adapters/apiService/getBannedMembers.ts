@@ -15,11 +15,11 @@ export type BannedMembersResult = {
 
 export async function getBannedMembers(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   params?: { limit?: number; before?: number },
 ): Promise<BannedMembersResult> {
   const response = await apiClient.get<unknown>(
-    `/groups/${encodeURIComponent(slug)}/banned/`,
+    `/groups/${encodeURIComponent(roomId)}/banned/`,
     { params },
   );
   return decodeBannedMembersResponse(response.data);

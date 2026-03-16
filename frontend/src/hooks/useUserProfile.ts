@@ -5,7 +5,7 @@ import type { UserProfile } from "../entities/user/types";
 import { debugLog } from "../shared/lib/debug";
 
 type InternalState = {
-  username: string | null;
+  publicRef: string | null;
   user: UserProfile | null;
   error: string | null;
 };
@@ -18,18 +18,18 @@ export type UserProfileState = {
 
 /**
  * Управляет состоянием и эффектами хука `useUserProfile`.
- * @param username Входной параметр `username`.
+ * @param publicRef Входной параметр `publicRef`.
  * @returns Результат выполнения `useUserProfile`.
  */
 
-export const useUserProfile = (username: string) => {
+export const useUserProfile = (publicRef: string) => {
   const [state, setState] = useState<InternalState>({
-    username: null,
+    publicRef: null,
     user: null,
     error: null,
   });
 
-  const hasUsername = Boolean(username);
+  const hasPublicRef = Boolean(publicRef);
 
   /**
    * Выполняет метод `useEffect`.
@@ -37,12 +37,12 @@ export const useUserProfile = (username: string) => {
    */
 
   useEffect(() => {
-    if (!hasUsername) return;
+    if (!hasPublicRef) return;
 
     let active = true;
 
     apiService
-      .getUserProfile(username)
+      .getUserProfile(publicRef)
       .then((payload) => {
         if (!active) return;
         const user = payload.user;
@@ -53,7 +53,7 @@ export const useUserProfile = (username: string) => {
          */
 
         setState({
-          username,
+          publicRef,
           user: {
             ...user,
             name: user.name ?? "",
@@ -82,24 +82,24 @@ export const useUserProfile = (username: string) => {
          * @returns Результат выполнения `setState`.
          */
 
-        setState({ username, user: null, error: "not_found" });
+        setState({ publicRef, user: null, error: "not_found" });
       });
 
     return () => {
       active = false;
     };
-  }, [hasUsername, username]);
+  }, [hasPublicRef, publicRef]);
 
   return useMemo<UserProfileState>(() => {
-    if (!hasUsername) {
+    if (!hasPublicRef) {
       return { user: null, loading: false, error: "not_found" };
     }
 
-    const isStale = state.username !== username;
+    const isStale = state.publicRef !== publicRef;
     const user = isStale ? null : state.user;
     const error = isStale ? null : state.error;
     const loading = isStale || (!user && !error);
 
     return { user, loading, error };
-  }, [hasUsername, state.error, state.user, state.username, username]);
+  }, [hasPublicRef, state.error, state.publicRef, state.user, publicRef]);
 };

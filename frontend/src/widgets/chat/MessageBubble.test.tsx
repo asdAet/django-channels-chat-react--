@@ -6,6 +6,7 @@ import { MessageBubble } from "./MessageBubble";
 
 const baseMessage: Message = {
   id: 1,
+  publicRef: "alice",
   username: "alice",
   content: "audio message",
   profilePic: null,
@@ -215,6 +216,36 @@ describe("MessageBubble", () => {
       fireEvent.contextMenu(article);
       expect(screen.getByRole("menu")).toBeInTheDocument();
       expect(screen.getAllByRole("menuitem")).toHaveLength(5);
+    } finally {
+      restoreDesktopInputModel();
+    }
+  });
+
+  it("shows edit and delete actions for non-own message when canModerate=true", () => {
+    const restoreDesktopInputModel = installDesktopInputModel();
+    try {
+      const { container } = render(
+        <MessageBubble
+          message={baseMessage}
+          isOwn={false}
+          canModerate={true}
+          onlineUsernames={new Set<string>()}
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onReact={vi.fn()}
+          onAvatarClick={vi.fn()}
+        />,
+      );
+
+      const article = container.querySelector(
+        'article[data-message-id="1"]',
+      ) as HTMLElement;
+
+      fireEvent.contextMenu(article);
+      expect(screen.getByRole("menu")).toBeInTheDocument();
+      expect(screen.getByText("Редактировать")).toBeInTheDocument();
+      expect(screen.getByText("Удалить")).toBeInTheDocument();
     } finally {
       restoreDesktopInputModel();
     }

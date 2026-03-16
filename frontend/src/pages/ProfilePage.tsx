@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+﻿import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import type { UserProfile } from "../entities/user/types";
 import type { AvatarCrop } from "../shared/api/users";
@@ -35,6 +35,9 @@ type Props = {
   }) => Promise<SaveResult>;
   onNavigate: (path: string) => void;
 };
+
+const normalizeActorRef = (value: string): string =>
+  normalizePublicRef(value).toLowerCase();
 
 const USERNAME_ALLOWED_RE = /^[A-Za-z]+$/;
 
@@ -150,14 +153,13 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
   const genericError =
     formError || fieldErrors.non_field_errors?.[0] || fieldErrors.__all__?.[0];
   const avatarIdentity = user.username ?? user.name ?? "user";
-  const currentPublicRef = normalizePublicRef(
-    user.publicRef || user.username || "",
-  );
+  const currentPublicRef = normalizePublicRef(user.publicRef || "");
+  const normalizedCurrentActorRef = normalizeActorRef(currentPublicRef);
   const isUserOnline =
     presenceStatus === "online" &&
     presenceOnline.some(
       (entry) =>
-        normalizePublicRef(entry.username) === normalizePublicRef(currentPublicRef),
+        normalizeActorRef(entry.publicRef) === normalizedCurrentActorRef,
     );
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -442,3 +444,5 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
     </>
   );
 }
+
+

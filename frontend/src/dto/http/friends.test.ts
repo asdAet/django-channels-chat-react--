@@ -14,6 +14,7 @@ describe("friends DTO decoders", () => {
           id: 10,
           user: {
             id: 2,
+            publicRef: "bob",
             username: "bob",
             profileImage: "https://example.com/bob.jpg",
             avatarCrop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
@@ -24,6 +25,7 @@ describe("friends DTO decoders", () => {
     });
 
     expect(decoded[0]?.profileImage).toBe("https://example.com/bob.jpg");
+    expect(decoded[0]?.publicRef).toBe("bob");
     expect(decoded[0]?.avatarCrop).toEqual({
       x: 0.1,
       y: 0.2,
@@ -39,6 +41,7 @@ describe("friends DTO decoders", () => {
           id: 11,
           user: {
             id: 3,
+            publicRef: "charlie",
             username: "charlie",
             profileImage: "https://example.com/charlie.jpg",
             avatarCrop: { x: 0.2, y: 0.2, width: 0.5, height: 0.5 },
@@ -51,6 +54,7 @@ describe("friends DTO decoders", () => {
     const incoming = decodeIncomingRequestsResponse(payload);
     const outgoing = decodeOutgoingRequestsResponse(payload);
 
+    expect(incoming[0]?.publicRef).toBe("charlie");
     expect(incoming[0]?.profileImage).toBe("https://example.com/charlie.jpg");
     expect(outgoing[0]?.avatarCrop).toEqual({
       x: 0.2,

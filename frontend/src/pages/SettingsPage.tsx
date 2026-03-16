@@ -45,7 +45,7 @@ export function SettingsPage({ user, onNavigate, onLogout }: Props) {
       user.name,
       (user as { last_name?: string | null }).last_name,
     ) || "Без имени";
-  const publicRef = (user.publicRef || user.username || "").trim();
+  const publicRef = (user.publicRef || "").trim();
 
   return (
     <div className={styles.root}>

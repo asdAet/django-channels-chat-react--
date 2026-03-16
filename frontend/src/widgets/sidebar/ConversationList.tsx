@@ -5,7 +5,11 @@ import {
   useConversationList,
   type FilterTab,
 } from "../../shared/conversationList/ConversationListProvider";
-import { buildDirectPath, buildUserProfilePath } from "../../shared/lib/publicRef";
+import {
+  buildDirectPath,
+  buildUserProfilePath,
+  formatPublicRef,
+} from "../../shared/lib/publicRef";
 import { Spinner, EmptyState, Avatar } from "../../shared/ui";
 import styles from "../../styles/sidebar/ConversationList.module.css";
 import { ConversationListItem } from "./ConversationListItem";
@@ -101,10 +105,10 @@ export function ConversationList({ onNavigate }: Props) {
               <h4 className={styles.globalTitle}>Пользователи</h4>
               {globalResults.users.map((user) => (
                 <button
-                  key={`u-${user.username}`}
+                  key={`u-${user.publicRef}`}
                   type="button"
                   className={styles.globalItem}
-                  onClick={() => onNavigate(buildUserProfilePath(user.username))}
+                  onClick={() => onNavigate(buildUserProfilePath(user.publicRef))}
                 >
                   <Avatar
                     username={user.displayName ?? user.username}
@@ -117,7 +121,7 @@ export function ConversationList({ onNavigate }: Props) {
                       {user.displayName ?? user.username}
                     </span>
                     <span className={styles.globalSecondary}>
-                      @{user.username}
+                      {formatPublicRef(user.publicRef)}
                     </span>
                   </div>
                 </button>
@@ -142,7 +146,7 @@ export function ConversationList({ onNavigate }: Props) {
                     <span className={styles.globalPrimary}>{group.name}</span>
                     {group.publicRef && (
                       <span className={styles.globalSecondary}>
-                        {group.publicRef}
+                        {formatPublicRef(group.publicRef)}
                       </span>
                     )}
                   </div>

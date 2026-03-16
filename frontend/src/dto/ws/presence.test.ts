@@ -8,6 +8,7 @@ describe("presence WS DTO decoder", () => {
       JSON.stringify({
         online: [
           {
+            publicRef: "1234567890",
             username: "alice",
             profileImage: null,
             avatarCrop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
@@ -21,6 +22,7 @@ describe("presence WS DTO decoder", () => {
       type: "state",
       online: [
         {
+          publicRef: "1234567890",
           username: "alice",
           profileImage: null,
           avatarCrop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },

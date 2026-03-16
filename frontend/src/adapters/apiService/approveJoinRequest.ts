@@ -2,10 +2,10 @@ import type { AxiosInstance } from "axios";
 
 export async function approveJoinRequest(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   requestId: number,
 ): Promise<void> {
   await apiClient.post(
-    `/groups/${encodeURIComponent(slug)}/requests/${requestId}/approve/`,
+    `/groups/${encodeURIComponent(roomId)}/requests/${requestId}/approve/`,
   );
 }

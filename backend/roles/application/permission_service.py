@@ -24,6 +24,17 @@ class ActorContext:
     top_position: int
 
 
+_SUPERUSER_TOP_POSITION = (1 << 31) - 1
+
+
+def _is_superuser(user) -> bool:
+    return bool(
+        user
+        and getattr(user, "is_authenticated", False)
+        and getattr(user, "is_superuser", False)
+    )
+
+
 def _role_pk(role) -> int | None:
     value = getattr(role, "pk", None)
     if value is None:
@@ -117,6 +128,9 @@ def compute_permissions(room: Room, user) -> Perm:
             return Perm.READ_MESSAGES
         return Perm(0)
 
+    if _is_superuser(user):
+        return Perm(-1)
+
     if room.kind == Room.Kind.DIRECT:
         return _compute_direct_permissions(room, user)
 
@@ -205,6 +219,8 @@ def get_user_role(room: Room, user) -> str | None:
 
 
 def get_actor_context(room: Room, actor) -> ActorContext:
+    if _is_superuser(actor):
+        return ActorContext(permissions=Perm(-1), top_position=_SUPERUSER_TOP_POSITION)
     membership = repositories.get_membership(room, actor)
     permissions = compute_permissions(room, actor)
     top_position = _top_role_position_for_membership(membership)

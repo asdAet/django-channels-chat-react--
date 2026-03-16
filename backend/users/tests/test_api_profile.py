@@ -71,7 +71,7 @@ class ProfileApiTests(TestCase):
         payload = response.json()["user"]
         self.assertEqual(payload["name"], "Profile User")
         self.assertEqual(payload["handle"], "profileuser")
-        self.assertEqual(payload["publicRef"], "@profileuser")
+        self.assertEqual(payload["publicRef"], user_public_ref(self.user))
         self.assertEqual(payload["email"], "profile@example.com")
         self.assertIn("avatarCrop", payload)
 

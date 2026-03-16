@@ -1,4 +1,4 @@
-import {
+﻿import {
   useCallback,
   useRef,
   useState,
@@ -13,6 +13,7 @@ import type {
   ReplyTo,
 } from "../../entities/message/types";
 import { formatTimestamp } from "../../shared/lib/format";
+import { normalizePublicRef } from "../../shared/lib/publicRef";
 import {
   AudioAttachmentPlayer,
   Avatar,
@@ -25,6 +26,7 @@ import styles from "../../styles/chat/MessageBubble.module.css";
 type Props = {
   message: Message;
   isOwn: boolean;
+  canModerate?: boolean;
   isRead?: boolean;
   highlighted?: boolean;
   onlineUsernames: Set<string>;
@@ -33,7 +35,7 @@ type Props = {
   onDelete?: (msg: Message) => void;
   onReact?: (msgId: number, emoji: string) => void;
   onReplyQuoteClick?: (replyToId: number) => void;
-  onAvatarClick?: (username: string) => void;
+  onAvatarClick?: (actorRef: string) => void;
 };
 
 const QUICK_REACTIONS = [
@@ -56,6 +58,8 @@ const formatFileSize = (bytes: number) => {
 const isImageType = (ct: string) => ct.startsWith("image/");
 const isVideoType = (ct: string) => ct.startsWith("video/");
 const isAudioType = (ct: string) => ct.startsWith("audio/");
+const normalizeActorRef = (value: string) =>
+  normalizePublicRef(value).toLowerCase();
 
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
@@ -196,6 +200,7 @@ function EmojiPicker({
 export function MessageBubble({
   message,
   isOwn,
+  canModerate = false,
   isRead = false,
   highlighted = false,
   onlineUsernames,
@@ -322,6 +327,7 @@ export function MessageBubble({
 
   const contextMenuItems: ContextMenuItem[] = [];
   if (!message.isDeleted) {
+    const canManageMessage = isOwn || canModerate;
     const messageText = message.content.trim();
 
     contextMenuItems.push({
@@ -393,11 +399,11 @@ export function MessageBubble({
           </svg>
         ),
         disabled: !onAvatarClick,
-        onClick: () => onAvatarClick?.(message.username),
+        onClick: () => onAvatarClick?.(message.publicRef),
       });
     }
 
-    if (isOwn) {
+    if (canManageMessage) {
       contextMenuItems.push({
         label: "Редактировать",
         icon: (
@@ -464,7 +470,7 @@ export function MessageBubble({
         <button
           type="button"
           className={styles.avatarBtn}
-          onClick={() => onAvatarClick?.(message.username)}
+          onClick={() => onAvatarClick?.(message.publicRef)}
           aria-label={`Профиль ${message.displayName ?? message.username}`}
         >
           <Avatar
@@ -472,7 +478,9 @@ export function MessageBubble({
             profileImage={message.profilePic}
             avatarCrop={message.avatarCrop}
             size="small"
-            online={onlineUsernames.has(message.username)}
+            online={onlineUsernames.has(
+              normalizeActorRef(message.publicRef || ""),
+            )}
           />
         </button>
 
@@ -666,4 +674,7 @@ export function MessageBubble({
     </>
   );
 }
+
+
+
 

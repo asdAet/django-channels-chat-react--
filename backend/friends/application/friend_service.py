@@ -22,7 +22,7 @@ def _ensure_authenticated(actor) -> None:
         raise FriendForbiddenError("Требуется аутентификация")
 
 
-def _normalize_username(raw: str) -> str:
+def _normalize_public_ref(raw: str) -> str:
     if not isinstance(raw, str):
         return ""
     return raw.strip().lstrip("@")
@@ -84,13 +84,13 @@ def is_blocked_between(user_a, user_b) -> bool:
 
 # ── Send request ──────────────────────────────────────────────────────
 
-def send_request(actor, target_username: str) -> Friendship:
+def send_request(actor, target_ref: str) -> Friendship:
     _ensure_authenticated(actor)
-    username = _normalize_username(target_username)
-    if not username:
-        raise FriendServiceError("Требуется имя пользователя")
+    target_lookup_ref = _normalize_public_ref(target_ref)
+    if not target_lookup_ref:
+        raise FriendServiceError("Требуется публичный идентификатор")
 
-    target = repositories.get_user_by_username(username)
+    target = repositories.get_user_by_public_ref(target_lookup_ref)
     if not target:
         raise FriendNotFoundError("Пользователь не найден")
 
@@ -258,13 +258,13 @@ def remove_friend(actor, target_user_id: int) -> None:
 
 # ── Block / Unblock ──────────────────────────────────────────────────
 
-def block_user(actor, target_username: str) -> Friendship:
+def block_user(actor, target_ref: str) -> Friendship:
     _ensure_authenticated(actor)
-    username = _normalize_username(target_username)
-    if not username:
-        raise FriendServiceError("Требуется имя пользователя")
+    target_lookup_ref = _normalize_public_ref(target_ref)
+    if not target_lookup_ref:
+        raise FriendServiceError("Требуется публичный идентификатор")
 
-    target = repositories.get_user_by_username(username)
+    target = repositories.get_user_by_public_ref(target_lookup_ref)
     if not target:
         raise FriendNotFoundError("Пользователь не найден")
 

@@ -2,10 +2,10 @@ import type { AxiosInstance } from "axios";
 
 export async function pinMessage(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   messageId: number,
 ): Promise<void> {
-  await apiClient.post(`/groups/${encodeURIComponent(slug)}/pins/`, {
+  await apiClient.post(`/groups/${encodeURIComponent(roomId)}/pins/`, {
     messageId,
   });
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
@@ -251,13 +251,7 @@ function AppInner() {
       try {
         await updateProfile(fields);
         setBanner("Профиль обновлен");
-        const nextPublicRef =
-          (
-            fields.username?.trim() ||
-            auth.user?.publicRef ||
-            auth.user?.username ||
-            ""
-          ).trim() || null;
+        const nextPublicRef = (auth.user?.publicRef || "").trim() || null;
         if (nextPublicRef) {
           onNavigate(buildUserProfilePath(nextPublicRef));
         }
@@ -355,3 +349,6 @@ export function App() {
 }
 
 export default App;
+
+
+

@@ -52,6 +52,7 @@ function PresenceProbe() {
 }
 
 const user = {
+  publicRef: "demo",
   username: "demo",
   email: "demo@example.com",
   profileImage: "https://cdn.example.com/demo.jpg",
@@ -88,8 +89,8 @@ describe("PresenceProvider", () => {
         new MessageEvent("message", {
           data: JSON.stringify({
             online: [
-              { username: "demo", profileImage: null },
-              { username: "alice", profileImage: null },
+              { publicRef: "demo", username: "demo", profileImage: null },
+              { publicRef: "alice", username: "alice", profileImage: null },
             ],
             guests: 3,
           }),
@@ -121,7 +122,9 @@ describe("PresenceProvider", () => {
       wsMock.options?.onMessage?.(
         new MessageEvent("message", {
           data: JSON.stringify({
-            online: [{ username: "alice", profileImage: null }],
+            online: [
+              { publicRef: "alice", username: "alice", profileImage: null },
+            ],
             guests: 2,
           }),
         }),
@@ -176,7 +179,9 @@ describe("PresenceProvider", () => {
       wsMock.options?.onMessage?.(
         new MessageEvent("message", {
           data: JSON.stringify({
-            online: [{ username: "alice", profileImage: null }],
+            online: [
+              { publicRef: "alice", username: "alice", profileImage: null },
+            ],
             guests: 5,
           }),
         }),

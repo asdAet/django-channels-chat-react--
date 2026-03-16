@@ -4,6 +4,7 @@ export type RoomKind = "public" | "private" | "direct" | "group";
 
 export type RoomPeer = {
   userId?: number;
+  publicRef: string;
   username: string;
   displayName?: string;
   profileImage: string | null;

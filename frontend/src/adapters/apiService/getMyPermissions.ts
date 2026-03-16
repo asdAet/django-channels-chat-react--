@@ -2,13 +2,13 @@ import type { AxiosInstance } from "axios";
 
 import { decodeMyPermissionsResponse } from "../../dto";
 import type { MyPermissions } from "../../entities/role/types";
-import { resolveRoomApiRef } from "./resolveRoomApiRef";
+import { resolveRoomId } from "./resolveRoomId";
 
 export async function getMyPermissions(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
 ): Promise<MyPermissions> {
-  const roomRef = await resolveRoomApiRef(apiClient, slug);
+  const roomRef = await resolveRoomId(apiClient, roomId);
   const response = await apiClient.get<unknown>(
     `/chat/rooms/${encodeURIComponent(roomRef)}/permissions/me/`,
   );

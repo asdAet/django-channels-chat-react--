@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from roles.models import Membership, Role
 from rooms.models import Room
-from users.identity import user_public_id
+from users.identity import user_display_name, user_public_id, user_public_ref
 
 from ._typing import TypedAPIClient
 
@@ -97,6 +97,11 @@ class TestKickBanMute(APITestCase):
         self.owner = User.objects.create_user(username="owner", password="testpass123")
         self.member = User.objects.create_user(username="member", password="testpass123")
         self.other = User.objects.create_user(username="other", password="testpass123")
+        self.superuser = User.objects.create_superuser(
+            username="group_superuser_member_moderation",
+            email="group_superuser_member_moderation@example.com",
+            password="testpass123",
+        )
         self.room_id = _create_group_with_member(self.api_client, self.owner, self.member)
 
     def test_kick_member(self):
@@ -244,6 +249,8 @@ class TestKickBanMute(APITestCase):
         by_user = {item["userId"]: item for item in data["items"]}
         assert by_user[self.owner.pk]["isSelf"] is True
         assert by_user[self.member.pk]["isSelf"] is False
+        assert by_user[self.member.pk]["displayName"] == user_display_name(self.member)
+        assert by_user[self.member.pk]["publicRef"] == user_public_ref(self.member)
         if data["items"][0]["profileImage"] is not None:
             _assert_signed_media_url(data["items"][0]["profileImage"])
 
@@ -281,6 +288,8 @@ class TestKickBanMute(APITestCase):
         assert payload["pagination"]["nextBefore"] is None
         assert len(items) == 1
         assert items[0]["username"] == user_public_id(self.member)
+        assert items[0]["displayName"] == user_display_name(self.member)
+        assert items[0]["publicRef"] == user_public_ref(self.member)
 
     def test_hierarchy_prevents_kicking_higher_role(self):
         """A member with Admin role should not be kickable by a Moderator."""
@@ -304,3 +313,16 @@ class TestKickBanMute(APITestCase):
         self.api_client.force_authenticate(user=mod)
         resp = self.api_client.delete(f"/api/groups/{self.room_id}/members/{self.member.pk}/")
         assert resp.status_code == 403
+
+    def test_superuser_bypasses_hierarchy_for_kick_member(self):
+        room = Room.objects.get(pk=self.room_id)
+        admin_role = Role.objects.get(room=room, name="Admin")
+        member_ms = Membership.objects.get(room=room, user=self.member)
+        member_ms.roles.add(admin_role)
+
+        self.api_client.force_authenticate(user=self.superuser)
+        resp = self.api_client.delete(f"/api/groups/{self.room_id}/members/{self.member.pk}/")
+        assert resp.status_code == 204
+        assert not Membership.objects.filter(
+            room_id=self.room_id, user=self.member, is_banned=False
+        ).exists()

@@ -124,10 +124,10 @@ export interface IApiService {
 
   getPublicRoom(): Promise<RoomDetails>;
 
-  getRoomDetails(slug: string): Promise<RoomDetails>;
+  getRoomDetails(roomId: string): Promise<RoomDetails>;
 
   getRoomMessages(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; beforeId?: number },
   ): Promise<RoomMessagesResponse>;
 
@@ -141,41 +141,41 @@ export interface IApiService {
   getUnreadCounts(): Promise<UnreadCountItem[]>;
 
   editMessage(
-    slug: string,
+    roomId: string,
     messageId: number,
     content: string,
   ): Promise<EditMessageResult>;
 
-  deleteMessage(slug: string, messageId: number): Promise<void>;
+  deleteMessage(roomId: string, messageId: number): Promise<void>;
 
   addReaction(
-    slug: string,
+    roomId: string,
     messageId: number,
     emoji: string,
   ): Promise<ReactionResult>;
 
-  removeReaction(slug: string, messageId: number, emoji: string): Promise<void>;
+  removeReaction(roomId: string, messageId: number, emoji: string): Promise<void>;
 
-  searchMessages(slug: string, query: string): Promise<SearchResult>;
+  searchMessages(roomId: string, query: string): Promise<SearchResult>;
 
   uploadAttachments(
-    slug: string,
+    roomId: string,
     files: File[],
     options?: UploadAttachmentsOptions,
   ): Promise<UploadResult>;
 
-  markRead(slug: string, messageId?: number): Promise<ReadStateResult>;
+  markRead(roomId: string, messageId?: number): Promise<ReadStateResult>;
 
   // --- Phase 4: Friends ---
   getFriends(): Promise<Friend[]>;
-  sendFriendRequest(username: string): Promise<SendFriendRequestResponse>;
+  sendFriendRequest(publicRef: string): Promise<SendFriendRequestResponse>;
   getIncomingRequests(): Promise<FriendRequest[]>;
   getOutgoingRequests(): Promise<FriendRequest[]>;
   acceptFriendRequest(friendshipId: number): Promise<void>;
   declineFriendRequest(friendshipId: number): Promise<void>;
   cancelOutgoingFriendRequest(friendshipId: number): Promise<void>;
   removeFriend(userId: number): Promise<void>;
-  blockUser(username: string): Promise<void>;
+  blockUser(publicRef: string): Promise<void>;
   unblockUser(userId: number): Promise<void>;
   getBlockedUsers(): Promise<BlockedUser[]>;
 
@@ -212,13 +212,13 @@ export interface IApiService {
       nextBefore: number | null;
     };
   }>;
-  getGroupDetails(slug: string): Promise<Group>;
-  updateGroup(slug: string, data: UpdateGroupInput): Promise<Group>;
-  deleteGroup(slug: string): Promise<void>;
-  joinGroup(slug: string): Promise<void>;
-  leaveGroup(slug: string): Promise<void>;
+  getGroupDetails(roomId: string): Promise<Group>;
+  updateGroup(roomId: string, data: UpdateGroupInput): Promise<Group>;
+  deleteGroup(roomId: string): Promise<void>;
+  joinGroup(roomId: string): Promise<void>;
+  leaveGroup(roomId: string): Promise<void>;
   getGroupMembers(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{
     items: GroupMember[];
@@ -229,17 +229,17 @@ export interface IApiService {
       nextBefore: number | null;
     };
   }>;
-  kickMember(slug: string, userId: number): Promise<void>;
-  banMember(slug: string, userId: number, reason?: string): Promise<void>;
-  unbanMember(slug: string, userId: number): Promise<void>;
+  kickMember(roomId: string, userId: number): Promise<void>;
+  banMember(roomId: string, userId: number, reason?: string): Promise<void>;
+  unbanMember(roomId: string, userId: number): Promise<void>;
   muteMember(
-    slug: string,
+    roomId: string,
     userId: number,
     durationSeconds?: number,
   ): Promise<void>;
-  unmuteMember(slug: string, userId: number): Promise<void>;
+  unmuteMember(roomId: string, userId: number): Promise<void>;
   getBannedMembers(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{
     items: BannedMember[];
@@ -251,29 +251,29 @@ export interface IApiService {
     };
   }>;
   createInvite(
-    slug: string,
+    roomId: string,
     data?: { maxUses?: number; expiresInHours?: number },
   ): Promise<GroupInvite>;
-  getInvites(slug: string): Promise<GroupInvite[]>;
-  revokeInvite(slug: string, code: string): Promise<void>;
+  getInvites(roomId: string): Promise<GroupInvite[]>;
+  revokeInvite(roomId: string, code: string): Promise<void>;
   getInvitePreview(code: string): Promise<InvitePreview>;
   joinViaInvite(code: string): Promise<{ roomId: number }>;
-  getJoinRequests(slug: string): Promise<JoinRequest[]>;
-  approveJoinRequest(slug: string, requestId: number): Promise<void>;
-  rejectJoinRequest(slug: string, requestId: number): Promise<void>;
-  getPinnedMessages(slug: string): Promise<PinnedMessage[]>;
-  pinMessage(slug: string, messageId: number): Promise<void>;
-  unpinMessage(slug: string, messageId: number): Promise<void>;
-  transferOwnership(slug: string, userId: number): Promise<void>;
+  getJoinRequests(roomId: string): Promise<JoinRequest[]>;
+  approveJoinRequest(roomId: string, requestId: number): Promise<void>;
+  rejectJoinRequest(roomId: string, requestId: number): Promise<void>;
+  getPinnedMessages(roomId: string): Promise<PinnedMessage[]>;
+  pinMessage(roomId: string, messageId: number): Promise<void>;
+  unpinMessage(roomId: string, messageId: number): Promise<void>;
+  transferOwnership(roomId: string, userId: number): Promise<void>;
 
   // --- Phase 6: Roles & Permissions ---
-  getRoomRoles(slug: string): Promise<Role[]>;
+  getRoomRoles(roomId: string): Promise<Role[]>;
   createRoomRole(
-    slug: string,
+    roomId: string,
     data: { name: string; color?: string; permissions?: number },
   ): Promise<Role>;
   updateRoomRole(
-    slug: string,
+    roomId: string,
     roleId: number,
     data: Partial<{
       name: string;
@@ -282,16 +282,16 @@ export interface IApiService {
       position: number;
     }>,
   ): Promise<Role>;
-  deleteRoomRole(slug: string, roleId: number): Promise<void>;
-  getMemberRoles(slug: string, userId: number): Promise<MemberRoles>;
+  deleteRoomRole(roomId: string, roleId: number): Promise<void>;
+  getMemberRoles(roomId: string, userId: number): Promise<MemberRoles>;
   setMemberRoles(
-    slug: string,
+    roomId: string,
     userId: number,
     roleIds: number[],
   ): Promise<MemberRoles>;
-  getRoomOverrides(slug: string): Promise<PermissionOverride[]>;
+  getRoomOverrides(roomId: string): Promise<PermissionOverride[]>;
   createRoomOverride(
-    slug: string,
+    roomId: string,
     data: {
       targetRoleId?: number;
       targetUserId?: number;
@@ -300,12 +300,12 @@ export interface IApiService {
     },
   ): Promise<PermissionOverride>;
   updateRoomOverride(
-    slug: string,
+    roomId: string,
     overrideId: number,
     data: Partial<{ allow: number; deny: number }>,
   ): Promise<PermissionOverride>;
-  deleteRoomOverride(slug: string, overrideId: number): Promise<void>;
-  getMyPermissions(slug: string): Promise<MyPermissions>;
+  deleteRoomOverride(roomId: string, overrideId: number): Promise<void>;
+  getMyPermissions(roomId: string): Promise<MyPermissions>;
 
   globalSearch(
     query: string,
@@ -317,7 +317,7 @@ export interface IApiService {
   ): Promise<GlobalSearchResult>;
 
   getRoomAttachments(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<RoomAttachmentsResult>;
 }
@@ -331,10 +331,12 @@ export type ReactionResult = {
   messageId: number;
   emoji: string;
   userId: number;
+  publicRef: string;
   username: string;
 };
 export type SearchResultItem = {
   id: number;
+  publicRef: string;
   username: string;
   displayName?: string;
   content: string;
@@ -366,6 +368,7 @@ export type UploadAttachmentsOptions = {
 export type RoomAttachmentItem = Attachment & {
   messageId: number;
   createdAt: string;
+  publicRef: string;
   username: string;
   displayName?: string;
 };
@@ -380,6 +383,7 @@ export type RoomAttachmentsResult = {
 };
 
 export type GlobalSearchUser = {
+  publicRef: string;
   username: string;
   displayName?: string;
   profileImage: string | null;
@@ -398,6 +402,7 @@ export type GlobalSearchGroup = {
 
 export type GlobalSearchMessage = {
   id: number;
+  publicRef: string;
   username: string;
   displayName?: string;
   content: string;

@@ -29,7 +29,11 @@ const chatMock = vi.hoisted(() => ({
       () => Promise<{
         items: Array<{
           slug: string;
-          peer: { username: string; profileImage: string | null };
+          peer: {
+            publicRef: string;
+            username: string;
+            profileImage: string | null;
+          };
           lastMessage: string;
           lastMessageAt: string;
         }>;
@@ -64,6 +68,7 @@ import {
 } from "../unreadOverrides/store";
 
 const user = {
+  publicRef: "demo",
   username: "demo",
   email: "demo@example.com",
   profileImage: null,
@@ -133,7 +138,7 @@ describe("DirectInboxProvider", () => {
       items: [
         {
           slug: "1",
-          peer: { username: "alice", profileImage: null },
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-02-13T10:00:00Z",
         },
@@ -229,13 +234,13 @@ describe("DirectInboxProvider", () => {
       items: [
         {
           slug: "1",
-          peer: { username: "alice", profileImage: null },
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "old",
           lastMessageAt: "2026-02-13T10:00:00Z",
         },
         {
           slug: "2",
-          peer: { username: "bob", profileImage: null },
+          peer: { publicRef: "bob", username: "bob", profileImage: null },
           lastMessage: "new",
           lastMessageAt: "2026-02-13T11:00:00Z",
         },
@@ -276,7 +281,11 @@ describe("DirectInboxProvider", () => {
             type: "direct_inbox_item",
             item: {
               roomId: 1,
-              peer: { username: "alice", profileImage: null },
+              peer: {
+                publicRef: "alice",
+                username: "alice",
+                profileImage: null,
+              },
               lastMessage: "latest",
               lastMessageAt: "2026-02-13T12:00:00Z",
             },
@@ -453,7 +462,7 @@ describe("DirectInboxProvider", () => {
       items: [
         {
           slug: "1",
-          peer: { username: "alice", profileImage: null },
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-02-13T10:00:00Z",
         },

@@ -2,19 +2,26 @@ import { useCallback, useState, type KeyboardEvent } from "react";
 
 import styles from "../../styles/friends/FriendsPage.module.css";
 
+const HANDLE_PUBLIC_REF_RE = /^@[a-z][a-z0-9_]{2,29}$/i;
+const USER_PUBLIC_ID_RE = /^[1-9]\d{9}$/;
+
 type Props = {
-  onSubmit: (username: string) => Promise<void>;
+  onSubmit: (publicRef: string) => Promise<void>;
   onClose: () => void;
 };
 
 export function AddFriendDialog({ onSubmit, onClose }: Props) {
-  const [username, setUsername] = useState("");
+  const [publicRef, setPublicRef] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   const handleSubmit = useCallback(async () => {
-    const trimmed = username.trim();
+    const trimmed = publicRef.trim();
     if (!trimmed) return;
+    if (!HANDLE_PUBLIC_REF_RE.test(trimmed) && !USER_PUBLIC_ID_RE.test(trimmed)) {
+      setError("Укажите @username или публичный id");
+      return;
+    }
 
     setSending(true);
     setError(null);
@@ -30,7 +37,7 @@ export function AddFriendDialog({ onSubmit, onClose }: Props) {
     } finally {
       setSending(false);
     }
-  }, [username, onSubmit, onClose]);
+  }, [publicRef, onSubmit, onClose]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -52,10 +59,10 @@ export function AddFriendDialog({ onSubmit, onClose }: Props) {
         <div className={styles.dialogTitle}>Добавить друга</div>
         <input
           className={styles.dialogInput}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={publicRef}
+          onChange={(e) => setPublicRef(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Имя пользователя"
+          placeholder="Введи @username"
           autoFocus
           disabled={sending}
         />
@@ -72,7 +79,7 @@ export function AddFriendDialog({ onSubmit, onClose }: Props) {
             type="button"
             className={styles.dialogSubmitBtn}
             onClick={handleSubmit}
-            disabled={!username.trim() || sending}
+            disabled={!publicRef.trim() || sending}
           >
             Отправить
           </button>
@@ -81,3 +88,4 @@ export function AddFriendDialog({ onSubmit, onClose }: Props) {
     </div>
   );
 }
+

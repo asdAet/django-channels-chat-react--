@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const inboxMock = vi.hoisted(() => ({
   items: [] as Array<{
     slug: string;
-    peer: { username: string; profileImage: string | null };
+    peer: { publicRef: string; username: string; profileImage: string | null };
     lastMessage: string;
     lastMessageAt: string;
   }>,
@@ -20,7 +20,11 @@ const inboxMock = vi.hoisted(() => ({
 }));
 
 const presenceMock = vi.hoisted(() => ({
-  online: [] as Array<{ username: string; profileImage: string | null }>,
+  online: [] as Array<{
+    publicRef: string;
+    username: string;
+    profileImage: string | null;
+  }>,
   guests: 0,
   status: "online" as const,
   lastError: null as string | null,
@@ -37,6 +41,7 @@ vi.mock("../shared/presence", () => ({
 import { DirectChatsPage } from "./DirectChatsPage";
 
 const user = {
+  publicRef: "demo",
   username: "demo",
   email: "demo@example.com",
   profileImage: null,
@@ -79,13 +84,15 @@ describe("DirectChatsPage", () => {
     inboxMock.items = [
       {
         slug: "dm_123",
-        peer: { username: "alice", profileImage: null },
+        peer: { publicRef: "alice", username: "alice", profileImage: null },
         lastMessage: "hello",
         lastMessageAt: "2026-01-01T10:00:00.000Z",
       },
     ];
     inboxMock.unreadCounts = { dm_123: 2 };
-    presenceMock.online = [{ username: "alice", profileImage: null }];
+    presenceMock.online = [
+      { publicRef: "alice", username: "alice", profileImage: null },
+    ];
 
     const { container } = render(
       <DirectChatsPage user={user} onNavigate={onNavigate} />,
@@ -104,7 +111,7 @@ describe("DirectChatsPage", () => {
     inboxMock.items = [
       {
         slug: "dm_321",
-        peer: { username: "bob", profileImage: null },
+        peer: { publicRef: "bob", username: "bob", profileImage: null },
         lastMessage: "offline",
         lastMessageAt: "2026-01-01T10:00:00.000Z",
       },

@@ -30,6 +30,7 @@ const forbiddenSchema = z
 const replyToSchema = z
   .object({
     id: z.number(),
+    publicRef: z.string().nullable().optional(),
     username: z.string().nullable(),
     displayName: z.string().nullable().optional(),
     content: z.string(),
@@ -52,6 +53,7 @@ const attachmentWsSchema = z
 const messageSchema = z
   .object({
     message: z.string(),
+    publicRef: z.string().min(1),
     username: z.string().min(1),
     displayName: z.string().optional(),
     profile_pic: z.string().nullable().optional(),
@@ -67,6 +69,7 @@ const messageSchema = z
 const typingSchema = z
   .object({
     type: z.literal("typing"),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
     userId: z.number(),
@@ -97,6 +100,7 @@ const reactionAddSchema = z
     messageId: z.number(),
     emoji: z.string(),
     userId: z.number(),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
   })
@@ -108,6 +112,7 @@ const reactionRemoveSchema = z
     messageId: z.number(),
     emoji: z.string(),
     userId: z.number(),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
   })
@@ -117,6 +122,7 @@ const readReceiptSchema = z
   .object({
     type: z.literal("read_receipt"),
     userId: z.number(),
+    publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
     lastReadMessageId: z.number(),
@@ -136,6 +142,7 @@ export type ChatWsEvent =
       message: {
         id: number | null;
         content: string;
+        publicRef: string;
         username: string;
         displayName: string;
         profilePic: string | null;
@@ -149,6 +156,7 @@ export type ChatWsEvent =
         createdAt: string | null;
         replyTo: {
           id: number;
+          publicRef: string | null;
           username: string | null;
           displayName: string | null;
           content: string;
@@ -167,6 +175,7 @@ export type ChatWsEvent =
     }
   | {
       type: "typing";
+      publicRef: string;
       username: string;
       displayName: string;
       userId: number;
@@ -188,6 +197,7 @@ export type ChatWsEvent =
       messageId: number;
       emoji: string;
       userId: number;
+      publicRef: string;
       username: string;
       displayName: string;
     }
@@ -196,12 +206,14 @@ export type ChatWsEvent =
       messageId: number;
       emoji: string;
       userId: number;
+      publicRef: string;
       username: string;
       displayName: string;
     }
   | {
       type: "read_receipt";
       userId: number;
+      publicRef: string;
       username: string;
       displayName: string;
       lastReadMessageId: number;
@@ -251,6 +263,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
   if (typed) {
     return {
       type: "typing",
+      publicRef: typed.publicRef,
       username: typed.username,
       displayName: typed.displayName ?? typed.username,
       userId: typed.userId,
@@ -284,6 +297,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
       messageId: reactAdd.messageId,
       emoji: reactAdd.emoji,
       userId: reactAdd.userId,
+      publicRef: reactAdd.publicRef,
       username: reactAdd.username,
       displayName: reactAdd.displayName ?? reactAdd.username,
     };
@@ -296,6 +310,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
       messageId: reactRemove.messageId,
       emoji: reactRemove.emoji,
       userId: reactRemove.userId,
+      publicRef: reactRemove.publicRef,
       username: reactRemove.username,
       displayName: reactRemove.displayName ?? reactRemove.username,
     };
@@ -310,6 +325,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
     return {
       type: "read_receipt",
       userId: receipt.userId,
+      publicRef: receipt.publicRef,
       username: receipt.username,
       displayName: receipt.displayName ?? receipt.username,
       lastReadMessageId: receipt.lastReadMessageId,
@@ -325,6 +341,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
       message: {
         id: message.id ?? null,
         content: message.message,
+        publicRef: message.publicRef,
         username: message.username,
         displayName: message.displayName ?? message.username,
         profilePic: message.profile_pic ?? null,
@@ -334,6 +351,11 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
         replyTo: message.replyTo
           ? {
               ...message.replyTo,
+              publicRef:
+                typeof message.replyTo.publicRef === "string" &&
+                message.replyTo.publicRef.trim().length > 0
+                  ? message.replyTo.publicRef
+                  : null,
               displayName:
                 message.replyTo.displayName ?? message.replyTo.username,
             }

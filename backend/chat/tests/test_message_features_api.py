@@ -130,6 +130,54 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertNotIn(hidden_msg.pk, found_message_ids)
         self.assertFalse(any("hidden" in item["content"] for item in payload["messages"]))
 
+    def test_global_search_for_superuser_is_not_limited_by_interaction_scope(self):
+        hidden_group = Room.objects.create(
+            slug="group_super_scope_hidden",
+            name="super scope hidden group",
+            kind=Room.Kind.GROUP,
+            is_public=False,
+            created_by=self.outsider,
+        )
+        set_room_public_handle(hidden_group, "superscopehiddengroup")
+        ensure_membership(hidden_group, self.outsider, role_name="Owner")
+
+        hidden_user = User.objects.create_user(
+            username="super_scope_user",
+            password="pass12345",
+        )
+        set_user_public_handle(hidden_user, "superscopeuser")
+        ensure_user_identity_core(hidden_user)
+        ensure_membership(hidden_group, hidden_user, role_name="Member")
+
+        hidden_message = Message.objects.create(
+            username=hidden_user.username,
+            user=hidden_user,
+            room=hidden_group,
+            message_content="superscope hidden message",
+        )
+
+        superuser = User.objects.create_superuser(
+            username="search_superuser_feat",
+            email="search_superuser_feat@example.com",
+            password="pass12345",
+        )
+        set_user_public_handle(superuser, "search_superuser_feat")
+        ensure_user_identity_core(superuser)
+
+        self.client.force_login(superuser)
+        response = self.client.get("/api/chat/search/global/?q=@superscope")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+
+        found_usernames = {item["username"] for item in payload["users"]}
+        self.assertIn("superscopeuser", found_usernames)
+
+        found_group_ids = {item["roomId"] for item in payload["groups"]}
+        self.assertIn(hidden_group.pk, found_group_ids)
+
+        found_message_ids = {item["id"] for item in payload["messages"]}
+        self.assertIn(hidden_message.pk, found_message_ids)
+
     def test_global_search_plain_text_includes_matching_handle_groups(self):
         visible_group = Room.objects.create(
             slug="group_plain_text_scope",
@@ -245,6 +293,15 @@ class ChatMessageFeatureApiTests(TestCase):
         payload = response.json()
         found_usernames = {item["username"] for item in payload["users"]}
         self.assertIn("peerfeatureupdated", found_usernames)
+
+    def test_global_search_plain_text_does_not_search_users_by_handle(self):
+        set_user_public_handle(self.peer, "peerfeatureupdated")
+
+        self.client.force_login(self.owner)
+        response = self.client.get("/api/chat/search/global/?q=peerfeatureupdated")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["users"], [])
 
     def test_attachment_upload_accepts_reply_to_and_get_lists_items(self):
         reply_target = Message.objects.create(
@@ -525,6 +582,44 @@ class ChatMessageFeatureApiTests(TestCase):
             f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/"
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_message_detail_allows_superuser_edit_and_delete_outside_membership(self):
+        private_room = Room.objects.create(
+            slug="private_superuser_access_01",
+            name="private superuser access",
+            kind=Room.Kind.PRIVATE,
+            created_by=self.outsider,
+        )
+        ensure_membership(private_room, self.outsider)
+        message = Message.objects.create(
+            username=self.outsider.username,
+            user=self.outsider,
+            room=private_room,
+            message_content="hidden message",
+        )
+        superuser = User.objects.create_superuser(
+            username="chat_superuser_feat",
+            email="chat_superuser_feat@example.com",
+            password="pass12345",
+        )
+        set_user_public_handle(superuser, "chat_superuser_feat")
+        ensure_user_identity_core(superuser)
+        self.client.force_login(superuser)
+
+        patch_response = self.client.patch(
+            f"/api/chat/rooms/{private_room.pk}/messages/{message.pk}/",
+            data=json.dumps({"content": "edited by superuser"}),
+            content_type="application/json",
+        )
+        self.assertEqual(patch_response.status_code, 200)
+        self.assertEqual(patch_response.json()["content"], "edited by superuser")
+
+        delete_response = self.client.delete(
+            f"/api/chat/rooms/{private_room.pk}/messages/{message.pk}/"
+        )
+        self.assertEqual(delete_response.status_code, 204)
+        message.refresh_from_db()
+        self.assertTrue(message.is_deleted)
 
     def test_message_reactions_handles_forbidden_and_remove_flow(self):
         message = Message.objects.create(

@@ -19,6 +19,7 @@ export type ReactionSummary = {
 
 export type ReplyTo = {
   id: number;
+  publicRef: string | null;
   username: string | null;
   displayName?: string | null;
   content: string;
@@ -26,6 +27,7 @@ export type ReplyTo = {
 
 export type Message = {
   id: number;
+  publicRef: string;
   username: string;
   displayName?: string;
   content: string;

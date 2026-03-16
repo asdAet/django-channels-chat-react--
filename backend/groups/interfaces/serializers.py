@@ -94,6 +94,8 @@ class InvitePreviewSerializer(serializers.Serializer):
 class MemberOutputSerializer(serializers.Serializer):
     userId = serializers.IntegerField()
     username = serializers.CharField()
+    displayName = serializers.CharField(required=False)
+    publicRef = serializers.CharField(required=False)
     nickname = serializers.CharField(allow_null=True)
     profileImage = serializers.CharField(allow_null=True, required=False)
     avatarCrop = serializers.DictField(allow_null=True, required=False)
@@ -105,6 +107,8 @@ class MemberOutputSerializer(serializers.Serializer):
 class BannedMemberSerializer(serializers.Serializer):
     userId = serializers.IntegerField()
     username = serializers.CharField()
+    displayName = serializers.CharField(required=False)
+    publicRef = serializers.CharField(required=False)
     reason = serializers.CharField()
     bannedBy = serializers.CharField(allow_null=True)
 

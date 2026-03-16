@@ -11,6 +11,7 @@ import {
 
 const makeMessage = (id: number, username: string): Message => ({
   id,
+  publicRef: username,
   username,
   content: `message-${id}`,
   profilePic: null,
@@ -33,7 +34,7 @@ describe("readTracker", () => {
 
     const next = computeNextLastReadMessageId({
       messages,
-      currentUsername: "demo",
+      currentActorRef: "demo",
       previousLastReadMessageId: 0,
       visibleMessageIds: visible,
     });
@@ -46,7 +47,7 @@ describe("readTracker", () => {
 
     const next = computeNextLastReadMessageId({
       messages,
-      currentUsername: "demo",
+      currentActorRef: "demo",
       previousLastReadMessageId: 0,
       visibleMessageIds: new Set([1]),
     });
@@ -63,7 +64,7 @@ describe("readTracker", () => {
 
     const next = computeNextLastReadMessageId({
       messages,
-      currentUsername: "demo",
+      currentActorRef: "demo",
       previousLastReadMessageId: 3,
       visibleMessageIds: new Set([1, 2]),
     });
@@ -80,7 +81,7 @@ describe("readTracker", () => {
 
     const next = computeNextLastReadMessageId({
       messages,
-      currentUsername: "demo",
+      currentActorRef: "demo",
       previousLastReadMessageId: 0,
       visibleMessageIds: new Set([1, 2, 3]),
     });
@@ -88,7 +89,7 @@ describe("readTracker", () => {
 
     const stats = computeUnreadStats({
       messages,
-      currentUsername: "demo",
+      currentActorRef: "demo",
       lastReadMessageId: 1,
     });
     expect(stats.firstUnreadMessageId).toBe(2);
@@ -140,7 +141,7 @@ describe("readTracker", () => {
     const { result } = renderHook(() =>
       useReadTracker({
         messages,
-        currentUsername: "demo",
+        currentActorRef: "demo",
         serverLastReadMessageId: 0,
         enabled: false,
         resetKey: "room-1",
@@ -168,7 +169,7 @@ describe("readTracker", () => {
     const { result } = renderHook(() =>
       useReadTracker({
         messages,
-        currentUsername: "demo",
+        currentActorRef: "demo",
         serverLastReadMessageId: 0,
         enabled: true,
         resetKey: "room-empty",

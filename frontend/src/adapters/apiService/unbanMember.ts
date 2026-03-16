@@ -2,10 +2,10 @@ import type { AxiosInstance } from "axios";
 
 export async function unbanMember(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   userId: number,
 ): Promise<void> {
   await apiClient.post(
-    `/groups/${encodeURIComponent(slug)}/members/${userId}/unban/`,
+    `/groups/${encodeURIComponent(roomId)}/members/${userId}/unban/`,
   );
 }

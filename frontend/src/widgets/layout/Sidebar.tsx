@@ -165,8 +165,8 @@ export function Sidebar({ user, onNavigate, onLogout }: Props) {
       ) || "Без имени"
     : "Без имени";
   const publicUsername = (user?.username || "").trim();
-  const publicRef = (user?.publicRef || publicUsername).trim();
-  const profileIdentity = publicUsername || publicRef || fullName;
+  const publicRef = (user?.publicRef || "").trim();
+  const profileIdentity = fullName || publicUsername || publicRef;
   const profilePath = publicRef ? buildUserProfilePath(publicRef) : "/profile";
 
   return (

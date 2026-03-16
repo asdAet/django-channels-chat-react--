@@ -12,6 +12,7 @@ describe("chat HTTP DTO decoders", () => {
       messages: [
         {
           id: 1,
+          publicRef: "alice",
           username: "alice",
           content: "hi",
           profilePic: null,
@@ -37,6 +38,7 @@ describe("chat HTTP DTO decoders", () => {
       roomId: 123,
       kind: "direct",
       peer: {
+        publicRef: "bob",
         username: "bob",
         profileImage: null,
         avatarCrop: { x: 0.11, y: 0.22, width: 0.33, height: 0.44 },
@@ -45,6 +47,7 @@ describe("chat HTTP DTO decoders", () => {
     });
 
     expect(decoded.peer.username).toBe("bob");
+    expect(decoded.peer.publicRef).toBe("bob");
     expect(decoded.peer.avatarCrop).toEqual({
       x: 0.11,
       y: 0.22,
@@ -59,7 +62,7 @@ describe("chat HTTP DTO decoders", () => {
       items: [
         {
           roomId: 123,
-          peer: { username: "bob", profileImage: null },
+          peer: { publicRef: "bob", username: "bob", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-02-18T00:00:00Z",
         },
@@ -67,5 +70,6 @@ describe("chat HTTP DTO decoders", () => {
     });
 
     expect(decoded.items[0]?.slug).toBe("123");
+    expect(decoded.items[0]?.peer.publicRef).toBe("bob");
   });
 });

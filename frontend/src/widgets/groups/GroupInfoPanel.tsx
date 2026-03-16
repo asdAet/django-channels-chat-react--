@@ -28,11 +28,13 @@ import {
   type Role,
 } from "../../entities/role/types";
 import { useRoomPermissions } from "../../hooks/useRoomPermissions";
+import { useInfoPanel } from "../../shared/layout/useInfoPanel";
+import { formatPublicRef, isHandleRef } from "../../shared/lib/publicRef";
 import type { AvatarCrop } from "../../shared/api/users";
 import { Avatar, AvatarCropModal, Modal, Spinner } from "../../shared/ui";
 import styles from "../../styles/groups/GroupInfoPanel.module.css";
 
-type Props = { slug: string; currentUsername?: string | null };
+type Props = { slug: string };
 type ViewState =
   | "info"
   | "media"
@@ -128,7 +130,7 @@ const revokeBlobUrl = (value: string | null) => {
   }
 };
 
-export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
+export function GroupInfoPanel({ slug }: Props) {
   const [view, setView] = useState<ViewState>("info");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [group, setGroup] = useState<Group | null>(null);
@@ -195,6 +197,7 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const latestAvatarPreviewUrlRef = useRef<string | null>(null);
   const latestPendingAvatarUrlRef = useRef<string | null>(null);
+  const { open: openInfoPanel } = useInfoPanel();
   const perms = useRoomPermissions(slug);
 
   const selectedRole = useMemo(
@@ -213,16 +216,58 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
     [roles],
   );
   const memberNameMap = useMemo(
-    () => new Map(members.map((member) => [member.userId, member.username])),
+    () =>
+      new Map(
+        members.map((member) => [
+          member.userId,
+          (member.displayName || member.nickname || member.username).trim(),
+        ]),
+      ),
     [members],
   );
   const isSelfMember = useCallback(
     (member: GroupMember) => {
       if (member.isSelf) return true;
-      if (currentUsername && member.username === currentUsername) return true;
       return false;
     },
-    [currentUsername],
+    [],
+  );
+
+  const resolveMemberDisplayName = useCallback((member: GroupMember): string => {
+    const trimmedDisplayName = member.displayName?.trim();
+    if (trimmedDisplayName) return trimmedDisplayName;
+
+    const trimmedNickname = member.nickname?.trim();
+    if (trimmedNickname) return trimmedNickname;
+
+    return member.username;
+  }, []);
+
+  const resolveMemberTag = useCallback((member: GroupMember): string | null => {
+    const rawRef = member.publicRef?.trim();
+    if (!rawRef) return null;
+    const formatted = formatPublicRef(rawRef);
+    if (!formatted) return null;
+    return isHandleRef(formatted) ? formatted : null;
+  }, []);
+
+  const openMemberProfile = useCallback(
+    (member: GroupMember) => {
+      const targetRef = member.publicRef?.trim();
+      if (!targetRef) return;
+      openInfoPanel("profile", targetRef);
+    },
+    [openInfoPanel],
+  );
+
+  const formatMemberOptionLabel = useCallback(
+    (member: GroupMember): string => {
+      const displayName = resolveMemberDisplayName(member);
+      const tag = resolveMemberTag(member);
+      if (!tag) return displayName;
+      return `${displayName} (${tag})`;
+    },
+    [resolveMemberDisplayName, resolveMemberTag],
   );
 
   useEffect(() => {
@@ -1134,29 +1179,40 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
           <div className={styles.sectionTitle}>Участники</div>
           {members.map((member) => {
             const isSelf = isSelfMember(member);
+            const elevatedRoles = getElevatedRoles(member.roles);
+            const memberDisplayName = resolveMemberDisplayName(member);
+            const memberTag = resolveMemberTag(member);
             return (
               <div
                 key={member.userId}
                 className={styles.memberRow}
                 data-testid={`group-member-${member.userId}`}
               >
-                <div className={styles.memberMain}>
+                <button
+                  type="button"
+                  className={[styles.memberMain, styles.memberMainBtn].join(" ")}
+                  onClick={() => openMemberProfile(member)}
+                >
                   <Avatar
-                    username={member.username}
+                    username={memberDisplayName}
                     profileImage={member.profileImage ?? null}
                     avatarCrop={member.avatarCrop ?? undefined}
                     size="tiny"
                   />
                   <div className={styles.memberMeta}>
                     <strong>
-                      {member.username}
+                      {memberDisplayName}
                       {isSelf ? " (Вы)" : ""}
                     </strong>
-                    {getElevatedRoles(member.roles).length > 0 && (
-                      <span>{getElevatedRoles(member.roles).join(", ")}</span>
+                    {(memberTag || elevatedRoles.length > 0) && (
+                      <span>
+                        {[memberTag, elevatedRoles.join(", ")]
+                          .filter((part) => part && part.length > 0)
+                          .join(" • ")}
+                      </span>
                     )}
                   </div>
-                </div>
+                </button>
                 {!isSelf &&
                   (perms.canKick || perms.canBan || perms.canMute) && (
                     <div className={styles.memberActions}>
@@ -1529,7 +1585,7 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
                   <option value="">Выберите участника</option>
                   {members.map((member) => (
                     <option key={member.userId} value={member.userId}>
-                      {member.username}
+                      {formatMemberOptionLabel(member)}
                     </option>
                   ))}
                 </select>
@@ -1605,7 +1661,7 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
                       ))
                     : members.map((member) => (
                         <option key={member.userId} value={member.userId}>
-                          {member.username}
+                          {formatMemberOptionLabel(member)}
                         </option>
                       ))}
                 </select>
@@ -1790,29 +1846,40 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
           <div className={styles.sectionTitle}>Участники</div>
           {members.map((member) => {
             const isSelf = isSelfMember(member);
+            const elevatedRoles = getElevatedRoles(member.roles);
+            const memberDisplayName = resolveMemberDisplayName(member);
+            const memberTag = resolveMemberTag(member);
             return (
               <div
                 key={member.userId}
                 className={styles.memberRow}
                 data-testid={`group-member-${member.userId}`}
               >
-                <div className={styles.memberMain}>
+                <button
+                  type="button"
+                  className={[styles.memberMain, styles.memberMainBtn].join(" ")}
+                  onClick={() => openMemberProfile(member)}
+                >
                   <Avatar
-                    username={member.username}
+                    username={memberDisplayName}
                     profileImage={member.profileImage ?? null}
                     avatarCrop={member.avatarCrop ?? undefined}
                     size="tiny"
                   />
                   <div className={styles.memberMeta}>
                     <strong>
-                      {member.username}
+                      {memberDisplayName}
                       {isSelf ? " (Вы)" : ""}
                     </strong>
-                    {getElevatedRoles(member.roles).length > 0 && (
-                      <span>{getElevatedRoles(member.roles).join(", ")}</span>
+                    {(memberTag || elevatedRoles.length > 0) && (
+                      <span>
+                        {[memberTag, elevatedRoles.join(", ")]
+                          .filter((part) => part && part.length > 0)
+                          .join(" • ")}
+                      </span>
                     )}
                   </div>
-                </div>
+                </button>
                 {!isSelf &&
                   (perms.canKick || perms.canBan || perms.canMute) && (
                     <div className={styles.memberActions}>
@@ -1877,7 +1944,7 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
               <option value="">Выберите участника</option>
               {availableBanTargets.map((member) => (
                 <option key={member.userId} value={member.userId}>
-                  {member.username}
+                  {formatMemberOptionLabel(member)}
                 </option>
               ))}
             </select>
@@ -1907,7 +1974,10 @@ export function GroupInfoPanel({ slug, currentUsername = null }: Props) {
           {bannedMembers.map((member) => (
             <div key={member.userId} className={styles.requestRow}>
               <div className={styles.requestMeta}>
-                <strong>{member.username}</strong>
+                <strong>{member.displayName || member.username}</strong>
+                {member.publicRef && member.publicRef.startsWith("@") && (
+                  <span>{member.publicRef}</span>
+                )}
                 <span>{member.reason || "Без причины"}</span>
                 <span>Заблокировал: {member.bannedBy || "—"}</span>
               </div>

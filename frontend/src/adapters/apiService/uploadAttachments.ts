@@ -5,15 +5,15 @@ import type {
   UploadAttachmentsOptions,
   UploadResult,
 } from "../../domain/interfaces/IApiService";
-import { resolveRoomApiRef } from "./resolveRoomApiRef";
+import { resolveRoomId } from "./resolveRoomId";
 
 export async function uploadAttachments(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   files: File[],
   options?: UploadAttachmentsOptions,
 ): Promise<UploadResult> {
-  const apiRoomRef = await resolveRoomApiRef(apiClient, slug);
+  const apiRoomRef = await resolveRoomId(apiClient, roomId);
   const encodedRoomRef = encodeURIComponent(apiRoomRef);
   const formData = new FormData();
   for (const file of files) {

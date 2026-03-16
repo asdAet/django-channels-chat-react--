@@ -5,7 +5,7 @@ import type { GroupInvite } from "../../entities/group/types";
 
 export async function createInvite(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   data?: { maxUses?: number; expiresInHours?: number },
 ): Promise<GroupInvite> {
   const payload = {
@@ -16,7 +16,7 @@ export async function createInvite(
         : undefined,
   };
   const response = await apiClient.post<unknown>(
-    `/groups/${encodeURIComponent(slug)}/invites/`,
+    `/groups/${encodeURIComponent(roomId)}/invites/`,
     payload,
   );
   return decodeInviteResponse(response.data);

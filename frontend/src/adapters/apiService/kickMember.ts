@@ -2,10 +2,10 @@ import type { AxiosInstance } from "axios";
 
 export async function kickMember(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   userId: number,
 ): Promise<void> {
   await apiClient.delete(
-    `/groups/${encodeURIComponent(slug)}/members/${userId}/`,
+    `/groups/${encodeURIComponent(roomId)}/members/${userId}/`,
   );
 }

@@ -12,7 +12,7 @@ from messages.models import Message
 from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
-from users.identity import ensure_user_identity_core, set_user_public_handle
+from users.identity import ensure_user_identity_core, set_user_public_handle, user_public_ref
 
 User = get_user_model()
 
@@ -231,6 +231,7 @@ class DirectApiTests(TestCase):
         payload = response.json()
         self.assertIn("roomId", payload)
         self.assertEqual(payload["peer"]["username"], "peer")
+        self.assertEqual(payload["peer"]["publicRef"], user_public_ref(self.peer))
 
     def test_repeated_start_returns_same_room_id(self):
         self.client.force_login(self.owner)

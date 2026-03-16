@@ -17,12 +17,12 @@ type UseFriendsResult = {
   error: string | null;
   clearInfoMessage: () => void;
   reload: () => void;
-  sendRequest: (username: string) => Promise<void>;
+  sendRequest: (publicRef: string) => Promise<void>;
   acceptRequest: (id: number) => Promise<void>;
   declineRequest: (id: number) => Promise<void>;
   cancelOutgoingRequest: (id: number) => Promise<void>;
   removeFriend: (userId: number) => Promise<void>;
-  blockUser: (username: string) => Promise<void>;
+  blockUser: (publicRef: string) => Promise<void>;
   unblockUser: (userId: number) => Promise<void>;
 };
 
@@ -65,10 +65,10 @@ export function useFriends(): UseFriendsResult {
   }, [reload]);
 
   const sendRequest = useCallback(
-    async (username: string) => {
+    async (publicRef: string) => {
       setInfoMessage(null);
       try {
-        await friendsController.sendFriendRequest(username);
+        await friendsController.sendFriendRequest(publicRef);
         setInfoMessage("Запрос отправлен");
       } catch (err: unknown) {
         const status =
@@ -124,8 +124,8 @@ export function useFriends(): UseFriendsResult {
   );
 
   const blockUserCb = useCallback(
-    async (username: string) => {
-      await friendsController.blockUser(username);
+    async (publicRef: string) => {
+      await friendsController.blockUser(publicRef);
       void reload();
     },
     [reload],

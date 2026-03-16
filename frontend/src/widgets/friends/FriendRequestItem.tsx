@@ -19,18 +19,19 @@ type Props = IncomingProps | OutgoingProps;
 
 export function FriendRequestItem(props: Props) {
   const { request, direction } = props;
+  const displayName = request.displayName ?? request.username;
 
   return (
     <div className={styles.item}>
       <Avatar
-        username={request.username}
+        username={displayName}
         profileImage={request.profileImage ?? null}
         avatarCrop={request.avatarCrop ?? undefined}
         size="small"
         online={false}
       />
       <div className={styles.itemInfo}>
-        <div className={styles.itemName}>{request.username}</div>
+        <div className={styles.itemName}>{displayName}</div>
         <div className={styles.itemMeta}>
           {direction === "incoming"
             ? "Хочет добавить вас"

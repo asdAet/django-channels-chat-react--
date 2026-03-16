@@ -71,6 +71,10 @@ const roomPermissionsMock = vi.hoisted(() => ({
   refresh: vi.fn().mockResolvedValue(undefined),
 }));
 
+const infoPanelMock = vi.hoisted(() => ({
+  open: vi.fn(),
+}));
+
 vi.mock("../../controllers/GroupController", () => ({
   groupController: groupControllerMock,
 }));
@@ -85,6 +89,10 @@ vi.mock("../../controllers/ChatController", () => ({
 
 vi.mock("../../hooks/useRoomPermissions", () => ({
   useRoomPermissions: () => roomPermissionsMock,
+}));
+
+vi.mock("../../shared/layout/useInfoPanel", () => ({
+  useInfoPanel: () => infoPanelMock,
 }));
 
 vi.mock("../../shared/ui", () => ({
@@ -203,6 +211,7 @@ describe("GroupInfoPanel", () => {
     roomPermissionsMock.canMute = true;
     roomPermissionsMock.isAdmin = true;
     roomPermissionsMock.refresh.mockReset().mockResolvedValue(undefined);
+    infoPanelMock.open.mockReset();
 
     withBaseMocks();
   });
@@ -249,6 +258,8 @@ describe("GroupInfoPanel", () => {
         {
           userId: 1,
           username: "self_user",
+          displayName: "Self User",
+          publicRef: "@self_user",
           nickname: "",
           profileImage: null,
           avatarCrop: null,
@@ -260,6 +271,8 @@ describe("GroupInfoPanel", () => {
         {
           userId: 2,
           username: "other_user",
+          displayName: "Other User",
+          publicRef: "@other_user",
           nickname: "",
           profileImage: null,
           avatarCrop: null,
@@ -272,7 +285,7 @@ describe("GroupInfoPanel", () => {
       total: 2,
     });
 
-    render(<GroupInfoPanel slug="test-group" currentUsername="self_user" />);
+    render(<GroupInfoPanel slug="test-group" />);
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: "Test Group" }),
@@ -296,6 +309,40 @@ describe("GroupInfoPanel", () => {
     expect(
       within(otherRow).getByRole("button", { name: "Kick" }),
     ).toBeInTheDocument();
+  });
+
+  it("opens user profile panel when clicking a member row", async () => {
+    groupControllerMock.getGroupDetails.mockResolvedValue(sampleGroup);
+    groupControllerMock.getGroupMembers.mockResolvedValue({
+      items: [
+        {
+          userId: 7,
+          username: "member_tag",
+          displayName: "Member Name",
+          publicRef: "@member_tag",
+          nickname: "",
+          profileImage: null,
+          avatarCrop: null,
+          roles: ["Member"],
+          joinedAt: "2026-03-10T11:00:00Z",
+          isMuted: false,
+          isSelf: false,
+        },
+      ],
+      total: 1,
+    });
+
+    render(<GroupInfoPanel slug="test-group" />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Test Group" }),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("group-quick-members"));
+    fireEvent.click(screen.getByRole("button", { name: /Member Name/i }));
+
+    expect(infoPanelMock.open).toHaveBeenCalledWith("profile", "@member_tag");
   });
 
   it("opens avatar crop modal and sends avatar crop with updateGroup", async () => {

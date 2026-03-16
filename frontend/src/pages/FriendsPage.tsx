@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { UserProfile } from "../entities/user/types";
 import { useFriends } from "../hooks/useFriends";
-import { buildDirectPath } from "../shared/lib/publicRef";
+import { buildDirectPath, normalizePublicRef } from "../shared/lib/publicRef";
 import { usePresence } from "../shared/presence";
 import { Avatar, Spinner, EmptyState } from "../shared/ui";
 import { AddFriendDialog } from "../widgets/friends/AddFriendDialog";
@@ -16,6 +16,9 @@ type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
 };
+
+const normalizeActorRef = (value: string): string =>
+  normalizePublicRef(value).toLowerCase();
 
 const IconPlus = () => (
   <svg
@@ -56,7 +59,9 @@ export function FriendsPage({ user, onNavigate }: Props) {
     () =>
       new Set(
         presenceStatus === "online"
-          ? presenceOnline.map((e) => e.username)
+          ? presenceOnline.map((entry) =>
+              normalizeActorRef(entry.publicRef || ""),
+            )
           : [],
       ),
     [presenceOnline, presenceStatus],
@@ -65,9 +70,17 @@ export function FriendsPage({ user, onNavigate }: Props) {
   const [tab, setTab] = useState<Tab>("friends");
   const [showAddDialog, setShowAddDialog] = useState(false);
 
+  const resolveFriendRef = useCallback(
+    (friend: { publicRef: string }) => friend.publicRef,
+    [],
+  );
+
   const onlineFriends = useMemo(
-    () => friends.filter((friend) => onlineUsernames.has(friend.username)),
-    [friends, onlineUsernames],
+    () =>
+      friends.filter((friend) =>
+        onlineUsernames.has(normalizeActorRef(resolveFriendRef(friend))),
+      ),
+    [friends, onlineUsernames, resolveFriendRef],
   );
 
   useEffect(() => {
@@ -77,7 +90,7 @@ export function FriendsPage({ user, onNavigate }: Props) {
   }, [clearInfoMessage, infoMessage]);
 
   const handleMessage = useCallback(
-    (username: string) => onNavigate(buildDirectPath(username)),
+    (publicRef: string) => onNavigate(buildDirectPath(publicRef)),
     [onNavigate],
   );
 
@@ -181,7 +194,9 @@ export function FriendsPage({ user, onNavigate }: Props) {
               <FriendListItem
                 key={f.id}
                 friend={f}
-                isOnline={onlineUsernames.has(f.username)}
+                isOnline={onlineUsernames.has(
+                  normalizeActorRef(resolveFriendRef(f)),
+                )}
                 onMessage={handleMessage}
                 onRemove={removeFriend}
                 onBlock={blockUser}
@@ -261,14 +276,14 @@ export function FriendsPage({ user, onNavigate }: Props) {
             blocked.map((b) => (
               <div key={b.id} className={styles.item}>
                 <Avatar
-                  username={b.username}
+                  username={b.displayName ?? b.username}
                   profileImage={b.profileImage ?? null}
                   avatarCrop={b.avatarCrop ?? undefined}
                   size="small"
                   online={false}
                 />
                 <div className={styles.itemInfo}>
-                  <div className={styles.itemName}>{b.username}</div>
+                  <div className={styles.itemName}>{b.displayName ?? b.username}</div>
                   <div className={styles.itemMeta}>Заблокирован</div>
                 </div>
                 <div className={styles.itemActions}>
@@ -296,3 +311,6 @@ export function FriendsPage({ user, onNavigate }: Props) {
     </div>
   );
 }
+
+
+

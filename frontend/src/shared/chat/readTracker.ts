@@ -15,20 +15,20 @@ type UnreadStats = {
 
 type ComputeNextLastReadMessageIdParams = {
   messages: Message[];
-  currentUsername: string | null | undefined;
+  currentActorRef: string | null | undefined;
   previousLastReadMessageId: number;
   visibleMessageIds: ReadonlySet<number>;
 };
 
 type ComputeUnreadStatsParams = {
   messages: Message[];
-  currentUsername: string | null | undefined;
+  currentActorRef: string | null | undefined;
   lastReadMessageId: number;
 };
 
 type UseReadTrackerParams = {
   messages: Message[];
-  currentUsername: string | null | undefined;
+  currentActorRef: string | null | undefined;
   serverLastReadMessageId: number | null | undefined;
   enabled: boolean;
   resetKey: string;
@@ -39,10 +39,23 @@ const normalizeLastReadMessageId = (value: number | null | undefined) => {
   return Math.max(0, Math.trunc(value));
 };
 
+const normalizeActorRef = (value: string | null | undefined): string => {
+  if (!value) return "";
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return "";
+  return normalized.startsWith("@") ? normalized.slice(1) : normalized;
+};
+
+const resolveMessageActorRef = (message: Message): string =>
+  message.publicRef || "";
+
 const isForeignMessage = (
   message: Message,
-  currentUsername: string | null | undefined,
-) => !currentUsername || message.username !== currentUsername;
+  currentActorRef: string | null | undefined,
+) =>
+  !currentActorRef ||
+  normalizeActorRef(resolveMessageActorRef(message)) !==
+    normalizeActorRef(currentActorRef);
 
 export const collectVisibleMessageIdsByBottomEdge = (
   listElement: HTMLElement,
@@ -69,7 +82,7 @@ export const collectVisibleMessageIdsByBottomEdge = (
 
 export const computeNextLastReadMessageId = ({
   messages,
-  currentUsername,
+  currentActorRef,
   previousLastReadMessageId,
   visibleMessageIds,
 }: ComputeNextLastReadMessageIdParams): number => {
@@ -77,7 +90,7 @@ export const computeNextLastReadMessageId = ({
 
   for (const message of messages) {
     if (message.id <= nextLastRead) continue;
-    if (!isForeignMessage(message, currentUsername)) continue;
+    if (!isForeignMessage(message, currentActorRef)) continue;
     if (!visibleMessageIds.has(message.id)) continue;
     nextLastRead = message.id;
   }
@@ -87,7 +100,7 @@ export const computeNextLastReadMessageId = ({
 
 export const computeUnreadStats = ({
   messages,
-  currentUsername,
+  currentActorRef,
   lastReadMessageId,
 }: ComputeUnreadStatsParams): UnreadStats => {
   const normalizedLastRead = normalizeLastReadMessageId(lastReadMessageId);
@@ -96,7 +109,7 @@ export const computeUnreadStats = ({
 
   for (const message of messages) {
     if (message.id <= normalizedLastRead) continue;
-    if (!isForeignMessage(message, currentUsername)) continue;
+    if (!isForeignMessage(message, currentActorRef)) continue;
     if (firstUnreadMessageId === null) {
       firstUnreadMessageId = message.id;
     }
@@ -108,7 +121,7 @@ export const computeUnreadStats = ({
 
 export const useReadTracker = ({
   messages,
-  currentUsername,
+  currentActorRef,
   serverLastReadMessageId,
   enabled,
   resetKey,
@@ -132,7 +145,7 @@ export const useReadTracker = ({
       const visibleIds = collectVisibleMessageIdsByBottomEdge(listElement);
       const nextLastRead = computeNextLastReadMessageId({
         messages,
-        currentUsername,
+        currentActorRef,
         previousLastReadMessageId: localLastReadMessageId,
         visibleMessageIds: visibleIds,
       });
@@ -146,17 +159,17 @@ export const useReadTracker = ({
       });
       return nextLastRead;
     },
-    [currentUsername, enabled, localLastReadMessageId, messages, resetKey],
+    [currentActorRef, enabled, localLastReadMessageId, messages, resetKey],
   );
 
   const unreadStats = useMemo(
     () =>
       computeUnreadStats({
         messages,
-        currentUsername,
+        currentActorRef,
         lastReadMessageId: localLastReadMessageId,
       }),
-    [currentUsername, localLastReadMessageId, messages],
+    [currentActorRef, localLastReadMessageId, messages],
   );
 
   return {

@@ -12,9 +12,9 @@ class FriendsController {
   }
 
   public async sendFriendRequest(
-    username: string,
+    publicRef: string,
   ): Promise<SendFriendRequestResponse> {
-    return apiService.sendFriendRequest(username);
+    return apiService.sendFriendRequest(publicRef);
   }
 
   public async getIncomingRequests(): Promise<FriendRequest[]> {
@@ -43,8 +43,8 @@ class FriendsController {
     return apiService.removeFriend(userId);
   }
 
-  public async blockUser(username: string): Promise<void> {
-    return apiService.blockUser(username);
+  public async blockUser(publicRef: string): Promise<void> {
+    return apiService.blockUser(publicRef);
   }
 
   public async unblockUser(userId: number): Promise<void> {

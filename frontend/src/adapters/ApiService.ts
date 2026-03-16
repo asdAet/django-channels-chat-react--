@@ -1,4 +1,4 @@
-ï»¿import axios, { AxiosHeaders } from "axios";
+import axios, { AxiosHeaders } from "axios";
 import type { AxiosError, AxiosInstance } from "axios";
 
 import type { ApiError } from "../shared/api/types";
@@ -152,7 +152,7 @@ export const normalizeAxiosError = (error: unknown): ApiError => {
     const status = axiosError.response?.status ?? 0;
     const data = normalizeErrorPayload(axiosError.response?.data);
     const message =
-      extractErrorMessage(data) || axiosError.message || "ÐžÑˆÐ¸Ð±ÐºÐ° Ð·Ð°Ð¿Ñ€Ð¾ÑÐ°";
+      extractErrorMessage(data) || axiosError.message || "Îøèáêà çàïðîñà";
     return { status, message, data };
   }
 
@@ -168,7 +168,7 @@ export const normalizeAxiosError = (error: unknown): ApiError => {
   if (error instanceof DtoDecodeError) {
     return {
       status: 502,
-      message: "ÐÐµÐºÐ¾Ñ€Ñ€ÐµÐºÑ‚Ð½Ñ‹Ð¹ Ð¾Ñ‚Ð²ÐµÑ‚ ÑÐµÑ€Ð²ÐµÑ€Ð°",
+      message: "Íåêîððåêòíûé îòâåò ñåðâåðà",
       data: {
         source: error.source,
         issues: error.issues,
@@ -176,7 +176,7 @@ export const normalizeAxiosError = (error: unknown): ApiError => {
     };
   }
 
-  return { status: 0, message: "ÐžÑˆÐ¸Ð±ÐºÐ° Ð·Ð°Ð¿Ñ€Ð¾ÑÐ°" };
+  return { status: 0, message: "Îøèáêà çàïðîñà" };
 };
 
 class ApiService implements IApiService {
@@ -307,16 +307,16 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => getPublicRoom(this.apiClient));
   }
 
-  public async getRoomDetails(slug: string) {
-    return this.runWithDecode(async () => getRoomDetails(this.apiClient, slug));
+  public async getRoomDetails(roomId: string) {
+    return this.runWithDecode(async () => getRoomDetails(this.apiClient, roomId));
   }
 
   public async getRoomMessages(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; beforeId?: number },
   ) {
     return this.runWithDecode(async () =>
-      getRoomMessages(this.apiClient, slug, params),
+      getRoomMessages(this.apiClient, roomId, params),
     );
   }
 
@@ -340,38 +340,38 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => getUnreadCounts(this.apiClient));
   }
 
-  public async editMessage(slug: string, messageId: number, content: string) {
+  public async editMessage(roomId: string, messageId: number, content: string) {
     return this.runWithDecode(async () =>
-      editMessage(this.apiClient, slug, messageId, content),
+      editMessage(this.apiClient, roomId, messageId, content),
     );
   }
 
-  public async deleteMessage(slug: string, messageId: number) {
+  public async deleteMessage(roomId: string, messageId: number) {
     return this.runWithDecode(async () =>
-      deleteMessage(this.apiClient, slug, messageId),
+      deleteMessage(this.apiClient, roomId, messageId),
     );
   }
 
-  public async addReaction(slug: string, messageId: number, emoji: string) {
+  public async addReaction(roomId: string, messageId: number, emoji: string) {
     return this.runWithDecode(async () =>
-      addReaction(this.apiClient, slug, messageId, emoji),
+      addReaction(this.apiClient, roomId, messageId, emoji),
     );
   }
 
-  public async removeReaction(slug: string, messageId: number, emoji: string) {
+  public async removeReaction(roomId: string, messageId: number, emoji: string) {
     return this.runWithDecode(async () =>
-      removeReaction(this.apiClient, slug, messageId, emoji),
+      removeReaction(this.apiClient, roomId, messageId, emoji),
     );
   }
 
-  public async searchMessages(slug: string, query: string) {
+  public async searchMessages(roomId: string, query: string) {
     return this.runWithDecode(async () =>
-      searchMessages(this.apiClient, slug, query),
+      searchMessages(this.apiClient, roomId, query),
     );
   }
 
   public async uploadAttachments(
-    slug: string,
+    roomId: string,
     files: File[],
     options?: {
       onProgress?: (percent: number) => void;
@@ -381,13 +381,13 @@ class ApiService implements IApiService {
     },
   ) {
     return this.runWithDecode(async () =>
-      uploadAttachments(this.apiClient, slug, files, options),
+      uploadAttachments(this.apiClient, roomId, files, options),
     );
   }
 
-  public async markRead(slug: string, messageId?: number) {
+  public async markRead(roomId: string, messageId?: number) {
     return this.runWithDecode(async () =>
-      markRead(this.apiClient, slug, messageId),
+      markRead(this.apiClient, roomId, messageId),
     );
   }
 
@@ -395,9 +395,9 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => getFriends(this.apiClient));
   }
 
-  public async sendFriendRequest(username: string) {
+  public async sendFriendRequest(publicRef: string) {
     return this.runWithDecode(async () =>
-      sendFriendRequest(this.apiClient, username),
+      sendFriendRequest(this.apiClient, publicRef),
     );
   }
 
@@ -431,8 +431,8 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => removeFriend(this.apiClient, userId));
   }
 
-  public async blockUser(username: string) {
-    return this.runWithDecode(async () => blockUser(this.apiClient, username));
+  public async blockUser(publicRef: string) {
+    return this.runWithDecode(async () => blockUser(this.apiClient, publicRef));
   }
 
   public async unblockUser(userId: number) {
@@ -471,98 +471,98 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => getMyGroups(this.apiClient, params));
   }
 
-  public async getGroupDetails(slug: string) {
+  public async getGroupDetails(roomId: string) {
     return this.runWithDecode(async () =>
-      getGroupDetails(this.apiClient, slug),
+      getGroupDetails(this.apiClient, roomId),
     );
   }
 
-  public async updateGroup(slug: string, data: UpdateGroupInput) {
+  public async updateGroup(roomId: string, data: UpdateGroupInput) {
     return this.runWithDecode(async () =>
-      updateGroup(this.apiClient, slug, data),
+      updateGroup(this.apiClient, roomId, data),
     );
   }
 
-  public async deleteGroup(slug: string) {
-    return this.runWithDecode(async () => deleteGroup(this.apiClient, slug));
+  public async deleteGroup(roomId: string) {
+    return this.runWithDecode(async () => deleteGroup(this.apiClient, roomId));
   }
 
-  public async joinGroup(slug: string) {
-    return this.runWithDecode(async () => joinGroup(this.apiClient, slug));
+  public async joinGroup(roomId: string) {
+    return this.runWithDecode(async () => joinGroup(this.apiClient, roomId));
   }
 
-  public async leaveGroup(slug: string) {
-    return this.runWithDecode(async () => leaveGroup(this.apiClient, slug));
+  public async leaveGroup(roomId: string) {
+    return this.runWithDecode(async () => leaveGroup(this.apiClient, roomId));
   }
 
   public async getGroupMembers(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ) {
     return this.runWithDecode(async () =>
-      getGroupMembers(this.apiClient, slug, params),
+      getGroupMembers(this.apiClient, roomId, params),
     );
   }
 
-  public async kickMember(slug: string, userId: number) {
+  public async kickMember(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
-      kickMember(this.apiClient, slug, userId),
+      kickMember(this.apiClient, roomId, userId),
     );
   }
 
-  public async banMember(slug: string, userId: number, reason?: string) {
+  public async banMember(roomId: string, userId: number, reason?: string) {
     return this.runWithDecode(async () =>
-      banMember(this.apiClient, slug, userId, reason),
+      banMember(this.apiClient, roomId, userId, reason),
     );
   }
 
-  public async unbanMember(slug: string, userId: number) {
+  public async unbanMember(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
-      unbanMember(this.apiClient, slug, userId),
+      unbanMember(this.apiClient, roomId, userId),
     );
   }
 
   public async muteMember(
-    slug: string,
+    roomId: string,
     userId: number,
     durationSeconds = 3600,
   ) {
     return this.runWithDecode(async () =>
-      muteMember(this.apiClient, slug, userId, durationSeconds),
+      muteMember(this.apiClient, roomId, userId, durationSeconds),
     );
   }
 
-  public async unmuteMember(slug: string, userId: number) {
+  public async unmuteMember(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
-      unmuteMember(this.apiClient, slug, userId),
+      unmuteMember(this.apiClient, roomId, userId),
     );
   }
 
   public async getBannedMembers(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ) {
     return this.runWithDecode(async () =>
-      getBannedMembers(this.apiClient, slug, params),
+      getBannedMembers(this.apiClient, roomId, params),
     );
   }
 
   public async createInvite(
-    slug: string,
+    roomId: string,
     data?: { maxUses?: number; expiresInHours?: number },
   ) {
     return this.runWithDecode(async () =>
-      createInvite(this.apiClient, slug, data),
+      createInvite(this.apiClient, roomId, data),
     );
   }
 
-  public async getInvites(slug: string) {
-    return this.runWithDecode(async () => getInvites(this.apiClient, slug));
+  public async getInvites(roomId: string) {
+    return this.runWithDecode(async () => getInvites(this.apiClient, roomId));
   }
 
-  public async revokeInvite(slug: string, code: string) {
+  public async revokeInvite(roomId: string, code: string) {
     return this.runWithDecode(async () =>
-      revokeInvite(this.apiClient, slug, code),
+      revokeInvite(this.apiClient, roomId, code),
     );
   }
 
@@ -576,64 +576,64 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => joinViaInvite(this.apiClient, code));
   }
 
-  public async getJoinRequests(slug: string) {
+  public async getJoinRequests(roomId: string) {
     return this.runWithDecode(async () =>
-      getJoinRequests(this.apiClient, slug),
+      getJoinRequests(this.apiClient, roomId),
     );
   }
 
-  public async approveJoinRequest(slug: string, requestId: number) {
+  public async approveJoinRequest(roomId: string, requestId: number) {
     return this.runWithDecode(async () =>
-      approveJoinRequest(this.apiClient, slug, requestId),
+      approveJoinRequest(this.apiClient, roomId, requestId),
     );
   }
 
-  public async rejectJoinRequest(slug: string, requestId: number) {
+  public async rejectJoinRequest(roomId: string, requestId: number) {
     return this.runWithDecode(async () =>
-      rejectJoinRequest(this.apiClient, slug, requestId),
+      rejectJoinRequest(this.apiClient, roomId, requestId),
     );
   }
 
-  public async getPinnedMessages(slug: string) {
+  public async getPinnedMessages(roomId: string) {
     return this.runWithDecode(async () =>
-      getPinnedMessages(this.apiClient, slug),
+      getPinnedMessages(this.apiClient, roomId),
     );
   }
 
-  public async pinMessage(slug: string, messageId: number) {
+  public async pinMessage(roomId: string, messageId: number) {
     return this.runWithDecode(async () =>
-      pinMessage(this.apiClient, slug, messageId),
+      pinMessage(this.apiClient, roomId, messageId),
     );
   }
 
-  public async unpinMessage(slug: string, messageId: number) {
+  public async unpinMessage(roomId: string, messageId: number) {
     return this.runWithDecode(async () =>
-      unpinMessage(this.apiClient, slug, messageId),
+      unpinMessage(this.apiClient, roomId, messageId),
     );
   }
 
-  public async transferOwnership(slug: string, userId: number) {
+  public async transferOwnership(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
-      transferOwnership(this.apiClient, slug, userId),
+      transferOwnership(this.apiClient, roomId, userId),
     );
   }
 
   // --- Roles & Permissions ---
-  public async getRoomRoles(slug: string) {
-    return this.runWithDecode(async () => getRoomRoles(this.apiClient, slug));
+  public async getRoomRoles(roomId: string) {
+    return this.runWithDecode(async () => getRoomRoles(this.apiClient, roomId));
   }
 
   public async createRoomRole(
-    slug: string,
+    roomId: string,
     data: { name: string; color?: string; permissions?: number },
   ) {
     return this.runWithDecode(async () =>
-      createRoomRole(this.apiClient, slug, data),
+      createRoomRole(this.apiClient, roomId, data),
     );
   }
 
   public async updateRoomRole(
-    slug: string,
+    roomId: string,
     roleId: number,
     data: Partial<{
       name: string;
@@ -643,36 +643,36 @@ class ApiService implements IApiService {
     }>,
   ) {
     return this.runWithDecode(async () =>
-      updateRoomRole(this.apiClient, slug, roleId, data),
+      updateRoomRole(this.apiClient, roomId, roleId, data),
     );
   }
 
-  public async deleteRoomRole(slug: string, roleId: number) {
+  public async deleteRoomRole(roomId: string, roleId: number) {
     return this.runWithDecode(async () =>
-      deleteRoomRole(this.apiClient, slug, roleId),
+      deleteRoomRole(this.apiClient, roomId, roleId),
     );
   }
 
-  public async getMemberRoles(slug: string, userId: number) {
+  public async getMemberRoles(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
-      getMemberRoles(this.apiClient, slug, userId),
+      getMemberRoles(this.apiClient, roomId, userId),
     );
   }
 
-  public async setMemberRoles(slug: string, userId: number, roleIds: number[]) {
+  public async setMemberRoles(roomId: string, userId: number, roleIds: number[]) {
     return this.runWithDecode(async () =>
-      setMemberRoles(this.apiClient, slug, userId, roleIds),
+      setMemberRoles(this.apiClient, roomId, userId, roleIds),
     );
   }
 
-  public async getRoomOverrides(slug: string) {
+  public async getRoomOverrides(roomId: string) {
     return this.runWithDecode(async () =>
-      getRoomOverrides(this.apiClient, slug),
+      getRoomOverrides(this.apiClient, roomId),
     );
   }
 
   public async createRoomOverride(
-    slug: string,
+    roomId: string,
     data: {
       targetRoleId?: number;
       targetUserId?: number;
@@ -681,29 +681,29 @@ class ApiService implements IApiService {
     },
   ) {
     return this.runWithDecode(async () =>
-      createRoomOverride(this.apiClient, slug, data),
+      createRoomOverride(this.apiClient, roomId, data),
     );
   }
 
   public async updateRoomOverride(
-    slug: string,
+    roomId: string,
     overrideId: number,
     data: Partial<{ allow: number; deny: number }>,
   ) {
     return this.runWithDecode(async () =>
-      updateRoomOverride(this.apiClient, slug, overrideId, data),
+      updateRoomOverride(this.apiClient, roomId, overrideId, data),
     );
   }
 
-  public async deleteRoomOverride(slug: string, overrideId: number) {
+  public async deleteRoomOverride(roomId: string, overrideId: number) {
     return this.runWithDecode(async () =>
-      deleteRoomOverride(this.apiClient, slug, overrideId),
+      deleteRoomOverride(this.apiClient, roomId, overrideId),
     );
   }
 
-  public async getMyPermissions(slug: string) {
+  public async getMyPermissions(roomId: string) {
     return this.runWithDecode(async () =>
-      getMyPermissions(this.apiClient, slug),
+      getMyPermissions(this.apiClient, roomId),
     );
   }
 
@@ -721,15 +721,16 @@ class ApiService implements IApiService {
   }
 
   public async getRoomAttachments(
-    slug: string,
+    roomId: string,
     params?: { limit?: number; before?: number },
   ) {
     return this.runWithDecode(async () =>
-      getRoomAttachments(this.apiClient, slug, params),
+      getRoomAttachments(this.apiClient, roomId, params),
     );
   }
 }
 
 export const apiService = new ApiService();
+
 
 

@@ -37,7 +37,17 @@ async function registerAndSetUsername(
       `profile update failed: ${profileUpdateResponse.status()} ${body}`,
     );
   }
-  await expect(page).toHaveURL(`/users/${encodeURIComponent(username)}`);
+  const sessionResponse = await page.request.get("/api/auth/session/");
+  const sessionPayload = (await sessionResponse
+    .json()
+    .catch(() => null)) as { user?: { publicRef?: string; publicId?: string } } | null;
+  const profileId = String(sessionPayload?.user?.publicId || "").trim();
+  const profileRef = String(sessionPayload?.user?.publicRef || "")
+    .trim()
+    .replace(/^@+/, "");
+  const routeRef = profileId || profileRef;
+  expect(routeRef.length).toBeGreaterThan(0);
+  await expect(page).toHaveURL(`/users/${encodeURIComponent(routeRef)}`);
 }
 
 test("direct chat by username opens and delivers messages between users", async ({

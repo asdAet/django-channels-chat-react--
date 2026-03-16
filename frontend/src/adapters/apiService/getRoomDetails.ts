@@ -2,7 +2,7 @@ import type { AxiosInstance } from "axios";
 
 import { decodeRoomDetailsResponse } from "../../dto";
 import type { RoomDetails } from "../../entities/room/types";
-import { resolveRoomApiRef } from "./resolveRoomApiRef";
+import { resolveRoomId } from "./resolveRoomId";
 
 /**
  * Загружает детали комнаты по roomRef.
@@ -14,7 +14,7 @@ export async function getRoomDetails(
   apiClient: AxiosInstance,
   roomRef: string,
 ): Promise<RoomDetails> {
-  const apiRoomRef = await resolveRoomApiRef(apiClient, roomRef);
+  const apiRoomRef = await resolveRoomId(apiClient, roomRef);
   const logicalRoomRef = roomRef === "public" ? "public" : roomRef;
 
   const encodedRef = encodeURIComponent(apiRoomRef);

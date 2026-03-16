@@ -1,4 +1,4 @@
-import {
+﻿import {
   useCallback,
   useEffect,
   useMemo,
@@ -54,6 +54,7 @@ import { TypingIndicator } from "../widgets/chat/TypingIndicator";
 
 type ReadReceipt = {
   userId: number;
+  publicRef: string;
   username: string;
   displayName?: string;
   lastReadMessageId: number;
@@ -92,10 +93,13 @@ const resolveCurrentActorRef = (user: UserProfile | null): string => {
   );
 };
 
+const resolveMessageActorRef = (message: Pick<Message, "publicRef" | "username">): string =>
+  normalizeActorRef(message.publicRef);
+
 const isOwnMessage = (
   message: Message,
   currentActorRef: string,
-) => Boolean(currentActorRef && normalizeActorRef(message.username) === currentActorRef);
+) => Boolean(currentActorRef && resolveMessageActorRef(message) === currentActorRef);
 
 const normalizeReadMessageId = (value: unknown): number => {
   if (typeof value === "number" && Number.isFinite(value))
@@ -286,6 +290,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const roomApiRef = useMemo(() => {
     return resolvedRoomId === null ? null : String(resolvedRoomId);
   }, [resolvedRoomId]);
+  const roomIdForRequests = roomApiRef ?? slug;
   const isOnline = useOnlineStatus();
   const { open: openInfoPanel } = useInfoPanel();
   const { setActiveRoom, markRead: markDirectRoomRead } = useDirectInbox();
@@ -297,6 +302,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const {
     loading: permissionsLoading,
     canWrite: canWriteToRoom,
+    canManageMessages: canManageMessagesToRoom,
     canJoin: canJoinRoom,
     isBanned: isBannedInRoom,
     refresh: refreshRoomPermissions,
@@ -306,7 +312,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     () =>
       new Set(
         presenceStatus === "online"
-          ? presenceOnline.map((e) => e.username)
+          ? presenceOnline.map((entry) =>
+              normalizeActorRef(entry.publicRef || ""),
+            )
           : [],
       ),
     [presenceOnline, presenceStatus],
@@ -463,7 +471,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     applyViewportRead,
   } = useReadTracker({
     messages,
-    currentUsername: currentActorRef,
+    currentActorRef,
     serverLastReadMessageId: effectiveServerLastReadMessageId,
     enabled: Boolean(readStateEnabled && initialPositioningPhase === "settled"),
     resetKey: slug,
@@ -692,7 +700,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     headerSearchTimerRef.current = window.setTimeout(() => {
       setHeaderSearchLoading(true);
       void chatController
-        .searchMessages(slug, query)
+        .searchMessages(roomIdForRequests, query)
         .then((result) => {
           setHeaderSearchResults(result.results);
         })
@@ -703,7 +711,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
           setHeaderSearchLoading(false);
         });
     }, 260);
-  }, [headerSearchQuery, isHeaderSearchOpen, slug]);
+  }, [headerSearchQuery, isHeaderSearchOpen, roomIdForRequests]);
 
   useEffect(() => {
     if (!typingUsers.size) return;
@@ -711,18 +719,18 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       const cutoff = Date.now() - TYPING_TIMEOUT_MS;
       setTypingUsers((prev) => {
         const next = new Map<string, number>();
-        for (const [username, ts] of prev) {
-          if (ts > cutoff) next.set(username, ts);
+        for (const [actorRef, ts] of prev) {
+          if (ts > cutoff) next.set(actorRef, ts);
         }
         return next.size === prev.size ? prev : next;
       });
       setTypingDisplayNames((prev) => {
         if (!prev.size) return prev;
         const next = new Map<string, string>();
-        for (const [username, label] of prev) {
-          const ts = typingUsers.get(username);
+        for (const [actorRef, label] of prev) {
+          const ts = typingUsers.get(actorRef);
           if (typeof ts === "number" && ts > cutoff) {
-            next.set(username, label);
+            next.set(actorRef, label);
           }
         }
         return next.size === prev.size ? prev : next;
@@ -1085,6 +1093,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
               ...prev,
               {
                 id: messageId,
+                publicRef:
+                  decoded.message.publicRef || "",
                 username: decoded.message.username,
                 displayName:
                   decoded.message.displayName ?? decoded.message.username,
@@ -1104,7 +1114,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
           if (
             !isAtBottomRef.current &&
-            normalizeActorRef(decoded.message.username) !== currentActorRef
+            normalizeActorRef(
+              decoded.message.publicRef || "",
+            ) !== currentActorRef
           ) {
             setNewMsgCount((count) => count + 1);
             if (readStateEnabled && unreadDividerAnchorRef.current === null) {
@@ -1112,30 +1124,41 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             }
           }
 
+          const messageActorRef = normalizeActorRef(
+            decoded.message.publicRef || "",
+          );
+          if (!messageActorRef) break;
           setTypingUsers((prev) => {
-            if (!prev.has(decoded.message.username)) return prev;
+            if (!prev.has(messageActorRef)) return prev;
             const next = new Map(prev);
-            next.delete(decoded.message.username);
+            next.delete(messageActorRef);
             return next;
           });
           setTypingDisplayNames((prev) => {
-            if (!prev.has(decoded.message.username)) return prev;
+            if (!prev.has(messageActorRef)) return prev;
             const next = new Map(prev);
-            next.delete(decoded.message.username);
+            next.delete(messageActorRef);
             return next;
           });
           break;
         }
         case "typing":
-          if (normalizeActorRef(decoded.username) !== currentActorRef) {
+          if (
+            normalizeActorRef(decoded.publicRef || "") !==
+            currentActorRef
+          ) {
+            const typingActorRef = normalizeActorRef(
+              decoded.publicRef,
+            );
+            if (!typingActorRef) break;
             setTypingUsers((prev) => {
               const next = new Map(prev);
-              next.set(decoded.username, Date.now());
+              next.set(typingActorRef, Date.now());
               return next;
             });
             setTypingDisplayNames((prev) => {
               const next = new Map(prev);
-              next.set(decoded.username, decoded.displayName);
+              next.set(typingActorRef, decoded.displayName);
               return next;
             });
           }
@@ -1170,7 +1193,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                 (r) => r.emoji === decoded.emoji,
               );
               const isMe =
-                normalizeActorRef(decoded.username) === currentActorRef;
+                normalizeActorRef(decoded.publicRef || "") ===
+                currentActorRef;
               if (existing) {
                 return {
                   ...msg,
@@ -1196,7 +1220,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             prev.map((msg) => {
               if (msg.id !== decoded.messageId) return msg;
               const isMe =
-                normalizeActorRef(decoded.username) === currentActorRef;
+                normalizeActorRef(decoded.publicRef || "") ===
+                currentActorRef;
               return {
                 ...msg,
                 reactions: msg.reactions
@@ -1215,6 +1240,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             const next = new Map(prev);
             next.set(decoded.userId, {
               userId: decoded.userId,
+              publicRef: decoded.publicRef || "",
               username: decoded.username,
               displayName: decoded.displayName,
               lastReadMessageId: decoded.lastReadMessageId,
@@ -1270,7 +1296,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     setMessages((prev) => {
       let changed = false;
       const updated = prev.map((msg) => {
-        if (normalizeActorRef(msg.username) !== currentActorRef) return msg;
+        if (resolveMessageActorRef(msg) !== currentActorRef) return msg;
         if (
           msg.profilePic === nextProfile &&
           sameAvatarCrop(msg.avatarCrop, nextAvatarCrop) &&
@@ -1442,7 +1468,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       setDraft("");
 
       void chatController
-        .editMessage(slug, editedId, editedContent)
+        .editMessage(roomIdForRequests, editedId, editedContent)
         .catch((err) => {
           debugLog("Edit failed", err);
           setRoomError("Не удалось отредактировать сообщение");
@@ -1468,7 +1494,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       uploadAbortRef.current = abortController;
       setUploadProgress(0);
       try {
-        await chatController.uploadAttachments(slug, queuedFiles, {
+        await chatController.uploadAttachments(roomIdForRequests, queuedFiles, {
           messageContent: cleaned,
           replyTo: replyTo?.id ?? null,
           onProgress: (pct) => setUploadProgress(pct),
@@ -1521,6 +1547,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     rateLimitActive,
     rateLimitSeconds,
     replyTo,
+    roomIdForRequests,
     send,
     setMessages,
     slug,
@@ -1558,7 +1585,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     );
     setDeleteConfirm(null);
 
-    void chatController.deleteMessage(slug, msgId).catch((err) => {
+    void chatController.deleteMessage(roomIdForRequests, msgId).catch((err) => {
       debugLog("Delete failed", err);
       setRoomError("Не удалось удалить сообщение");
       setMessages((prev) =>
@@ -1569,7 +1596,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
         ),
       );
     });
-  }, [deleteConfirm, setMessages, slug]);
+  }, [deleteConfirm, roomIdForRequests, setMessages]);
 
   const handleReact = useCallback(
     (msgId: number, emoji: string) => {
@@ -1577,15 +1604,15 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       const existing = msg?.reactions.find((r) => r.emoji === emoji);
       if (existing?.me) {
         void chatController
-          .removeReaction(slug, msgId, emoji)
+          .removeReaction(roomIdForRequests, msgId, emoji)
           .catch((err) => debugLog("Remove reaction failed", err));
       } else {
         void chatController
-          .addReaction(slug, msgId, emoji)
+          .addReaction(roomIdForRequests, msgId, emoji)
           .catch((err) => debugLog("Add reaction failed", err));
       }
     },
-    [messages, slug],
+    [messages, roomIdForRequests],
   );
 
   const handleAttach = useCallback(
@@ -1675,17 +1702,17 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   );
 
   const openUserProfile = useCallback(
-    (username: string) => {
-      if (!username) return;
-      openInfoPanel("profile", username);
+    (actorRef: string) => {
+      if (!actorRef) return;
+      openInfoPanel("profile", actorRef);
     },
     [openInfoPanel],
   );
 
   const openDirectInfo = useCallback(() => {
-    if (!details?.peer?.username) return;
+    if (!details?.peer?.publicRef && !details?.peer?.username) return;
     openInfoPanel("direct", slug);
-  }, [details?.peer?.username, openInfoPanel, slug]);
+  }, [details?.peer?.publicRef, details?.peer?.username, openInfoPanel, slug]);
 
   const openGroupInfo = useCallback(() => {
     if (details?.kind !== "group") return;
@@ -1790,8 +1817,10 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
   const directPeerIsTyping = Boolean(
     details?.kind === "direct" &&
-    details.peer?.username &&
-    typingUsers.has(details.peer.username),
+    details.peer?.publicRef &&
+    typingUsers.has(
+      normalizeActorRef(details.peer?.publicRef || ""),
+    ),
   );
 
   const roomTitle =
@@ -1827,7 +1856,12 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
         ? "Был(а) в сети давно"
         : directPeerIsTyping
           ? "Печатает..."
-          : details.peer?.username && onlineUsernames.has(details.peer.username)
+            : details.peer?.publicRef &&
+              onlineUsernames.has(
+                normalizeActorRef(
+                  details.peer?.publicRef || "",
+                ),
+              )
             ? "В сети"
             : `Был(а) в сети: ${formatLastSeen(details.peer?.lastSeen ?? null) || "—"}`
       : details?.kind === "group"
@@ -1840,7 +1874,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     let maxId = 0;
     for (const receipt of readReceipts.values()) {
       if (
-        normalizeActorRef(receipt.username) !== currentActorRef &&
+        normalizeActorRef(receipt.publicRef) !==
+          currentActorRef &&
         receipt.lastReadMessageId > maxId
       ) {
         maxId = receipt.lastReadMessageId;
@@ -1911,7 +1946,11 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                 username={details.peer.displayName ?? details.peer.username}
                 profileImage={details.peer.profileImage}
                 avatarCrop={details.peer.avatarCrop}
-                online={onlineUsernames.has(details.peer.username)}
+                online={onlineUsernames.has(
+                  normalizeActorRef(
+                    details.peer.publicRef,
+                  ),
+                )}
                 size="small"
               />
             </button>
@@ -2144,31 +2183,30 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                   <span>Новые сообщения</span>
                 </div>
               ) : (
-                <MessageBubble
-                  key={`${item.message.id}-${item.message.createdAt}`}
-                  message={item.message}
-                  isOwn={isOwnMessage(item.message, currentActorRef)}
-                  isRead={
-                    isOwnMessage(item.message, currentActorRef) &&
-                    item.message.id <= maxReadMessageId
-                  }
-                  highlighted={item.message.id === highlightedMessageId}
-                  onlineUsernames={onlineUsernames}
-                  onReply={user ? handleReply : undefined}
-                  onEdit={
-                    isOwnMessage(item.message, currentActorRef)
-                      ? handleEdit
-                      : undefined
-                  }
-                  onDelete={
-                    isOwnMessage(item.message, currentActorRef)
-                      ? handleDelete
-                      : undefined
-                  }
-                  onReact={user ? handleReact : undefined}
-                  onReplyQuoteClick={handleReplyQuoteClick}
-                  onAvatarClick={openUserProfile}
-                />
+                (() => {
+                  const ownMessage = isOwnMessage(item.message, currentActorRef);
+                  const canModerateMessage = Boolean(
+                    user && canManageMessagesToRoom && !ownMessage,
+                  );
+                  const canEditOrDelete = ownMessage || canModerateMessage;
+                  return (
+                    <MessageBubble
+                      key={`${item.message.id}-${item.message.createdAt}`}
+                      message={item.message}
+                      isOwn={ownMessage}
+                      canModerate={canModerateMessage}
+                      isRead={ownMessage && item.message.id <= maxReadMessageId}
+                      highlighted={item.message.id === highlightedMessageId}
+                      onlineUsernames={onlineUsernames}
+                      onReply={user ? handleReply : undefined}
+                      onEdit={canEditOrDelete ? handleEdit : undefined}
+                      onDelete={canEditOrDelete ? handleDelete : undefined}
+                      onReact={user ? handleReact : undefined}
+                      onReplyQuoteClick={handleReplyQuoteClick}
+                      onAvatarClick={openUserProfile}
+                    />
+                  );
+                })()
               ),
             )}
           </div>
@@ -2332,3 +2370,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     </div>
   );
 }
+
+
+
+

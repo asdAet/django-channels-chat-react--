@@ -6,6 +6,7 @@ export type AvatarCrop = {
 };
 
 export type OnlineUser = {
+  publicRef: string;
   username: string;
   profileImage: string | null;
   avatarCrop?: AvatarCrop | null;

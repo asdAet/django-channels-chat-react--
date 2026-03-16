@@ -2,10 +2,10 @@ import type { AxiosInstance } from "axios";
 
 export async function deleteRoomRole(
   apiClient: AxiosInstance,
-  slug: string,
+  roomId: string,
   roleId: number,
 ): Promise<void> {
   await apiClient.delete(
-    `/chat/rooms/${encodeURIComponent(slug)}/roles/${roleId}/`,
+    `/chat/rooms/${encodeURIComponent(roomId)}/roles/${roleId}/`,
   );
 }
