@@ -1,17 +1,19 @@
 """Unit tests for chat.services business logic."""
 
 from datetime import timedelta
+import tempfile
 from unittest.mock import Mock
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import OperationalError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from chat import services
 from chat.services import MessageForbiddenError, MessageNotFoundError, MessageValidationError
-from messages.models import Message, MessageReadState, Reaction
+from messages.models import Message, MessageAttachment, MessageReadState, Reaction
 from rooms.models import Room
 from rooms.services import ensure_membership
 
@@ -92,6 +94,85 @@ class ChatServicesTests(TestCase):
         self.assertTrue(deleted.is_deleted)
         self.assertIsNotNone(deleted.deleted_at)
         self.assertEqual(deleted.deleted_by_id, self.owner.pk)
+
+    @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True)
+    def test_delete_message_deletes_attachment_files_when_enabled(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            msg = self._message(user=self.owner)
+            attachment = MessageAttachment.objects.create(
+                message=msg,
+                file=SimpleUploadedFile("doc.txt", b"file", content_type="text/plain"),
+                original_filename="doc.txt",
+                content_type="text/plain",
+                file_size=4,
+                thumbnail=SimpleUploadedFile("thumb.txt", b"thumb", content_type="text/plain"),
+            )
+            file_storage = attachment.file.storage
+            thumb_storage = attachment.thumbnail.storage
+            file_name = attachment.file.name
+            thumb_name = attachment.thumbnail.name
+
+            self.assertTrue(file_storage.exists(file_name))
+            self.assertTrue(thumb_storage.exists(thumb_name))
+
+            deleted = services.delete_message(self.owner, self.room, msg.pk)
+
+            attachment.refresh_from_db()
+            self.assertEqual(attachment.file.name, file_name)
+            self.assertEqual(attachment.thumbnail.name, thumb_name)
+            self.assertFalse(file_storage.exists(file_name))
+            self.assertFalse(thumb_storage.exists(thumb_name))
+            self.assertTrue(MessageAttachment.objects.filter(pk=attachment.pk).exists())
+            self.assertTrue(deleted.is_deleted)
+
+    @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=False)
+    def test_delete_message_keeps_attachment_files_when_delete_disabled(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            msg = self._message(user=self.owner)
+            attachment = MessageAttachment.objects.create(
+                message=msg,
+                file=SimpleUploadedFile("doc.txt", b"file", content_type="text/plain"),
+                original_filename="doc.txt",
+                content_type="text/plain",
+                file_size=4,
+                thumbnail=SimpleUploadedFile("thumb.txt", b"thumb", content_type="text/plain"),
+            )
+            file_storage = attachment.file.storage
+            thumb_storage = attachment.thumbnail.storage
+            file_name = attachment.file.name
+            thumb_name = attachment.thumbnail.name
+
+            self.assertTrue(file_storage.exists(file_name))
+            self.assertTrue(thumb_storage.exists(thumb_name))
+
+            deleted = services.delete_message(self.owner, self.room, msg.pk)
+
+            self.assertTrue(file_storage.exists(file_name))
+            self.assertTrue(thumb_storage.exists(thumb_name))
+            self.assertTrue(deleted.is_deleted)
+
+    @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True)
+    def test_delete_message_logs_storage_errors_and_continues(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            msg = self._message(user=self.owner)
+            attachment = MessageAttachment.objects.create(
+                message=msg,
+                file=SimpleUploadedFile("doc.txt", b"file", content_type="text/plain"),
+                original_filename="doc.txt",
+                content_type="text/plain",
+                file_size=4,
+                thumbnail=SimpleUploadedFile("thumb.txt", b"thumb", content_type="text/plain"),
+            )
+            storage = attachment.file.storage
+
+            with patch.object(storage, "delete", side_effect=OSError("storage down")) as delete_mock, patch(
+                "chat.services.logger.warning",
+            ) as logger_warning:
+                deleted = services.delete_message(self.owner, self.room, msg.pk)
+
+            self.assertGreaterEqual(delete_mock.call_count, 1)
+            self.assertGreaterEqual(logger_warning.call_count, 1)
+            self.assertTrue(deleted.is_deleted)
 
     def test_add_reaction_validates_permission_and_missing_message(self):
         msg = self._message(user=self.owner)

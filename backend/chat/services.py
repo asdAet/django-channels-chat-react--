@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 from django.conf import settings
 from django.db import OperationalError, transaction
 from django.utils import timezone
 
-from messages.models import Message, MessageReadState, Reaction
+from messages.models import Message, MessageAttachment, MessageReadState, Reaction
 from roles.access import has_permission
 from roles.permissions import Perm
 from rooms.models import Room
+
+logger = logging.getLogger(__name__)
 
 
 # ── Exceptions ─────────────────────────────────────────────────────────
@@ -61,6 +64,28 @@ def _within_edit_window(message: Message) -> bool:
     return elapsed <= window
 
 
+def _delete_attachment_blob(
+    storage,
+    blob_name: str | None,
+    *,
+    attachment_id: int,
+    field_name: str,
+) -> None:
+    normalized_name = str(blob_name or "").strip()
+    if not normalized_name:
+        return
+    try:
+        storage.delete(normalized_name)
+    except Exception:
+        logger.warning(
+            "Failed to delete attachment %s blob for id=%s path=%s",
+            field_name,
+            attachment_id,
+            normalized_name,
+            exc_info=True,
+        )
+
+
 def edit_message(user, room: Room, message_id: int, new_content: str) -> Message:
     """Edit a message. Returns the updated message."""
     new_content = new_content.strip()
@@ -105,6 +130,31 @@ def delete_message(user, room: Room, message_id: int) -> Message:
         msg.deleted_at = timezone.now()
         msg.deleted_by = user
         msg.save(update_fields=["is_deleted", "deleted_at", "deleted_by"])
+
+        delete_files = bool(
+            getattr(settings, "CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE", True),
+        )
+        if delete_files:
+            attachments = list(
+                MessageAttachment.objects.filter(message=msg).only("id", "file", "thumbnail"),
+            )
+            for attachment in attachments:
+                file_field = attachment.file
+                _delete_attachment_blob(
+                    file_field.storage,
+                    file_field.name,
+                    attachment_id=attachment.pk,
+                    field_name="file",
+                )
+
+                thumbnail_field = attachment.thumbnail
+                if thumbnail_field:
+                    _delete_attachment_blob(
+                        thumbnail_field.storage,
+                        thumbnail_field.name,
+                        attachment_id=attachment.pk,
+                        field_name="thumbnail",
+                    )
 
     return msg
 

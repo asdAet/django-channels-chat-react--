@@ -182,6 +182,7 @@ deploy/
 Дополнительно:
 - максимальный размер одного файла: `CHAT_ATTACHMENT_MAX_SIZE_MB`
 - максимум файлов в сообщении: `CHAT_ATTACHMENT_MAX_PER_MESSAGE`
+- физическое удаление файлов при удалении сообщения: `CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE` (`1`/`0`)
 - есть fallback-обработка неизвестных multipart-ключей.
 
 ## Локальный запуск
@@ -265,7 +266,7 @@ CI pipeline: `.github/workflows/test.yml`.
 - `AUTH_RATE_LIMIT`, `AUTH_RATE_WINDOW`
 - `WS_CONNECT_RATE_LIMIT`, `WS_CONNECT_RATE_WINDOW`
 - `CHAT_MESSAGE_MAX_LENGTH`
-- `CHAT_ATTACHMENT_MAX_SIZE_MB`, `CHAT_ATTACHMENT_MAX_PER_MESSAGE`, `CHAT_ATTACHMENT_ALLOW_ANY_TYPE`
+- `CHAT_ATTACHMENT_MAX_SIZE_MB`, `CHAT_ATTACHMENT_MAX_PER_MESSAGE`, `CHAT_ATTACHMENT_ALLOW_ANY_TYPE`, `CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE`
 - `DJANGO_MEDIA_URL_TTL_SECONDS`, `DJANGO_MEDIA_SIGNING_KEY`
 
 ## Production deployment
@@ -319,6 +320,7 @@ TLS-файлы должны лежать в `deploy/certs/`:
 - количество файлов (`CHAT_ATTACHMENT_MAX_PER_MESSAGE`);
 - размер файла (`CHAT_ATTACHMENT_MAX_SIZE_MB`);
 - MIME-policy (`CHAT_ATTACHMENT_ALLOW_ANY_TYPE`/allowlist).
+- политика физического удаления файлов при удалении сообщения (`CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE`).
 
 ## Что важно помнить при разработке
 - Внутренний transport чатов строго `room_id`-based.

@@ -437,6 +437,10 @@ CHAT_ATTACHMENT_ALLOWED_TYPES = env_list("CHAT_ATTACHMENT_ALLOWED_TYPES", [
     "image/jpeg", "image/png", "image/gif", "image/webp",
     "application/pdf", "text/plain", "video/mp4", "audio/mpeg", "audio/webm",
 ])
+CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE = env_bool(
+    "CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE",
+    True,
+)
 CHAT_THUMBNAIL_MAX_SIDE = env_int("CHAT_THUMBNAIL_MAX_SIDE", 400, minimum=50)
 CHAT_DIRECT_SLUG_SALT = os.getenv("CHAT_DIRECT_SLUG_SALT", "").strip() or SECRET_KEY
 PRESENCE_TTL = int(os.getenv("PRESENCE_TTL", "40"))

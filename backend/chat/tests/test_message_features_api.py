@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -11,7 +12,7 @@ from django.test import Client, TestCase, override_settings
 
 from chat import api
 from chat.services import MessageForbiddenError
-from messages.models import Message, Reaction
+from messages.models import Message, MessageAttachment, Reaction
 from rooms.models import Room
 from rooms.services import ensure_membership
 from users.identity import ensure_user_identity_core, set_room_public_handle, set_user_public_handle
@@ -620,6 +621,46 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(delete_response.status_code, 204)
         message.refresh_from_db()
         self.assertTrue(message.is_deleted)
+
+    def test_message_detail_delete_removes_attachment_files_when_enabled(self):
+        self.client.force_login(self.owner)
+        with tempfile.TemporaryDirectory() as media_root, override_settings(
+            MEDIA_ROOT=media_root,
+            CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True,
+        ):
+            message = Message.objects.create(
+                username=self.owner.username,
+                user=self.owner,
+                room=self.direct_room,
+                message_content="with attachments",
+            )
+            attachment = MessageAttachment.objects.create(
+                message=message,
+                file=SimpleUploadedFile("doc.txt", b"file", content_type="text/plain"),
+                original_filename="doc.txt",
+                content_type="text/plain",
+                file_size=4,
+                thumbnail=SimpleUploadedFile("thumb.txt", b"thumb", content_type="text/plain"),
+            )
+            file_storage = attachment.file.storage
+            thumb_storage = attachment.thumbnail.storage
+            file_name = attachment.file.name
+            thumb_name = attachment.thumbnail.name
+
+            self.assertTrue(file_storage.exists(file_name))
+            self.assertTrue(thumb_storage.exists(thumb_name))
+
+            response = self.client.delete(
+                f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/"
+            )
+
+            self.assertEqual(response.status_code, 204)
+            self.assertEqual(response.content, b"")
+            message.refresh_from_db()
+            self.assertTrue(message.is_deleted)
+            self.assertTrue(MessageAttachment.objects.filter(pk=attachment.pk).exists())
+            self.assertFalse(file_storage.exists(file_name))
+            self.assertFalse(thumb_storage.exists(thumb_name))
 
     def test_message_reactions_handles_forbidden_and_remove_flow(self):
         message = Message.objects.create(
