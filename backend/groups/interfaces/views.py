@@ -51,7 +51,7 @@ def _validated_data(serializer: Any) -> dict[str, Any]:
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
     try:
-        parsed = int(raw_value)  # type: ignore[arg-type]
+        parsed = int(raw_value)  
     except (TypeError, ValueError):
         raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
     if parsed < 1:

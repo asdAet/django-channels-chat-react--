@@ -24,17 +24,29 @@ class AttachmentSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def _build_url(self, field_file):
+    def _build_url(self, field_file, obj):
+        if not field_file:
+            return None
+
+        attachment_build_fn = self.context.get("build_attachment_url")
+        if attachment_build_fn:
+            room_id = self.context.get("room_id")
+            if room_id is None:
+                message = getattr(obj, "message", None)
+                room_id = getattr(message, "room_id", None)
+            return attachment_build_fn(field_file, room_id)
+
+        # Backward-compatible fallback.
         build_fn = self.context.get("build_profile_pic_url")
-        if not build_fn or not field_file:
+        if not build_fn:
             return None
         return build_fn(field_file)
 
     def get_url(self, obj):
-        return self._build_url(obj.file)
+        return self._build_url(obj.file, obj)
 
     def get_thumbnailUrl(self, obj):
-        return self._build_url(obj.thumbnail)
+        return self._build_url(obj.thumbnail, obj)
 
 
 class MessageSerializer(serializers.ModelSerializer):

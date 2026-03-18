@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -335,6 +336,42 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(get_response.status_code, 200)
         items = get_response.json()["items"]
         self.assertTrue(any(item["messageId"] == created_id for item in items))
+
+    def test_attachment_urls_are_room_scoped_without_signed_query(self):
+        self.client.force_login(self.owner)
+
+        upload_file = SimpleUploadedFile(
+            "scoped.txt",
+            b"room scoped attachment",
+            content_type="text/plain",
+        )
+        post_response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+        self.assertEqual(post_response.status_code, 201)
+        attachment_payload = post_response.json()["attachments"][0]
+
+        attachment_url = attachment_payload["url"]
+        self.assertIsNotNone(attachment_url)
+        parsed_upload = urlparse(attachment_url)
+        query_upload = parse_qs(parsed_upload.query)
+        self.assertEqual(query_upload.get("roomId"), [str(self.direct_room.pk)])
+        self.assertNotIn("exp", query_upload)
+        self.assertNotIn("sig", query_upload)
+
+        list_response = self.client.get(f"/api/chat/rooms/{self.direct_room.pk}/attachments/")
+        self.assertEqual(list_response.status_code, 200)
+        item = next(
+            current
+            for current in list_response.json()["items"]
+            if current["id"] == attachment_payload["id"]
+        )
+        parsed_list = urlparse(item["url"])
+        query_list = parse_qs(parsed_list.query)
+        self.assertEqual(query_list.get("roomId"), [str(self.direct_room.pk)])
+        self.assertNotIn("exp", query_list)
+        self.assertNotIn("sig", query_list)
 
     @override_settings(
         CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,

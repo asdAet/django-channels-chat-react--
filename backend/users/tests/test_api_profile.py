@@ -14,6 +14,9 @@ from django.test.utils import override_settings
 from rest_framework.test import APIClient
 
 from chat import utils
+from messages.models import Message, MessageAttachment
+from rooms.models import Room
+from rooms.services import ensure_membership
 from users.application import auth_service
 from users.identity import user_public_ref
 from users.models import MAX_PROFILE_IMAGE_SIDE
@@ -190,3 +193,141 @@ class ProfileApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("image", response.json().get("errors", {}))
+
+
+class AttachmentMediaAccessTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.owner = auth_service.register_user(
+            login="media_owner_login",
+            password="pass12345",
+            password_confirm="pass12345",
+            name="Media Owner",
+            username="mediaowner",
+            email="mediaowner@example.com",
+        )
+        self.peer = auth_service.register_user(
+            login="media_peer_login",
+            password="pass12345",
+            password_confirm="pass12345",
+            name="Media Peer",
+            username="mediapeer",
+            email="mediapeer@example.com",
+        )
+        self.outsider = auth_service.register_user(
+            login="media_outsider_login",
+            password="pass12345",
+            password_confirm="pass12345",
+            name="Media Outsider",
+            username="mediaoutsider",
+            email="mediaoutsider@example.com",
+        )
+        self.direct_room = Room.objects.create(
+            slug="media_room_direct_01",
+            name="media direct",
+            kind=Room.Kind.DIRECT,
+            direct_pair_key=f"{self.owner.pk}:{self.peer.pk}",
+            created_by=self.owner,
+        )
+        ensure_membership(self.direct_room, self.owner)
+        ensure_membership(self.direct_room, self.peer)
+
+    def _attachment_for_room(self, room: Room, *, author) -> MessageAttachment:
+        message = Message.objects.create(
+            username=author.username,
+            user=author,
+            room=room,
+            message_content="attachment message",
+        )
+        return MessageAttachment.objects.create(
+            message=message,
+            file=SimpleUploadedFile("doc.txt", b"hello", content_type="text/plain"),
+            original_filename="doc.txt",
+            content_type="text/plain",
+            file_size=5,
+            thumbnail=SimpleUploadedFile("thumb.txt", b"thumb", content_type="text/plain"),
+        )
+
+    def test_attachment_media_view_returns_200_for_room_participant(self):
+        attachment = self._attachment_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.owner)
+
+        file_response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+        thumb_response = self.client.get(
+            f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+        )
+
+        self.assertEqual(file_response.status_code, 200)
+        self.assertEqual(thumb_response.status_code, 200)
+        file_response.close()
+        thumb_response.close()
+
+    def test_attachment_media_view_returns_404_for_invalid_access_context(self):
+        attachment = self._attachment_for_room(self.direct_room, author=self.owner)
+
+        unauthenticated = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(unauthenticated.status_code, 404)
+
+        self.client.force_login(self.outsider)
+        outsider = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(outsider.status_code, 404)
+
+        missing_room = self.client.get(f"/api/auth/media/{attachment.file.name}")
+        self.assertEqual(missing_room.status_code, 404)
+
+        wrong_room = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk + 999}",
+        )
+        self.assertEqual(wrong_room.status_code, 404)
+
+        signed_query = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}&exp=1&sig=abc",
+        )
+        self.assertEqual(signed_query.status_code, 404)
+
+    def test_attachment_media_view_returns_404_when_path_or_message_context_is_invalid(self):
+        attachment = self._attachment_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.owner)
+
+        other_room = Room.objects.create(
+            slug="media_room_private_02",
+            name="media private",
+            kind=Room.Kind.PRIVATE,
+            created_by=self.owner,
+        )
+        ensure_membership(other_room, self.owner)
+        foreign_attachment = self._attachment_for_room(other_room, author=self.owner)
+
+        wrong_path = self.client.get(
+            f"/api/auth/media/{foreign_attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(wrong_path.status_code, 404)
+
+        attachment.message.is_deleted = True
+        attachment.message.save(update_fields=["is_deleted"])
+        deleted_message = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(deleted_message.status_code, 404)
+
+    def test_public_room_attachment_access_uses_room_read_permissions(self):
+        public_room = Room.objects.create(
+            slug="media_room_public_03",
+            name="media public",
+            kind=Room.Kind.PUBLIC,
+            created_by=self.owner,
+        )
+        attachment = self._attachment_for_room(public_room, author=self.owner)
+        self.client.force_login(self.outsider)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={public_room.pk}",
+        )
+        self.assertEqual(response.status_code, 200)
+        response.close()

@@ -174,6 +174,34 @@ class ChatServicesTests(TestCase):
             self.assertGreaterEqual(logger_warning.call_count, 1)
             self.assertTrue(deleted.is_deleted)
 
+    @override_settings(
+        CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True,
+        CHAT_ATTACHMENT_DELETE_RETRIES=3,
+    )
+    def test_delete_message_retries_locked_file_delete_on_windows(self):
+        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+            msg = self._message(user=self.owner)
+            attachment = MessageAttachment.objects.create(
+                message=msg,
+                file=SimpleUploadedFile("doc.txt", b"file", content_type="text/plain"),
+                original_filename="doc.txt",
+                content_type="text/plain",
+                file_size=4,
+            )
+            storage = attachment.file.storage
+            locked_error = PermissionError("locked")
+            setattr(locked_error, "winerror", 32)
+
+            with patch.object(storage, "delete", side_effect=[locked_error, None]) as delete_mock, patch(
+                "chat.services.time.sleep",
+            ) as sleep_mock, patch("chat.services.logger.warning") as logger_warning:
+                deleted = services.delete_message(self.owner, self.room, msg.pk)
+
+            self.assertEqual(delete_mock.call_count, 2)
+            sleep_mock.assert_called_once()
+            logger_warning.assert_not_called()
+            self.assertTrue(deleted.is_deleted)
+
     def test_add_reaction_validates_permission_and_missing_message(self):
         msg = self._message(user=self.owner)
         with self.assertRaises(MessageValidationError):

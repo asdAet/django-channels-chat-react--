@@ -55,7 +55,11 @@ from users.identity import (
 from users.models import PublicHandle
 
 from .constants import PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
-from chat_app_django.media_utils import build_profile_url_from_request, serialize_avatar_crop
+from chat_app_django.media_utils import (
+    build_profile_url_from_request,
+    build_room_media_url_from_request,
+    serialize_avatar_crop,
+)
 
 User = get_user_model()
 
@@ -72,6 +76,16 @@ def _build_profile_pic_url(request, profile_pic):
     except (AttributeError, ValueError):
         raw_value = str(profile_pic)
     return build_profile_url_from_request(request, raw_value)
+
+
+def _build_attachment_url(request, attachment_file, room_id: int | None):
+    if not attachment_file or room_id is None:
+        return None
+    try:
+        raw_value = attachment_file.url
+    except (AttributeError, ValueError):
+        raw_value = str(attachment_file)
+    return build_room_media_url_from_request(request, raw_value, room_id)
 
 
 def _serialize_peer(request, user, *, is_blocked: bool = False):
@@ -118,14 +132,23 @@ def _serialize_reply_to(message: Message | None):
     }
 
 
-def _serialize_attachment_item(request, attachment: MessageAttachment):
+def _serialize_attachment_item(
+    request,
+    attachment: MessageAttachment,
+    *,
+    room_id: int | None,
+):
     return {
         "id": attachment.pk,
         "originalFilename": attachment.original_filename,
         "contentType": attachment.content_type,
         "fileSize": attachment.file_size,
-        "url": _build_profile_pic_url(request, attachment.file),
-        "thumbnailUrl": _build_profile_pic_url(request, attachment.thumbnail) if attachment.thumbnail else None,
+        "url": _build_attachment_url(request, attachment.file, room_id),
+        "thumbnailUrl": (
+            _build_attachment_url(request, attachment.thumbnail, room_id)
+            if attachment.thumbnail
+            else None
+        ),
         "width": attachment.width,
         "height": attachment.height,
     }
@@ -170,7 +193,7 @@ def _public_room():
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
     try:
-        parsed = int(raw_value)  # type: ignore[arg-type]
+        parsed = int(raw_value)  
     except (TypeError, ValueError):
         raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
     if parsed < 1:
@@ -456,6 +479,14 @@ def room_messages(request, room_id: int):
             context={
                 "request": request,
                 "build_profile_pic_url": lambda pic: _build_profile_pic_url(request, pic),
+                "build_attachment_url": (
+                    lambda file_field, scoped_room_id: _build_attachment_url(
+                        request,
+                        file_field,
+                        scoped_room_id,
+                    )
+                ),
+                "room_id": room.pk,
                 "serialize_avatar_crop": serialize_avatar_crop,
             },
         )
@@ -682,7 +713,7 @@ def upload_attachments(request, room_id: int):
 
         items = [
             {
-                **_serialize_attachment_item(request, attachment),
+                **_serialize_attachment_item(request, attachment, room_id=room.pk),
                 "messageId": attachment.message_id,
                 "createdAt": attachment.message.date_added.isoformat(),
                 "publicRef": user_public_ref(attachment.message.user)
@@ -885,7 +916,7 @@ def upload_attachments(request, room_id: int):
                 attachment.height = thumb_info.get("height")
                 attachment.save(update_fields=["thumbnail", "width", "height"])
 
-        attachments_data.append(_serialize_attachment_item(request, attachment))
+        attachments_data.append(_serialize_attachment_item(request, attachment, room_id=room.pk))
 
     profile_url = _build_profile_pic_url(request, avatar_source) if avatar_source else None
     _broadcast_to_room(room, {
