@@ -1,4 +1,4 @@
-"""Shared media URL utilities: HMAC-signed URLs, avatar crop serialization."""
+"""Shared media URL utilities: signed and room-scoped URLs, avatar crop serialization."""
 
 import hashlib
 import hmac
@@ -245,6 +245,77 @@ def _signed_media_url_path(image_name: str | None, expires_at: int | None = None
     encoded_path = quote(normalized, safe="/")
     query = urlencode({"exp": expiry, "sig": signature})
     return f"/api/auth/media/{encoded_path}?{query}"
+
+
+def is_chat_attachment_media_path(path: str | None) -> bool:
+    normalized = normalize_media_path(path)
+    if not normalized:
+        return False
+    return normalized.startswith("chat_attachments/") or normalized.startswith("chat_thumbnails/")
+
+
+def _room_scoped_media_url_path(image_name: str | None, room_id: int | str | None) -> str | None:
+    normalized = normalize_media_path(image_name)
+    if not normalized or not is_chat_attachment_media_path(normalized):
+        return None
+
+    try:
+        room = int(room_id)  
+    except (TypeError, ValueError):
+        return None
+    if room < 1:
+        return None
+
+    encoded_path = quote(normalized, safe="/")
+    query = urlencode({"roomId": room})
+    return f"/api/auth/media/{encoded_path}?{query}"
+
+
+def build_room_media_url_from_request(
+    request,
+    image_name: str | None,
+    room_id: int | str | None,
+) -> str | None:
+    """Build absolute room-scoped URL for chat attachments and thumbnails."""
+    configured_base = _normalize_base_url(getattr(settings, "PUBLIC_BASE_URL", None))
+    origin_base = _normalize_base_url(_first_value(request.META.get("HTTP_ORIGIN")))
+    forwarded_base = _base_from_host_and_scheme(
+        request.META.get("HTTP_X_FORWARDED_HOST"),
+        request.META.get("HTTP_X_FORWARDED_PROTO"),
+    )
+
+    try:
+        host = request.get_host()
+    except Exception:
+        host = ""
+    host_base = None
+    if host:
+        scheme = "https" if request.is_secure() else "http"
+        host_base = f"{scheme}://{host}"
+
+    trusted_hosts = {
+        _hostname_from_base(configured_base),
+        _hostname_from_base(origin_base),
+        _hostname_from_base(forwarded_base),
+        _hostname_from_base(host_base),
+    }
+    source = _coerce_media_source(image_name, trusted_hosts={h for h in trusted_hosts if h})
+    if not source:
+        return None
+
+    # Room-scoped attachment links must stay in local protected-media flow.
+    if source.startswith("http://") or source.startswith("https://"):
+        return None
+
+    path = _room_scoped_media_url_path(source, room_id)
+    if not path:
+        return None
+
+    base = _pick_base_url(configured_base, forwarded_base, host_base, origin_base)
+    if base:
+        return f"{base}{path}"
+
+    return path
 
 
 def build_profile_url_from_request(request, image_name: str | None) -> str | None:

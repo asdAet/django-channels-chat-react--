@@ -6,7 +6,11 @@ from urllib.parse import parse_qs, urlparse
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
 from chat_app_django import media_utils as utils
-from chat_app_django.media_utils import build_profile_url, build_profile_url_from_request
+from chat_app_django.media_utils import (
+    build_profile_url,
+    build_profile_url_from_request,
+    build_room_media_url_from_request,
+)
 
 
 class UtilityHelpersTests(SimpleTestCase):
@@ -321,3 +325,41 @@ class BuildProfileUrlFromRequestTests(_SignedUrlAssertionsMixin, SimpleTestCase)
         with override_settings(ALLOWED_HOSTS=["invalid.local"]):
             url = build_profile_url_from_request(request, "profile_pics/a.jpg")
         self.assert_signed_media_url(url, None)
+
+
+class BuildRoomMediaUrlFromRequestTests(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @override_settings(MEDIA_URL="/media/", ALLOWED_HOSTS=["*"])
+    def test_builds_room_scoped_attachment_url(self):
+        request = self.factory.get("/api/chat/rooms/1/messages/", HTTP_HOST="localhost:8000")
+
+        url = build_room_media_url_from_request(
+            request,
+            "chat_attachments/2026/03/file.txt",
+            room_id=15,
+        )
+
+        self.assertIsNotNone(url)
+        parsed = urlparse(url or "")
+        self.assertEqual(parsed.path, "/api/auth/media/chat_attachments/2026/03/file.txt")
+        query = parse_qs(parsed.query)
+        self.assertEqual(query.get("roomId"), ["15"])
+        self.assertNotIn("exp", query)
+        self.assertNotIn("sig", query)
+
+    @override_settings(MEDIA_URL="/media/", ALLOWED_HOSTS=["*"])
+    def test_rejects_non_attachment_paths_and_bad_room_id(self):
+        request = self.factory.get("/api/chat/rooms/1/messages/", HTTP_HOST="localhost:8000")
+
+        self.assertIsNone(
+            build_room_media_url_from_request(request, "profile_pics/a.jpg", room_id=1),
+        )
+        self.assertIsNone(
+            build_room_media_url_from_request(
+                request,
+                "chat_attachments/2026/03/file.txt",
+                room_id=0,
+            ),
+        )

@@ -74,16 +74,34 @@ def _delete_attachment_blob(
     normalized_name = str(blob_name or "").strip()
     if not normalized_name:
         return
-    try:
-        storage.delete(normalized_name)
-    except Exception:
-        logger.warning(
-            "Failed to delete attachment %s blob for id=%s path=%s",
-            field_name,
-            attachment_id,
-            normalized_name,
-            exc_info=True,
-        )
+    retries = max(1, int(getattr(settings, "CHAT_ATTACHMENT_DELETE_RETRIES", 3)))
+    for attempt in range(retries):
+        try:
+            storage.delete(normalized_name)
+            return
+        except PermissionError as exc:
+            # Windows can transiently lock files while they are being streamed/read.
+            is_locked = getattr(exc, "winerror", None) == 32
+            if is_locked and attempt < (retries - 1):
+                time.sleep(0.05 * (attempt + 1))
+                continue
+            logger.warning(
+                "Failed to delete attachment %s blob for id=%s path=%s",
+                field_name,
+                attachment_id,
+                normalized_name,
+                exc_info=True,
+            )
+            return
+        except Exception:
+            logger.warning(
+                "Failed to delete attachment %s blob for id=%s path=%s",
+                field_name,
+                attachment_id,
+                normalized_name,
+                exc_info=True,
+            )
+            return
 
 
 def edit_message(user, room: Room, message_id: int, new_content: str) -> Message:
