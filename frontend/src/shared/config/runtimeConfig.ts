@@ -11,6 +11,7 @@ export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
     "image/png",
     "image/gif",
     "image/webp",
+    "image/svg+xml",
     "application/pdf",
     "text/plain",
     "video/mp4",

@@ -434,7 +434,7 @@ CHAT_ATTACHMENT_MAX_SIZE_MB = env_int("CHAT_ATTACHMENT_MAX_SIZE_MB", 10, minimum
 CHAT_ATTACHMENT_MAX_PER_MESSAGE = env_int("CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5, minimum=1)
 CHAT_ATTACHMENT_ALLOW_ANY_TYPE = env_bool("CHAT_ATTACHMENT_ALLOW_ANY_TYPE", True)
 CHAT_ATTACHMENT_ALLOWED_TYPES = env_list("CHAT_ATTACHMENT_ALLOWED_TYPES", [
-    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
     "application/pdf", "text/plain", "video/mp4", "audio/mpeg", "audio/webm",
 ])
 CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE = env_bool(

@@ -162,6 +162,36 @@ describe("MessageBubble", () => {
     expect(screen.getByText(/неизвестный тип/i)).toBeInTheDocument();
   });
 
+  it("renders svg attachment as image even when content type is generic", () => {
+    const message: Message = {
+      ...baseMessage,
+      attachments: [
+        {
+          id: 12,
+          originalFilename: "pizza.svg",
+          contentType: "text/plain",
+          fileSize: 1024,
+          url: "/media/pizza.svg",
+          thumbnailUrl: null,
+          width: null,
+          height: null,
+        },
+      ],
+    };
+
+    render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const image = screen.getByAltText("pizza.svg");
+    expect(image.tagName).toBe("IMG");
+    expect(image).toHaveAttribute("src", "/media/pizza.svg");
+  });
+
   it("opens full own-message action menu on tap for touch devices", () => {
     const restoreMatchMedia = installTouchMatchMedia();
     try {

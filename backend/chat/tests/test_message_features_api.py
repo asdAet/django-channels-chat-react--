@@ -14,6 +14,7 @@ from django.test import Client, TestCase, override_settings
 from chat import api
 from chat.services import MessageForbiddenError
 from messages.models import Message, MessageAttachment, Reaction
+from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
 from users.identity import ensure_user_identity_core, set_room_public_handle, set_user_public_handle
@@ -337,6 +338,38 @@ class ChatMessageFeatureApiTests(TestCase):
         items = get_response.json()["items"]
         self.assertTrue(any(item["messageId"] == created_id for item in items))
 
+    def test_attachment_upload_in_public_room_creates_membership_and_media_is_readable(self):
+        public_room = Room.objects.create(
+            slug="public_features_attachments_01",
+            name="public features attachments",
+            kind=Room.Kind.PUBLIC,
+            created_by=self.owner,
+        )
+        self.assertFalse(
+            Membership.objects.filter(room=public_room, user=self.outsider, is_banned=False).exists()
+        )
+
+        self.client.force_login(self.outsider)
+        upload_file = SimpleUploadedFile(
+            "public-note.txt",
+            b"public room attachment",
+            content_type="text/plain",
+        )
+        post_response = self.client.post(
+            f"/api/chat/rooms/{public_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+        self.assertEqual(post_response.status_code, 201)
+        self.assertTrue(
+            Membership.objects.filter(room=public_room, user=self.outsider, is_banned=False).exists()
+        )
+
+        attachment_url = post_response.json()["attachments"][0]["url"]
+        parsed = urlparse(attachment_url)
+        media_response = self.client.get(f"{parsed.path}?{parsed.query}")
+        self.assertEqual(media_response.status_code, 200)
+        media_response.close()
+
     def test_attachment_urls_are_room_scoped_without_signed_query(self):
         self.client.force_login(self.owner)
 
@@ -501,6 +534,27 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         payload = response.json()
         self.assertEqual(payload["attachments"][0]["contentType"], "audio/mpeg")
+
+    @override_settings(
+        CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
+        CHAT_ATTACHMENT_ALLOWED_TYPES=["image/svg+xml"],
+    )
+    def test_attachment_upload_normalizes_svg_content_type_from_generic_mime(self):
+        self.client.force_login(self.owner)
+        upload_file = SimpleUploadedFile(
+            "pizza.svg",
+            b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'></svg>",
+            content_type="text/plain",
+        )
+
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["attachments"][0]["contentType"], "image/svg+xml")
 
     def test_mark_read_is_monotonic_and_persisted_in_room_details(self):
         first_message = Message.objects.create(

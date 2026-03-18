@@ -248,6 +248,89 @@ class AttachmentMediaAccessTests(TestCase):
             thumbnail=SimpleUploadedFile("thumb.txt", b"thumb", content_type="text/plain"),
         )
 
+    def _attachment_with_custom_file(
+        self,
+        room: Room,
+        *,
+        author,
+        file_name: str,
+        file_content_type: str,
+        file_payload: bytes,
+        thumbnail_name: str | None = None,
+        thumbnail_content_type: str = "application/octet-stream",
+        thumbnail_payload: bytes = b"thumb",
+    ) -> MessageAttachment:
+        message = Message.objects.create(
+            username=author.username,
+            user=author,
+            room=room,
+            message_content="custom attachment message",
+        )
+        return MessageAttachment.objects.create(
+            message=message,
+            file=SimpleUploadedFile(file_name, file_payload, content_type=file_content_type),
+            original_filename=file_name,
+            content_type=file_content_type,
+            file_size=len(file_payload),
+            thumbnail=(
+                SimpleUploadedFile(
+                    thumbnail_name,
+                    thumbnail_payload,
+                    content_type=thumbnail_content_type,
+                )
+                if thumbnail_name
+                else None
+            ),
+        )
+
+    def _svg_attachment_for_room(self, room: Room, *, author) -> MessageAttachment:
+        message = Message.objects.create(
+            username=author.username,
+            user=author,
+            room=room,
+            message_content="svg attachment message",
+        )
+        svg_payload = (
+            b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'>"
+            b"<rect width='20' height='20' fill='red'/>"
+            b"</svg>"
+        )
+        return MessageAttachment.objects.create(
+            message=message,
+            file=SimpleUploadedFile("pizza.svg", svg_payload, content_type="text/plain"),
+            original_filename="pizza.svg",
+            content_type="text/plain",
+            file_size=len(svg_payload),
+        )
+
+    @staticmethod
+    def _png_payload() -> bytes:
+        image = Image.new("RGB", (2, 2), (255, 0, 0))
+        buff = io.BytesIO()
+        image.save(buff, format="PNG")
+        buff.seek(0)
+        return buff.read()
+
+    def _attachment_with_png_thumbnail_for_room(self, room: Room, *, author) -> MessageAttachment:
+        message = Message.objects.create(
+            username=author.username,
+            user=author,
+            room=room,
+            message_content="png thumbnail attachment message",
+        )
+        return MessageAttachment.objects.create(
+            message=message,
+            file=SimpleUploadedFile("doc.txt", b"hello", content_type="text/plain"),
+            original_filename="doc.txt",
+            content_type="text/plain",
+            file_size=5,
+            thumbnail=SimpleUploadedFile(
+                "thumb.png",
+                self._png_payload(),
+                content_type="application/octet-stream",
+            ),
+        )
+
     def test_attachment_media_view_returns_200_for_room_participant(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
         self.client.force_login(self.owner)
@@ -263,6 +346,17 @@ class AttachmentMediaAccessTests(TestCase):
         self.assertEqual(thumb_response.status_code, 200)
         file_response.close()
         thumb_response.close()
+
+    def test_attachment_media_view_returns_200_for_non_owner_direct_participant(self):
+        attachment = self._attachment_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.peer)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        response.close()
 
     def test_attachment_media_view_returns_404_for_invalid_access_context(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
@@ -316,7 +410,7 @@ class AttachmentMediaAccessTests(TestCase):
         )
         self.assertEqual(deleted_message.status_code, 404)
 
-    def test_public_room_attachment_access_uses_room_read_permissions(self):
+    def test_public_room_attachment_access_requires_active_membership(self):
         public_room = Room.objects.create(
             slug="media_room_public_03",
             name="media public",
@@ -326,8 +420,146 @@ class AttachmentMediaAccessTests(TestCase):
         attachment = self._attachment_for_room(public_room, author=self.owner)
         self.client.force_login(self.outsider)
 
-        response = self.client.get(
+        outsider_response = self.client.get(
             f"/api/auth/media/{attachment.file.name}?roomId={public_room.pk}",
         )
+        self.assertEqual(outsider_response.status_code, 404)
+
+        ensure_membership(public_room, self.outsider)
+        member_response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={public_room.pk}",
+        )
+        self.assertEqual(member_response.status_code, 200)
+        member_response.close()
+
+    def test_attachment_media_view_serves_svg_with_image_content_type(self):
+        attachment = self._svg_attachment_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
         response.close()
+
+    def test_attachment_media_view_serves_png_thumbnail_with_image_content_type(self):
+        attachment = self._attachment_with_png_thumbnail_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("Content-Type", "").split(";")[0],
+            "image/png",
+        )
+        response.close()
+
+    def test_attachment_media_view_serves_common_thumbnail_image_content_types(self):
+        self.client.force_login(self.owner)
+        test_cases = [
+            ("thumb.png", "application/octet-stream", b"\x89PNG\r\n\x1a\n", "image/png"),
+            ("thumb.jpg", "text/plain", b"\xff\xd8\xff\xe0", "image/jpeg"),
+            ("thumb.gif", "application/octet-stream", b"GIF89a", "image/gif"),
+        ]
+
+        for thumbnail_name, thumbnail_content_type, thumbnail_payload, expected_content_type in test_cases:
+            with self.subTest(thumbnail=thumbnail_name):
+                attachment = self._attachment_with_custom_file(
+                    self.direct_room,
+                    author=self.owner,
+                    file_name="doc.txt",
+                    file_content_type="text/plain",
+                    file_payload=b"hello",
+                    thumbnail_name=thumbnail_name,
+                    thumbnail_content_type=thumbnail_content_type,
+                    thumbnail_payload=thumbnail_payload,
+                )
+                response = self.client.get(
+                    f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.headers.get("Content-Type", "").split(";")[0],
+                    expected_content_type,
+                )
+                response.close()
+
+    def test_attachment_media_view_denies_unauthorized_for_any_attachment_type(self):
+        guest_client = Client()
+        outsider_client = Client()
+        outsider_client.force_login(self.outsider)
+        owner_client = Client()
+        owner_client.force_login(self.owner)
+
+        attachment_cases = [
+            {
+                "file_name": "report.pdf",
+                "file_content_type": "application/pdf",
+                "file_payload": b"%PDF-1.4",
+                "thumbnail_name": None,
+            },
+            {
+                "file_name": "voice.mp3",
+                "file_content_type": "audio/mpeg",
+                "file_payload": b"ID3",
+                "thumbnail_name": None,
+            },
+            {
+                "file_name": "clip.mp4",
+                "file_content_type": "video/mp4",
+                "file_payload": b"....ftyp",
+                "thumbnail_name": None,
+            },
+            {
+                "file_name": "image.png",
+                "file_content_type": "image/png",
+                "file_payload": b"\x89PNG\r\n\x1a\n",
+                "thumbnail_name": "thumb.png",
+            },
+            {
+                "file_name": "diagram.svg",
+                "file_content_type": "text/plain",
+                "file_payload": b"<svg xmlns='http://www.w3.org/2000/svg'></svg>",
+                "thumbnail_name": None,
+            },
+        ]
+
+        for case in attachment_cases:
+            with self.subTest(file=case["file_name"]):
+                attachment = self._attachment_with_custom_file(
+                    self.direct_room,
+                    author=self.owner,
+                    file_name=case["file_name"],
+                    file_content_type=case["file_content_type"],
+                    file_payload=case["file_payload"],
+                    thumbnail_name=case["thumbnail_name"],
+                )
+                target_paths = [attachment.file.name]
+                if attachment.thumbnail:
+                    target_paths.append(attachment.thumbnail.name)
+
+                for target_path in target_paths:
+                    with self.subTest(path=target_path):
+                        owner_response = owner_client.get(
+                            f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
+                        )
+                        self.assertEqual(owner_response.status_code, 200)
+                        owner_response.close()
+
+                        guest_response = guest_client.get(
+                            f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
+                        )
+                        self.assertEqual(guest_response.status_code, 404)
+
+                        outsider_response = outsider_client.get(
+                            f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
+                        )
+                        self.assertEqual(outsider_response.status_code, 404)

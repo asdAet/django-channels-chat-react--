@@ -42,6 +42,7 @@ from rooms.services import (
     direct_room_slug,
     ensure_direct_memberships,
     ensure_direct_room_with_retry,
+    ensure_membership,
     parse_pair_key_users,
 )
 from users.identity import (
@@ -750,6 +751,12 @@ def upload_attachments(request, room_id: int):
     if not has_permission(room, request.user, Perm.ATTACH_FILES):
         return Response({"error": "Отсутствует разрешение ATTACH_FILES"}, status=http_status.HTTP_403_FORBIDDEN)
 
+    # Keep attachment-media access consistent with room-scoped membership checks.
+    # For PUBLIC rooms, a user may have @everyone write permissions without an explicit Membership row.
+    # Persisting membership on successful upload marks the user as a concrete room participant.
+    if not Membership.objects.filter(room=room, user=request.user, is_banned=False).exists():
+        ensure_membership(room, request.user)
+
     def _error_response(
         message: str,
         *,
@@ -821,9 +828,23 @@ def upload_attachments(request, room_id: int):
         "audio/x-mpeg": "audio/mpeg",
     }
 
-    def _canonical_content_type(content_type: str) -> str:
+    def _canonical_content_type(content_type: str, *, file_name: str = "") -> str:
         normalized = content_type.strip().lower()
-        return alias_map.get(normalized, normalized)
+        aliased = alias_map.get(normalized, normalized)
+
+        lower_name = (file_name or "").strip().lower()
+        if lower_name.endswith((".svg", ".svgz")):
+            if aliased in {
+                "",
+                "application/octet-stream",
+                "text/plain",
+                "text/xml",
+                "application/xml",
+                "image/svg",
+            }:
+                return "image/svg+xml"
+
+        return aliased or "application/octet-stream"
 
     for f in files:
         if f.size > max_size:
@@ -838,15 +859,16 @@ def upload_attachments(request, room_id: int):
             )
 
     def _resolve_content_type(uploaded_file) -> str:
+        file_name = getattr(uploaded_file, "name", "") or ""
         raw_content_type = (getattr(uploaded_file, "content_type", "") or "").strip().lower()
-        guessed_content_type, _ = mimetypes.guess_type(getattr(uploaded_file, "name", "") or "")
+        guessed_content_type, _ = mimetypes.guess_type(file_name)
         if raw_content_type and raw_content_type != "application/octet-stream":
-            return _canonical_content_type(raw_content_type)
+            return _canonical_content_type(raw_content_type, file_name=file_name)
         if guessed_content_type:
-            return _canonical_content_type(guessed_content_type.lower())
+            return _canonical_content_type(guessed_content_type.lower(), file_name=file_name)
         if raw_content_type:
-            return _canonical_content_type(raw_content_type)
-        return "application/octet-stream"
+            return _canonical_content_type(raw_content_type, file_name=file_name)
+        return _canonical_content_type("application/octet-stream", file_name=file_name)
 
     resolved_files = []
     for f in files:

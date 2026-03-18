@@ -11,8 +11,7 @@ from django.conf import settings
 from django.contrib.auth import login, logout, password_validation
 from django.core.files.storage import default_storage
 from django.db import OperationalError, ProgrammingError
-from django.db.models import Q
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.utils import timezone
 from django.utils.html import strip_tags
@@ -20,8 +19,6 @@ from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ParseError, UnsupportedMediaType
 from rest_framework.response import Response
-from messages.models import MessageAttachment
-from roles.access import ensure_can_read_or_404
 from rooms.models import Room
 
 from chat_app_django.http_utils import error_response, parse_request_payload
@@ -39,6 +36,11 @@ from chat_app_django.security.rate_limit_config import auth_rate_limit_policy
 
 from users.application import auth_service
 from users.application.errors import IdentityServiceError
+from users.application.media_access_service import (
+    MediaAccessNotFoundError,
+    resolve_attachment_media_access,
+    resolve_media_content_type,
+)
 from users.forms import ProfileUpdateForm
 from users.identity import (
     ensure_profile,
@@ -57,11 +59,23 @@ from users.identity import (
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
 
 
-def _protected_media_response(normalized_path: str, cache_control: str) -> FileResponse | HttpResponse:
+def _protected_media_response(
+    normalized_path: str,
+    cache_control: str,
+    *,
+    preferred_content_type: str | None = None,
+) -> FileResponse | HttpResponse:
+    content_type = resolve_media_content_type(
+        normalized_path,
+        preferred_content_type=preferred_content_type,
+    )
     if settings.DEBUG:
-        response: FileResponse | HttpResponse = FileResponse(default_storage.open(normalized_path, "rb"))
+        response: FileResponse | HttpResponse = FileResponse(
+            default_storage.open(normalized_path, "rb"),
+            content_type=content_type,
+        )
     else:
-        response = HttpResponse()
+        response = HttpResponse(content_type=content_type)
         response["X-Accel-Redirect"] = f"/_protected_media/{quote(normalized_path, safe='/')}"
     response["Cache-Control"] = cache_control
     return response
@@ -287,41 +301,23 @@ def media_view(request, file_path: str):
         return Response({"error": "Не найдено"}, status=404)
 
     if is_chat_attachment_media_path(normalized_path):
-        room_id_raw = request.GET.get("roomId")
-        try:
-            room_id = int(room_id_raw)  
-        except (TypeError, ValueError):
-            return Response({"error": "Не найдено"}, status=404)
-        if room_id < 1:
-            return Response({"error": "Не найдено"}, status=404)
         if request.GET.get("exp") is not None or request.GET.get("sig") is not None:
             return Response({"error": "Не найдено"}, status=404)
 
-        user = getattr(request, "user", None)
-        if not user or not user.is_authenticated:
-            return Response({"error": "Не найдено"}, status=404)
-
-        room = Room.objects.filter(pk=room_id).first()
-        if room is None:
-            return Response({"error": "Не найдено"}, status=404)
         try:
-            ensure_can_read_or_404(room, user)
-        except Http404:
+            access = resolve_attachment_media_access(
+                normalized_path=normalized_path,
+                room_id_raw=request.GET.get("roomId"),
+                user=getattr(request, "user", None),
+            )
+        except MediaAccessNotFoundError:
             return Response({"error": "Не найдено"}, status=404)
 
-        belongs_to_room = MessageAttachment.objects.filter(
-            message__room_id=room_id,
-            message__is_deleted=False,
-        ).filter(
-            Q(file=normalized_path) | Q(thumbnail=normalized_path)
-        ).exists()
-        if not belongs_to_room:
-            return Response({"error": "Не найдено"}, status=404)
-
-        if not default_storage.exists(normalized_path):
-            return Response({"error": "Не найдено"}, status=404)
-
-        return _protected_media_response(normalized_path, cache_control="private, no-store")
+        return _protected_media_response(
+            normalized_path,
+            cache_control="private, no-store",
+            preferred_content_type=access.preferred_content_type,
+        )
 
     exp_raw = request.GET.get("exp")
     signature = request.GET.get("sig")

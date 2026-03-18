@@ -30,6 +30,10 @@ import {
 import { useRoomPermissions } from "../../hooks/useRoomPermissions";
 import type { AvatarCrop } from "../../shared/api/users";
 import { useInfoPanel } from "../../shared/layout/useInfoPanel";
+import {
+  isImageAttachment,
+  resolveImagePreviewUrl,
+} from "../../shared/lib/attachmentMedia";
 import { formatPublicRef, isHandleRef } from "../../shared/lib/publicRef";
 import { Avatar, AvatarCropModal, Modal, Spinner } from "../../shared/ui";
 import styles from "../../styles/groups/GroupInfoPanel.module.css";
@@ -93,8 +97,6 @@ const toggleBit = (current: number[], bit: number): number[] =>
     : [...current, bit];
 const bitsFromMask = (mask: number): number[] =>
   flagsFromMask(mask, PERMISSION_BITS);
-const isImageAttachment = (contentType: string) =>
-  contentType.startsWith("image/");
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -1140,35 +1142,46 @@ export function GroupInfoPanel({ slug }: Props) {
           )}
           {!mediaLoading && mediaItems.length > 0 && (
             <div className={styles.mediaGrid}>
-              {mediaItems.map((item) => (
-                <a
-                  key={item.id}
-                  href={item.url ?? undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.mediaCard}
-                >
-                  {isImageAttachment(item.contentType) &&
-                  (item.thumbnailUrl || item.url) ? (
-                    <img
-                      src={item.thumbnailUrl ?? (item.url as string)}
-                      alt={item.originalFilename}
-                      className={styles.mediaThumb}
-                    />
-                  ) : (
-                    <div className={styles.fileThumb}>FILE</div>
-                  )}
-                  <div className={styles.mediaMeta}>
-                    <span className={styles.mediaName}>
-                      {item.originalFilename}
-                    </span>
-                    <span className={styles.mediaInfo}>
-                      {formatFileSize(item.fileSize)} •{" "}
-                      {formatDateTime(item.createdAt)}
-                    </span>
-                  </div>
-                </a>
-              ))}
+              {mediaItems.map((item) => {
+                const imagePreviewUrl = resolveImagePreviewUrl({
+                  url: item.url,
+                  thumbnailUrl: item.thumbnailUrl,
+                  contentType: item.contentType,
+                  fileName: item.originalFilename,
+                });
+                const canRenderImage =
+                  isImageAttachment(item.contentType, item.originalFilename) &&
+                  Boolean(imagePreviewUrl);
+
+                return (
+                  <a
+                    key={item.id}
+                    href={item.url ?? undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.mediaCard}
+                  >
+                    {canRenderImage ? (
+                      <img
+                        src={imagePreviewUrl ?? undefined}
+                        alt={item.originalFilename}
+                        className={styles.mediaThumb}
+                      />
+                    ) : (
+                      <div className={styles.fileThumb}>FILE</div>
+                    )}
+                    <div className={styles.mediaMeta}>
+                      <span className={styles.mediaName}>
+                        {item.originalFilename}
+                      </span>
+                      <span className={styles.mediaInfo}>
+                        {formatFileSize(item.fileSize)} •{" "}
+                        {formatDateTime(item.createdAt)}
+                      </span>
+                    </div>
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>

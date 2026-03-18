@@ -12,6 +12,10 @@ import type {
   ReactionSummary,
   ReplyTo,
 } from "../../entities/message/types";
+import {
+  isImageAttachment,
+  resolveImagePreviewUrl,
+} from "../../shared/lib/attachmentMedia";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
 import type { ContextMenuItem } from "../../shared/ui";
@@ -55,7 +59,6 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const isImageType = (ct: string) => ct.startsWith("image/");
 const isVideoType = (ct: string) => ct.startsWith("video/");
 const isAudioType = (ct: string) => ct.startsWith("audio/");
 const normalizeActorRef = (value: string) =>
@@ -516,11 +519,20 @@ export function MessageBubble({
             {!isDeleted && message.attachments.length > 0 && (
               <div className={styles.attachments}>
                 {message.attachments.map((att) => {
-                  if (isImageType(att.contentType) && att.url) {
+                  const imageSrc = resolveImagePreviewUrl({
+                    url: att.url,
+                    thumbnailUrl: att.thumbnailUrl,
+                    contentType: att.contentType,
+                    fileName: att.originalFilename,
+                  });
+                  if (
+                    isImageAttachment(att.contentType, att.originalFilename) &&
+                    imageSrc
+                  ) {
                     return (
                       <img
                         key={att.id}
-                        src={att.thumbnailUrl ?? att.url}
+                        src={imageSrc}
                         alt={att.originalFilename}
                         className={styles.attachImage}
                         loading="lazy"

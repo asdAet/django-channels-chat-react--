@@ -3,6 +3,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { chatController } from "../../controllers/ChatController";
 import type { RoomAttachmentItem } from "../../domain/interfaces/IApiService";
 import type { RoomDetails } from "../../entities/room/types";
+import {
+  isImageAttachment,
+  resolveImagePreviewUrl,
+} from "../../shared/lib/attachmentMedia";
 import { formatLastSeen, formatTimestamp } from "../../shared/lib/format";
 import { AudioAttachmentPlayer, Avatar, Spinner } from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
@@ -13,7 +17,6 @@ type Props = {
 
 type Tab = "profile" | "attachments";
 
-const isImage = (contentType: string) => contentType.startsWith("image/");
 const isVideo = (contentType: string) => contentType.startsWith("video/");
 const isAudio = (contentType: string) => contentType.startsWith("audio/");
 
@@ -24,11 +27,19 @@ const formatFileSize = (bytes: number) => {
 };
 
 function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
+  const isImage = isImageAttachment(item.contentType, item.originalFilename);
+  const imageSrc = resolveImagePreviewUrl({
+    url: item.url,
+    thumbnailUrl: item.thumbnailUrl,
+    contentType: item.contentType,
+    fileName: item.originalFilename,
+  });
+
   const preview = (
     <>
-      {isImage(item.contentType) && item.url && (
+      {isImage && imageSrc && (
         <img
-          src={item.thumbnailUrl ?? item.url}
+          src={imageSrc}
           alt={item.originalFilename}
           className={styles.media}
         />
@@ -55,7 +66,7 @@ function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
         </div>
       )}
 
-      {!isImage(item.contentType) &&
+      {!isImage &&
         !isVideo(item.contentType) &&
         !isAudio(item.contentType) && (
           <div className={styles.fileCard}>
