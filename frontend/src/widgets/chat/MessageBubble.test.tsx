@@ -307,6 +307,105 @@ describe("MessageBubble", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens image preview modal with metadata", () => {
+    const message: Message = {
+      ...baseMessage,
+      attachments: [createImageAttachment(90, "preview.png")],
+    };
+
+    render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /открыть изображение preview\.png/i }),
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Просмотр изображения" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("preview.png")).toBeInTheDocument();
+    expect(screen.getByText(/MIME: image\/png/i)).toBeInTheDocument();
+    expect(screen.getByText(/png \| 1\.0 KB/i)).toBeInTheDocument();
+    expect(screen.getByText(/Отправлено:/i)).toBeInTheDocument();
+  });
+
+  it("opens video preview modal with metadata", () => {
+    const message: Message = {
+      ...baseMessage,
+      attachments: [
+        {
+          id: 91,
+          originalFilename: "video.mp4",
+          contentType: "video/mp4",
+          fileSize: 5 * 1024 * 1024,
+          url: "/media/video.mp4",
+          thumbnailUrl: null,
+          width: 1920,
+          height: 1080,
+        },
+      ],
+    };
+
+    render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Открыть видео video\.mp4/i }),
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Просмотр видео" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("video.mp4")).toBeInTheDocument();
+    expect(screen.getByText(/MIME: video\/mp4/i)).toBeInTheDocument();
+    expect(screen.getByText(/Размеры: 1920x1080/i)).toBeInTheDocument();
+  });
+
+  it("treats known video extensions as video preview even with generic content type", () => {
+    const message: Message = {
+      ...baseMessage,
+      attachments: [
+        {
+          id: 92,
+          originalFilename: "clip.mkv",
+          contentType: "application/octet-stream",
+          fileSize: 1024 * 1024,
+          url: "/media/clip.mkv",
+          thumbnailUrl: null,
+          width: null,
+          height: null,
+        },
+      ],
+    };
+
+    render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Открыть видео clip\.mkv/i }),
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Просмотр видео" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("clip.mkv")).toBeInTheDocument();
+  });
+
   it("opens full own-message action menu on tap for touch devices", () => {
     const restoreMatchMedia = installTouchMatchMedia();
     try {

@@ -160,6 +160,7 @@
 .content {
   margin: 0;
   color: var(--tg-text-primary, #fff);
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
   font-size: 14px;
@@ -345,13 +346,59 @@
   max-height: min(56vh, 420px);
 }
 
-.attachVideo {
-  width: 100%;
-  max-width: min(100%, 360px);
-  max-height: 260px;
-  border-radius: 8px;
+.videoPreviewTile {
+  position: relative;
+  width: min(74vw, 360px);
+  max-width: min(74vw, 360px);
+  border: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
   background: #000;
+  line-height: 0;
+}
+
+.videoPreviewTile:focus-visible {
+  outline: 2px solid var(--tg-primary, #2fb3a3);
+  outline-offset: 1px;
+}
+
+.attachVideoPreview {
+  width: 100%;
   display: block;
+  max-height: 260px;
+  object-fit: cover;
+  filter: brightness(0.86);
+}
+
+.videoPreviewPlayIcon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.videoPreviewDuration {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
 }
 
 .attachFile {
@@ -537,8 +584,12 @@
     grid-auto-rows: minmax(74px, 1fr);
   }
 
-  .attachVideo {
-    max-width: min(100%, 300px);
+  .videoPreviewTile {
+    width: min(82vw, 300px);
+    max-width: min(82vw, 300px);
+  }
+
+  .attachVideoPreview {
     max-height: 220px;
   }
 

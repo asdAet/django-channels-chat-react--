@@ -1196,6 +1196,14 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const scrollToBottom = useCallback(() => {
     const list = listRef.current;
     if (!list) return;
+
+    const snapToBottom = () => {
+      const nextList = listRef.current;
+      if (!nextList) return;
+      nextList.scrollTop = nextList.scrollHeight;
+    };
+
+    beginProgrammaticScroll();
     if (typeof list.scrollTo === "function") {
       list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
     } else {
@@ -1204,8 +1212,17 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     isAtBottomRef.current = true;
     setShowScrollFab(false);
     setNewMsgCount(0);
-    window.setTimeout(() => scheduleViewportReadSync(), 220);
-  }, [scheduleViewportReadSync]);
+
+    requestAnimationFrame(() => {
+      snapToBottom();
+      requestAnimationFrame(() => {
+        snapToBottom();
+        endProgrammaticScroll(() => {
+          scheduleViewportReadSync();
+        }, 120);
+      });
+    });
+  }, [beginProgrammaticScroll, endProgrammaticScroll, scheduleViewportReadSync]);
 
   useEffect(() => {
     const previousSnapshot = lastMessageSnapshotRef.current;

@@ -134,6 +134,24 @@ export function MessageInput({
   onCancelUpload,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * Автоматически подстраивает высоту поля ввода до 3x от базовой высоты.
+   */
+  const resizeTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    const computed = window.getComputedStyle(textarea);
+    const minHeight = Number.parseFloat(computed.minHeight) || 44;
+    const maxHeight = minHeight * 3;
+    const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, []);
 
   const handleChange = useCallback(
     (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -142,6 +160,10 @@ export function MessageInput({
     },
     [onDraftChange, onTyping],
   );
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [draft, resizeTextarea]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -347,6 +369,7 @@ export function MessageInput({
         )}
 
         <textarea
+          ref={textareaRef}
           className={styles.textArea}
           data-testid="chat-message-input"
           value={draft}

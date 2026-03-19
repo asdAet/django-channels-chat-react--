@@ -2,12 +2,12 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   animation: lbEnter 200ms ease;
-  cursor: zoom-out;
 }
 
 .exiting {
@@ -15,46 +15,166 @@
 }
 
 @keyframes lbEnter {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes lbExit {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
-.image {
-  max-width: 92vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 8px;
-  cursor: default;
-  animation: lbImgEnter 200ms ease;
+.frame {
+  position: relative;
+  width: clamp(320px, 38vw, 980px);
+  height: clamp(220px, 38vh, 620px);
+  overflow: visible;
+  border-radius: 0;
+  transition:
+    width 180ms ease,
+    height 180ms ease;
 }
 
-@keyframes lbImgEnter {
-  from { transform: scale(0.92); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+.frame:fullscreen {
+  width: 100vw;
+  height: 100vh;
 }
 
-.closeBtn {
+.frame:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.actions {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+  z-index: 4;
+}
+
+.actionBtn {
   width: 40px;
   height: 40px;
   border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.52);
   color: #fff;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease;
+}
+
+.actionBtn:hover {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.navBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 46px;
+  height: 72px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.32);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 44px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.navBtn:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.navBtnPrev {
+  left: max(8px, env(safe-area-inset-left));
+}
+
+.navBtnNext {
+  right: max(8px, env(safe-area-inset-right));
+}
+
+.mediaViewport {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 150ms ease;
+  overflow: visible;
+  touch-action: none;
 }
 
-.closeBtn:hover {
-  background: rgba(0, 0, 0, 0.7);
+.mediaTransform {
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.mediaTransformZoomed {
+  cursor: grab;
+}
+
+.mediaTransformDragging {
+  cursor: grabbing;
+}
+
+.media {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  background: transparent;
+}
+
+.metaText {
+  position: absolute;
+  left: max(5px, env(safe-area-inset-left));
+  bottom: max(5px, env(safe-area-inset-bottom));
+  right: max(5px, env(safe-area-inset-right));
+  max-width: min(72vw, 460px);
+  z-index: 4;
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 14px;
+  line-height: 1.35;
+  word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .frame {
+    width: min(92vw, 520px);
+    height: min(56vh, 420px);
+  }
+
+  .navBtn {
+    width: 38px;
+    height: 62px;
+    font-size: 34px;
+  }
+
+  .metaText {
+    font-size: 12px;
+    max-width: calc(
+      100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 10px
+    );
+  }
 }

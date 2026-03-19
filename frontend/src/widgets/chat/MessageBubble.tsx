@@ -4,6 +4,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
   useCallback,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -14,6 +15,7 @@ import type {
   ReplyTo,
 } from "../../entities/message/types";
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
+import { isVideoAttachment } from "../../shared/lib/attachmentMedia";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
 import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
@@ -33,7 +35,7 @@ import {
 } from "./lib/attachmentLayout";
 
 /**
- * Описывает входные props компонента `Props`.
+ * РћРїРёСЃС‹РІР°РµС‚ РІС…РѕРґРЅС‹Рµ props РєРѕРјРїРѕРЅРµРЅС‚Р° `Props`.
  */
 type Props = {
   message: Message;
@@ -51,7 +53,35 @@ type Props = {
 };
 
 /**
- * Константа `QUICK_REACTIONS` хранит используемое в модуле значение.
+ * РћРїСЂРµРґРµР»СЏРµС‚ С‚РёРї РјРµРґРёР°, РєРѕС‚РѕСЂРѕРµ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ РІ РјРѕРґР°Р»СЊРЅРѕРј РїСЂРѕСЃРјРѕС‚СЂС‰РёРєРµ.
+ */
+type LightboxMediaKind = "image" | "video";
+
+/**
+ * РҐСЂР°РЅРёС‚ РјРµС‚Р°РґР°РЅРЅС‹Рµ РІР»РѕР¶РµРЅРёСЏ РґР»СЏ РїРѕРґРїРёСЃРё РІ РјРѕРґР°Р»СЊРЅРѕРј РїСЂРѕСЃРјРѕС‚СЂС‰РёРєРµ.
+ */
+type LightboxMediaMetadata = {
+  attachmentId: number;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  sentAt: string;
+  width: number | null;
+  height: number | null;
+};
+
+/**
+ * РћРїРёСЃС‹РІР°РµС‚ СЃРѕСЃС‚РѕСЏРЅРёРµ Р°РєС‚РёРІРЅРѕРіРѕ РїСЂРµРґРїСЂРѕСЃРјРѕС‚СЂР° РІР»РѕР¶РµРЅРёСЏ.
+ */
+type LightboxMediaItem = {
+  src: string;
+  kind: LightboxMediaKind;
+  alt?: string;
+  metadata: LightboxMediaMetadata;
+};
+
+/**
+ * РљРѕРЅСЃС‚Р°РЅС‚Р° `QUICK_REACTIONS` С…СЂР°РЅРёС‚ РёСЃРїРѕР»СЊР·СѓРµРјРѕРµ РІ РјРѕРґСѓР»Рµ Р·РЅР°С‡РµРЅРёРµ.
  */
 const QUICK_REACTIONS = [
   "\u{1F44D}",
@@ -64,9 +94,9 @@ const QUICK_REACTIONS = [
   "\u{1F622}",
 ];
 /**
- * Форматирует размер файла для отображения рядом с вложением.
- * @param bytes Размер файла в байтах.
- * @returns Строка в отформатированном виде.
+ * Р¤РѕСЂРјР°С‚РёСЂСѓРµС‚ СЂР°Р·РјРµСЂ С„Р°Р№Р»Р° РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ СЂСЏРґРѕРј СЃ РІР»РѕР¶РµРЅРёРµРј.
+ * @param bytes Р Р°Р·РјРµСЂ С„Р°Р№Р»Р° РІ Р±Р°Р№С‚Р°С….
+ * @returns РЎС‚СЂРѕРєР° РІ РѕС‚С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРЅРѕРј РІРёРґРµ.
  */
 
 const formatFileSize = (bytes: number) => {
@@ -75,24 +105,36 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const formatMediaDuration = (totalSeconds: number): string => {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainSeconds = seconds % 60;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainSeconds).padStart(2, "0")}`;
+  }
+  return `${minutes}:${String(remainSeconds).padStart(2, "0")}`;
+};
+
 
 /**
- * Проверяет, относится ли MIME-тип к видео.
- * @param ct Аргумент `ct` текущего вызова.
- * @returns Логический флаг результата проверки.
+ * РџСЂРѕРІРµСЂСЏРµС‚, РѕС‚РЅРѕСЃРёС‚СЃСЏ Р»Рё MIME-С‚РёРї Рє РІРёРґРµРѕ.
+ * @param ct РђСЂРіСѓРјРµРЅС‚ `ct` С‚РµРєСѓС‰РµРіРѕ РІС‹Р·РѕРІР°.
+ * @returns Р›РѕРіРёС‡РµСЃРєРёР№ С„Р»Р°Рі СЂРµР·СѓР»СЊС‚Р°С‚Р° РїСЂРѕРІРµСЂРєРё.
  */
 
-const isVideoType = (ct: string) => ct.startsWith("video/");
+const isVideoType = (contentType: string, fileName: string) =>
+  isVideoAttachment(contentType, fileName);
 /**
- * Проверяет, относится ли MIME-тип к аудио.
- * @param ct Аргумент `ct` текущего вызова.
- * @returns Логический флаг результата проверки.
+ * РџСЂРѕРІРµСЂСЏРµС‚, РѕС‚РЅРѕСЃРёС‚СЃСЏ Р»Рё MIME-С‚РёРї Рє Р°СѓРґРёРѕ.
+ * @param ct РђСЂРіСѓРјРµРЅС‚ `ct` С‚РµРєСѓС‰РµРіРѕ РІС‹Р·РѕРІР°.
+ * @returns Р›РѕРіРёС‡РµСЃРєРёР№ С„Р»Р°Рі СЂРµР·СѓР»СЊС‚Р°С‚Р° РїСЂРѕРІРµСЂРєРё.
  */
 
 const isAudioType = (ct: string) => ct.startsWith("audio/");
 /**
- * Нормализует actor ref.
- * @param value Входное значение для преобразования.
+ * РќРѕСЂРјР°Р»РёР·СѓРµС‚ actor ref.
+ * @param value Р’С…РѕРґРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РґР»СЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ.
  */
 
 const normalizeActorRef = (value: string) =>
@@ -109,7 +151,7 @@ const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
 
 /**
- * Проверяет условие is touch like device.
+ * РџСЂРѕРІРµСЂСЏРµС‚ СѓСЃР»РѕРІРёРµ is touch like device.
  */
 
 const isTouchLikeDevice = () => {
@@ -120,9 +162,9 @@ const isTouchLikeDevice = () => {
   return window.innerWidth <= 768;
 };
 /**
- * Проверяет, что тап был по интерактивному элементу и меню открывать не нужно.
- * @param target Аргумент `target` текущего вызова.
- * @returns Логический флаг, нужно ли выполнять действие.
+ * РџСЂРѕРІРµСЂСЏРµС‚, С‡С‚Рѕ С‚Р°Рї Р±С‹Р» РїРѕ РёРЅС‚РµСЂР°РєС‚РёРІРЅРѕРјСѓ СЌР»РµРјРµРЅС‚Сѓ Рё РјРµРЅСЋ РѕС‚РєСЂС‹РІР°С‚СЊ РЅРµ РЅСѓР¶РЅРѕ.
+ * @param target РђСЂРіСѓРјРµРЅС‚ `target` С‚РµРєСѓС‰РµРіРѕ РІС‹Р·РѕРІР°.
+ * @returns Р›РѕРіРёС‡РµСЃРєРёР№ С„Р»Р°Рі, РЅСѓР¶РЅРѕ Р»Рё РІС‹РїРѕР»РЅСЏС‚СЊ РґРµР№СЃС‚РІРёРµ.
  */
 
 const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {
@@ -130,9 +172,9 @@ const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {
   return Boolean(target.closest(MOBILE_MENU_IGNORE_SELECTOR));
 };
 /**
- * Компонент ReplyQuote рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * РљРѕРјРїРѕРЅРµРЅС‚ ReplyQuote СЂРµРЅРґРµСЂРёС‚ UI С‚РµРєСѓС‰РµРіРѕ СЂР°Р·РґРµР»Р° Рё СЃРІСЏР·С‹РІР°РµС‚ РґРµР№СЃС‚РІРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ РѕР±СЂР°Р±РѕС‚С‡РёРєР°РјРё.
  *
- * @param props Свойства компонента.
+ * @param props РЎРІРѕР№СЃС‚РІР° РєРѕРјРїРѕРЅРµРЅС‚Р°.
  */
 function ReplyQuote({
   replyTo,
@@ -165,9 +207,9 @@ function ReplyQuote({
   );
 }
 /**
- * Компонент ReactionChip рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * РљРѕРјРїРѕРЅРµРЅС‚ ReactionChip СЂРµРЅРґРµСЂРёС‚ UI С‚РµРєСѓС‰РµРіРѕ СЂР°Р·РґРµР»Р° Рё СЃРІСЏР·С‹РІР°РµС‚ РґРµР№СЃС‚РІРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ РѕР±СЂР°Р±РѕС‚С‡РёРєР°РјРё.
  *
- * @param props Свойства компонента.
+ * @param props РЎРІРѕР№СЃС‚РІР° РєРѕРјРїРѕРЅРµРЅС‚Р°.
  */
 function ReactionChip({
   reaction,
@@ -191,7 +233,7 @@ function ReactionChip({
   );
 }
 /**
- * React-компонент CheckMark отвечает за отрисовку и обработку UI-сценария.
+ * React-РєРѕРјРїРѕРЅРµРЅС‚ CheckMark РѕС‚РІРµС‡Р°РµС‚ Р·Р° РѕС‚СЂРёСЃРѕРІРєСѓ Рё РѕР±СЂР°Р±РѕС‚РєСѓ UI-СЃС†РµРЅР°СЂРёСЏ.
  */
 function CheckMark({ isRead }: { isRead: boolean }) {
   return (
@@ -224,9 +266,9 @@ function CheckMark({ isRead }: { isRead: boolean }) {
   );
 }
 /**
- * Компонент EmojiPicker рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * РљРѕРјРїРѕРЅРµРЅС‚ EmojiPicker СЂРµРЅРґРµСЂРёС‚ UI С‚РµРєСѓС‰РµРіРѕ СЂР°Р·РґРµР»Р° Рё СЃРІСЏР·С‹РІР°РµС‚ РґРµР№СЃС‚РІРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ РѕР±СЂР°Р±РѕС‚С‡РёРєР°РјРё.
  *
- * @param props Свойства компонента.
+ * @param props РЎРІРѕР№СЃС‚РІР° РєРѕРјРїРѕРЅРµРЅС‚Р°.
  */
 function EmojiPicker({
   onPick,
@@ -264,9 +306,9 @@ function EmojiPicker({
   );
 }
 /**
- * Компонент MessageBubble рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * РљРѕРјРїРѕРЅРµРЅС‚ MessageBubble СЂРµРЅРґРµСЂРёС‚ UI С‚РµРєСѓС‰РµРіРѕ СЂР°Р·РґРµР»Р° Рё СЃРІСЏР·С‹РІР°РµС‚ РґРµР№СЃС‚РІРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ РѕР±СЂР°Р±РѕС‚С‡РёРєР°РјРё.
  *
- * @param props Свойства компонента.
+ * @param props РЎРІРѕР№СЃС‚РІР° РєРѕРјРїРѕРЅРµРЅС‚Р°.
  */
 export function MessageBubble({
   message,
@@ -287,7 +329,12 @@ export function MessageBubble({
     y: number;
   } | null>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxOpenIndex, setLightboxOpenIndex] = useState<number | null>(
+    null,
+  );
+  const [videoDurations, setVideoDurations] = useState<Record<number, string>>(
+    {},
+  );
   const lastTouchTapTsRef = useRef<number>(0);
   const lastRightMouseDownTsRef = useRef<number>(0);
 
@@ -316,6 +363,50 @@ export function MessageBubble({
   const handleReact = useCallback(
     (emoji: string) => onReact?.(message.id, emoji),
     [message.id, onReact],
+  );
+
+  /**
+   * РЎРѕР±РёСЂР°РµС‚ РјРµС‚Р°РґР°РЅРЅС‹Рµ РІР»РѕР¶РµРЅРёСЏ РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РІ РїСЂРѕСЃРјРѕС‚СЂС‰РёРєРµ.
+   *
+   * @param attachment Р’Р»РѕР¶РµРЅРёРµ РёР· СЃРѕРѕР±С‰РµРЅРёСЏ.
+   * @returns РњРµС‚Р°РґР°РЅРЅС‹Рµ РґР»СЏ РїРѕРґРїРёСЃРё РїРѕРґ РјРµРґРёР°.
+   */
+  const buildLightboxMetadata = useCallback(
+    (attachment: Message["attachments"][number]): LightboxMediaMetadata => ({
+      attachmentId: attachment.id,
+      fileName: attachment.originalFilename,
+      contentType: attachment.contentType,
+      fileSize: attachment.fileSize,
+      sentAt: message.createdAt,
+      width: attachment.width,
+      height: attachment.height,
+    }),
+    [message.createdAt],
+  );
+
+  /**
+   * РћС‚РєСЂС‹РІР°РµС‚ РјРѕРґР°Р»СЊРЅС‹Р№ РїСЂРѕСЃРјРѕС‚СЂС‰РёРє РІС‹Р±СЂР°РЅРЅРѕРіРѕ РјРµРґРёР°-С„Р°Р№Р»Р°.
+   *
+   * @param attachment Р’Р»РѕР¶РµРЅРёРµ, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ РїСЂРѕСЃРјРѕС‚СЂ.
+   * @param kind РўРёРї РјРµРґРёР° РґР»СЏ СЂРµР¶РёРјР° РїСЂРѕСЃРјРѕС‚СЂР°.
+   * @param src URL РѕСЂРёРіРёРЅР°Р»СЊРЅРѕРіРѕ С„Р°Р№Р»Р°.
+   * @param alt РђР»СЊС‚РµСЂРЅР°С‚РёРІРЅС‹Р№ С‚РµРєСЃС‚ РґР»СЏ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ.
+   */
+  const rememberVideoDuration = useCallback(
+    (attachmentId: number, durationSeconds: number) => {
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return;
+      const nextDuration = formatMediaDuration(durationSeconds);
+      setVideoDurations((prev) => {
+        if (prev[attachmentId] === nextDuration) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [attachmentId]: nextDuration,
+        };
+      });
+    },
+    [],
   );
 
   const handleContextMenu = useCallback(
@@ -528,6 +619,40 @@ export function MessageBubble({
     attachmentBuckets.visibleImages.length,
   );
   const mediaGridVariantClass = MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
+  const lightboxMediaItems = useMemo<LightboxMediaItem[]>(() => {
+    return attachmentItems.flatMap((item) => {
+      const { attachment } = item;
+      if (!attachment.url) {
+        return [];
+      }
+      const isVideo = isVideoType(
+        attachment.contentType,
+        attachment.originalFilename,
+      );
+      if (!isVideo && !item.isImage) {
+        return [];
+      }
+      return [
+        {
+          src: attachment.url,
+          kind: isVideo ? "video" : "image",
+          alt: attachment.originalFilename,
+          metadata: buildLightboxMetadata(attachment),
+        },
+      ];
+    });
+  }, [attachmentItems, buildLightboxMetadata]);
+
+  const openLightboxByAttachmentId = useCallback(
+    (attachmentId: number) => {
+      const targetIndex = lightboxMediaItems.findIndex(
+        (item) => item.metadata.attachmentId === attachmentId,
+      );
+      if (targetIndex < 0) return;
+      setLightboxOpenIndex(targetIndex);
+    },
+    [lightboxMediaItems],
+  );
 
   return (
     <>
@@ -634,7 +759,7 @@ export function MessageBubble({
                                 : undefined
                             }
                             onClick={() =>
-                              attachment.url && setLightboxSrc(attachment.url)
+                              openLightboxByAttachmentId(attachment.id)
                             }
                             aria-label={`\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435 ${attachment.originalFilename}`}
                           >
@@ -664,17 +789,48 @@ export function MessageBubble({
                 {attachmentBuckets.others.length > 0 && (
                   <div className={styles.fileAttachments}>
                     {attachmentBuckets.others.map(({ attachment: att }) => {
-                      if (isVideoType(att.contentType) && att.url) {
+                      if (isVideoType(att.contentType, att.originalFilename) && att.url) {
                         return (
-                          <video
+                          <button
                             key={att.id}
-                            src={att.url}
-                            controls
-                            preload="metadata"
-                            className={styles.attachVideo}
+                            type="button"
+                            className={styles.videoPreviewTile}
+                            data-message-menu-ignore="true"
+                            onClick={() => openLightboxByAttachmentId(att.id)}
+                            aria-label={`Открыть видео ${att.originalFilename}`}
                           >
-                            <track kind="captions" />
-                          </video>
+                            <video
+                              src={att.url}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              poster={att.thumbnailUrl ?? undefined}
+                              className={styles.attachVideoPreview}
+                              onLoadedMetadata={(event) =>
+                                rememberVideoDuration(
+                                  att.id,
+                                  event.currentTarget.duration,
+                                )
+                              }
+                            >
+                              <track kind="captions" />
+                            </video>
+                            <span className={styles.videoPreviewPlayIcon}>
+                              <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                              >
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </span>
+                            {videoDurations[att.id] && (
+                              <span className={styles.videoPreviewDuration}>
+                                {videoDurations[att.id]}
+                              </span>
+                            )}
+                          </button>
                         );
                       }
                       if (isAudioType(att.contentType) && att.url) {
@@ -810,8 +966,12 @@ export function MessageBubble({
           onClose={() => setEmojiPickerOpen(false)}
         />
       )}
-      {lightboxSrc && (
-        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      {lightboxOpenIndex !== null && lightboxMediaItems.length > 0 && (
+        <ImageLightbox
+          mediaItems={lightboxMediaItems}
+          initialIndex={lightboxOpenIndex}
+          onClose={() => setLightboxOpenIndex(null)}
+        />
       )}
     </>
   );
