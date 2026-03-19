@@ -51,10 +51,10 @@ def _validated_data(serializer: Any) -> dict[str, Any]:
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
     if raw_value is None:
-        raise ValueError(f"РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РїР°СЂР°РјРµС‚СЂ '{param_name}': РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ С†РµР»РѕРµ С‡РёСЃР»Рѕ")
+        raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
     candidate = raw_value.strip()
     if not candidate:
-        raise ValueError(f"РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РїР°СЂР°РјРµС‚СЂ '{param_name}': РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ С†РµР»РѕРµ С‡РёСЃР»Рѕ")
+        raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
     try:
         parsed = int(candidate)
     except (TypeError, ValueError):

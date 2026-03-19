@@ -490,6 +490,27 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "too_many_files")
 
+    @override_settings(CHAT_ATTACHMENT_MAX_PER_MESSAGE=1)
+    def test_attachment_upload_allows_too_many_files_for_superuser(self):
+        superuser = User.objects.create_superuser(
+            username="attach_count_superuser",
+            email="attach_count_superuser@example.com",
+            password="pass12345",
+        )
+        set_user_public_handle(superuser, "attach_count_superuser")
+        ensure_user_identity_core(superuser)
+
+        self.client.force_login(superuser)
+        file_one = SimpleUploadedFile("one.txt", b"1", content_type="text/plain")
+        file_two = SimpleUploadedFile("two.txt", b"2", content_type="text/plain")
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [file_one, file_two]},
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(len(payload.get("attachments", [])), 2)
+
     def test_attachment_upload_returns_code_for_invalid_reply(self):
         self.client.force_login(self.owner)
         upload_file = SimpleUploadedFile("reply.txt", b"file", content_type="text/plain")
@@ -515,6 +536,32 @@ class ChatMessageFeatureApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "file_too_large")
+
+    @override_settings(CHAT_ATTACHMENT_MAX_SIZE_MB=1)
+    def test_attachment_upload_allows_oversized_file_for_superuser(self):
+        superuser = User.objects.create_superuser(
+            username="attach_size_superuser",
+            email="attach_size_superuser@example.com",
+            password="pass12345",
+        )
+        set_user_public_handle(superuser, "attach_size_superuser")
+        ensure_user_identity_core(superuser)
+
+        self.client.force_login(superuser)
+        large_payload = b"x" * (2 * 1024 * 1024)
+        upload_file = SimpleUploadedFile(
+            "large-superuser.txt",
+            large_payload,
+            content_type="text/plain",
+        )
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(len(payload.get("attachments", [])), 1)
+        self.assertEqual(payload["attachments"][0]["originalFilename"], "large-superuser.txt")
 
     @override_settings(
         CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,

@@ -112,6 +112,7 @@ def _serialize_user(request, user):
         "handle": handle,
         "publicId": public_id,
         "publicRef": user_public_ref(user),
+        "isSuperuser": bool(getattr(user, "is_superuser", False)),
         "email": _resolve_email(user),
         "profileImage": profile_image,
         "avatarCrop": serialize_avatar_crop(profile),

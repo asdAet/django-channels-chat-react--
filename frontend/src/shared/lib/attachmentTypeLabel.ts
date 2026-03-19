@@ -7,6 +7,11 @@ const MIME_TYPE_LABEL_ALIASES: Record<string, string> = {
   "application/java-archive": "jar",
 };
 
+/**
+ * Извлекает расширение файла из имени.
+ * @param fileName Имя файла или путь.
+ * @returns Нормализованное расширение без точки или пустую строку.
+ */
 const extractExtension = (fileName: string | null | undefined): string => {
   const normalized = (fileName ?? "").trim().toLowerCase();
   if (!normalized) return "";
@@ -19,6 +24,11 @@ const extractExtension = (fileName: string | null | undefined): string => {
   return baseName.slice(dotIndex + 1).replace(/[^a-z0-9+-]/g, "");
 };
 
+/**
+ * Нормализует MIME subtype до короткой метки.
+ * @param subtype Подтип MIME из content-type.
+ * @returns Упрощенная метка типа файла.
+ */
 const normalizeMimeSubtype = (subtype: string): string => {
   const lowered = subtype.trim().toLowerCase();
   if (!lowered) return "";
@@ -40,6 +50,12 @@ const normalizeMimeSubtype = (subtype: string): string => {
   return segments[segments.length - 1] || cleaned;
 };
 
+/**
+ * Возвращает метку типа вложения для интерфейса.
+ * @param contentType MIME-тип файла.
+ * @param fileName Имя файла.
+ * @returns Короткая метка типа, например pdf, zip, mp4.
+ */
 export const resolveAttachmentTypeLabel = (
   contentType: string | null | undefined,
   fileName: string | null | undefined,

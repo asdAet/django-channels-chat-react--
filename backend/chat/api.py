@@ -793,8 +793,9 @@ def upload_attachments(request, room_id: int):
             details={"expectedKeys": ["files", "file", "attachments", "attachments[]"]},
         )
 
+    actor_is_superuser = bool(getattr(request.user, "is_superuser", False))
     max_per_msg = int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5))
-    if len(files) > max_per_msg:
+    if (not actor_is_superuser) and len(files) > max_per_msg:
         return _error_response(
             f"Максимум {max_per_msg} файлов на сообщение",
             code="too_many_files",
@@ -849,17 +850,18 @@ def upload_attachments(request, room_id: int):
 
         return aliased or "application/octet-stream"
 
-    for f in files:
-        if f.size > max_size:
-            return _error_response(
-                f"Файл '{f.name}' превышает максимальный размер",
-                code="file_too_large",
-                details={
-                    "fileName": f.name,
-                    "fileSize": f.size,
-                    "maxSize": max_size,
-                },
-            )
+    if not actor_is_superuser:
+        for f in files:
+            if f.size > max_size:
+                return _error_response(
+                    f"Файл '{f.name}' превышает максимальный размер",
+                    code="file_too_large",
+                    details={
+                        "fileName": f.name,
+                        "fileSize": f.size,
+                        "maxSize": max_size,
+                    },
+                )
 
     def _resolve_content_type(uploaded_file) -> str:
         file_name = getattr(uploaded_file, "name", "") or ""

@@ -6,6 +6,7 @@ export type UserProfile = {
   handle?: string | null;
   publicRef?: string;
   publicId?: string | null;
+  isSuperuser?: boolean;
   email: string;
   profileImage: string | null;
   avatarCrop?: AvatarCrop | null;

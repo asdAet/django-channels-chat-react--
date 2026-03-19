@@ -86,6 +86,23 @@ class ProfileApiTests(TestCase):
         self.assertEqual(payload["publicRef"], user_public_ref(self.user))
         self.assertEqual(payload["email"], "profile@example.com")
         self.assertIn("avatarCrop", payload)
+        self.assertFalse(payload.get("isSuperuser"))
+
+    def test_get_profile_authenticated_superuser_includes_flag(self):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        admin = User.objects.create_superuser(
+            username="profile_admin",
+            email="profile_admin@example.com",
+            password="pass12345",
+        )
+
+        self.client.force_login(admin)
+        response = self.client.get("/api/profile/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["user"]
+        self.assertTrue(payload.get("isSuperuser"))
 
     def test_profile_update_name_and_bio(self):
         self.client.force_login(self.user)

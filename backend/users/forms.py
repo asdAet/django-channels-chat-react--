@@ -1,4 +1,4 @@
-﻿"""Forms for auth/profile workflows."""
+"""Формы для регистрации, профиля и публичного имени пользователя."""
 
 from __future__ import annotations
 
@@ -44,11 +44,13 @@ SVG_EVENT_HANDLER_RE = re.compile(r"\son[a-z0-9_-]+\s*=", flags=re.IGNORECASE)
 
 
 def _validate_username_symbols(username: str) -> None:
+    """Проверяет допустимые символы и формат публичного имени."""
     if username and not USERNAME_ALLOWED_RE.fullmatch(username):
         raise forms.ValidationError(USERNAME_ALLOWED_HINT)
 
 
 def _is_svg_upload(uploaded_file) -> bool:
+    """Определяет SVG по расширению или content_type."""
     filename = str(getattr(uploaded_file, "name", "") or "")
     content_type = str(getattr(uploaded_file, "content_type", "") or "").strip().lower()
     extension = Path(filename).suffix.lower()
@@ -56,6 +58,7 @@ def _is_svg_upload(uploaded_file) -> bool:
 
 
 def _read_uploaded_bytes(uploaded_file) -> bytes:
+    """Читает файл и возвращает исходные байты с восстановлением указателя."""
     if hasattr(uploaded_file, "seek"):
         uploaded_file.seek(0)
     raw = uploaded_file.read()
@@ -69,6 +72,7 @@ def _read_uploaded_bytes(uploaded_file) -> bytes:
 
 
 def _validate_svg_avatar(uploaded_file) -> None:
+    """Проверяет SVG на базовую безопасность и корректный XML-контейнер."""
     raw = _read_uploaded_bytes(uploaded_file)
     if not raw:
         raise forms.ValidationError("SVG файл пустой.")
@@ -127,7 +131,7 @@ class EmailRegisterForm(forms.Form):
         except forms.ValidationError as exc:
             self.add_error("password1", exc)
         except Exception:
-            # Normalized as weak password for API layer.
+            # Любая непредвиденная ошибка валидации возвращается как слабый пароль.
             self.add_error("password1", "Пароль слишком слабый")
         return cleaned
 

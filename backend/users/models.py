@@ -1,4 +1,4 @@
-﻿"""Data models for users/auth/profile subsystem."""
+"""Модели пользователей, идентичностей и профиля."""
 
 from __future__ import annotations
 
@@ -50,6 +50,7 @@ class Profile(models.Model):
         return f"{self.user.username} profile"
 
     def save(self, *args, **kwargs):
+        """Нормализует профиль и безопасно обрабатывает файл аватара."""
         if isinstance(self.bio, str):
             self.bio = strip_tags(self.bio).strip()
         if isinstance(self.name, str):
@@ -219,7 +220,7 @@ class PublicHandle(models.Model):
 
 
 class SecurityRateLimitBucket(models.Model):
-    """Persistent rate-limit buckets for security restrictions."""
+    """Хранит состояние ограничений запросов для защитных сценариев."""
 
     scope_key = models.CharField(max_length=191, unique=True, db_index=True)
     count = models.PositiveIntegerField(default=0)

@@ -87,6 +87,18 @@ describe("auth DTO decoders", () => {
     expect(decoded.user?.publicRef).toBe("1234567890");
   });
 
+  it("maps superuser flag from session payload", () => {
+    const decoded = decodeSessionResponse({
+      authenticated: true,
+      user: {
+        handle: "admin",
+        isSuperuser: true,
+      },
+    });
+
+    expect(decoded.user?.isSuperuser).toBe(true);
+  });
+
   it("validates outgoing register payload", () => {
     expect(
       buildRegisterRequestDto({

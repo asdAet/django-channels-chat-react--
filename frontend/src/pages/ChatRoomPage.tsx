@@ -109,6 +109,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const maxMessageLength = useChatMessageMaxLength();
   const maxAttachmentSizeMb = useChatAttachmentMaxSizeMb();
   const maxAttachmentPerMessage = useChatAttachmentMaxPerMessage();
+  const isCurrentUserSuperuser = Boolean(user?.isSuperuser);
   const roomPermissions = useRoomPermissions(user ? slug : null);
   const {
     loading: permissionsLoading,
@@ -1436,9 +1437,12 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
       const accepted: File[] = [];
       const rejectedMessages: string[] = [];
+      const effectiveAttachmentLimit = isCurrentUserSuperuser
+        ? Number.MAX_SAFE_INTEGER
+        : maxAttachmentPerMessage;
       const capacityLeft = Math.max(
         0,
-        maxAttachmentPerMessage - queuedFiles.length,
+        effectiveAttachmentLimit - queuedFiles.length,
       );
 
       if (capacityLeft <= 0) {
@@ -1456,7 +1460,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
           break;
         }
 
-        if (file.size > maxAttachmentSizeBytes) {
+        if (!isCurrentUserSuperuser && file.size > maxAttachmentSizeBytes) {
           rejectedMessages.push(
             `Файл "${file.name}" больше ${maxAttachmentSizeMb} МБ.`,
           );
@@ -1479,6 +1483,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       maxAttachmentPerMessage,
       maxAttachmentSizeBytes,
       maxAttachmentSizeMb,
+      isCurrentUserSuperuser,
       queuedFiles.length,
     ],
   );

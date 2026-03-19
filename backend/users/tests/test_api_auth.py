@@ -196,7 +196,9 @@ class AuthApiTests(TestCase):
             HTTP_X_CSRFTOKEN=csrf,
         )
         self.assertEqual(login_response.status_code, 200)
-        self.assertTrue(login_response.json().get("authenticated"))
+        payload = login_response.json()
+        self.assertTrue(payload.get("authenticated"))
+        self.assertFalse(payload.get("user", {}).get("isSuperuser"))
 
         session_response = self.client.get("/api/auth/session/")
         self.assertEqual(session_response.status_code, 200)
@@ -222,7 +224,9 @@ class AuthApiTests(TestCase):
             HTTP_X_CSRFTOKEN=csrf,
         )
         self.assertEqual(login_response.status_code, 200)
-        self.assertTrue(login_response.json().get("authenticated"))
+        payload = login_response.json()
+        self.assertTrue(payload.get("authenticated"))
+        self.assertTrue(payload.get("user", {}).get("isSuperuser"))
 
     @override_settings(
         RATE_LIMITS={

@@ -1,4 +1,4 @@
-"""Application-level access checks for protected media."""
+"""Сервис проверок доступа к защищенным media-файлам."""
 
 from __future__ import annotations
 
@@ -23,18 +23,19 @@ _GENERIC_MEDIA_CONTENT_TYPES = {
 
 
 class MediaAccessNotFoundError(Exception):
-    """Media is not available in the requested access context."""
+    """Файл недоступен в текущем контексте доступа."""
 
 
 @dataclass(frozen=True)
 class AttachmentMediaAccessResult:
-    """Resolved room-scoped media access context for chat attachments."""
+    """Результат проверки room-scoped доступа для chat-вложений."""
 
     room_id: int
     preferred_content_type: str | None
 
 
 def _parse_positive_room_id(value: int | str | None) -> int | None:
+    """Преобразует room_id в положительное целое или возвращает None."""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -59,7 +60,7 @@ def resolve_media_content_type(
     *,
     preferred_content_type: str | None = None,
 ) -> str:
-    """Resolve final response content type from metadata + path extension."""
+    """Определяет итоговый content type по метаданным и расширению файла."""
     normalized_preferred = (preferred_content_type or "").strip().lower()
     guessed_content_type = (mimetypes.guess_type(normalized_path)[0] or "").strip().lower()
     if normalized_preferred and normalized_preferred not in _GENERIC_MEDIA_CONTENT_TYPES:
@@ -77,7 +78,7 @@ def resolve_attachment_media_access(
     room_id_raw: int | str | None,
     user: Any,
 ) -> AttachmentMediaAccessResult:
-    """Validate room-scoped access and return serving metadata for attachments."""
+    """Проверяет доступ к вложению в комнате и возвращает метаданные выдачи."""
     room_id = _parse_positive_room_id(room_id_raw)
     if room_id is None:
         raise MediaAccessNotFoundError

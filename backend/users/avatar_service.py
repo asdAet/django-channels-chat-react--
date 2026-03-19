@@ -1,7 +1,8 @@
-"""Unified avatar source + URL resolution for users and groups."""
+"""Единый сервис выбора источника аватара и сборки URL."""
 
 from __future__ import annotations
 
+from collections.abc import Sized
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -26,15 +27,18 @@ _USER_DEFAULT_IMAGE_ALIASES = (
 
 
 def _trimmed(value: Any) -> str:
+    """Приводит значение к строке и обрезает пробелы."""
     return str(value or "").strip()
 
 
 def _normalized_media_path(value: str | None) -> str:
+    """Нормализует путь к media и гарантирует строковый результат."""
     normalized = normalize_media_path(value)
     return normalized or ""
 
 
 def _setting_media_path(name: str, default: str) -> str:
+    """Читает путь из настроек и возвращает безопасное значение."""
     configured = _trimmed(getattr(settings, name, default))
     normalized = _normalized_media_path(configured)
     if normalized:
@@ -43,6 +47,7 @@ def _setting_media_path(name: str, default: str) -> str:
 
 
 def _setting_media_dir(name: str, default: str) -> str:
+    """Читает директорию из настроек и убирает ведущие слеши."""
     value = _setting_media_path(name, default).strip("/")
     return value or default.strip("/")
 
@@ -75,6 +80,7 @@ def _safe_upload_filename(filename: str | None) -> str:
 
 
 def user_has_oauth_identity(user: Any) -> bool:
+    """Проверяет наличие OAuth-идентичности у пользователя."""
     if user is None:
         return False
     user_pk = getattr(user, "pk", None)
@@ -84,10 +90,9 @@ def user_has_oauth_identity(user: Any) -> bool:
     prefetched_cache = getattr(user, "_prefetched_objects_cache", None)
     if isinstance(prefetched_cache, dict) and "oauth_identities" in prefetched_cache:
         prefetched = prefetched_cache.get("oauth_identities")
-        try:
-            return len(prefetched) > 0  # type: ignore[arg-type]
-        except TypeError:
-            return bool(prefetched)
+        if isinstance(prefetched, Sized):
+            return len(prefetched) > 0
+        return bool(prefetched)
 
     manager = getattr(user, "oauth_identities", None)
     if manager is None or not hasattr(manager, "exists"):
@@ -99,15 +104,18 @@ def user_has_oauth_identity(user: Any) -> bool:
 
 
 def profile_avatar_upload_to(profile, filename: str) -> str:
+    """Формирует путь сохранения пользовательской аватарки."""
     base_dir = user_avatar_upload_dir()
     return f"{base_dir}/{_safe_upload_filename(filename)}"
 
 
 def group_avatar_upload_to(_room, filename: str) -> str:
+    """Формирует путь сохранения групповой аватарки."""
     return f"{group_avatar_upload_dir()}/{_safe_upload_filename(filename)}"
 
 
 def _safe_profile(user: Any):
+    """Безопасно получает профиль пользователя без падений в рантайме."""
     if user is None:
         return None
     try:
@@ -154,6 +162,7 @@ def _is_default_user_image(path: str) -> bool:
 
 
 def resolve_user_avatar_source(user: Any) -> str | None:
+    """Возвращает источник аватара пользователя с учетом fallback-логики."""
     profile = _safe_profile(user)
     is_oauth_user = user_has_oauth_identity(user)
     fallback_avatar = (
@@ -182,6 +191,7 @@ def resolve_user_avatar_source(user: Any) -> str | None:
 
 
 def resolve_group_avatar_source(room: Any) -> str | None:
+    """Возвращает источник аватара группы или дефолтную картинку."""
     if room is None:
         return group_default_avatar_path() or None
 
@@ -194,6 +204,7 @@ def resolve_group_avatar_source(room: Any) -> str | None:
 
 
 def resolve_avatar_url_from_request(request, source: str | None) -> str | None:
+    """Собирает абсолютный URL аватара из HTTP-запроса."""
     normalized = _trimmed(source)
     if not normalized:
         return None
@@ -201,6 +212,7 @@ def resolve_avatar_url_from_request(request, source: str | None) -> str | None:
 
 
 def resolve_avatar_url_from_scope(scope, source: str | None) -> str | None:
+    """Собирает абсолютный URL аватара из ASGI scope."""
     normalized = _trimmed(source)
     if not normalized:
         return None

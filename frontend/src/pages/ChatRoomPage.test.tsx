@@ -580,6 +580,97 @@ describe("ChatRoomPage", () => {
     expect(chatControllerMock.uploadAttachments).not.toHaveBeenCalled();
   });
 
+  it("allows oversized attachment selection for superuser", () => {
+    const { container } = render(
+      <ChatRoomPage
+        slug="public"
+        user={{ ...user, isSuperuser: true }}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const oversizedFile = new File(
+      [new Uint8Array(11 * 1024 * 1024)],
+      "oversized.bin",
+      { type: "application/octet-stream" },
+    );
+    fireEvent.change(fileInput, { target: { files: [oversizedFile] } });
+
+    expect(screen.getByText("Вложения: 1")).toBeInTheDocument();
+    expect(screen.getByText("oversized.bin")).toBeInTheDocument();
+    expect(screen.queryByText(/больше 10 МБ/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Отправить сообщение" }),
+    ).toBeEnabled();
+  });
+
+  it("allows attachment count above runtime limit for superuser", () => {
+    const { container } = render(
+      <ChatRoomPage
+        slug="public"
+        user={{ ...user, isSuperuser: true }}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const files = Array.from({ length: 6 }, (_, index) =>
+      new File(["x"], `file-${index + 1}.txt`, { type: "text/plain" }),
+    );
+    fireEvent.change(fileInput, { target: { files } });
+
+    expect(screen.getByText("Вложения: 6")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Можно прикрепить не более 5 файлов/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Отправить сообщение" }),
+    ).toBeEnabled();
+  });
+
+  it("keeps attachment count limit for non-superuser", () => {
+    const { container } = render(
+      <ChatRoomPage slug="public" user={user} onNavigate={vi.fn()} />,
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const files = Array.from({ length: 6 }, (_, index) =>
+      new File(["x"], `user-file-${index + 1}.txt`, { type: "text/plain" }),
+    );
+    fireEvent.change(fileInput, { target: { files } });
+
+    expect(screen.getByText("Вложения: 5")).toBeInTheDocument();
+    expect(screen.getByText(/Превышен лимит вложений \(5\)\./i)).toBeInTheDocument();
+  });
+
+  it("keeps attachment size limit for non-superuser", () => {
+    const { container } = render(
+      <ChatRoomPage slug="public" user={user} onNavigate={vi.fn()} />,
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const oversizedFile = new File(
+      [new Uint8Array(11 * 1024 * 1024)],
+      "user-oversized.bin",
+      { type: "application/octet-stream" },
+    );
+    fireEvent.change(fileInput, { target: { files: [oversizedFile] } });
+
+    expect(screen.queryByText("Вложения: 1")).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Файл "user-oversized.bin" больше 10 МБ.'),
+    ).toBeInTheDocument();
+  });
+
   it("queues pasted files from clipboard items", () => {
     render(<ChatRoomPage slug="public" user={user} onNavigate={vi.fn()} />);
 

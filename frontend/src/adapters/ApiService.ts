@@ -145,6 +145,7 @@ const extractErrorMessage = (
   return undefined;
 };
 
+/** Нормализует любые ошибки HTTP-клиента в единый формат ApiError. */
 export const normalizeAxiosError = (error: unknown): ApiError => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError;
@@ -178,6 +179,7 @@ export const normalizeAxiosError = (error: unknown): ApiError => {
   return { status: 0, message: "Ошибка сети" };
 };
 
+/** Реализация API-сервиса с единым декодированием и нормализацией ошибок. */
 class ApiService implements IApiService {
   private apiClient: AxiosInstance;
 
@@ -442,7 +444,7 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () => getBlockedUsers(this.apiClient));
   }
 
-  // --- Groups ---
+  /** Методы управления группами и участниками. */
   public async createGroup(data: {
     name: string;
     description?: string;
@@ -617,7 +619,7 @@ class ApiService implements IApiService {
     );
   }
 
-  // --- Roles & Permissions ---
+  /** Методы управления ролями и правами в комнате. */
   public async getRoomRoles(roomId: string) {
     return this.runWithDecode(async () => getRoomRoles(this.apiClient, roomId));
   }

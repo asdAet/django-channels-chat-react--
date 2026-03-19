@@ -24,11 +24,21 @@ export type AttachmentBuckets = {
 
 export type MediaGridVariant = "single" | "two" | "three" | "four" | "many";
 
+/**
+ * Нормализует лимит отображаемых изображений.
+ * @param value Входное значение лимита.
+ * @returns Целое число не меньше 1.
+ */
 const normalizeVisibleImageLimit = (value: number): number => {
   if (!Number.isFinite(value)) return 1;
   return Math.max(1, Math.floor(value));
 };
 
+/**
+ * Подготавливает вложения сообщения для рендера.
+ * @param attachments Исходные вложения сообщения.
+ * @returns Массив с флагом изображения и рассчитанным preview URL.
+ */
 export const buildAttachmentRenderItems = (
   attachments: Attachment[],
 ): AttachmentRenderItem[] =>
@@ -50,6 +60,12 @@ export const buildAttachmentRenderItems = (
     };
   });
 
+/**
+ * Делит вложения на изображения и прочие файлы.
+ * @param items Подготовленные элементы рендера вложений.
+ * @param maxVisibleImages Максимум изображений, видимых в сетке сообщения.
+ * @returns Структура с полным списком изображений, видимой частью и остатком.
+ */
 export const splitAttachmentRenderItems = (
   items: AttachmentRenderItem[],
   maxVisibleImages: number,
@@ -81,6 +97,11 @@ export const splitAttachmentRenderItems = (
   };
 };
 
+/**
+ * Определяет вариант сетки изображений по количеству элементов.
+ * @param count Количество отображаемых изображений.
+ * @returns Вариант CSS-сетки для текущего количества.
+ */
 export const resolveMediaGridVariant = (count: number): MediaGridVariant => {
   if (count <= 1) return "single";
   if (count === 2) return "two";
@@ -89,6 +110,11 @@ export const resolveMediaGridVariant = (count: number): MediaGridVariant => {
   return "many";
 };
 
+/**
+ * Вычисляет ограниченное соотношение сторон изображения.
+ * @param attachment Вложение с метаданными ширины и высоты.
+ * @returns Число для CSS aspect-ratio в безопасном диапазоне.
+ */
 export const resolveImageAspectRatio = (attachment: Attachment): number => {
   if (
     attachment.width &&

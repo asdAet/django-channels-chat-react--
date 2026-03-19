@@ -24,15 +24,16 @@ let directChatsInFlight: Promise<DirectChatsResponseDto> | null = null;
 const roomDetailsInFlight = new Map<string, Promise<RoomDetailsDto>>();
 const roomMessagesInFlight = new Map<string, Promise<RoomMessagesDto>>();
 
-/** Формирует ключ in-flight кэша для `getRoomMessages`. */
+/** Формирует ключ in-flight-кэша для getRoomMessages. */
 const buildRoomMessagesKey = (roomId: string, params?: RoomMessagesParams) => {
   const limit = params?.limit ?? "";
   const beforeId = params?.beforeId ?? "";
   return `${roomId}|limit=${limit}|before=${beforeId}`;
 };
 
-/** Контроллер чата с дедупликацией in-flight запросов. */
+/** Контроллер чата с дедупликацией одинаковых in-flight запросов. */
 class ChatController {
+  /** Возвращает публичную комнату и переиспользует активный запрос. */
   public async getPublicRoom(): Promise<RoomDetailsDto> {
     if (publicRoomInFlight) {
       return publicRoomInFlight;
@@ -45,6 +46,7 @@ class ChatController {
     return publicRoomInFlight;
   }
 
+  /** Возвращает детали комнаты и устраняет параллельные дубликаты. */
   public async getRoomDetails(roomId: string): Promise<RoomDetailsDto> {
     const inFlight = roomDetailsInFlight.get(roomId);
     if (inFlight) {
@@ -59,6 +61,7 @@ class ChatController {
     return request;
   }
 
+  /** Возвращает сообщения комнаты с дедупликацией по параметрам. */
   public async getRoomMessages(
     roomId: string,
     params?: RoomMessagesParams,
