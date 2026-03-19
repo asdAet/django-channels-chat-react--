@@ -1,5 +1,9 @@
 import type { ClientRuntimeConfig } from "../../domain/interfaces/IApiService";
 
+/**
+ * Константа `DEFAULT_RUNTIME_CONFIG` содержит значения по умолчанию для модуля.
+ */
+
 export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
   usernameMaxLength: 30,
   chatMessageMaxLength: 1000,
@@ -27,13 +31,16 @@ export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
 let currentRuntimeConfig: ClientRuntimeConfig = { ...DEFAULT_RUNTIME_CONFIG };
 
 /**
- * Возвращает актуальный runtime-конфиг клиента.
+ * Возвращает runtime config.
+ * @returns Данные, полученные из источника или кэша.
  */
+
 export const getRuntimeConfig = (): ClientRuntimeConfig => currentRuntimeConfig;
 
 /**
  * Обновляет runtime-конфиг клиента значениями с backend.
  */
+
 export const setRuntimeConfig = (next: ClientRuntimeConfig): void => {
   currentRuntimeConfig = { ...next };
 };

@@ -19,10 +19,12 @@ from users.identity import user_public_username
 
 
 def transfer_ownership(actor, room_id: int, new_owner_user_id: int) -> None:
-    """Transfer group ownership to another member.
-
-    Only the current owner (ADMINISTRATOR) can transfer.
-    The old owner is demoted to Admin.
+    """Передает владение.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        new_owner_user_id: Идентификатор new owner user.
     """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)

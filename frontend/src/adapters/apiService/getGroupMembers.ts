@@ -3,6 +3,9 @@ import type { AxiosInstance } from "axios";
 import { decodeGroupMembersResponse } from "../../dto";
 import type { GroupMember } from "../../entities/group/types";
 
+/**
+ * Описывает результат операции `GroupMembers`.
+ */
 export type GroupMembersResult = {
   items: GroupMember[];
   total: number;
@@ -13,6 +16,15 @@ export type GroupMembersResult = {
   };
 };
 
+/**
+ * Асинхронно возвращает группы участников.
+ *
+ * @param apiClient HTTP-клиент для выполнения API-запросов.
+ * @param roomId Идентификатор комнаты.
+ * @param params Параметры запроса.
+ *
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function getGroupMembers(
   apiClient: AxiosInstance,
   roomId: string,

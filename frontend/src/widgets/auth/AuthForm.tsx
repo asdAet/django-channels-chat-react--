@@ -4,13 +4,22 @@ import { useMemo, useState } from "react";
 import { Button, Card, Toast } from "../../shared/ui";
 import styles from "./AuthForm.module.css";
 
+/**
+ * Описывает структуру данных `AuthMode`.
+ */
 type AuthMode = "login" | "register";
 
+/**
+ * Описывает структуру данных `LoginSubmitPayload`.
+ */
 export type LoginSubmitPayload = {
   identifier: string;
   password: string;
 };
 
+/**
+ * Описывает структуру данных `RegisterSubmitPayload`.
+ */
 export type RegisterSubmitPayload = {
   login: string;
   password: string;
@@ -20,6 +29,9 @@ export type RegisterSubmitPayload = {
   email?: string;
 };
 
+/**
+ * Описывает входные props компонента `AuthForm`.
+ */
 type AuthFormProps = {
   mode: AuthMode;
   title: string;
@@ -33,6 +45,11 @@ type AuthFormProps = {
   className?: string;
 };
 
+/**
+ * Компонент AuthForm рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function AuthForm({
   mode,
   title,
@@ -63,6 +80,10 @@ export function AuthForm({
     return Boolean(identifier.trim() && password);
   }, [confirm, identifier, isRegister, login, name, password]);
 
+  /**
+   * Обрабатывает handle submit.
+   * @param event Событие браузера.
+   */
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (!canSubmit) return;
@@ -89,6 +110,9 @@ export function AuthForm({
 
   const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
 
+  /**
+   * Обрабатывает handle google auth.
+   */
   const handleGoogleAuth = async () => {
     if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) return;
     setGoogleAuthPending(true);

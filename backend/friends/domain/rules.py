@@ -4,6 +4,15 @@ from __future__ import annotations
 
 
 def is_self_request(actor_id: int, target_id: int) -> bool:
+    """Проверяет условие self request и возвращает логический результат.
+    
+    Args:
+        actor_id: Идентификатор actor, используемый для выборки данных.
+        target_id: Идентификатор target, используемый для выборки данных.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return int(actor_id) == int(target_id)
 
 
@@ -12,9 +21,14 @@ def can_send_request(
     existing_outgoing_status: str | None,
     existing_incoming_status: str | None,
 ) -> tuple[bool, str]:
-    """Check if a friend request can be sent.
-
-    Returns (allowed, reason).
+    """Проверяет условие send request и возвращает логический результат.
+    
+    Args:
+        existing_outgoing_status: Текущий статус исходящей заявки дружбы.
+        existing_incoming_status: Текущий статус входящей заявки дружбы.
+    
+    Returns:
+        Кортеж типа tuple[bool, str] с результатами операции.
     """
     if existing_outgoing_status == "blocked":
         return False, "Вы заблокировали этого пользователя"
@@ -28,15 +42,38 @@ def can_send_request(
 
 
 def should_auto_accept(existing_incoming_status: str | None) -> bool:
-    """If the target already sent us a pending request, auto-accept both."""
+    """Определяет, нужно ли выполнять действие auto accept.
+    
+    Args:
+        existing_incoming_status: Текущий статус входящей заявки дружбы.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return existing_incoming_status == "pending"
 
 
 def can_accept_request(*, request_to_user_id: int, actor_id: int) -> bool:
-    """Only the recipient can accept a request."""
+    """Проверяет условие accept request и возвращает логический результат.
+    
+    Args:
+        request_to_user_id: Идентификатор request to user, используемый для выборки данных.
+        actor_id: Идентификатор actor, используемый для выборки данных.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return int(request_to_user_id) == int(actor_id)
 
 
 def can_decline_request(*, request_to_user_id: int, actor_id: int) -> bool:
-    """Only the recipient can decline a request."""
+    """Проверяет условие decline request и возвращает логический результат.
+    
+    Args:
+        request_to_user_id: Идентификатор request to user, используемый для выборки данных.
+        actor_id: Идентификатор actor, используемый для выборки данных.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return int(request_to_user_id) == int(actor_id)

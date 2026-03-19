@@ -10,7 +10,14 @@ SYSTEM_PROTECTED_ROLE_NAMES = frozenset({"@everyone", "Owner"})
 
 
 def parse_direct_pair_key(pair_key: str | None) -> tuple[int, int] | None:
-    """Parses `direct_pair_key` into two user ids."""
+    """Разбирает direct pair key из входных данных с валидацией формата.
+    
+    Args:
+        pair_key: Ключ пары разрешений allow/deny.
+    
+    Returns:
+        Кортеж типа tuple[int, int] | None с результатами операции.
+    """
     if not pair_key or ":" not in pair_key:
         return None
     first, second = pair_key.split(":", 1)
@@ -27,7 +34,17 @@ def direct_access_allowed(
     membership_user_ids: set[int],
     banned_user_ids: set[int],
 ) -> bool:
-    """Checks strict DM access invariant: pair_key + membership + not banned."""
+    """Вспомогательная функция `direct_access_allowed` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        user_id: Идентификатор user.
+        pair: Параметр pair, используемый в логике функции.
+        membership_user_ids: Список идентификаторов membership user.
+        banned_user_ids: Список идентификаторов banned user.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if user_id is None or pair is None:
         return False
     if user_id not in pair:
@@ -46,7 +63,17 @@ def resolve_permissions(
     role_overrides: Iterable[tuple[int, int]],
     user_overrides: Iterable[tuple[int, int]],
 ) -> Perm:
-    """Resolves effective permissions using Discord-style precedence."""
+    """Определяет permissions на основе доступного контекста.
+    
+    Args:
+        everyone_permissions: Права роли everyone, действующие для всех участников.
+        role_permissions: Права, назначенные ролями участника комнаты.
+        role_overrides: Переопределения прав, примененные к ролям.
+        user_overrides: Пользовательские переопределения прав на уровне участника.
+    
+    Returns:
+        Объект типа Perm, сформированный в рамках обработки.
+    """
     permissions = Perm(int(everyone_permissions))
     for role_perm in role_permissions:
         permissions |= Perm(int(role_perm))
@@ -70,7 +97,15 @@ def resolve_permissions(
 
 
 def is_permission_subset(*, candidate: int, holder: int) -> bool:
-    """True when all candidate bits are included in holder bits."""
+    """Проверяет условие permission subset и возвращает логический результат.
+    
+    Args:
+        candidate: Кандидатный объект для сравнения с текущим контекстом.
+        holder: Сущность, в которой хранится сравниваемое значение.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     holder_perm = Perm(int(holder))
     if holder_perm & Perm.ADMINISTRATOR:
         return True
@@ -78,12 +113,27 @@ def is_permission_subset(*, candidate: int, holder: int) -> bool:
 
 
 def can_manage_target(*, actor_top_position: int, target_position: int) -> bool:
-    """Hierarchy rule: actor can only manage roles strictly below self."""
+    """Проверяет условие manage target и возвращает логический результат.
+    
+    Args:
+        actor_top_position: Максимальная позиция роли текущего пользователя.
+        target_position: Позиция роли целевого пользователя или объекта.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return int(actor_top_position) > int(target_position)
 
 
 def normalize_role_ids(raw_role_ids: Iterable[int | str]) -> list[int]:
-    """Normalizes list of positive role ids while preserving input order."""
+    """Нормализует role ids к внутреннему формату приложения.
+    
+    Args:
+        raw_role_ids: Список идентификаторов raw role для пакетной обработки.
+    
+    Returns:
+        Список типа list[int] с результатами операции.
+    """
     result: list[int] = []
     seen: set[int] = set()
     for value in raw_role_ids:
@@ -99,15 +149,38 @@ def normalize_role_ids(raw_role_ids: Iterable[int | str]) -> list[int]:
 
 
 def validate_override_target_ids(target_role_id: int | None, target_user_id: int | None) -> bool:
-    """True when exactly one override target is provided."""
+    """Проверяет значение поля override target ids и возвращает нормализованный результат.
+    
+    Args:
+        target_role_id: Идентификатор target role, используемый для выборки данных.
+        target_user_id: Идентификатор target user, используемый для выборки данных.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return (target_role_id is None) ^ (target_user_id is None)
 
 
 def has_manage_roles(permissions: int) -> bool:
-    """Checks MANAGE_ROLES bit in effective permissions."""
+    """Проверяет условие manage roles и возвращает логический результат.
+    
+    Args:
+        permissions: Набор прав доступа, применяемых к роли или участнику.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return bool(Perm(int(permissions)) & Perm.MANAGE_ROLES)
 
 
 def role_is_protected(*, is_default: bool, name: str) -> bool:
-    """Returns True for system roles that cannot be removed/broken."""
+    """Проверяет роль с учетом защищенный ответ.
+    
+    Args:
+        is_default: Булев флаг условия default.
+        name: Имя сущности или параметра.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return bool(is_default or name in SYSTEM_PROTECTED_ROLE_NAMES)

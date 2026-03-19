@@ -3,9 +3,9 @@
 import { decodeLogoutResponse } from "../../dto";
 
 /**
- * Выполняет logout и декодирует DTO-ответ.
- * @param apiClient HTTP-клиент.
- * @returns Признак успешного выхода.
+ * Выполняет API-запрос для операции logout.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function logout(
   apiClient: AxiosInstance,

@@ -20,6 +20,7 @@ from rooms.models import Room
 
 @dataclass(frozen=True)
 class ActorContext:
+    """Класс ActorContext инкапсулирует связанную бизнес-логику модуля."""
     permissions: Perm
     top_position: int
 
@@ -28,6 +29,14 @@ _SUPERUSER_TOP_POSITION = (1 << 31) - 1
 
 
 def _is_superuser(user) -> bool:
+    """Проверяет условие superuser и возвращает логический результат.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return bool(
         user
         and getattr(user, "is_authenticated", False)
@@ -36,6 +45,14 @@ def _is_superuser(user) -> bool:
 
 
 def _role_pk(role) -> int | None:
+    """Вспомогательная функция `_role_pk` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        role: Параметр role, используемый в логике функции.
+    
+    Returns:
+        Объект типа int | None, сформированный в ходе выполнения.
+    """
     value = getattr(role, "pk", None)
     if value is None:
         return None
@@ -43,6 +60,14 @@ def _role_pk(role) -> int | None:
 
 
 def _membership_user_id(membership) -> int | None:
+    """Вспомогательная функция `_membership_user_id` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        membership: Запись участия пользователя в комнате.
+    
+    Returns:
+        Объект типа int | None, сформированный в ходе выполнения.
+    """
     user_id = getattr(membership, "user_id", None)
     if user_id is not None:
         return int(user_id)
@@ -54,6 +79,14 @@ def _membership_user_id(membership) -> int | None:
 
 
 def _override_target_role_id(override) -> int | None:
+    """Вспомогательная функция `_override_target_role_id` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        override: Параметр override, используемый в логике функции.
+    
+    Returns:
+        Объект типа int | None, сформированный в ходе выполнения.
+    """
     target_role_id = getattr(override, "target_role_id", None)
     if target_role_id is not None:
         return int(target_role_id)
@@ -62,6 +95,14 @@ def _override_target_role_id(override) -> int | None:
 
 
 def _override_target_user_id(override) -> int | None:
+    """Вспомогательная функция `_override_target_user_id` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        override: Параметр override, используемый в логике функции.
+    
+    Returns:
+        Объект типа int | None, сформированный в ходе выполнения.
+    """
     target_user_id = getattr(override, "target_user_id", None)
     if target_user_id is not None:
         return int(target_user_id)
@@ -73,6 +114,14 @@ def _override_target_user_id(override) -> int | None:
 
 
 def _top_role_position_for_membership(membership) -> int:
+    """Вспомогательная функция `_top_role_position_for_membership` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        membership: Запись участия пользователя в комнате.
+    
+    Returns:
+        Целочисленный результат вычисления.
+    """
     if not membership:
         return 0
     top_role = membership.roles.order_by("-position").first()
@@ -82,6 +131,15 @@ def _top_role_position_for_membership(membership) -> int:
 
 
 def _compute_direct_permissions(room: Room, user) -> Perm:
+    """Выполняет вспомогательную обработку для compute direct permissions.
+    
+    Args:
+        room: Комната, в контексте которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа Perm, полученный при выполнении операции.
+    """
     user_id = getattr(user, "pk", None)
     pair = rules.parse_direct_pair_key(room.direct_pair_key)
     memberships = list(repositories.list_memberships(room))
@@ -109,7 +167,14 @@ def _compute_direct_permissions(room: Room, user) -> Perm:
 
 
 def _get_default_everyone_permissions(room: Room) -> int:
-    """Determine fallback @everyone permissions when no default role exists."""
+    """Возвращает default everyone permissions из текущего контекста или хранилища.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+    
+    Returns:
+        Целочисленное значение результата вычисления.
+    """
     if room.kind == Room.Kind.GROUP:
         if getattr(room, "is_public", False):
             return int(EVERYONE_GROUP_PUBLIC)
@@ -120,7 +185,15 @@ def _get_default_everyone_permissions(room: Room) -> int:
 
 
 def compute_permissions(room: Room, user) -> Perm:
-    """Computes effective permissions for a user in a room."""
+    """Вычисляет permissions на основе входных данных.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа Perm, сформированный в ходе выполнения.
+    """
     if not user or not getattr(user, "is_authenticated", False):
         if room.kind in {Room.Kind.PUBLIC, Room.Kind.GROUP}:
             if room.kind == Room.Kind.GROUP and not getattr(room, "is_public", False):
@@ -188,27 +261,79 @@ def compute_permissions(room: Room, user) -> Perm:
 
 
 def has_permission(room: Room, user, perm: Perm) -> bool:
+    """Проверяет условие permission и возвращает логический результат.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+        perm: Имя отдельного разрешения, проверяемого в наборе прав.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return bool(compute_permissions(room, user) & perm)
 
 
 def can_read(room: Room, user) -> bool:
+    """Проверяет условие read и возвращает логический результат.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return has_permission(room, user, Perm.READ_MESSAGES)
 
 
 def can_write(room: Room, user) -> bool:
+    """Проверяет условие write и возвращает логический результат.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return has_permission(room, user, Perm.SEND_MESSAGES)
 
 
 def ensure_can_read_or_404(room: Room, user) -> None:
+    """Гарантирует корректность состояния can read or 404 перед выполнением операции.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+    """
     if not can_read(room, user):
         raise Http404("Не найдено")
 
 
 def ensure_can_write(room: Room, user) -> bool:
+    """Гарантирует корректность состояния can write перед выполнением операции.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return can_write(room, user)
 
 
 def get_user_role(room: Room, user) -> str | None:
+    """Возвращает user role из текущего контекста или хранилища.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not user or not getattr(user, "is_authenticated", False):
         return None
     membership = repositories.get_membership(room, user)
@@ -219,6 +344,15 @@ def get_user_role(room: Room, user) -> str | None:
 
 
 def get_actor_context(room: Room, actor) -> ActorContext:
+    """Возвращает actor context из текущего контекста или хранилища.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        actor: Пользователь, инициирующий действие в системе.
+    
+    Returns:
+        Объект типа ActorContext, сформированный в рамках обработки.
+    """
     if _is_superuser(actor):
         return ActorContext(permissions=Perm(-1), top_position=_SUPERUSER_TOP_POSITION)
     membership = repositories.get_membership(room, actor)
@@ -228,5 +362,14 @@ def get_actor_context(room: Room, actor) -> ActorContext:
 
 
 def can_manage_roles(room: Room, actor) -> bool:
+    """Проверяет условие manage roles и возвращает логический результат.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        actor: Пользователь, инициирующий действие в системе.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     actor_context = get_actor_context(room, actor)
     return rules.has_manage_roles(int(actor_context.permissions))

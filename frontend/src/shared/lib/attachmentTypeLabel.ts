@@ -7,10 +7,11 @@ const MIME_TYPE_LABEL_ALIASES: Record<string, string> = {
   "application/java-archive": "jar",
 };
 
+
 /**
- * Извлекает расширение файла из имени.
- * @param fileName Имя файла или путь.
- * @returns Нормализованное расширение без точки или пустую строку.
+ * Извлекает extension.
+ * @param fileName Имя файла вместе с расширением.
+ * @returns Извлеченное значение из входных данных.
  */
 const extractExtension = (fileName: string | null | undefined): string => {
   const normalized = (fileName ?? "").trim().toLowerCase();
@@ -24,10 +25,11 @@ const extractExtension = (fileName: string | null | undefined): string => {
   return baseName.slice(dotIndex + 1).replace(/[^a-z0-9+-]/g, "");
 };
 
+
 /**
- * Нормализует MIME subtype до короткой метки.
- * @param subtype Подтип MIME из content-type.
- * @returns Упрощенная метка типа файла.
+ * Нормализует mime subtype.
+ * @param subtype DOM-событие, вызвавшее обработчик.
+ * @returns Нормализованное значение после обработки входа.
  */
 const normalizeMimeSubtype = (subtype: string): string => {
   const lowered = subtype.trim().toLowerCase();
@@ -50,11 +52,12 @@ const normalizeMimeSubtype = (subtype: string): string => {
   return segments[segments.length - 1] || cleaned;
 };
 
+
 /**
- * Возвращает метку типа вложения для интерфейса.
+ * Определяет attachment type label.
  * @param contentType MIME-тип файла.
- * @param fileName Имя файла.
- * @returns Короткая метка типа, например pdf, zip, mp4.
+ * @param fileName Имя файла вместе с расширением.
+ * @returns Разрешенное значение с учетом fallback-логики.
  */
 export const resolveAttachmentTypeLabel = (
   contentType: string | null | undefined,

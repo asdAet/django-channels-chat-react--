@@ -36,10 +36,20 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def _invalid_credentials_error() -> IdentityUnauthorizedError:
+    """Выполняет вспомогательную обработку для invalid credentials error.
+    
+    Returns:
+        Объект типа IdentityUnauthorizedError, полученный при выполнении операции.
+    """
     return IdentityUnauthorizedError("Неверный логин, email или пароль")
 
 
 def _raise_handle_validation_or_conflict(exc: ValueError) -> None:
+    """Обрабатывает raise с учетом validation или конфликт.
+    
+    Args:
+        exc: Параметр exc, используемый в логике функции.
+    """
     message = str(exc)
     errors = {"username": [message]}
     if message == "Этот username уже занят":
@@ -48,30 +58,65 @@ def _raise_handle_validation_or_conflict(exc: ValueError) -> None:
 
 
 def _normalize_name(name: str | None) -> str:
+    """Нормализует name к внутреннему формату.
+    
+    Args:
+        name: Человекочитаемое имя объекта или параметра.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     value = strip_tags(str(name or "")).strip()
     return value
 
 
 def _normalize_optional_email(email: str | None) -> str | None:
+    """Нормализует optional email к внутреннему формату приложения.
+    
+    Args:
+        email: Email-адрес для проверки или обновления.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     normalized = normalize_email(email)
     return normalized or None
 
 
 def _email_local_part(email: str) -> str:
+    """Вспомогательная функция `_email_local_part` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        email: Email-адрес для проверки или обновления.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     local = (email.split("@", 1)[0] if "@" in email else email).strip()
     return local or "user"
 
 
 def _looks_like_email(identifier: str) -> bool:
+    """Вспомогательная функция `_looks_like_email` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        identifier: Логин или email, использованный для входа.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return bool(_EMAIL_RE.fullmatch(identifier))
 
 
 def _authenticate_admin_without_identity(identifier: str, password: str) -> User | None:
-    """
-    Allow Django-admin accounts created via `createsuperuser` to use API login.
-
-    Such accounts may not have LoginIdentity/EmailIdentity rows, but can still
-    be authenticated by Django's password hash on User model.
+    """Аутентифицирует администратор без identity-данные.
+    
+    Args:
+        identifier: Логин или email, использованный для входа.
+        password: Пароль пользователя.
+    
+    Returns:
+        Объект типа User | None, сформированный в ходе выполнения.
     """
     if _looks_like_email(identifier):
         user = User.objects.filter(email__iexact=identifier).first()
@@ -88,6 +133,14 @@ def _authenticate_admin_without_identity(identifier: str, password: str) -> User
 
 
 def _ensure_login_identity(user: AbstractUser) -> LoginIdentity:
+    """Гарантирует корректность login identity перед выполнением операции.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа LoginIdentity, полученный при выполнении операции.
+    """
     existing = getattr(user, "login_identity", None)
     if existing is not None:
         return existing
@@ -108,6 +161,13 @@ def _ensure_login_identity(user: AbstractUser) -> LoginIdentity:
 
 
 def _set_email_identity(user: AbstractUser, email_value: str | None, *, verified: bool = False) -> None:
+    """Устанавливает email identity с учетом правил приложения.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        email_value: Параметр email value, используемый в логике функции.
+        verified: Параметр verified, используемый в логике функции.
+    """
     if email_value is None:
         EmailIdentity.objects.filter(user=user).delete()
         return
@@ -137,6 +197,19 @@ def register_user(
     username: str | None = None,
     email: str | None = None,
 ) -> User:
+    """Регистрирует пользователь.
+    
+    Args:
+        login: Параметр login, используемый в логике функции.
+        password: Пароль пользователя.
+        password_confirm: Повтор пароля для проверки совпадения.
+        name: Имя сущности или параметра.
+        username: Публичное имя пользователя.
+        email: Email-адрес для проверки или обновления.
+    
+    Returns:
+        Объект типа User, сформированный в ходе выполнения.
+    """
     try:
         normalized_login = validate_login(login)
     except ValueError as exc:
@@ -211,6 +284,15 @@ def register_user(
 
 
 def login_user(identifier: str, password: str) -> User:
+    """Выполняет вход пользователь.
+    
+    Args:
+        identifier: Логин или email, использованный для входа.
+        password: Пароль пользователя.
+    
+    Returns:
+        Объект типа User, сформированный в ходе выполнения.
+    """
     normalized_identifier = str(identifier or "").strip().lower()
     if not normalized_identifier or not password:
         raise _invalid_credentials_error()
@@ -246,6 +328,11 @@ def login_user(identifier: str, password: str) -> User:
 
 
 def _get_expected_google_audience() -> str:
+    """Возвращает expected google audience из текущего контекста.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     expected_audience = str(getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "") or "").strip()
     if not expected_audience:
         raise IdentityServiceError(
@@ -257,6 +344,14 @@ def _get_expected_google_audience() -> str:
 
 
 def _verify_google_id_token(id_token: str) -> dict[str, Any]:
+    """Проверяет Google идентификатор токен.
+    
+    Args:
+        id_token: ID-токен OAuth-провайдера.
+    
+    Returns:
+        Словарь типа dict[str, Any] с данными результата.
+    """
     token = (id_token or "").strip()
     if not token:
         raise IdentityServiceError(
@@ -311,6 +406,14 @@ def _verify_google_id_token(id_token: str) -> dict[str, Any]:
 
 
 def _verify_google_access_token(access_token: str) -> dict[str, Any]:
+    """Проверяет Google доступ токен.
+    
+    Args:
+        access_token: Access-токен OAuth-провайдера.
+    
+    Returns:
+        Словарь типа dict[str, Any] с данными результата.
+    """
     token = (access_token or "").strip()
     if not token:
         raise IdentityServiceError(
@@ -386,6 +489,16 @@ def authenticate_or_signup_with_google(
     access_token: str | None = None,
     username: str | None = None,
 ) -> User:
+    """Аутентифицирует или signup с Google.
+    
+    Args:
+        id_token: ID-токен OAuth-провайдера.
+        access_token: Access-токен OAuth-провайдера.
+        username: Публичное имя пользователя.
+    
+    Returns:
+        Объект типа User, сформированный в ходе выполнения.
+    """
     normalized_id_token = str(id_token or "").strip()
     normalized_access_token = str(access_token or "").strip()
     if normalized_id_token:
@@ -457,6 +570,15 @@ def authenticate_or_signup_with_google(
 
 
 def set_profile_name(user: AbstractUser, name: str | None) -> str:
+    """Устанавливает profile name с учетом правил приложения.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        name: Человекочитаемое имя объекта или параметра.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     profile = ensure_profile(user)
     next_name = _normalize_name(name)
     if getattr(user, "first_name", "") != next_name:
@@ -468,6 +590,15 @@ def set_profile_name(user: AbstractUser, name: str | None) -> str:
 
 
 def set_public_handle(user: AbstractUser, username: str | None) -> str | None:
+    """Устанавливает public handle с учетом правил приложения.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        username: Публичное имя пользователя.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     try:
         return set_user_public_handle(user, username)
     except ValueError as exc:
@@ -475,6 +606,12 @@ def set_public_handle(user: AbstractUser, username: str | None) -> str | None:
 
 
 def _unlink_oauth_provider(user: AbstractUser, provider: str) -> None:
+    """Отвязывает OAuth provider.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        provider: Имя OAuth-провайдера.
+    """
     normalized_provider = str(provider or "").strip().lower()
     if not normalized_provider:
         raise IdentityServiceError(
@@ -512,6 +649,14 @@ def _unlink_oauth_provider(user: AbstractUser, provider: str) -> None:
 
 
 def get_security_settings(user: AbstractUser) -> dict[str, Any]:
+    """Возвращает security settings из текущего контекста.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Словарь типа dict[str, Any] с результатами операции.
+    """
     email_identity = getattr(user, "email_identity", None)
     login_identity = getattr(user, "login_identity", None)
 
@@ -535,6 +680,15 @@ def update_security_settings(
     new_password: str | None = None,
     unlink_oauth_provider: str | None = None,
 ) -> None:
+    """Обновляет security settings и сохраняет изменения.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        email: Email-адрес для проверки или обновления.
+        verify_email: Параметр verify email, используемый в логике функции.
+        new_password: Параметр new password, используемый в логике функции.
+        unlink_oauth_provider: Параметр unlink oauth provider, используемый в логике функции.
+    """
     if email is not None:
         normalized_email = _normalize_optional_email(email)
         _set_email_identity(user, normalized_email, verified=False)
@@ -588,6 +742,14 @@ def update_security_settings(
 
 
 def get_user_by_ref(ref: str):
+    """Возвращает user by ref из текущего контекста или хранилища.
+    
+    Args:
+        ref: Параметр ref, используемый в логике функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     owner_type, owner = resolve_public_ref(ref)
     if owner_type == "user":
         return owner

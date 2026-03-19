@@ -2,8 +2,14 @@ import { type ReactNode,useCallback, useEffect, useState } from "react";
 
 import styles from "../../styles/ui/Toast.module.css";
 
+/**
+ * Описывает структуру данных `ToastVariant`.
+ */
 type ToastVariant = "success" | "danger" | "warning";
 
+/**
+ * Описывает входные props компонента `Toast`.
+ */
 type ToastProps = {
   variant: ToastVariant;
   role?: "status" | "alert";
@@ -19,6 +25,11 @@ const variantClassMap: Record<ToastVariant, string> = {
   warning: styles.warning,
 };
 
+/**
+ * Компонент Toast рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function Toast({
   variant,
   role = "status",

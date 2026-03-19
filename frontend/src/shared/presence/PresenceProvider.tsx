@@ -13,9 +13,17 @@ import { PresenceContext } from "./context";
 
 const PRESENCE_PING_MS = 10000;
 
+/**
+ * Нормализует presence ref.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 const normalizePresenceRef = (value: string | null | undefined): string =>
   normalizePublicRef(value ?? "").toLowerCase();
 
+/**
+ * Описывает входные props компонента `Provider`.
+ */
 type ProviderProps = {
   user: UserProfile | null;
   ready?: boolean;
@@ -23,9 +31,9 @@ type ProviderProps = {
 };
 
 /**
- * Провайдер presence-состояния (онлайн-пользователи и гости).
- * @param props Пользователь, флаг готовности и дочерние компоненты.
- * @returns React context provider presence.
+ * Компонент PresenceProvider рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function PresenceProvider({
   user,
@@ -105,6 +113,9 @@ export function PresenceProvider({
   useEffect(() => {
     if (status !== "online") return;
 
+    /**
+     * Обрабатывает send ping.
+     */
     const sendPing = () => {
       send(JSON.stringify({ type: "ping", ts: Date.now() }));
     };

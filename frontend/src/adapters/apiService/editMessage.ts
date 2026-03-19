@@ -4,6 +4,14 @@ import type { EditMessageResult } from "../../domain/interfaces/IApiService";
 import { decodeEditMessageResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
+/**
+ * Выполняет API-запрос для операции edit message.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param roomId Идентификатор комнаты.
+ * @param messageId Идентификатор сообщения.
+ * @param content Текст сообщения.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function editMessage(
   apiClient: AxiosInstance,
   roomId: string,

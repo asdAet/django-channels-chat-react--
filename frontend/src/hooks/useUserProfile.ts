@@ -4,12 +4,18 @@ import { apiService } from "../adapters/ApiService";
 import type { UserProfile } from "../entities/user/types";
 import { debugLog } from "../shared/lib/debug";
 
+/**
+ * Описывает структуру состояния `Internal`.
+ */
 type InternalState = {
   publicRef: string | null;
   user: UserProfile | null;
   error: string | null;
 };
 
+/**
+ * Описывает структуру состояния `UserProfile`.
+ */
 export type UserProfileState = {
   user: UserProfile | null;
   loading: boolean;
@@ -17,10 +23,10 @@ export type UserProfileState = {
 };
 
 /**
- * Управляет состоянием и эффектами хука `useUserProfile`.
- * @param publicRef Входной параметр `publicRef`.
- * @returns Результат выполнения `useUserProfile`.
+ * Хук useUserProfile управляет состоянием и побочными эффектами текущего сценария.
+ * @param publicRef Публичный идентификатор пользователя.
  */
+
 
 export const useUserProfile = (publicRef: string) => {
   const [state, setState] = useState<InternalState>({
@@ -32,8 +38,8 @@ export const useUserProfile = (publicRef: string) => {
   const hasPublicRef = Boolean(publicRef);
 
   /**
-   * Выполняет метод `useEffect`.
-   * @returns Результат выполнения `useEffect`.
+   * Вызывает `useEffect` как шаг текущего сценария.
+   * @returns Ничего не возвращает.
    */
 
   useEffect(() => {
@@ -47,9 +53,9 @@ export const useUserProfile = (publicRef: string) => {
         if (!active) return;
         const user = payload.user;
         /**
-         * Выполняет метод `setState`.
-         * @param props Входной параметр `props`.
-         * @returns Результат выполнения `setState`.
+         * Вызывает `setState` как шаг текущего сценария.
+         * @param props Свойства компонента.
+
          */
 
         setState({
@@ -69,17 +75,17 @@ export const useUserProfile = (publicRef: string) => {
       })
       .catch((err) => {
         /**
-         * Выполняет метод `debugLog`.
-         * @param err Входной параметр `err`.
-         * @returns Результат выполнения `debugLog`.
+         * Вызывает `debugLog` как шаг текущего сценария.
+         * @param err Ошибка, полученная в процессе выполнения.
+
          */
 
         debugLog("User profile fetch failed", err);
         if (!active) return;
         /**
-         * Выполняет метод `setState`.
-         * @param props Входной параметр `props`.
-         * @returns Результат выполнения `setState`.
+         * Вызывает `setState` как шаг текущего сценария.
+         * @param props Свойства компонента.
+
          */
 
         setState({ publicRef, user: null, error: "not_found" });

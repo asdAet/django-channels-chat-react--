@@ -66,6 +66,11 @@ const errorEventSchema = z
   })
   .passthrough();
 
+/**
+ * Преобразует WebSocket-данные для операции normalize unread.
+ * @param value Входное значение для преобразования.
+ * @returns Строковое значение результата.
+ */
 const normalizeUnread = (
   value: z.infer<typeof unreadSchema> | undefined,
 ): { dialogs: number; slugs: string[]; counts: Record<string, number> } => {
@@ -102,6 +107,11 @@ const normalizeUnread = (
   return { dialogs, slugs, counts };
 };
 
+/**
+ * Преобразует WebSocket-данные для операции normalize item.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованные данные после декодирования.
+ */
 const normalizeItem = (
   value: z.infer<typeof itemSchema>,
 ): DirectChatListItem => ({
@@ -117,6 +127,9 @@ const normalizeItem = (
   lastMessageAt: value.lastMessageAt ?? new Date().toISOString(),
 });
 
+/**
+ * Описывает полезную нагрузку события `DirectInboxWsEvent`.
+ */
 export type DirectInboxWsEvent =
   | {
       type: "direct_unread_state";
@@ -147,10 +160,11 @@ export type DirectInboxWsEvent =
   | { type: "unknown" };
 
 /**
- * Декодирует входящее WS-сообщение direct inbox.
- * @param raw Сырой JSON payload из websocket.
- * @returns Нормализованное WS-событие.
+ * Преобразует WebSocket-данные для операции decode direct inbox ws event.
+ * @param raw Сырые входные данные до нормализации.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeDirectInboxWsEvent = (raw: string): DirectInboxWsEvent => {
   const payload = parseJson(raw);
   if (!payload || typeof payload !== "object") {

@@ -1,10 +1,10 @@
 const TAGS = /<[^>]*>/g;
 
 /**
- * Выполняет функцию `stripControlChars`.
- * @param value Входной параметр `value`.
- * @returns Результат выполнения `stripControlChars`.
+ * Обрабатывает strip control chars.
+ * @param value Входное значение для преобразования.
  */
+
 
 const stripControlChars = (value: string) => {
   let cleaned = "";
@@ -25,11 +25,11 @@ const stripControlChars = (value: string) => {
 };
 
 /**
- * Выполняет функцию `sanitizeText`.
- * @param input Входной параметр `input`.
- * @param maxLen Входной параметр `maxLen`.
- * @returns Результат выполнения `sanitizeText`.
+ * Очищает text.
+ * @param input Входной объект с параметрами операции.
+ * @param maxLen Максимальная длина значения.
  */
+
 
 export const sanitizeText = (input: string, maxLen = 1000) => {
   if (!input) return "";

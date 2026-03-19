@@ -12,6 +12,13 @@ from .models import Room
 
 @receiver(post_save, sender=Room)
 def ensure_group_public_id_on_create(sender, instance: Room, **kwargs):
+    """Гарантирует корректность состояния group public id on create перед выполнением операции.
+    
+    Args:
+        sender: Модель-источник сигнала Django.
+        instance: Экземпляр модели или объекта домена.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     if kwargs.get("raw", False):
         return
     if instance.kind != Room.Kind.GROUP:

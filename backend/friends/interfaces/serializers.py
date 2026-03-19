@@ -13,6 +13,14 @@ from users.identity import user_display_name, user_public_ref, user_public_usern
 
 
 def _require_from_user_id(obj: Friendship) -> int:
+    """Проверяет обязательное условие from user id перед продолжением операции.
+    
+    Args:
+        obj: Объект доменной модели или ORM-сущность.
+    
+    Returns:
+        Целочисленное значение результата вычисления.
+    """
     uid = get_from_user_id(obj)
     if uid is None:
         raise ValueError("Не указан идентификатор отправителя дружбы")
@@ -20,6 +28,14 @@ def _require_from_user_id(obj: Friendship) -> int:
 
 
 def _require_to_user_id(obj: Friendship) -> int:
+    """Проверяет обязательное условие to user id перед продолжением операции.
+    
+    Args:
+        obj: Объект доменной модели или ORM-сущность.
+    
+    Returns:
+        Целочисленное значение результата вычисления.
+    """
     uid = get_to_user_id(obj)
     if uid is None:
         raise ValueError("Не указан идентификатор получателя дружбы")
@@ -27,6 +43,7 @@ def _require_to_user_id(obj: Friendship) -> int:
 
 
 class _UserBriefSerializer(serializers.Serializer):
+    """Класс _UserBriefSerializer сериализует и валидирует данные API."""
     id = serializers.IntegerField()
     publicRef = serializers.CharField()
     username = serializers.CharField()
@@ -36,6 +53,15 @@ class _UserBriefSerializer(serializers.Serializer):
 
 
 def _serialize_user_brief(user, request) -> dict:
+    """Сериализует user brief в формат, пригодный для передачи клиенту.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Словарь типа dict с результатами операции.
+    """
     profile = getattr(user, "profile", None)
     profile_image = resolve_user_avatar_url_from_request(request, user) if request is not None else None
     if profile_image is None and request is None:
@@ -58,66 +84,111 @@ def _serialize_user_brief(user, request) -> dict:
 
 
 class FriendOutputSerializer(serializers.ModelSerializer):
-    """Serializes an accepted friendship — shows the friend (to_user)."""
+    """Класс FriendOutputSerializer сериализует и валидирует данные API."""
 
     user = serializers.SerializerMethodField()
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Friendship
         fields = ("id", "user", "created_at")
 
     def get_user(self, obj: Friendship) -> dict:
+        """Возвращает user из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Словарь типа dict с результатами операции.
+        """
         request = self.context.get("request")
         return _serialize_user_brief(obj.to_user, request)
 
 
 class IncomingRequestOutputSerializer(serializers.ModelSerializer):
-    """Serializes incoming pending request — shows who sent it (from_user)."""
+    """Класс IncomingRequestOutputSerializer сериализует и валидирует данные API."""
 
     user = serializers.SerializerMethodField()
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Friendship
         fields = ("id", "user", "created_at")
 
     def get_user(self, obj: Friendship) -> dict:
+        """Возвращает user из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Словарь типа dict с результатами операции.
+        """
         request = self.context.get("request")
         return _serialize_user_brief(obj.from_user, request)
 
 
 class OutgoingRequestOutputSerializer(serializers.ModelSerializer):
-    """Serializes outgoing pending request — shows target (to_user)."""
+    """Класс OutgoingRequestOutputSerializer сериализует и валидирует данные API."""
 
     user = serializers.SerializerMethodField()
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Friendship
         fields = ("id", "user", "created_at")
 
     def get_user(self, obj: Friendship) -> dict:
+        """Возвращает user из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Словарь типа dict с результатами операции.
+        """
         request = self.context.get("request")
         return _serialize_user_brief(obj.to_user, request)
 
 
 class BlockedOutputSerializer(serializers.ModelSerializer):
-    """Serializes a blocked user — shows who is blocked (to_user)."""
+    """Класс BlockedOutputSerializer сериализует и валидирует данные API."""
 
     user = serializers.SerializerMethodField()
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Friendship
         fields = ("id", "user", "created_at")
 
     def get_user(self, obj: Friendship) -> dict:
+        """Возвращает user из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Словарь типа dict с результатами операции.
+        """
         request = self.context.get("request")
         return _serialize_user_brief(obj.to_user, request)
 
 
 class PublicRefInputSerializer(serializers.Serializer):
+    """Класс PublicRefInputSerializer сериализует и валидирует данные API."""
     ref = serializers.CharField(max_length=150, required=False, allow_blank=True)
     username = serializers.CharField(max_length=150, required=False, allow_blank=True)
 
     def validate(self, attrs):
+        """Проверяет входные данные и возвращает нормализованный результат.
+        
+        Args:
+            attrs: Атрибуты после первичной валидации.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         ref = str(attrs.get("ref") or "").strip()
         username = str(attrs.get("username") or "").strip()
         value = ref or username

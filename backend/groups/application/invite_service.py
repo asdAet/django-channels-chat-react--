@@ -36,7 +36,18 @@ def create_invite(
     expires_in_seconds: int | None = None,
     max_uses: int = 0,
 ) -> InviteLink:
-    """Create an invite link for a group."""
+    """Создает invite и возвращает созданный объект.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        name: Имя сущности или параметра.
+        expires_in_seconds: Параметр expires in seconds, используемый в логике функции.
+        max_uses: Параметр max uses, используемый в логике функции.
+    
+    Returns:
+        Объект типа InviteLink, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -77,7 +88,15 @@ def create_invite(
 
 
 def list_invites(actor, room_id: int) -> list[InviteLink]:
-    """List all invite links for a group. Requires MANAGE_INVITES."""
+    """Возвращает список invites, доступных в текущем контексте.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор room.
+    
+    Returns:
+        Список типа list[InviteLink] с результатами операции.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     _ensure_group_permission(room, actor, Perm.MANAGE_INVITES)
@@ -85,7 +104,13 @@ def list_invites(actor, room_id: int) -> list[InviteLink]:
 
 
 def revoke_invite(actor, room_id: int, invite_code: str) -> None:
-    """Revoke an invite link. Requires MANAGE_INVITES."""
+    """Отзывает invite и аннулирует дальнейшее использование.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        invite_code: Код приглашения в группу.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     _ensure_group_permission(room, actor, Perm.MANAGE_INVITES)
@@ -109,7 +134,14 @@ def revoke_invite(actor, room_id: int, invite_code: str) -> None:
 
 
 def get_invite_info(invite_code: str) -> dict:
-    """Get public preview of an invite link (no auth required)."""
+    """Возвращает invite info из текущего контекста или хранилища.
+    
+    Args:
+        invite_code: Код приглашения в группу.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     invite = (
         InviteLink.objects.filter(code=invite_code)
         .select_related("room")
@@ -135,7 +167,15 @@ def get_invite_info(invite_code: str) -> dict:
 
 
 def join_via_invite(actor, invite_code: str) -> dict:
-    """Join a group using an invite link."""
+    """Добавляет участника или объект в via invite.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        invite_code: Код приглашения в группу.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     _ensure_authenticated(actor)
 
     invite = (

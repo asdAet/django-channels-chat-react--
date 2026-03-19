@@ -20,10 +20,16 @@ import {
 } from "../shared/ui";
 import styles from "../styles/pages/ProfilePage.module.css";
 
+/**
+ * Описывает результат операции `Save`.
+ */
 type SaveResult =
   | { ok: true }
   | { ok: false; errors?: Record<string, string[]>; message?: string };
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onSave: (fields: {
@@ -36,11 +42,19 @@ type Props = {
   onNavigate: (path: string) => void;
 };
 
+/**
+ * Нормализует actor ref.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 const normalizeActorRef = (value: string): string =>
   normalizePublicRef(value).toLowerCase();
 
 const USERNAME_ALLOWED_RE = /^[A-Za-z]+$/;
 
+/**
+ * React-компонент ProfilePage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ProfilePage({ user, onSave, onNavigate }: Props) {
   const usernameMaxLength = useUsernameMaxLength();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
@@ -76,6 +90,10 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
     (trimmedUsername.length <= usernameMaxLength && !hasInvalidUsernameChars);
   const isBioValid = form.bio.length <= 1000;
 
+  /**
+   * Обрабатывает clear field error.
+   * @param field Поле формы, к которому применяется действие.
+   */
   const clearFieldError = (field: string) => {
     setFieldErrors((prev) => {
       if (!prev[field]) return prev;
@@ -85,12 +103,20 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
     });
   };
 
+  /**
+   * Обрабатывает revoke blob url.
+   * @param value Входное значение для преобразования.
+   */
   const revokeBlobUrl = (value: string | null) => {
     if (value && value.startsWith("blob:")) {
       URL.revokeObjectURL(value);
     }
   };
 
+  /**
+   * Обрабатывает clear pending state.
+   * @param revoke Флаг, определяющий необходимость отзыва доступа.
+   */
   const clearPendingState = (revoke = true) => {
     if (revoke) {
       revokeBlobUrl(pendingUrl);
@@ -161,6 +187,10 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
         normalizeActorRef(entry.publicRef) === normalizedCurrentActorRef,
     );
 
+  /**
+   * Обрабатывает handle file change.
+   * @param event Событие браузера.
+   */
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     if (!file) return;
@@ -176,10 +206,17 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
     event.currentTarget.value = "";
   };
 
+  /**
+   * Обрабатывает handle crop cancel.
+   */
   const handleCropCancel = () => {
     clearPendingState(true);
   };
 
+  /**
+   * Обрабатывает handle crop apply.
+   * @param nextCrop Следующие координаты и размеры области обрезки.
+   */
   const handleCropApply = (nextCrop: AvatarCrop) => {
     if (!pendingFile || !pendingUrl) {
       clearPendingState(true);

@@ -9,7 +9,14 @@ from rest_framework.response import Response
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def client_config_view(_request):
-    """Returns client-facing limits and policies from backend settings."""
+    """Обрабатывает API-представление для client config.
+    
+    Args:
+        _request: HTTP-запрос, не используемый напрямую в теле функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     allow_any_type = bool(getattr(settings, "CHAT_ATTACHMENT_ALLOW_ANY_TYPE", True))
     return Response(
         {

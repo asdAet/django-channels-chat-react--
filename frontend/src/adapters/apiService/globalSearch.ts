@@ -3,6 +3,15 @@ import type { AxiosInstance } from "axios";
 import type { GlobalSearchResult } from "../../domain/interfaces/IApiService";
 import { decodeGlobalSearchResponse } from "../../dto";
 
+/**
+ * Асинхронно выполняет поиск.
+ *
+ * @param apiClient HTTP-клиент для выполнения API-запросов.
+ * @param query Поисковый запрос.
+ * @param params Параметры запроса.
+ *
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function globalSearch(
   apiClient: AxiosInstance,
   query: string,

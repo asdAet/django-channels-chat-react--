@@ -4,6 +4,15 @@ import type { RoomAttachmentsResult } from "../../domain/interfaces/IApiService"
 import { decodeRoomAttachmentsResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
+/**
+ * Асинхронно возвращает комнаты вложения.
+ *
+ * @param apiClient HTTP-клиент для выполнения API-запросов.
+ * @param roomId Идентификатор комнаты.
+ * @param params Параметры запроса.
+ *
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function getRoomAttachments(
   apiClient: AxiosInstance,
   roomId: string,

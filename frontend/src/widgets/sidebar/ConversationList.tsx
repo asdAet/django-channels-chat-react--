@@ -14,6 +14,9 @@ import { Avatar, EmptyState, Spinner } from "../../shared/ui";
 import styles from "../../styles/sidebar/ConversationList.module.css";
 import { ConversationListItem } from "./ConversationListItem";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   onNavigate: (path: string) => void;
 };
@@ -24,6 +27,9 @@ const TAB_LABELS: { key: FilterTab; label: string }[] = [
   { key: "groups", label: "Группы" },
 ];
 
+/**
+ * React-компонент ConversationList отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ConversationList({ onNavigate }: Props) {
   const {
     items,

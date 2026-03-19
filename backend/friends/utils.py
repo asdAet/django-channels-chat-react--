@@ -6,6 +6,14 @@ from friends.models import Friendship
 
 
 def get_from_user_id(obj: Friendship) -> int | None:
+    """Возвращает from user id из текущего контекста или хранилища.
+    
+    Args:
+        obj: Объект доменной модели или ORM-сущность.
+    
+    Returns:
+        Объект типа int | None, сформированный в рамках обработки.
+    """
     from_user_id = getattr(obj, "from_user_id", None)
     if from_user_id is not None:
         return int(from_user_id)
@@ -14,6 +22,14 @@ def get_from_user_id(obj: Friendship) -> int | None:
 
 
 def get_to_user_id(obj: Friendship) -> int | None:
+    """Возвращает to user id из текущего контекста или хранилища.
+    
+    Args:
+        obj: Объект доменной модели или ORM-сущность.
+    
+    Returns:
+        Объект типа int | None, сформированный в рамках обработки.
+    """
     to_user_id = getattr(obj, "to_user_id", None)
     if to_user_id is not None:
         return int(to_user_id)

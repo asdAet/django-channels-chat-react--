@@ -39,6 +39,9 @@ vi.mock("../../adapters/ApiService", () => ({
 import { PresenceProvider } from "./PresenceProvider";
 import { usePresence } from "./usePresence";
 
+/**
+ * Проверяет обновление состояния presence в тестовом окружении.
+ */
 function PresenceProbe() {
   const presence = usePresence();
   return (

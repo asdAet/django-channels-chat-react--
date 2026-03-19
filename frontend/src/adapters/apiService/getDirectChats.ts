@@ -4,10 +4,11 @@ import type { DirectChatsResponse } from "../../domain/interfaces/IApiService";
 import { decodeDirectChatsResponse } from "../../dto";
 
 /**
- * Загружает список direct-чатов текущего пользователя.
- * @param apiClient HTTP-клиент.
- * @returns Нормализованный список direct-чатов.
+ * Возвращает direct chats.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
+
 export const getDirectChats = async (
   apiClient: AxiosInstance,
 ): Promise<DirectChatsResponse> => {

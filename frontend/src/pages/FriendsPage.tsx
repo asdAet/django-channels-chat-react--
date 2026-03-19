@@ -10,16 +10,30 @@ import { AddFriendDialog } from "../widgets/friends/AddFriendDialog";
 import { FriendListItem } from "../widgets/friends/FriendListItem";
 import { FriendRequestItem } from "../widgets/friends/FriendRequestItem";
 
+/**
+ * Описывает структуру данных `Tab`.
+ */
 type Tab = "friends" | "online" | "incoming" | "outgoing" | "blocked";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
 };
 
+/**
+ * Нормализует actor ref.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 const normalizeActorRef = (value: string): string =>
   normalizePublicRef(value).toLowerCase();
 
+/**
+ * React-компонент IconPlus отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconPlus = () => (
   <svg
     width="18"
@@ -35,6 +49,9 @@ const IconPlus = () => (
   </svg>
 );
 
+/**
+ * React-компонент FriendsPage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function FriendsPage({ user, onNavigate }: Props) {
   const {
     friends,

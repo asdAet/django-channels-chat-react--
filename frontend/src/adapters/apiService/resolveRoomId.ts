@@ -1,5 +1,10 @@
 import type { AxiosInstance } from "axios";
 
+/**
+ * Выполняет API-запрос для операции to positive room id string.
+ * @param value Входное значение для преобразования.
+ * @returns Строковое значение результата.
+ */
 const toPositiveRoomIdString = (value: unknown): string | null => {
   const parsed =
     typeof value === "number"
@@ -14,8 +19,10 @@ const toPositiveRoomIdString = (value: unknown): string | null => {
 };
 
 /**
- * Resolves UI room ref into backend API room ref.
- * Backend room endpoints are roomId-based, so "public" must be converted.
+ * Определяет room id.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function resolveRoomId(
   apiClient: AxiosInstance,

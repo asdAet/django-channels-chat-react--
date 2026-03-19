@@ -168,6 +168,11 @@ const updateProfileRequestSchema = z
   })
   .strict();
 
+/**
+ * Преобразует HTTP-данные для операции map user profile.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapUserProfile = (
   dto: z.infer<typeof rawUserProfileSchema>,
 ): UserProfile => {
@@ -200,33 +205,92 @@ const mapUserProfile = (
   };
 };
 
+/**
+ * Описывает структуру ответа API `SessionResponseDto`.
+ */
 export type SessionResponseDto = {
   authenticated: boolean;
   user: UserProfile | null;
 };
 
+/**
+ * Описывает структуру данных `ProfileEnvelopeDto`.
+ */
 export type ProfileEnvelopeDto = {
   user: UserProfile;
 };
 
+/**
+ * Описывает структуру данных `AuthErrorPayloadDto`.
+ */
 export type AuthErrorPayloadDto = z.infer<typeof errorPayloadSchema>;
 
+/**
+ * Описывает структуру данных `LoginRequestDto`.
+ */
 export type LoginRequestDto = z.infer<typeof loginRequestInputSchema>;
+/**
+ * Описывает структуру данных `RegisterRequestDto`.
+ */
 export type RegisterRequestDto = z.infer<typeof registerRequestInputSchema>;
+/**
+ * Описывает структуру данных `OAuthGoogleRequestDto`.
+ */
 export type OAuthGoogleRequestDto = z.infer<typeof oauthGoogleRequestSchema>;
+/**
+ * Описывает структуру данных `UpdateProfileRequestDto`.
+ */
 export type UpdateProfileRequestDto = z.infer<typeof updateProfileRequestSchema>;
+
+/**
+ * Декодирует csrf response.
+ *
+ * @param input Входные данные для валидации и преобразования.
+ *
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeCsrfResponse = (input: unknown) =>
   decodeOrThrow(csrfSchema, input, "auth/csrf");
 
+/**
+ * Декодирует presence session response.
+ *
+ * @param input Входные данные для валидации и преобразования.
+ *
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodePresenceSessionResponse = (input: unknown) =>
   decodeOrThrow(presenceSessionSchema, input, "auth/presence-session");
+
+/**
+ * Декодирует password rules response.
+ *
+ * @param input Входные данные для валидации и преобразования.
+ *
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodePasswordRulesResponse = (input: unknown) =>
   decodeOrThrow(passwordRulesSchema, input, "auth/password-rules");
 
+/**
+ * Декодирует logout response.
+ *
+ * @param input Входные данные для валидации и преобразования.
+ *
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeLogoutResponse = (input: unknown) =>
   decodeOrThrow(logoutSchema, input, "auth/logout");
+
+/**
+ * Преобразует HTTP-данные для операции decode session response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeSessionResponse = (input: unknown): SessionResponseDto => {
   const parsed = decodeOrThrow(sessionResponseSchema, input, "auth/session");
@@ -235,6 +299,12 @@ export const decodeSessionResponse = (input: unknown): SessionResponseDto => {
     user: parsed.user ? mapUserProfile(parsed.user) : null,
   };
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode profile envelope response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeProfileEnvelopeResponse = (
   input: unknown,
@@ -247,20 +317,50 @@ export const decodeProfileEnvelopeResponse = (
   return { user: mapUserProfile(parsed.user) };
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode auth error payload.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeAuthErrorPayload = (
   input: unknown,
 ): AuthErrorPayloadDto | null => safeDecode(errorPayloadSchema, input);
 
+/**
+ * Преобразует HTTP-данные для операции build login request dto.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const buildLoginRequestDto = (input: unknown): LoginRequestDto =>
   decodeOrThrow(loginRequestInputSchema, input, "auth/login-request");
 
+/**
+ * Преобразует HTTP-данные для операции build register request dto.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const buildRegisterRequestDto = (input: unknown): RegisterRequestDto =>
   decodeOrThrow(registerRequestInputSchema, input, "auth/register-request");
+
+/**
+ * Преобразует HTTP-данные для операции build oauth google request dto.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const buildOAuthGoogleRequestDto = (
   input: unknown,
 ): OAuthGoogleRequestDto =>
   decodeOrThrow(oauthGoogleRequestSchema, input, "auth/oauth-google-request");
+
+/**
+ * Преобразует HTTP-данные для операции build update profile request dto.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const buildUpdateProfileRequestDto = (
   input: unknown,
@@ -270,6 +370,12 @@ export const buildUpdateProfileRequestDto = (
     input,
     "auth/update-profile-request",
   );
+
+/**
+ * Преобразует HTTP-данные для операции validate public username.
+ * @param username Имя пользователя.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const validatePublicUsername = (username: string): string =>
   decodeOrThrow(usernameLatinSchema, username, "auth/public-username");

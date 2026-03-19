@@ -40,7 +40,15 @@ from .constants import CHAT_CLOSE_IDLE_CODE
 
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
-    """Проверяет лимит WebSocket-подключений по endpoint и IP."""
+    """Выполняет вспомогательную обработку для ws connect rate limited.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        endpoint: Идентификатор API/WS endpoint для применения правил.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if ws_connect_rate_limit_disabled():
         return False
     ip = get_client_ip_from_scope(scope) or "unknown"
@@ -50,12 +58,13 @@ def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
-    """WebSocket consumer for chat room messaging."""
+    """Класс ChatConsumer обрабатывает WebSocket-события и сообщения."""
 
     chat_idle_timeout = int(settings.CHAT_WS_IDLE_TIMEOUT)
     direct_inbox_unread_ttl = int(settings.DIRECT_INBOX_UNREAD_TTL)
 
     async def connect(self):
+        """Устанавливает соединение и выполняет проверки доступа."""
         user = self.scope.get("user")
         if user is None:
             audit_ws_event("ws.connect.denied", self.scope, endpoint="chat", reason="missing_user", code=4401)
@@ -137,6 +146,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self._idle_task = asyncio.create_task(self._idle_watchdog())
 
     async def disconnect(self, code):
+        """Корректно закрывает соединение и освобождает ресурсы.
+        
+        Args:
+            code: Код ошибки или состояния.
+        """
         idle_task = getattr(self, "_idle_task", None)
         if idle_task:
             idle_task.cancel()
@@ -156,6 +170,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data=None, bytes_data=None):
+        """Принимает входящее сообщение и маршрутизирует его обработку.
+        
+        Args:
+            text_data: Параметр text data, используемый в логике функции.
+            bytes_data: Параметр bytes data, используемый в логике функции.
+        """
         self._last_activity = time.monotonic()
         if text_data is None and bytes_data is not None:
             try:
@@ -308,6 +328,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
 
     async def chat_message(self, event):
+        """Транслирует событие нового сообщения в WebSocket-клиенты комнаты.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         self._last_activity = time.monotonic()
         await self.send(
             text_data=json.dumps(
@@ -328,6 +353,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def _idle_watchdog(self):
+        """Выполняет вспомогательную обработку для idle watchdog."""
         interval = max(10, min(60, self.chat_idle_timeout))
         while True:
             await asyncio.sleep(interval)
@@ -338,6 +364,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _load_room(self, room_id: int):
+        """Загружает room из хранилища с необходимыми проверками.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             return Room.objects.filter(pk=room_id).first()
         except (OperationalError, ProgrammingError, IntegrityError):
@@ -345,28 +379,83 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _can_read(self, room: Room, user) -> bool:
+        """Проверяет условие read и возвращает логический результат.
+        
+        Args:
+            room: Экземпляр комнаты, над которой выполняется действие.
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         return can_read(room, user)
 
     @sync_to_async
     def _can_write(self, room: Room, user) -> bool:
+        """Проверяет условие write и возвращает логический результат.
+        
+        Args:
+            room: Экземпляр комнаты, над которой выполняется действие.
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         return can_write(room, user)
 
     @sync_to_async
     def _resolve_public_username(self, user) -> str:
+        """Определяет public username на основе доступного контекста.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         return user_public_username(user)
 
     @sync_to_async
     def _resolve_public_ref(self, user) -> str:
+        """Определяет public ref на основе доступного контекста.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         if user is None or not getattr(user, "is_authenticated", False):
             return ""
         return user_public_ref(user)
 
     @sync_to_async
     def _resolve_display_name(self, user) -> str:
+        """Определяет display name на основе доступного контекста.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         return user_display_name(user)
 
     @sync_to_async
     def save_message(self, message, user, username, profile_pic, room, reply_to_id=None):
+        """Сохраняет сообщение и готовит payload для дальнейшей рассылки.
+        
+        Args:
+            message: Сообщение, участвующее в обработке.
+            user: Пользователь, для которого выполняется операция.
+            username: Публичное имя пользователя.
+            profile_pic: Параметр profile pic, используемый в логике функции.
+            room: Комната, в контексте которой выполняется операция.
+            reply_to_id: Идентификатор reply to.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         normalized_profile_pic = str(profile_pic or "").strip()
         if len(normalized_profile_pic) > 255:
             normalized_profile_pic = ""
@@ -387,6 +476,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _get_profile_avatar_state(self, user):
+        """Возвращает profile avatar state из текущего контекста или хранилища.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             profile = user.profile
             avatar_source = user_profile_avatar_source(user) or ""
@@ -396,7 +493,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _is_blocked_in_dm(self, room: Room, user) -> bool:
-        """Проверяет блокировку между участниками в личном диалоге."""
+        """Проверяет условие blocked in dm и возвращает логический результат.
+        
+        Args:
+            room: Экземпляр комнаты, над которой выполняется действие.
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         from friends.application.friend_service import is_blocked_between
         if room.kind != Room.Kind.DIRECT:
             return False
@@ -412,7 +517,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _rate_limited(self, user) -> bool:
-        """Проверяет лимит отправки сообщений для текущего пользователя."""
+        """Выполняет вспомогательную обработку для rate limited.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         if bool(getattr(user, "is_superuser", False)):
             return False
         scope_key = self._chat_message_rate_limit_scope_key(user)
@@ -421,7 +533,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _rate_limit_retry_after_seconds(self, user) -> int | None:
-        """Возвращает оставшееся время ожидания после rate limit."""
+        """Выполняет вспомогательную обработку для rate limit retry after seconds.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Объект типа int | None, полученный при выполнении операции.
+        """
         if bool(getattr(user, "is_superuser", False)):
             return None
         scope_key = self._chat_message_rate_limit_scope_key(user)
@@ -429,11 +548,26 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @staticmethod
     def _chat_message_rate_limit_scope_key(user) -> str:
+        """Выполняет вспомогательную обработку для chat message rate limit scope key.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         return f"rl:chat:message:{user.pk}"
 
     @sync_to_async
     def _slow_mode_limited(self, user) -> bool:
-        """Проверяет slow mode для группы по текущему пользователю."""
+        """Выполняет вспомогательную обработку для slow mode limited.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         room = getattr(self, "room", None)
         if not room or room.kind != Room.Kind.GROUP:
             return False
@@ -446,6 +580,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Обработка индикатора набора текста.
 
     async def _handle_typing(self):
+        """Обрабатывает событие typing и выполняет связанную бизнес-логику."""
         user = self.scope.get("user")
         if user is None or not getattr(user, "is_authenticated", False):
             return
@@ -478,6 +613,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def chat_typing(self, event):
+        """Транслирует статус набора текста в комнате.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         if event.get("sender_channel") == self.channel_name:
             return
         await self.send(text_data=json.dumps({
@@ -491,6 +631,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _get_reply_data(self, saved_message):
+        """Возвращает reply data из текущего контекста или хранилища.
+        
+        Args:
+            saved_message: Сообщение, сохраненное в базе и готовое к публикации.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         reply = saved_message.reply_to
         if not reply:
             return None
@@ -512,6 +660,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Обработчики edit, delete, reactions и read receipts.
 
     async def chat_message_edit(self, event):
+        """Транслирует изменение сообщения в комнате.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         self._last_activity = time.monotonic()
         await self.send(text_data=json.dumps({
             "type": "message_edit",
@@ -523,6 +676,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def chat_message_delete(self, event):
+        """Транслирует удаление сообщения в комнате.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         self._last_activity = time.monotonic()
         await self.send(text_data=json.dumps({
             "type": "message_delete",
@@ -532,6 +690,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def chat_reaction_add(self, event):
+        """Транслирует добавление реакции на сообщение.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         self._last_activity = time.monotonic()
         await self.send(text_data=json.dumps({
             "type": "reaction_add",
@@ -544,6 +707,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def chat_reaction_remove(self, event):
+        """Транслирует удаление реакции с сообщения.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         self._last_activity = time.monotonic()
         await self.send(text_data=json.dumps({
             "type": "reaction_remove",
@@ -556,6 +724,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def chat_read_receipt(self, event):
+        """Транслирует подтверждение чтения сообщения.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         self._last_activity = time.monotonic()
         await self.send(text_data=json.dumps({
             "type": "read_receipt",
@@ -569,6 +742,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Обработка отметки прочитанного через WebSocket.
 
     async def chat_membership_revoked(self, event):
+        """Уведомляет клиента о потере доступа к комнате.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         target_user_id = event.get("targetUserId")
         if target_user_id is None:
             return
@@ -584,6 +762,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.close(code=4403)
 
     async def _handle_mark_read(self, data):
+        """Обрабатывает событие mark read и выполняет связанную бизнес-логику.
+        
+        Args:
+            data: Словарь входных данных для обработки.
+        """
         user = self.scope.get("user")
         if user is None or not getattr(user, "is_authenticated", False):
             return
@@ -594,6 +777,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _do_mark_read(self, user, room, last_read_id):
+        """Выполняет вспомогательную обработку для do mark read.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+            room: Комната, в контексте которой выполняется действие.
+            last_read_id: Идентификатор last read.
+        """
         from .services import mark_read as service_mark_read
         try:
             state = service_mark_read(user, room, last_read_id)
@@ -619,6 +809,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _build_direct_inbox_targets(self, room_id: int, sender_id: int, message: str, created_at: str):
+        """Формирует direct inbox targets для дальнейшего использования в потоке обработки.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+            sender_id: Идентификатор sender, используемый для выборки данных.
+            message: Экземпляр сообщения для обработки.
+            created_at: Дата и время создания записи для курсорной пагинации.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         room = Room.objects.filter(id=room_id, kind=Room.Kind.DIRECT).first()
         if not room:
             return []

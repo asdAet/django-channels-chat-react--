@@ -6,12 +6,18 @@ import { formatPublicRef } from "../shared/lib/publicRef";
 import { EmptyState } from "../shared/ui";
 import styles from "../styles/pages/SettingsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
   onLogout: () => Promise<void>;
 };
 
+/**
+ * React-компонент SettingsPage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function SettingsPage({ user, onNavigate, onLogout }: Props) {
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     () =>

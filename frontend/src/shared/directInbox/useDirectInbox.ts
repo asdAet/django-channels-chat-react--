@@ -3,8 +3,8 @@ import { useContext } from "react";
 import { DirectInboxContext } from "./context";
 
 /**
- * Управляет состоянием и эффектами хука `useDirectInbox`.
- * @returns Результат выполнения `useDirectInbox`.
+ * Хук useDirectInbox управляет состоянием и побочными эффектами текущего сценария.
  */
+
 
 export const useDirectInbox = () => useContext(DirectInboxContext);

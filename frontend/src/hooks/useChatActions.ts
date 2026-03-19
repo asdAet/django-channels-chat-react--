@@ -4,9 +4,9 @@ import { chatController } from "../controllers/ChatController";
 import type { RoomMessagesParams } from "../dto";
 
 /**
- * Управляет состоянием и эффектами хука `useChatActions`.
- * @returns Результат выполнения `useChatActions`.
+ * Хук useChatActions управляет состоянием и побочными эффектами текущего сценария.
  */
+
 
 export const useChatActions = () => {
   const getRoomDetails = useCallback(

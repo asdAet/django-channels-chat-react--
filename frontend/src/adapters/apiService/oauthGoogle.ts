@@ -4,11 +4,12 @@ import type { SessionResponse } from "../../domain/interfaces/IApiService";
 import { buildOAuthGoogleRequestDto, decodeSessionResponse } from "../../dto";
 
 /**
- * Выполняет вход/регистрацию через Google OAuth.
- * @param apiClient HTTP-клиент.
- * @param token OAuth token от Google Identity Services.
- * @param tokenType Тип токена (`idToken` или `accessToken`).
- * @returns Декодированное состояние сессии.
+ * Выполняет API-запрос для операции oauth google.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param token Токен аутентификации.
+ * @param tokenType Тип токена аутентификации.
+ * @param username Имя пользователя.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function oauthGoogle(
   apiClient: AxiosInstance,

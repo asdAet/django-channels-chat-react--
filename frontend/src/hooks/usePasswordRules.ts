@@ -4,27 +4,27 @@ import { authController } from "../controllers/AuthController";
 import { debugLog } from "../shared/lib/debug";
 
 /**
- * Управляет состоянием и эффектами хука `usePasswordRules`.
- * @param enabled Входной параметр `enabled`.
- * @returns Результат выполнения `usePasswordRules`.
+ * Хук usePasswordRules управляет состоянием и побочными эффектами текущего сценария.
+ * @param enabled Флаг включения поведения.
  */
+
 
 export const usePasswordRules = (enabled: boolean) => {
   const [rules, setRules] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   /**
-   * Выполняет метод `useEffect`.
-   * @param props Входной параметр `props`.
-   * @returns Результат выполнения `useEffect`.
+   * Вызывает `useEffect` как шаг текущего сценария.
+   * @param props Свойства компонента.
+   * @returns Ничего не возвращает.
    */
 
   useEffect(() => {
     if (!enabled) return;
     let active = true;
     /**
-     * Выполняет метод `queueMicrotask`.
-     * @returns Результат выполнения `queueMicrotask`.
+     * Вызывает `queueMicrotask` как шаг текущего сценария.
+     * @returns Ничего не возвращает.
      */
 
     queueMicrotask(() => setLoading(true));
@@ -33,17 +33,17 @@ export const usePasswordRules = (enabled: boolean) => {
       .then((data) => {
         if (!active) return;
         /**
-         * Выполняет метод `setRules`.
-         * @returns Результат выполнения `setRules`.
+         * Вызывает `setRules` как шаг текущего сценария.
+
          */
 
         setRules(Array.isArray(data.rules) ? data.rules : []);
       })
       .catch((err) => {
         /**
-         * Выполняет метод `debugLog`.
-         * @param err Входной параметр `err`.
-         * @returns Результат выполнения `debugLog`.
+         * Вызывает `debugLog` как шаг текущего сценария.
+         * @param err Ошибка, полученная в процессе выполнения.
+
          */
 
         debugLog("Password rules fetch failed", err);

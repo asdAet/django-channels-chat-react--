@@ -5,11 +5,13 @@ import { decodeRoomMessagesResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Загружает сообщения комнаты с пагинацией.
- * @param apiClient HTTP-клиент.
+ * Асинхронно возвращает комнаты сообщений.
+ *
+ * @param apiClient HTTP-клиент для выполнения API-запросов.
  * @param roomId Идентификатор комнаты.
- * @param params Параметры пагинации.
- * @returns Нормализованный список сообщений.
+ * @param params Параметры запроса.
+ *
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function getRoomMessages(
   apiClient: AxiosInstance,

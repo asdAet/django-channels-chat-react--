@@ -4,12 +4,15 @@ import type { SessionResponse } from "../../domain/interfaces/IApiService";
 import { buildRegisterRequestDto, decodeSessionResponse } from "../../dto";
 
 /**
- * Выполняет регистрацию пользователя.
- * @param apiClient HTTP-клиент.
- * @param login Логин.
- * @param password Пароль.
- * @param passwordConfirm Повтор пароля.
- * @returns Декодированное состояние сессии.
+ * Выполняет API-запрос для операции register.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param login Аргумент `login` текущего вызова.
+ * @param password Пароль пользователя.
+ * @param passwordConfirm Аргумент `passwordConfirm` текущего вызова.
+ * @param name Имя параметра или ключа, который используется в операции.
+ * @param username Имя пользователя.
+ * @param email Email пользователя.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function register(
   apiClient: AxiosInstance,

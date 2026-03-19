@@ -1,15 +1,15 @@
 
-"""Содержит логику модуля `apps` подсистемы `users`."""
+"""Модуль apps реализует прикладную логику подсистемы users."""
 
 
 from django.apps import AppConfig
 
 
 class UsersConfig(AppConfig):
-    """Инкапсулирует логику класса `UsersConfig`."""
+    """Класс UsersConfig инкапсулирует связанную бизнес-логику модуля."""
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'users'
 
     def ready(self):
-        """Выполняет логику `ready` с параметрами из сигнатуры."""
+        """Инициализирует интеграции и сигналы при запуске приложения."""
         import users.signals

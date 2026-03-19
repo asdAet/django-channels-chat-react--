@@ -18,6 +18,7 @@ services:
       DJANGO_SESSION_COOKIE_SECURE: "1"
       DJANGO_CSRF_COOKIE_SECURE: "1"
       DJANGO_LOG_LEVEL: "${DJANGO_LOG_LEVEL:-INFO}"
+      DJANGO_UPLOAD_MAX_MB: "${DJANGO_UPLOAD_MAX_MB:-0}"
       GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-}"
       USERNAME_MAX_LENGTH: "${USERNAME_MAX_LENGTH:-30}"
       DJANGO_DB_ENGINE: "django.db.backends.postgresql"
@@ -46,6 +47,8 @@ services:
     build:
       context: .
       dockerfile: deploy/nginx.Dockerfile
+    environment:
+      NGINX_CLIENT_MAX_BODY_SIZE: "${NGINX_CLIENT_MAX_BODY_SIZE:-0}"
     ports:
       - "80:80"
       # "443:443" Public :443 is owned by Xray; website HTTPS stays local for REALITY target/fallback.

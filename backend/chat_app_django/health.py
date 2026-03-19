@@ -17,7 +17,14 @@ logger = logging.getLogger(__name__)
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def live(_request):
-    """Returns liveness status."""
+    """Вспомогательная функция `live` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        _request: HTTP-запрос, не используемый напрямую в теле функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     return Response(
         {
             "status": "ok",
@@ -30,7 +37,14 @@ def live(_request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def ready(_request):
-    """Returns readiness status for database and cache dependencies."""
+    """Инициализирует интеграции и сигналы при запуске приложения.
+    
+    Args:
+        _request: HTTP-запрос, не используемый напрямую в теле функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     components: dict[str, str] = {}
     ok = True
 

@@ -22,6 +22,14 @@ _internal_logger = logging.getLogger("auditlog")
 
 
 def _normalize_int(value):
+    """Нормализует int к внутреннему формату приложения.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     if value is None:
         return None
     try:
@@ -31,6 +39,15 @@ def _normalize_int(value):
 
 
 def _scope_header(scope, name: bytes) -> str | None:
+    """Выполняет вспомогательную обработку для scope header.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        name: Человекочитаемое имя объекта или параметра.
+    
+    Returns:
+        Объект типа str | None, полученный при выполнении операции.
+    """
     for key, value in scope.get("headers", []):
         if key == name:
             try:
@@ -41,6 +58,14 @@ def _scope_header(scope, name: bytes) -> str | None:
 
 
 def _get_or_create_request_id_for_request(request) -> str:
+    """Возвращает or create request id for request из текущего контекста или хранилища.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     existing = getattr(request, "audit_request_id", None) or request.META.get("HTTP_X_REQUEST_ID")
     if existing:
         request_id = str(existing)
@@ -52,6 +77,14 @@ def _get_or_create_request_id_for_request(request) -> str:
 
 
 def _get_or_create_request_id_for_scope(scope) -> str:
+    """Возвращает or create request id for scope из текущего контекста или хранилища.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     existing = scope.get("audit_request_id") or _scope_header(scope, b"x-request-id")
     if existing:
         request_id = str(existing)
@@ -63,6 +96,17 @@ def _get_or_create_request_id_for_scope(scope) -> str:
 
 
 def _extract_actor(actor_user=None, actor_user_id=None, actor_username=None, is_authenticated=None):
+    """Извлекает actor из источника данных.
+    
+    Args:
+        actor_user: Пользователь, от имени которого пишется аудит-событие.
+        actor_user_id: Идентификатор пользователя, от имени которого пишется аудит.
+        actor_username: Публичное имя пользователя для аудита и ответа API.
+        is_authenticated: Булев флаг условия authenticated.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     user = actor_user
     snapshot_id = _normalize_int(actor_user_id)
     snapshot_username = str(actor_username) if actor_username is not None else None
@@ -82,6 +126,14 @@ def _extract_actor(actor_user=None, actor_user_id=None, actor_username=None, is_
 
 
 def _safe_metadata(metadata) -> dict:
+    """Вспомогательная функция `_safe_metadata` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        metadata: Дополнительные поля события, включаемые в аудит-запись.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     if metadata is None:
         return {}
     if isinstance(metadata, Mapping):
@@ -94,6 +146,15 @@ def _safe_metadata(metadata) -> dict:
 
 
 def _default_success(event: str, status_code: int | None) -> bool:
+    """Вспомогательная функция `_default_success` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        event: Событие для логирования или трансляции.
+        status_code: HTTP-код результата операции.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if status_code is not None:
         return status_code < 400
     lowered = event.lower()
@@ -102,6 +163,11 @@ def _default_success(event: str, status_code: int | None) -> bool:
 
 
 def _persist_event_row(payload: dict) -> None:
+    """Сохраняет event row в постоянном хранилище.
+    
+    Args:
+        payload: Подготовленные данные для сохранения или отправки.
+    """
     try:
         AuditEventRepository.create(**payload)
     except (OperationalError, ProgrammingError, IntegrityError):
@@ -109,6 +175,11 @@ def _persist_event_row(payload: dict) -> None:
 
 
 def _persist_event(payload: dict) -> None:
+    """Сохраняет event в постоянном хранилище.
+    
+    Args:
+        payload: Подготовленные данные для сохранения или отправки.
+    """
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -116,6 +187,7 @@ def _persist_event(payload: dict) -> None:
         return
 
     async def _persist_event_async() -> None:
+        """Выполняет вспомогательную обработку для persist event async."""
         persist_row_async = cast(
             Callable[[dict], Awaitable[None]],
             sync_to_async(_persist_event_row, thread_sensitive=True),
@@ -143,6 +215,24 @@ def write_event(
     metadata=None,
     **fields,
 ):
+    """Записывает event в хранилище или аудит.
+    
+    Args:
+        action: Код или имя действия, которое фиксируется в аудите.
+        protocol: Транспортный протокол текущего запроса или события.
+        method: HTTP-метод текущего запроса.
+        path: Путь ресурса в storage или URL-маршруте.
+        status_code: HTTP-код результата операции.
+        success: Флаг успешного выполнения операции.
+        ip: IP-адрес клиента.
+        request_id: Идентификатор request.
+        actor_user: Пользователь, от имени которого пишется аудит-событие.
+        actor_user_id: Идентификатор пользователя, от имени которого пишется аудит.
+        actor_username: Публичное имя пользователя для аудита и ответа API.
+        is_authenticated: Булев флаг условия authenticated.
+        metadata: Дополнительные поля события, включаемые в аудит-запись.
+        **fields: Дополнительные поля, переданные в функцию.
+    """
     event_metadata = _safe_metadata(metadata)
     if fields:
         event_metadata.update(_safe_metadata(fields))
@@ -206,6 +296,12 @@ def write_event(
 
 
 def audit_security_event(event: str, **fields) -> None:
+    """Фиксирует security event в системе аудита.
+    
+    Args:
+        event: Событие для логирования или трансляции.
+        **fields: Дополнительные поля, переданные в функцию.
+    """
     protocol = fields.pop("protocol", "system")
     write_event(
         event,
@@ -222,6 +318,13 @@ def audit_security_event(event: str, **fields) -> None:
 
 
 def audit_http_event(event: str, request, **fields) -> None:
+    """Фиксирует http event в системе аудита.
+    
+    Args:
+        event: Событие для логирования или трансляции.
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        **fields: Дополнительные поля, переданные в функцию.
+    """
     user = getattr(request, "user", None)
     write_event(
         event,
@@ -241,6 +344,13 @@ def audit_http_event(event: str, request, **fields) -> None:
 
 
 def audit_ws_event(event: str, scope, **fields) -> None:
+    """Фиксирует ws event в системе аудита.
+    
+    Args:
+        event: Событие для логирования или трансляции.
+        scope: ASGI-контекст соединения с метаданными клиента.
+        **fields: Дополнительные поля, переданные в функцию.
+    """
     user = scope.get("user")
     write_event(
         event,
@@ -259,6 +369,13 @@ def audit_ws_event(event: str, scope, **fields) -> None:
 
 
 def audit_http_request(request, response=None, exception: Exception | None = None) -> None:
+    """Фиксирует http request в системе аудита.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        response: HTTP-ответ, который анализируется перед возвратом клиенту.
+        exception: Параметр exception, используемый в логике функции.
+    """
     status_code = getattr(response, "status_code", None)
     if status_code is None:
         status_code = 500 if exception else None

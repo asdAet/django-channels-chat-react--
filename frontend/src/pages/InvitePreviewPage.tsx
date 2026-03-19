@@ -5,11 +5,17 @@ import type { InvitePreview } from "../entities/group/types";
 import { Spinner } from "../shared/ui";
 import styles from "../styles/groups/GroupsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   code: string;
   onNavigate: (path: string) => void;
 };
 
+/**
+ * React-компонент InvitePreviewPage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function InvitePreviewPage({ code, onNavigate }: Props) {
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loading, setLoading] = useState(true);

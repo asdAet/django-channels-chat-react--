@@ -5,6 +5,14 @@ from .permissions import Perm
 
 
 def _permission_flags(mask: int) -> str:
+    """Вспомогательная функция `_permission_flags` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        mask: Параметр mask, используемый в логике функции.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     names = [
         perm_name
         for perm in Perm
@@ -17,6 +25,7 @@ def _permission_flags(mask: int) -> str:
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
+    """Класс RoleAdmin настраивает поведение сущности в Django Admin."""
     list_display = (
         "room",
         "name",
@@ -44,11 +53,20 @@ class RoleAdmin(admin.ModelAdmin):
 
     @admin.display(description="Permission flags")
     def permission_flags(self, obj: Role) -> str:
+        """Формирует значение permission flags для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         return _permission_flags(int(obj.permissions))
 
 
 @admin.register(Membership)
 class MembershipAdmin(admin.ModelAdmin):
+    """Класс MembershipAdmin настраивает поведение сущности в Django Admin."""
     list_display = ("room", "user", "role_names", "is_banned", "nickname", "joined_at")
     search_fields = ("room__slug", "user__username", "nickname")
     list_filter = ("is_banned", "room__kind")
@@ -58,12 +76,21 @@ class MembershipAdmin(admin.ModelAdmin):
 
     @admin.display(description="Roles")
     def role_names(self, obj: Membership) -> str:
+        """Формирует значение role names для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         names = list(obj.roles.order_by("-position", "name").values_list("name", flat=True))
         return ", ".join(names) if names else "@everyone only"
 
 
 @admin.register(PermissionOverride)
 class PermissionOverrideAdmin(admin.ModelAdmin):
+    """Класс PermissionOverrideAdmin настраивает поведение сущности в Django Admin."""
     list_display = (
         "room",
         "target_role",
@@ -80,8 +107,24 @@ class PermissionOverrideAdmin(admin.ModelAdmin):
 
     @admin.display(description="Allow flags")
     def allow_flags(self, obj: PermissionOverride) -> str:
+        """Формирует значение allow flags для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         return _permission_flags(int(obj.allow))
 
     @admin.display(description="Deny flags")
     def deny_flags(self, obj: PermissionOverride) -> str:
+        """Формирует значение deny flags для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         return _permission_flags(int(obj.deny))

@@ -6,17 +6,29 @@ import { formatTimestamp } from "../../shared/lib/format";
 import { Spinner } from "../../shared/ui";
 import styles from "../../styles/chat/ChatSearch.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   slug: string;
   onResultClick?: (messageId: number) => void;
 };
 
+/**
+ * Обрабатывает highlight text.
+ * @param text Текст, который используется в вычислении.
+ * @param query Поисковый запрос.
+
+ */
 function highlightText(text: string, query: string): string {
   if (!query.trim()) return text;
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return text.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
 }
 
+/**
+ * React-компонент ChatSearch отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ChatSearch({ slug, onResultClick }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);

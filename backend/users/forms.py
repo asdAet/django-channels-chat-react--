@@ -44,13 +44,24 @@ SVG_EVENT_HANDLER_RE = re.compile(r"\son[a-z0-9_-]+\s*=", flags=re.IGNORECASE)
 
 
 def _validate_username_symbols(username: str) -> None:
-    """Проверяет допустимые символы и формат публичного имени."""
+    """Проверяет значение поля username symbols и возвращает нормализованный результат.
+    
+    Args:
+        username: Публичное имя пользователя, используемое в событиях и ответах.
+    """
     if username and not USERNAME_ALLOWED_RE.fullmatch(username):
         raise forms.ValidationError(USERNAME_ALLOWED_HINT)
 
 
 def _is_svg_upload(uploaded_file) -> bool:
-    """Определяет SVG по расширению или content_type."""
+    """Проверяет условие svg upload и возвращает логический результат.
+    
+    Args:
+        uploaded_file: Файл, загруженный пользователем через форму или API.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     filename = str(getattr(uploaded_file, "name", "") or "")
     content_type = str(getattr(uploaded_file, "content_type", "") or "").strip().lower()
     extension = Path(filename).suffix.lower()
@@ -58,7 +69,14 @@ def _is_svg_upload(uploaded_file) -> bool:
 
 
 def _read_uploaded_bytes(uploaded_file) -> bytes:
-    """Читает файл и возвращает исходные байты с восстановлением указателя."""
+    """Читает uploaded байты.
+    
+    Args:
+        uploaded_file: Файл, полученный из multipart-запроса.
+    
+    Returns:
+        Объект типа bytes, сформированный в ходе выполнения.
+    """
     if hasattr(uploaded_file, "seek"):
         uploaded_file.seek(0)
     raw = uploaded_file.read()
@@ -72,7 +90,11 @@ def _read_uploaded_bytes(uploaded_file) -> bytes:
 
 
 def _validate_svg_avatar(uploaded_file) -> None:
-    """Проверяет SVG на базовую безопасность и корректный XML-контейнер."""
+    """Проверяет значение поля svg avatar и возвращает нормализованный результат.
+    
+    Args:
+        uploaded_file: Файл, загруженный пользователем через форму или API.
+    """
     raw = _read_uploaded_bytes(uploaded_file)
     if not raw:
         raise forms.ValidationError("SVG файл пустой.")
@@ -103,11 +125,17 @@ def _validate_svg_avatar(uploaded_file) -> None:
 
 
 class EmailRegisterForm(forms.Form):
+    """Форма EmailRegisterForm валидирует и подготавливает входные данные."""
     email = forms.EmailField(required=True)
     password1 = forms.CharField(required=True)
     password2 = forms.CharField(required=True)
 
     def clean_email(self):
+        """Проверяет и нормализует значение поля email.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         email = normalize_email(self.cleaned_data.get("email"))
         if not email:
             raise forms.ValidationError("Укажите email")
@@ -116,6 +144,11 @@ class EmailRegisterForm(forms.Form):
         return email
 
     def clean(self):
+        """Проверяет согласованность и валидность данных формы.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         cleaned = super().clean()
         password1 = cleaned.get("password1")
         password2 = cleaned.get("password2")
@@ -137,13 +170,20 @@ class EmailRegisterForm(forms.Form):
 
 
 class UserUpdateForm(forms.ModelForm):
+    """Форма UserUpdateForm валидирует и подготавливает входные данные."""
     email = forms.EmailField(required=False)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = User
         fields = ["username", "email"]
 
     def clean_username(self):
+        """Проверяет и нормализует значение поля username.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         username = (self.cleaned_data.get("username") or "").strip()
         if not username:
             return ""
@@ -158,6 +198,11 @@ class UserUpdateForm(forms.ModelForm):
         return username
 
     def clean_email(self):
+        """Проверяет и нормализует значение поля email.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         email = normalize_email(self.cleaned_data.get("email"))
         if not email:
             return ""
@@ -170,17 +215,35 @@ class UserUpdateForm(forms.ModelForm):
 
 
 class ProfileIdentityUpdateForm(forms.Form):
+    """Форма ProfileIdentityUpdateForm валидирует и подготавливает входные данные."""
     name = forms.CharField(required=False, max_length=150)
     username = forms.CharField(required=False, max_length=USERNAME_MAX_LENGTH)
 
     def __init__(self, *args, user=None, **kwargs):
+        """Инициализирует экземпляр класса и подготавливает внутреннее состояние.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            user: Пользователь, для которого выполняется операция.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        """
         super().__init__(*args, **kwargs)
         self.user = user
 
     def clean_name(self):
+        """Проверяет и нормализует значение поля name.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return strip_tags((self.cleaned_data.get("name") or "").strip())
 
     def clean_username(self):
+        """Проверяет и нормализует значение поля username.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         raw = self.cleaned_data.get("username")
         if raw is None:
             return None
@@ -200,6 +263,14 @@ class ProfileIdentityUpdateForm(forms.Form):
         return username
 
     def save(self, profile: Profile) -> Profile:
+        """Сохраняет изменения объекта в хранилище.
+        
+        Args:
+            profile: Параметр profile, используемый в логике функции.
+        
+        Returns:
+            Объект типа Profile, сформированный в ходе выполнения.
+        """
         cleaned = self.cleaned_data
         if "name" in cleaned:
             profile.name = cleaned.get("name") or ""
@@ -208,9 +279,11 @@ class ProfileIdentityUpdateForm(forms.Form):
 
 
 class ProfileUpdateForm(forms.ModelForm):
+    """Форма ProfileUpdateForm валидирует и подготавливает входные данные."""
     image = forms.FileField(required=False)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Profile
         fields = ["image", "bio"]
         widgets = {
@@ -218,10 +291,20 @@ class ProfileUpdateForm(forms.ModelForm):
         }
 
     def clean_bio(self):
+        """Проверяет и нормализует значение поля bio.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         bio = self.cleaned_data.get("bio") or ""
         return strip_tags(bio).strip()
 
     def clean(self):
+        """Проверяет согласованность и валидность данных формы.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         cleaned = super().clean()
         crop_field_map = {
             "avatarCropX": "avatar_crop_x",
@@ -276,6 +359,11 @@ class ProfileUpdateForm(forms.ModelForm):
         return cleaned
 
     def clean_image(self):
+        """Проверяет и нормализует значение поля image.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         image = self.cleaned_data.get("image")
         if not image:
             return image
@@ -309,6 +397,14 @@ class ProfileUpdateForm(forms.ModelForm):
         return image
 
     def save(self, commit=True):
+        """Сохраняет изменения объекта в хранилище.
+        
+        Args:
+            commit: Параметр commit, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         instance = super().save(commit=False)
         crop_update = getattr(self, "_avatar_crop_update", None)
         if crop_update is not None:

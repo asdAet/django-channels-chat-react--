@@ -3,9 +3,9 @@
 import { decodeCsrfResponse } from "../../dto";
 
 /**
- * Выполняет запрос CSRF и декодирует DTO-ответ.
- * @param apiClient HTTP-клиент.
- * @returns Нормализованный CSRF payload.
+ * Гарантирует csrf.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function ensureCsrf(
   apiClient: AxiosInstance,

@@ -3,11 +3,17 @@ const GOOGLE_IDENTITY_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 const GOOGLE_OAUTH_SCOPE = "openid email profile";
 const GOOGLE_PROMPT_TIMEOUT_MS = 25_000;
 
+/**
+ * Описывает структуру ответа API `GoogleCredentialResponse`.
+ */
 type GoogleCredentialResponse = {
   credential?: string;
   select_by?: string;
 };
 
+/**
+ * Описывает параметры конфигурации `GoogleIdClientConfig`.
+ */
 type GoogleIdClientConfig = {
   client_id: string;
   callback: (response: GoogleCredentialResponse) => void;
@@ -17,20 +23,32 @@ type GoogleIdClientConfig = {
   itp_support?: boolean;
 };
 
+/**
+ * Описывает структуру ответа API `GoogleTokenResponse`.
+ */
 type GoogleTokenResponse = {
   access_token?: string;
   error?: string;
   error_description?: string;
 };
 
+/**
+ * Описывает структуру ответа API `GoogleTokenErrorResponse`.
+ */
 type GoogleTokenErrorResponse = {
   type?: string;
 };
 
+/**
+ * Описывает структуру данных `GoogleTokenClient`.
+ */
 type GoogleTokenClient = {
   requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
 };
 
+/**
+ * Описывает параметры конфигурации `GoogleTokenClientConfig`.
+ */
 type GoogleTokenClientConfig = {
   client_id: string;
   scope: string;
@@ -38,16 +56,25 @@ type GoogleTokenClientConfig = {
   error_callback?: (response: GoogleTokenErrorResponse) => void;
 };
 
+/**
+ * Описывает структуру данных `GoogleAccountsOauth2`.
+ */
 type GoogleAccountsOauth2 = {
   initTokenClient: (config: GoogleTokenClientConfig) => GoogleTokenClient;
 };
 
+/**
+ * Описывает структуру данных `GoogleAccountsId`.
+ */
 type GoogleAccountsId = {
   initialize: (config: GoogleIdClientConfig) => void;
   prompt: () => void;
   cancel?: () => void;
 };
 
+/**
+ * Описывает структуру данных `GoogleNamespace`.
+ */
 type GoogleNamespace = {
   accounts?: {
     id?: GoogleAccountsId;
@@ -56,18 +83,30 @@ type GoogleNamespace = {
 };
 
 declare global {
-  interface Window {
+    /**
+     * Интерфейс Window задает публичный контракт модуля.
+     */
+interface Window {
     google?: GoogleNamespace;
   }
 }
 
+/**
+ * Описывает структуру данных `GoogleTokenType`.
+ */
 export type GoogleTokenType = "idToken" | "accessToken";
 
+/**
+ * Описывает структуру данных `GoogleOAuthSuccess`.
+ */
 export type GoogleOAuthSuccess = {
   token: string;
   tokenType: GoogleTokenType;
 };
 
+/**
+ * Класс GoogleOAuthError инкапсулирует логику текущего слоя приложения.
+ */
 export class GoogleOAuthError extends Error {
   public readonly code:
     | "oauth_not_configured"
@@ -77,7 +116,13 @@ export class GoogleOAuthError extends Error {
     | "oauth_token_missing"
     | "oauth_request_failed";
 
-  public constructor(code: GoogleOAuthError["code"], message: string) {
+
+public constructor(code: GoogleOAuthError["code"], message: string) {
+    /**
+     * Инициализирует базовый конструктор и сохраняет параметры ошибки.
+     *
+     * @param message Текст сообщения.
+     */
     super(message);
     this.code = code;
     this.name = "GoogleOAuthError";
@@ -86,12 +131,24 @@ export class GoogleOAuthError extends Error {
 
 let sdkLoadPromise: Promise<void> | null = null;
 
+/**
+ * Возвращает google id api.
+ * @returns Данные, полученные из источника или кэша.
+ */
 const getGoogleIdApi = (): GoogleAccountsId | null =>
   window.google?.accounts?.id ?? null;
 
+/**
+ * Возвращает google oauth2 api.
+ * @returns Данные, полученные из источника или кэша.
+ */
 const getGoogleOauth2Api = (): GoogleAccountsOauth2 | null =>
   window.google?.accounts?.oauth2 ?? null;
 
+/**
+ * Обрабатывает load google identity sdk.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 const loadGoogleIdentitySdk = async (): Promise<void> => {
   if (getGoogleIdApi() || getGoogleOauth2Api()) {
     return;
@@ -141,9 +198,20 @@ const loadGoogleIdentitySdk = async (): Promise<void> => {
   await sdkLoadPromise;
 };
 
+/**
+ * Обрабатывает to google auth error.
+ * @param message Сообщение, которое нужно обработать.
+
+ */
 const toGoogleAuthError = (message: string): GoogleOAuthError =>
   new GoogleOAuthError("oauth_request_failed", message);
 
+/**
+ * Обрабатывает request google access token.
+ * @param api Экземпляр API-клиента.
+ * @param clientId Идентификатор OAuth-клиента.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 const requestGoogleAccessToken = async (
   api: GoogleAccountsOauth2,
   clientId: string,
@@ -161,6 +229,10 @@ const requestGoogleAccessToken = async (
       );
     }, GOOGLE_PROMPT_TIMEOUT_MS);
 
+    /**
+     * Обрабатывает finish.
+     * @param result Аргумент `result` текущего вызова.
+     */
     const finish = (result: { token?: string; error?: GoogleOAuthError }) => {
       if (settled) return;
       settled = true;
@@ -248,6 +320,12 @@ const requestGoogleAccessToken = async (
     }
   });
 
+/**
+ * Обрабатывает request google id token.
+ * @param api Экземпляр API-клиента.
+ * @param clientId Идентификатор OAuth-клиента.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 const requestGoogleIdToken = async (
   api: GoogleAccountsId,
   clientId: string,
@@ -266,6 +344,10 @@ const requestGoogleIdToken = async (
       );
     }, GOOGLE_PROMPT_TIMEOUT_MS);
 
+    /**
+     * Обрабатывает finish.
+     * @param result Аргумент `result` текущего вызова.
+     */
     const finish = (result: { token?: string; error?: GoogleOAuthError }) => {
       if (settled) return;
       settled = true;
@@ -321,6 +403,12 @@ const requestGoogleIdToken = async (
       });
     }
   });
+
+/**
+ * Обрабатывает sign in with google.
+ * @param clientId Идентификатор OAuth-клиента.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 
 export const signInWithGoogle = async (
   clientId: string,

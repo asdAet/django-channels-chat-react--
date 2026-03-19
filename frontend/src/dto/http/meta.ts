@@ -20,8 +20,11 @@ const clientConfigSchema = z
   .passthrough();
 
 /**
- * Декодирует payload /api/meta/client-config/.
+ * Преобразует HTTP-данные для операции decode client config response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeClientConfigResponse = (
   input: unknown,
 ): ClientRuntimeConfig =>

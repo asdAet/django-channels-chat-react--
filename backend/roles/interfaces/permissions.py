@@ -10,9 +10,18 @@ from roles.application import management_service
 
 
 class CanManageRoomRoles(BasePermission):
-    """Allows access only to users with MANAGE_ROLES in the room."""
+    """Класс CanManageRoomRoles инкапсулирует связанную бизнес-логику модуля."""
 
     def has_permission(self, request: Any, view: Any):  # pyright: ignore[reportIncompatibleMethodOverride]
+        """Проверяет условие permission и возвращает логический результат.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            view: Экземпляр представления, для которого проверяется разрешение.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         room_id_raw = getattr(view, "kwargs", {}).get("room_id")
         if room_id_raw is None:
             return False

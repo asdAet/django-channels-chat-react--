@@ -25,6 +25,7 @@ from users.models import PublicHandle
 
 
 class _UnsetType:
+    """Класс _UnsetType объединяет связанную прикладную логику подсистемы."""
     __slots__ = ()
 
 
@@ -38,18 +39,22 @@ _ROOM_AVATAR_CROP_FIELDS = (
 
 
 class GroupError(Exception):
+    """Класс GroupError объединяет связанную прикладную логику подсистемы."""
     pass
 
 
 class GroupNotFoundError(GroupError):
+    """Класс GroupNotFoundError объединяет связанную прикладную логику подсистемы."""
     pass
 
 
 class GroupForbiddenError(GroupError):
+    """Класс GroupForbiddenError объединяет связанную прикладную логику подсистемы."""
     pass
 
 
 class GroupConflictError(GroupError):
+    """Класс GroupConflictError объединяет связанную прикладную логику подсистемы."""
     pass
 
 
@@ -57,11 +62,23 @@ _GROUP_USERNAME_CONFLICT_MSG = "Этот username уже занят"
 
 
 def _append_changed(changed_fields: list[str], field_name: str) -> None:
+    """Добавляет changed.
+    
+    Args:
+        changed_fields: Параметр changed fields, используемый в логике функции.
+        field_name: Параметр field name, используемый в логике функции.
+    """
     if field_name not in changed_fields:
         changed_fields.append(field_name)
 
 
 def _clear_room_avatar_crop(room: Room, changed_fields: list[str]) -> None:
+    """Очищает room avatar crop и сбрасывает связанное состояние.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        changed_fields: Параметр changed fields, используемый в логике функции.
+    """
     room.avatar_crop_x = None
     room.avatar_crop_y = None
     room.avatar_crop_width = None
@@ -71,6 +88,13 @@ def _clear_room_avatar_crop(room: Room, changed_fields: list[str]) -> None:
 
 
 def _apply_room_avatar_crop(room: Room, crop_payload: dict[str, float], changed_fields: list[str]) -> None:
+    """Применяет room avatar crop к текущему набору данных.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        crop_payload: Параметр crop payload, используемый в логике функции.
+        changed_fields: Параметр changed fields, используемый в логике функции.
+    """
     room.avatar_crop_x = crop_payload["avatar_crop_x"]
     room.avatar_crop_y = crop_payload["avatar_crop_y"]
     room.avatar_crop_width = crop_payload["avatar_crop_width"]
@@ -80,6 +104,14 @@ def _apply_room_avatar_crop(room: Room, crop_payload: dict[str, float], changed_
 
 
 def _validate_room_avatar_crop(crop_payload: dict[str, float]) -> dict[str, float]:
+    """Проверяет корректность значения room avatar crop.
+    
+    Args:
+        crop_payload: Параметр crop payload, используемый в логике функции.
+    
+    Returns:
+        Словарь типа dict[str, float] с данными результата.
+    """
     for key in _ROOM_AVATAR_CROP_FIELDS:
         if crop_payload.get(key) is None:
             raise GroupError("Укажите все поля обрезки аватарки")
@@ -106,6 +138,15 @@ def _validate_room_avatar_crop(crop_payload: dict[str, float]) -> dict[str, floa
 
 
 def _serialize_group_avatar(request, room: Room) -> tuple[str | None, dict[str, float] | None]:
+    """Сериализует group avatar для передачи клиенту.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room: Комната, в контексте которой выполняется действие.
+    
+    Returns:
+        Кортеж типа tuple[str | None, dict[str, float] | None] с результатами операции.
+    """
     avatar_url: str | None = resolve_group_avatar_url_from_request(request, room) if request is not None else None
     if avatar_url is None and request is None:
         source = resolve_group_avatar_source(room)
@@ -116,11 +157,24 @@ def _serialize_group_avatar(request, room: Room) -> tuple[str | None, dict[str, 
 
 
 def _ensure_authenticated(actor) -> None:
+    """Гарантирует корректность authenticated перед выполнением операции.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+    """
     if not actor or not getattr(actor, "is_authenticated", False):
         raise GroupForbiddenError("Требуется аутентификация")
 
 
 def _load_group_or_raise(room_id: int) -> Room:
+    """Загружает group or raise из хранилища с проверками доступа.
+    
+    Args:
+        room_id: Идентификатор room.
+    
+    Returns:
+        Объект типа Room, полученный при выполнении операции.
+    """
     room = Room.objects.filter(pk=int(room_id), kind=Room.Kind.GROUP).first()
     if not room:
         raise GroupNotFoundError("Группа не найдена")
@@ -128,6 +182,13 @@ def _load_group_or_raise(room_id: int) -> Room:
 
 
 def _ensure_group_permission(room: Room, actor, perm: Perm) -> None:
+    """Проверяет обязательные условия для group permission.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        actor: Пользователь, инициирующий действие.
+        perm: Параметр perm, используемый в логике функции.
+    """
     if not has_permission(room, actor, perm):
         audit_security_event(
             "group.permission.denied",
@@ -142,6 +203,14 @@ def _ensure_group_permission(room: Room, actor, perm: Perm) -> None:
 
 
 def _normalize_group_handle(username: str | None) -> str | None:
+    """Нормализует group handle к внутреннему формату приложения.
+    
+    Args:
+        username: Публичное имя пользователя.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     if username is None:
         return None
     value = str(username).strip()
@@ -158,6 +227,18 @@ def create_group(
     is_public: bool = False,
     username: str | None = None,
 ) -> Room:
+    """Создает group и возвращает созданный объект.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        name: Имя сущности или параметра.
+        description: Параметр description, используемый в логике функции.
+        is_public: Булев флаг условия public.
+        username: Публичное имя пользователя.
+    
+    Returns:
+        Объект типа Room, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
 
     name = group_rules.validate_group_name(name)
@@ -223,6 +304,24 @@ def update_group(
     avatar_action: str | None = None,
     avatar_crop: dict[str, float] | _UnsetType = _UNSET,
 ) -> Room:
+    """Обновляет group и сохраняет изменения.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        name: Имя сущности или параметра.
+        description: Параметр description, используемый в логике функции.
+        is_public: Булев флаг условия public.
+        username: Публичное имя пользователя.
+        slow_mode_seconds: Параметр slow mode seconds, используемый в логике функции.
+        join_approval_required: Параметр join approval required, используемый в логике функции.
+        avatar: Параметр avatar, используемый в логике функции.
+        avatar_action: Параметр avatar action, используемый в логике функции.
+        avatar_crop: Параметр avatar crop, используемый в логике функции.
+    
+    Returns:
+        Объект типа Room, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -312,6 +411,12 @@ def update_group(
 
 
 def delete_group(actor, room_id: int) -> None:
+    """Удаляет group и выполняет сопутствующие действия.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор room.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     _ensure_group_permission(room, actor, Perm.ADMINISTRATOR)
@@ -333,6 +438,16 @@ def delete_group(actor, room_id: int) -> None:
 
 
 def get_group_info(room_id: int, actor=None, request=None) -> dict:
+    """Возвращает group info из текущего контекста.
+    
+    Args:
+        room_id: Идентификатор room.
+        actor: Пользователь, инициирующий действие.
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Словарь типа dict с результатами операции.
+    """
     room = _load_group_or_raise(room_id)
     handle = room_public_handle(room)
     public_access = bool(room.is_public and handle)
@@ -364,6 +479,15 @@ def get_group_info(room_id: int, actor=None, request=None) -> dict:
 
 
 def _room_matches_handle(room: Room, search: str) -> bool:
+    """Вспомогательная функция `_room_matches_handle` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        search: Параметр search, используемый в логике функции.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     handle = room_public_handle(room)
     if not handle:
         return False
@@ -377,6 +501,17 @@ def list_public_groups(
     limit: int = 20,
     request=None,
 ) -> dict:
+    """Возвращает список public groups с учетом фильтров доступа.
+    
+    Args:
+        search: Параметр search, используемый в логике функции.
+        before_id: Идентификатор курсора для пагинации назад.
+        limit: Лимит количества записей в ответе.
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     limit = max(1, min(int(limit), 100))
     qs = Room.objects.filter(
         kind=Room.Kind.GROUP,
@@ -438,6 +573,18 @@ def list_my_groups(
     limit: int = 20,
     request=None,
 ) -> dict:
+    """Возвращает список my groups с учетом фильтров доступа.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        search: Параметр search, используемый в логике функции.
+        before_id: Идентификатор курсора для пагинации назад.
+        limit: Лимит количества записей в ответе.
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     _ensure_authenticated(actor)
     limit = max(1, min(int(limit), 100))
 

@@ -26,6 +26,9 @@ vi.mock("../groups/GroupInfoPanel", () => ({
   GroupInfoPanel: ({ slug }: { slug: string }) => <div>group:{slug}</div>,
 }));
 
+/**
+ * Создает тестовый harness для рендера и взаимодействий.
+ */
 function Harness() {
   const { open, close } = useInfoPanel();
 

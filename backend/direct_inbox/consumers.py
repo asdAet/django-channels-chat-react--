@@ -35,11 +35,27 @@ T = TypeVar("T")
 
 
 def _to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
+    """Вспомогательная функция `_to_async` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        func: Параметр func, используемый в логике функции.
+    
+    Returns:
+        Объект типа Callable[..., Awaitable[T]], сформированный в ходе выполнения.
+    """
     return cast(Callable[..., Awaitable[T]], sync_to_async(func, thread_sensitive=True))
 
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
-    """Checks websocket connect rate limit per endpoint and IP."""
+    """Выполняет вспомогательную обработку для ws connect rate limited.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        endpoint: Идентификатор API/WS endpoint для применения правил.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if ws_connect_rate_limit_disabled():
         return False
     ip = get_client_ip_from_scope(scope) or "unknown"
@@ -49,7 +65,7 @@ def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
 
 
 class DirectInboxConsumer(AsyncWebsocketConsumer):
-    """Manages unread/active state for direct message conversations."""
+    """Класс DirectInboxConsumer обрабатывает WebSocket-события и сообщения."""
 
     unread_ttl = int(settings.DIRECT_INBOX_UNREAD_TTL)
     active_ttl = int(settings.DIRECT_INBOX_ACTIVE_TTL)
@@ -57,6 +73,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
     idle_timeout = int(settings.DIRECT_INBOX_IDLE_TIMEOUT)
 
     async def connect(self):
+        """Устанавливает соединение и выполняет проверки доступа."""
         user = self.scope.get("user")
         if not user or not user.is_authenticated:
             audit_ws_event("ws.connect.denied", self.scope, endpoint="direct_inbox", reason="unauthorized", code=4401)
@@ -85,6 +102,11 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
         await self._send_unread_state()
 
     async def disconnect(self, code):
+        """Корректно закрывает соединение и освобождает ресурсы.
+        
+        Args:
+            code: Код ошибки или состояния.
+        """
         for task_name in ("_heartbeat_task", "_idle_task"):
             task = getattr(self, task_name, None)
             if not task:
@@ -104,6 +126,12 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
         audit_ws_event("ws.disconnect", self.scope, endpoint="direct_inbox", code=code)
 
     async def receive(self, text_data=None, bytes_data=None):
+        """Принимает входящее сообщение и маршрутизирует его обработку.
+        
+        Args:
+            text_data: Параметр text data, используемый в логике функции.
+            bytes_data: Параметр bytes data, используемый в логике функции.
+        """
         if not text_data:
             return
 
@@ -239,12 +267,18 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
         )
 
     async def direct_inbox_event(self, event):
+        """Обрабатывает WebSocket-событие direct inbox event.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         payload = event.get("payload")
         if not isinstance(payload, dict):
             return
         await self.send(text_data=json.dumps(payload))
 
     async def _send_unread_state(self):
+        """Выполняет вспомогательную обработку для send unread state."""
         unread = await self._get_unread_state()
         await self.send(
             text_data=json.dumps(
@@ -256,6 +290,11 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
         )
 
     async def _send_error(self, code: str):
+        """Выполняет вспомогательную обработку для send error.
+        
+        Args:
+            code: Код ошибки или состояния.
+        """
         await self.send(
             text_data=json.dumps(
                 {
@@ -266,6 +305,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
         )
 
     async def _heartbeat(self):
+        """Выполняет вспомогательную обработку для heartbeat."""
         interval = max(5, self.heartbeat_seconds)
         while True:
             await asyncio.sleep(interval)
@@ -275,6 +315,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                 break
 
     async def _idle_watchdog(self):
+        """Выполняет вспомогательную обработку для idle watchdog."""
         interval = max(5, min(self.heartbeat_seconds, self.idle_timeout))
         while True:
             await asyncio.sleep(interval)
@@ -284,43 +325,123 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             break
 
     def _load_room_sync(self, room_id: int) -> Room | None:
+        """Загружает room sync из хранилища с необходимыми проверками.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Объект типа Room | None, сформированный в рамках обработки.
+        """
         return Room.objects.filter(pk=room_id).first()
 
     async def _load_room(self, room_id: int) -> Room | None:
+        """Загружает room из хранилища с необходимыми проверками.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Объект типа Room | None, сформированный в рамках обработки.
+        """
         return await _to_async(self._load_room_sync)(room_id)
 
     def _can_read_sync(self, room: Room) -> bool:
+        """Проверяет условие read sync и возвращает логический результат.
+        
+        Args:
+            room: Экземпляр комнаты, над которой выполняется действие.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         return can_read(room, self.user)
 
     async def _can_read(self, room: Room) -> bool:
+        """Проверяет условие read и возвращает логический результат.
+        
+        Args:
+            room: Экземпляр комнаты, над которой выполняется действие.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         return await _to_async(self._can_read_sync)(room)
 
     def _get_unread_state_sync(self) -> dict[str, Any]:
+        """Возвращает unread state sync из текущего контекста или хранилища.
+        
+        Returns:
+            Словарь типа dict[str, Any] с результатами операции.
+        """
         return get_unread_state(self.user.pk)
 
     async def _get_unread_state(self) -> dict[str, Any]:
+        """Возвращает unread state из текущего контекста или хранилища.
+        
+        Returns:
+            Словарь типа dict[str, Any] с результатами операции.
+        """
         return await _to_async(self._get_unread_state_sync)()
 
     def _mark_read_sync(self, room_id: int) -> dict[str, Any]:
+        """Помечает read sync новым состоянием.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Словарь типа dict[str, Any] с результатами операции.
+        """
         return mark_read(self.user.pk, room_id, self.unread_ttl)
 
     async def _mark_read(self, room_id: int) -> dict[str, Any]:
+        """Помечает read новым состоянием.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Словарь типа dict[str, Any] с результатами операции.
+        """
         return await _to_async(self._mark_read_sync)(room_id)
 
     def _set_active_room_sync(self, room_id: int) -> None:
+        """Устанавливает active room sync с учетом текущих правил приложения.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+        """
         set_active_room(self.user.pk, room_id, self.conn_id, self.active_ttl)
 
     async def _set_active_room(self, room_id: int) -> None:
+        """Устанавливает active room с учетом текущих правил приложения.
+        
+        Args:
+            room_id: Идентификатор room, используемый для выборки данных.
+        """
         await _to_async(self._set_active_room_sync)(room_id)
 
     def _clear_active_room_sync(self, conn_only: bool = False) -> None:
+        """Очищает active room sync и сбрасывает связанное состояние.
+        
+        Args:
+            conn_only: Флаг отправки обновления только в текущее соединение.
+        """
         clear_active_room(self.user.pk, self.conn_id if conn_only else None)
 
     async def _clear_active_room(self, conn_only: bool = False) -> None:
+        """Очищает active room и сбрасывает связанное состояние.
+        
+        Args:
+            conn_only: Флаг отправки обновления только в текущее соединение.
+        """
         await _to_async(self._clear_active_room_sync)(conn_only)
 
     def _touch_active_room_sync(self) -> None:
+        """Обновляет метку активности для active room sync."""
         touch_active_room(self.user.pk, self.conn_id, self.active_ttl)
 
     async def _touch_active_room(self) -> None:
+        """Обновляет метку активности для active room."""
         await _to_async(self._touch_active_room_sync)()

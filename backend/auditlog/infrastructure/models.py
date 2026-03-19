@@ -3,6 +3,7 @@ from django.db import models
 
 
 class AuditEvent(models.Model):
+    """Модель AuditEvent описывает структуру и поведение данных в приложении."""
     action = models.CharField(max_length=128, db_index=True)
     protocol = models.CharField(max_length=16, null=True, blank=True, db_index=True)
     actor_user = models.ForeignKey(
@@ -25,6 +26,7 @@ class AuditEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         indexes = [
             models.Index(fields=["created_at", "id"], name="audit_evt_created_idx"),
             models.Index(
@@ -40,4 +42,9 @@ class AuditEvent(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.created_at.isoformat()} {self.action}"

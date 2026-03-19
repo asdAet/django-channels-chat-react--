@@ -12,6 +12,9 @@ import styles from "../../styles/layout/AppShell.module.css";
 import { InfoPanel } from "./InfoPanel";
 import { Sidebar } from "./Sidebar";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
@@ -22,6 +25,11 @@ type Props = {
   children: ReactNode;
 };
 
+/**
+ * Компонент ShellLayout рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 function ShellLayout({
   user,
   onNavigate,
@@ -80,6 +88,10 @@ function ShellLayout({
   );
 }
 
+/**
+ * React-компонент AppShell отвечает за отрисовку и обработку UI-сценария.
+ * @param props Свойства компонента или хука.
+ */
 export function AppShell(props: Props) {
   return (
     <ConversationListProvider user={props.user} ready={true}>

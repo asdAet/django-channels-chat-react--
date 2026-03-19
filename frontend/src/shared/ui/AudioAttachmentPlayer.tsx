@@ -2,6 +2,9 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import styles from "../../styles/ui/AudioAttachmentPlayer.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   src: string;
   title?: string;
@@ -11,6 +14,9 @@ type Props = {
   className?: string;
 };
 
+/**
+ * Описывает структуру состояния `Playback`.
+ */
 type PlaybackState = {
   srcKey: string;
   isReady: boolean;
@@ -20,9 +26,18 @@ type PlaybackState = {
   hasError: boolean;
 };
 
+/**
+ * Нормализует time.
+ * @param value Входное значение для преобразования.
+ */
 const normalizeTime = (value: number) =>
   Number.isFinite(value) && value > 0 ? value : 0;
 
+/**
+ * Создает initial playback state.
+ * @param srcKey Аргумент `srcKey` текущего вызова.
+ * @returns Сформированное значение для дальнейшего использования.
+ */
 const createInitialPlaybackState = (srcKey: string): PlaybackState => ({
   srcKey,
   isReady: false,
@@ -32,6 +47,10 @@ const createInitialPlaybackState = (srcKey: string): PlaybackState => ({
   hasError: false,
 });
 
+/**
+ * Форматирует time.
+ * @param value Входное значение для преобразования.
+ */
 const formatTime = (value: number) => {
   const total = Math.max(0, Math.floor(normalizeTime(value)));
   const minutes = Math.floor(total / 60);
@@ -39,6 +58,11 @@ const formatTime = (value: number) => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
+/**
+ * Компонент AudioAttachmentPlayer рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function AudioAttachmentPlayer({
   src,
   title,

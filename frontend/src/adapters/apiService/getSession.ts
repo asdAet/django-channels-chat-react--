@@ -4,9 +4,9 @@ import type { SessionResponse } from "../../domain/interfaces/IApiService";
 import { decodeSessionResponse } from "../../dto";
 
 /**
- * Загружает текущую сессию пользователя.
- * @param apiClient HTTP-клиент.
- * @returns Декодированное состояние сессии.
+ * Возвращает session.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function getSession(
   apiClient: AxiosInstance,

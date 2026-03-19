@@ -11,6 +11,9 @@
 import type { Message } from "../../entities/message/types";
 import styles from "../../styles/chat/MessageInput.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   draft: string;
   onDraftChange: (value: string) => void;
@@ -28,6 +31,9 @@ type Props = {
   onCancelUpload?: () => void;
 };
 
+/**
+ * React-компонент IconAttach отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconAttach = () => (
   <svg
     width="20"
@@ -43,6 +49,9 @@ const IconAttach = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconSend отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconSend = () => (
   <svg
     width="18"
@@ -59,6 +68,9 @@ const IconSend = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconClose отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconClose = () => (
   <svg
     width="14"
@@ -74,6 +86,11 @@ const IconClose = () => (
   </svg>
 );
 
+/**
+ * Извлекает files from clipboard.
+ * @param clipboardData Аргумент `clipboardData` текущего вызова.
+ * @returns Извлеченное значение из входных данных.
+ */
 const extractFilesFromClipboard = (
   clipboardData: DataTransfer | null,
 ): File[] => {
@@ -95,6 +112,11 @@ const extractFilesFromClipboard = (
   return Array.from(clipboardData.files);
 };
 
+/**
+ * Компонент MessageInput рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function MessageInput({
   draft,
   onDraftChange,

@@ -20,6 +20,15 @@ from .rate_limit import RateLimitPolicy
 
 
 def _positive_int(value: Any, fallback: int) -> int:
+    """Вспомогательная функция `_positive_int` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        value: Значение, которое нужно нормализовать или проверить.
+        fallback: Параметр fallback, используемый в логике функции.
+    
+    Returns:
+        Целочисленный результат вычисления.
+    """
     try:
         parsed = int(value)
     except (TypeError, ValueError):
@@ -28,6 +37,11 @@ def _positive_int(value: Any, fallback: int) -> int:
 
 
 def _rate_limits_mapping() -> Mapping[str, Any]:
+    """Выполняет вспомогательную обработку для rate limits mapping.
+    
+    Returns:
+        Объект типа Mapping[str, Any], полученный при выполнении операции.
+    """
     raw = getattr(settings, "RATE_LIMITS", {})
     if isinstance(raw, Mapping):
         return raw
@@ -35,6 +49,14 @@ def _rate_limits_mapping() -> Mapping[str, Any]:
 
 
 def _section(name: str) -> Mapping[str, Any]:
+    """Выполняет вспомогательную обработку для section.
+    
+    Args:
+        name: Человекочитаемое имя объекта или параметра.
+    
+    Returns:
+        Объект типа Mapping[str, Any], полученный при выполнении операции.
+    """
     raw = _rate_limits_mapping().get(name, {})
     if isinstance(raw, Mapping):
         return raw
@@ -47,6 +69,16 @@ def _section_policy(
     default_limit: int,
     default_window: int,
 ) -> RateLimitPolicy:
+    """Вспомогательная функция `_section_policy` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        section_name: Параметр section name, используемый в логике функции.
+        default_limit: Параметр default limit, используемый в логике функции.
+        default_window: Параметр default window, используемый в логике функции.
+    
+    Returns:
+        Объект типа RateLimitPolicy, сформированный в ходе выполнения.
+    """
     section = _section(section_name)
     limit = _positive_int(section.get("limit"), default_limit)
     window = _positive_int(section.get("window_seconds"), default_window)
@@ -54,7 +86,11 @@ def _section_policy(
 
 
 def auth_rate_limit_policy() -> RateLimitPolicy:
-    """Policy for auth attempts (login/register), scoped per action and IP."""
+    """Вспомогательная функция `auth_rate_limit_policy` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Объект типа RateLimitPolicy, сформированный в ходе выполнения.
+    """
     return _section_policy(
         section_name="auth_attempts",
         default_limit=10,
@@ -63,7 +99,11 @@ def auth_rate_limit_policy() -> RateLimitPolicy:
 
 
 def chat_message_rate_limit_policy() -> RateLimitPolicy:
-    """Policy for chat message send throttle, scoped per user."""
+    """Вспомогательная функция `chat_message_rate_limit_policy` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Объект типа RateLimitPolicy, сформированный в ходе выполнения.
+    """
     return _section_policy(
         section_name="chat_message_send",
         default_limit=20,
@@ -72,7 +112,14 @@ def chat_message_rate_limit_policy() -> RateLimitPolicy:
 
 
 def ws_connect_rate_limit_policy(endpoint: str) -> RateLimitPolicy:
-    """Policy for websocket connect throttle, scoped per endpoint and IP."""
+    """Вспомогательная функция `ws_connect_rate_limit_policy` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        endpoint: Параметр endpoint, используемый в логике функции.
+    
+    Returns:
+        Объект типа RateLimitPolicy, сформированный в ходе выполнения.
+    """
     if endpoint == "presence":
         return _section_policy(
             section_name="ws_connect_presence",
@@ -87,7 +134,11 @@ def ws_connect_rate_limit_policy(endpoint: str) -> RateLimitPolicy:
 
 
 def ws_connect_rate_limit_disabled() -> bool:
-    """Global switch for websocket connect throttling."""
+    """Вспомогательная функция `ws_connect_rate_limit_disabled` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     section = _section("ws_connect")
     section_disabled = section.get("disabled")
     if isinstance(section_disabled, bool):

@@ -2,11 +2,17 @@ import { type DragEvent, useCallback, useRef, useState } from "react";
 
 import { isFileDragPayload } from "./utils";
 
+/**
+ * Описывает настраиваемые опции `Options`.
+ */
 type Options = {
   enabled: boolean;
   onFilesDrop: (files: File[]) => void;
 };
 
+/**
+ * Описывает структуру данных `Bindings`.
+ */
 type Bindings = {
   onDragEnter: (event: DragEvent<HTMLDivElement>) => void;
   onDragOver: (event: DragEvent<HTMLDivElement>) => void;
@@ -14,11 +20,19 @@ type Bindings = {
   onDrop: (event: DragEvent<HTMLDivElement>) => void;
 };
 
+/**
+ * Описывает результат операции `Result`.
+ */
 type Result = {
   active: boolean;
   bindings: Bindings;
   reset: () => void;
 };
+
+/**
+ * Хук useFileDropZone управляет состоянием и побочными эффектами текущего сценария.
+ * @returns Публичное состояние хука и его обработчики.
+ */
 
 export const useFileDropZone = ({ enabled, onFilesDrop }: Options): Result => {
   const [active, setActive] = useState(false);

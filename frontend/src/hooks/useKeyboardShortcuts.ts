@@ -2,14 +2,24 @@ import { useEffect } from "react";
 
 import { useInfoPanel } from "../shared/layout/useInfoPanel";
 
+/**
+ * Описывает настраиваемые опции `Options`.
+ */
 type Options = {
   slug?: string | null;
 };
 
+/**
+ * Хук useKeyboardShortcuts управляет состоянием и побочными эффектами текущего сценария.
+ */
 export function useKeyboardShortcuts({ slug }: Options = {}) {
   const { toggle, close, isOpen } = useInfoPanel();
 
   useEffect(() => {
+    /**
+     * Обрабатывает handler.
+     * @param e DOM-событие, вызвавшее обработчик.
+     */
     const handler = (e: KeyboardEvent) => {
       // Ctrl+K → toggle search panel
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {

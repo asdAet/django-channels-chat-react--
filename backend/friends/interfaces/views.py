@@ -20,6 +20,14 @@ from friends.interfaces.serializers import (
 
 
 def _service_error_response(exc: FriendServiceError) -> Response:
+    """Вспомогательная функция `_service_error_response` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        exc: Параметр exc, используемый в логике функции.
+    
+    Returns:
+        HTTP-ответ с результатом обработки.
+    """
     return Response(
         {"error": exc.message, "code": exc.code},
         status=exc.status_code,
@@ -27,9 +35,18 @@ def _service_error_response(exc: FriendServiceError) -> Response:
 
 
 class FriendListApiView(APIView):
+    """Класс FriendListApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             items = friend_service.list_friends(request.user)
         except FriendServiceError as exc:
@@ -39,9 +56,18 @@ class FriendListApiView(APIView):
 
 
 class IncomingRequestsApiView(APIView):
+    """Класс IncomingRequestsApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             items = friend_service.list_incoming_requests(request.user)
         except FriendServiceError as exc:
@@ -51,9 +77,18 @@ class IncomingRequestsApiView(APIView):
 
 
 class OutgoingRequestsApiView(APIView):
+    """Класс OutgoingRequestsApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             items = friend_service.list_outgoing_requests(request.user)
         except FriendServiceError as exc:
@@ -63,13 +98,30 @@ class OutgoingRequestsApiView(APIView):
 
 
 class SendRequestApiView(GenericAPIView):
+    """Класс SendRequestApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
     serializer_class = PublicRefInputSerializer
 
     def get(self, _request):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            _request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return Response({"detail": "Используйте POST с публичным идентификатором"})
 
     def post(self, request):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         target_ref = serializer.validated_data["ref"]
@@ -85,9 +137,19 @@ class SendRequestApiView(GenericAPIView):
 
 
 class AcceptRequestApiView(APIView):
+    """Класс AcceptRequestApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, friendship_id: int):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            friendship_id: Идентификатор friendship, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             friendship = friend_service.accept_request(request.user, int(friendship_id))
         except FriendServiceError as exc:
@@ -97,9 +159,19 @@ class AcceptRequestApiView(APIView):
 
 
 class DeclineRequestApiView(APIView):
+    """Класс DeclineRequestApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, friendship_id: int):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            friendship_id: Идентификатор friendship, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             friendship = friend_service.decline_request(request.user, int(friendship_id))
         except FriendServiceError as exc:
@@ -109,9 +181,19 @@ class DeclineRequestApiView(APIView):
 
 
 class CancelOutgoingRequestApiView(APIView):
+    """Класс CancelOutgoingRequestApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, friendship_id: int):
+        """Обрабатывает HTTP DELETE запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            friendship_id: Идентификатор friendship, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             friendship = friend_service.cancel_outgoing_request(request.user, int(friendship_id))
         except FriendServiceError as exc:
@@ -121,9 +203,19 @@ class CancelOutgoingRequestApiView(APIView):
 
 
 class RemoveFriendApiView(APIView):
+    """Класс RemoveFriendApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, user_id: int):
+        """Обрабатывает HTTP DELETE запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            user_id: Идентификатор user, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             friend_service.remove_friend(request.user, int(user_id))
         except FriendServiceError as exc:
@@ -132,9 +224,18 @@ class RemoveFriendApiView(APIView):
 
 
 class BlockedListApiView(APIView):
+    """Класс BlockedListApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             items = friend_service.list_blocked(request.user)
         except FriendServiceError as exc:
@@ -144,13 +245,30 @@ class BlockedListApiView(APIView):
 
 
 class BlockUserApiView(GenericAPIView):
+    """Класс BlockUserApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
     serializer_class = PublicRefInputSerializer
 
     def get(self, _request):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            _request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return Response({"detail": "Используйте POST с публичным идентификатором"})
 
     def post(self, request):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         target_ref = serializer.validated_data["ref"]
@@ -168,9 +286,19 @@ class BlockUserApiView(GenericAPIView):
 
 
 class UnblockUserApiView(APIView):
+    """Класс UnblockUserApiView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, user_id: int):
+        """Обрабатывает HTTP DELETE запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            user_id: Идентификатор user, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             friend_service.unblock_user(request.user, int(user_id))
         except FriendServiceError as exc:

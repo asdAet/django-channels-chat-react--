@@ -18,11 +18,17 @@ import { usePresence } from "../../shared/presence";
 import { Avatar, Spinner } from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   publicRef: string;
   currentPublicRef?: string | null;
 };
 
+/**
+ * Описывает структуру состояния `Relation`.
+ */
 type RelationState =
   | "self"
   | "none"
@@ -31,6 +37,9 @@ type RelationState =
   | "friend"
   | "blocked";
 
+/**
+ * Описывает структуру данных `RelationSnapshot`.
+ */
 type RelationSnapshot = {
   state: RelationState;
   userId: number | null;
@@ -43,13 +52,30 @@ const EMPTY_RELATION: RelationSnapshot = {
   requestId: null,
 };
 
+/**
+ * Нормализует данные.
+ * @param value Входное значение для преобразования.
+ */
 const normalize = (value: string) => normalizePublicRef(value).toLowerCase();
 
+/**
+ * Экспорт `resolveUserRef` предоставляет инициализированный экземпляр для повторного использования в модуле.
+ */
 const resolveUserRef = (item: {
   publicRef: string;
   username: string;
 }): string => item.publicRef;
 
+/**
+ * Определяет relation.
+ * @param targetPublicRef Публичный идентификатор пользователя или комнаты.
+ * @param currentPublicRef Публичный идентификатор пользователя или комнаты.
+ * @param friends Список `friends`, который обрабатывается функцией.
+ * @param incoming Новые данные, пришедшие из внешнего источника.
+ * @param outgoing Аргумент `outgoing` текущего вызова.
+ * @param blocked Аргумент `blocked` текущего вызова.
+ * @returns Разрешенное значение с учетом fallback-логики.
+ */
 const resolveRelation = (
   targetPublicRef: string,
   currentPublicRef: string | null | undefined,
@@ -111,6 +137,9 @@ const resolveRelation = (
   return EMPTY_RELATION;
 };
 
+/**
+ * React-компонент UserProfilePanel отвечает за отрисовку и обработку UI-сценария.
+ */
 export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
   const navigate = useNavigate();
   const { online: presenceOnline } = usePresence();
@@ -161,6 +190,9 @@ export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
     setActionStatus(null);
     setRelationLoading(true);
 
+    /**
+     * Обрабатывает run.
+     */
     const run = async () => {
       try {
         const normalizedCurrent = currentPublicRef

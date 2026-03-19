@@ -2,12 +2,18 @@ import { useCallback, useEffect, useState } from "react";
 
 import styles from "../../styles/ui/ImageLightbox.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   src: string;
   alt?: string;
   onClose: () => void;
 };
 
+/**
+ * React-компонент ImageLightbox отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ImageLightbox({ src, alt, onClose }: Props) {
   const [exiting, setExiting] = useState(false);
 
@@ -17,6 +23,10 @@ export function ImageLightbox({ src, alt, onClose }: Props) {
   }, [onClose]);
 
   useEffect(() => {
+    /**
+     * Обрабатывает handler.
+     * @param e DOM-событие, вызвавшее обработчик.
+     */
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") dismiss();
     };

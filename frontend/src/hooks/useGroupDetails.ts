@@ -8,6 +8,9 @@ import type {
   PinnedMessage,
 } from "../entities/group/types";
 
+/**
+ * Описывает результат операции `UseGroupDetails`.
+ */
 type UseGroupDetailsResult = {
   group: Group | null;
   members: GroupMember[];
@@ -27,6 +30,11 @@ type UseGroupDetailsResult = {
   unpinMessage: (messageId: number) => Promise<void>;
 };
 
+/**
+ * Хук useGroupDetails управляет состоянием и побочными эффектами текущего сценария.
+ * @param slug Человекочитаемый идентификатор сущности.
+ * @returns Публичное состояние хука и его обработчики.
+ */
 export function useGroupDetails(slug: string): UseGroupDetailsResult {
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);

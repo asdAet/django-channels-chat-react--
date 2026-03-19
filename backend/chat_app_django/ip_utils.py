@@ -1,5 +1,5 @@
 
-"""Содержит логику модуля `ip_utils` подсистемы `chat_app_django`."""
+"""Модуль ip_utils реализует прикладную логику подсистемы chat_app_django."""
 
 
 from __future__ import annotations
@@ -11,7 +11,14 @@ from django.conf import settings
 
 
 def _decode_header(value: bytes | None) -> str | None:
-    """Выполняет логику `_decode_header` с параметрами из сигнатуры."""
+    """Декодирует header из внешнего представления.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not value:
         return None
     try:
@@ -21,14 +28,28 @@ def _decode_header(value: bytes | None) -> str | None:
 
 
 def _first_value(value: str | None) -> str | None:
-    """Выполняет логику `_first_value` с параметрами из сигнатуры."""
+    """Выполняет вспомогательную обработку для first value.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа str | None, полученный при выполнении операции.
+    """
     if not value:
         return None
     return value.split(",")[0].strip()
 
 
 def _parse_ip(value: str | None) -> str | None:
-    """Выполняет логику `_parse_ip` с параметрами из сигнатуры."""
+    """Разбирает ip из входных данных с валидацией формата.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not value:
         return None
     try:
@@ -40,7 +61,11 @@ def _parse_ip(value: str | None) -> str | None:
 
 @lru_cache(maxsize=1)
 def _trusted_networks() -> list:
-    """Выполняет логику `_trusted_networks` с параметрами из сигнатуры."""
+    """Выполняет вспомогательную обработку для trusted networks.
+    
+    Returns:
+        Список типа list с результатами операции.
+    """
     raw = []
     raw.extend(getattr(settings, "TRUSTED_PROXY_IPS", []) or [])
     raw.extend(getattr(settings, "TRUSTED_PROXY_RANGES", []) or [])
@@ -54,7 +79,14 @@ def _trusted_networks() -> list:
 
 
 def is_trusted_proxy(ip: str | None) -> bool:
-    """Выполняет логику `is_trusted_proxy` с параметрами из сигнатуры."""
+    """Проверяет условие trusted proxy и возвращает логический результат.
+    
+    Args:
+        ip: IP-адрес клиента или узла, выполняющего запрос.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     parsed = _parse_ip(ip)
     if not parsed:
         return False
@@ -66,7 +98,14 @@ def is_trusted_proxy(ip: str | None) -> bool:
 
 
 def _pick_ip(candidates: list[str | None]) -> str | None:
-    """Выполняет логику `_pick_ip` с параметрами из сигнатуры."""
+    """Выбирает ip из набора кандидатов по заданным правилам.
+    
+    Args:
+        candidates: Набор кандидатных значений для выбора валидного результата.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     for value in candidates:
         ip_val = _parse_ip(_first_value(value))
         if ip_val:
@@ -75,7 +114,14 @@ def _pick_ip(candidates: list[str | None]) -> str | None:
 
 
 def get_client_ip_from_request(request) -> str | None:
-    """Выполняет логику `get_client_ip_from_request` с параметрами из сигнатуры."""
+    """Возвращает client ip from request из текущего контекста или хранилища.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     remote = request.META.get("REMOTE_ADDR")
     if not is_trusted_proxy(remote):
         return _parse_ip(remote) or remote
@@ -91,14 +137,28 @@ def get_client_ip_from_request(request) -> str | None:
 
 
 def get_client_ip_from_scope(scope) -> str | None:
-    """Выполняет логику `get_client_ip_from_scope` с параметрами из сигнатуры."""
+    """Возвращает client ip from scope из текущего контекста или хранилища.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     client = scope.get("client")
     remote = str(client[0]) if client else None
     if not is_trusted_proxy(remote):
         return _parse_ip(remote) or remote
 
     def header(name: bytes) -> str | None:
-        """Выполняет логику `header` с параметрами из сигнатуры."""
+        """Вспомогательная функция `header` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            name: Имя сущности или параметра.
+        
+        Returns:
+            Объект типа str | None, сформированный в ходе выполнения.
+        """
         for key, value in scope.get("headers", []):
             if key == name:
                 return _decode_header(value)

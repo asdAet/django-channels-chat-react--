@@ -34,6 +34,9 @@ const createImageAttachment = (id: number, filename: string) => ({
   height: 720,
 });
 
+/**
+ * Настраивает эмуляцию touch-устройства через matchMedia.
+ */
 const installTouchMatchMedia = () => {
   const original = window.matchMedia;
   Object.defineProperty(window, "matchMedia", {
@@ -62,6 +65,9 @@ const installTouchMatchMedia = () => {
   };
 };
 
+/**
+ * Настраивает модель ввода для десктопного сценария.
+ */
 const installDesktopInputModel = () => {
   const originalMatchMedia = window.matchMedia;
   const hadTouchStart = Object.prototype.hasOwnProperty.call(

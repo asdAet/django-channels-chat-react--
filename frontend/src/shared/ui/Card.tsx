@@ -2,6 +2,9 @@ import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 
 import styles from "../../styles/ui/Card.module.css";
 
+/**
+ * Определяет структуру данных CardProps.
+ */
 type CardProps<T extends ElementType = "section"> = {
   as?: T;
   wide?: boolean;
@@ -10,9 +13,9 @@ type CardProps<T extends ElementType = "section"> = {
 } & Omit<ComponentPropsWithoutRef<T>, "as" | "className" | "children">;
 
 /**
- * Универсальный контейнер карточки.
- * @param props Настройки контейнера и вложенное содержимое.
- * @returns JSX-контейнер с карточным оформлением.
+ * Компонент Card рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function Card<T extends ElementType = "section">({
   as,

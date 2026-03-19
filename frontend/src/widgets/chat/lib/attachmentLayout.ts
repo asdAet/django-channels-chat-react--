@@ -4,17 +4,26 @@ import {
   resolveImagePreviewUrl,
 } from "../../../shared/lib/attachmentMedia";
 
+/**
+ * Описывает структуру данных `AttachmentRenderItem`.
+ */
 export type AttachmentRenderItem = {
   attachment: Attachment;
   isImage: boolean;
   imageSrc: string | null;
 };
 
+/**
+ * Описывает структуру данных `ImageAttachmentRenderItem`.
+ */
 export type ImageAttachmentRenderItem = {
   attachment: Attachment;
   imageSrc: string;
 };
 
+/**
+ * Описывает структуру данных `AttachmentBuckets`.
+ */
 export type AttachmentBuckets = {
   images: ImageAttachmentRenderItem[];
   visibleImages: ImageAttachmentRenderItem[];
@@ -22,23 +31,28 @@ export type AttachmentBuckets = {
   others: AttachmentRenderItem[];
 };
 
+/**
+ * Описывает структуру данных `MediaGridVariant`.
+ */
 export type MediaGridVariant = "single" | "two" | "three" | "four" | "many";
 
 /**
- * Нормализует лимит отображаемых изображений.
- * @param value Входное значение лимита.
- * @returns Целое число не меньше 1.
+ * Нормализует visible image limit.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
  */
+
 const normalizeVisibleImageLimit = (value: number): number => {
   if (!Number.isFinite(value)) return 1;
   return Math.max(1, Math.floor(value));
 };
 
 /**
- * Подготавливает вложения сообщения для рендера.
- * @param attachments Исходные вложения сообщения.
- * @returns Массив с флагом изображения и рассчитанным preview URL.
+ * Формирует attachment render items.
+ * @param attachments Список вложений, переданных в текущую операцию.
+ * @returns Сформированное значение для дальнейшего использования.
  */
+
 export const buildAttachmentRenderItems = (
   attachments: Attachment[],
 ): AttachmentRenderItem[] =>
@@ -62,10 +76,11 @@ export const buildAttachmentRenderItems = (
 
 /**
  * Делит вложения на изображения и прочие файлы.
- * @param items Подготовленные элементы рендера вложений.
- * @param maxVisibleImages Максимум изображений, видимых в сетке сообщения.
- * @returns Структура с полным списком изображений, видимой частью и остатком.
+ * @param items Список элементов для обработки.
+ * @param maxVisibleImages Список `maxVisibleImages`, который обрабатывается функцией.
+
  */
+
 export const splitAttachmentRenderItems = (
   items: AttachmentRenderItem[],
   maxVisibleImages: number,
@@ -99,9 +114,10 @@ export const splitAttachmentRenderItems = (
 
 /**
  * Определяет вариант сетки изображений по количеству элементов.
- * @param count Количество отображаемых изображений.
- * @returns Вариант CSS-сетки для текущего количества.
+ * @param count Числовой параметр `count`, ограничивающий объем данных.
+ * @returns Разрешенное значение с учетом fallback-логики.
  */
+
 export const resolveMediaGridVariant = (count: number): MediaGridVariant => {
   if (count <= 1) return "single";
   if (count === 2) return "two";
@@ -112,9 +128,10 @@ export const resolveMediaGridVariant = (count: number): MediaGridVariant => {
 
 /**
  * Вычисляет ограниченное соотношение сторон изображения.
- * @param attachment Вложение с метаданными ширины и высоты.
- * @returns Число для CSS aspect-ratio в безопасном диапазоне.
+ * @param attachment Аргумент `attachment` текущего вызова.
+ * @returns Разрешенное значение с учетом fallback-логики.
  */
+
 export const resolveImageAspectRatio = (attachment: Attachment): number => {
   if (
     attachment.width &&

@@ -5,6 +5,15 @@ from auditlog.models import AuditEvent
 
 
 def get_username_history(user_id: int, *, limit: int = 200):
+    """Возвращает username history из текущего контекста или хранилища.
+    
+    Args:
+        user_id: Идентификатор user, используемый для выборки данных.
+        limit: Данные limit, участвующие в обработке текущей операции.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     safe_limit = max(1, min(int(limit), 1000))
     queryset = (
         AuditEvent.objects.filter(

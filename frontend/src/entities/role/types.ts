@@ -1,3 +1,6 @@
+/**
+ * Описывает структуру данных `Role`.
+ */
 export type Role = {
   id: number;
   name: string;
@@ -8,6 +11,9 @@ export type Role = {
   createdAt: string;
 };
 
+/**
+ * Описывает структуру данных `MemberRoles`.
+ */
 export type MemberRoles = {
   userId: number;
   username: string;
@@ -17,6 +23,9 @@ export type MemberRoles = {
   joinedAt: string;
 };
 
+/**
+ * Описывает структуру данных `PermissionOverride`.
+ */
 export type PermissionOverride = {
   id: number;
   targetRoleId: number | null;
@@ -25,6 +34,9 @@ export type PermissionOverride = {
   deny: number;
 };
 
+/**
+ * Описывает структуру данных `MyPermissions`.
+ */
 export type MyPermissions = {
   permissions: number;
   roles?: number[];
@@ -34,6 +46,7 @@ export type MyPermissions = {
 };
 
 /** Bitmask flags matching backend roles/permissions.py Perm enum. */
+
 export const Perm = {
   SEND_MESSAGES: 2 ** 0,
   READ_MESSAGES: 2 ** 1,

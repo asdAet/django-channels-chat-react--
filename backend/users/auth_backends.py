@@ -11,7 +11,19 @@ from .models import EmailIdentity, LoginIdentity
 
 
 class EmailIdentityBackend(BaseBackend):
+    """Класс EmailIdentityBackend объединяет связанную прикладную логику подсистемы."""
     def authenticate(self, request=None, username=None, password=None, **kwargs):
+        """Аутентифицирует данные.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            username: Публичное имя пользователя.
+            password: Пароль пользователя.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         raw_identifier = kwargs.get("identifier", username)
         identifier = str(raw_identifier or "").strip()
         if not identifier or not password:
@@ -38,5 +50,13 @@ class EmailIdentityBackend(BaseBackend):
         return identity.user
 
     def get_user(self, user_id):
+        """Возвращает user из текущего контекста.
+        
+        Args:
+            user_id: Идентификатор user.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         User = get_user_model()
         return User.objects.filter(pk=user_id).first()

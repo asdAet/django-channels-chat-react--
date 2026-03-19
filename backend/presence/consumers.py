@@ -35,11 +35,27 @@ T = TypeVar("T")
 
 
 def _to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
+    """Вспомогательная функция `_to_async` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        func: Параметр func, используемый в логике функции.
+    
+    Returns:
+        Объект типа Callable[..., Awaitable[T]], сформированный в ходе выполнения.
+    """
     return cast(Callable[..., Awaitable[T]], sync_to_async(func, thread_sensitive=True))
 
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
-    """Checks websocket connect rate limit per endpoint and IP."""
+    """Выполняет вспомогательную обработку для ws connect rate limited.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        endpoint: Идентификатор API/WS endpoint для применения правил.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if ws_connect_rate_limit_disabled():
         return False
     ip = get_client_ip_from_scope(scope) or "unknown"
@@ -49,7 +65,7 @@ def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
 
 
 class PresenceConsumer(AsyncWebsocketConsumer):
-    """Tracks user online/offline presence via WebSocket."""
+    """Класс PresenceConsumer обрабатывает WebSocket-события и сообщения."""
 
     group_name_auth = PRESENCE_GROUP_AUTH
     group_name_guest = PRESENCE_GROUP_GUEST
@@ -63,6 +79,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
     presence_touch_interval = int(settings.PRESENCE_TOUCH_INTERVAL)
 
     async def connect(self):
+        """Устанавливает соединение и выполняет проверки доступа."""
         user = self.scope.get("user")
         self.is_guest = not user or not user.is_authenticated
         self.group_name = self.group_name_guest if self.is_guest else self.group_name_auth
@@ -96,6 +113,11 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         await self._broadcast()
 
     async def disconnect(self, code):
+        """Корректно закрывает соединение и освобождает ресурсы.
+        
+        Args:
+            code: Код ошибки или состояния.
+        """
         for task_name in ("_heartbeat_task", "_idle_task"):
             task = getattr(self, task_name, None)
             if not task:
@@ -118,6 +140,12 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         audit_ws_event("ws.disconnect", self.scope, endpoint="presence", code=code)
 
     async def receive(self, text_data=None, bytes_data=None):
+        """Принимает входящее сообщение и маршрутизирует его обработку.
+        
+        Args:
+            text_data: Параметр text data, используемый в логике функции.
+            bytes_data: Параметр bytes data, используемый в логике функции.
+        """
         if not text_data:
             return
         now = time.monotonic()
@@ -148,6 +176,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             await self._touch_user(user)
 
     async def _broadcast(self):
+        """Выполняет вспомогательную обработку для broadcast."""
         online = await self._get_online()
         guests = await self._get_guest_count()
         await self.channel_layer.group_send(
@@ -160,6 +189,11 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         )
 
     async def presence_update(self, event):
+        """Обрабатывает WebSocket-событие presence update.
+        
+        Args:
+            event: Событие для логирования или трансляции.
+        """
         payload = {}
         if "online" in event:
             payload["online"] = event["online"]
@@ -169,6 +203,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps(payload))
 
     async def _heartbeat(self):
+        """Выполняет вспомогательную обработку для heartbeat."""
         interval = max(5, self.presence_heartbeat)
         while True:
             await asyncio.sleep(interval)
@@ -178,6 +213,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
                 break
 
     async def _idle_watchdog(self):
+        """Выполняет вспомогательную обработку для idle watchdog."""
         interval = max(5, min(self.presence_heartbeat, self.presence_idle_timeout))
         while True:
             await asyncio.sleep(interval)
@@ -188,12 +224,29 @@ class PresenceConsumer(AsyncWebsocketConsumer):
 
     @staticmethod
     def _normalize_presence_value(value: object) -> str:
+        """Нормализует presence value к внутреннему формату приложения.
+        
+        Args:
+            value: Входное значение для проверки или преобразования.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         if not isinstance(value, str):
             return ""
         return value.strip()
 
     @staticmethod
     def _coerce_presence_int(value: object, default: int = 0) -> int:
+        """Преобразует presence int к допустимому типу или формату.
+        
+        Args:
+            value: Входное значение для проверки или преобразования.
+            default: Значение по умолчанию, применяемое при отсутствии пользовательского ввода.
+        
+        Returns:
+            Целочисленное значение результата вычисления.
+        """
         if isinstance(value, bool):
             return int(value)
         if isinstance(value, int):
@@ -214,6 +267,14 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         return default
 
     def _resolve_presence_user_identity(self, user: Any) -> tuple[str, str, str]:
+        """Определяет presence user identity на основе доступного контекста.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        
+        Returns:
+            Кортеж типа tuple[str, str, str] с результатами операции.
+        """
         public_ref = self._normalize_presence_value(user_public_ref(user))
         username = self._normalize_presence_value(user_public_username(user))
         key = public_ref or username
@@ -226,6 +287,16 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         key: str,
         username: str,
     ) -> tuple[str, dict[str, object] | None]:
+        """Определяет presence entry на основе доступного контекста.
+        
+        Args:
+            data: Словарь входных данных для обработки.
+            key: Ключ в хранилище состояния или словаре промежуточных данных.
+            username: Публичное имя пользователя, используемое в событиях и ответах.
+        
+        Returns:
+            Кортеж типа tuple[str, dict[str, object] | None] с результатами операции.
+        """
         if key and key in data:
             return key, data.get(key)
         if username and username in data:
@@ -233,6 +304,11 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         return key, None
 
     def _add_user_sync(self, user: Any) -> None:
+        """Выполняет вспомогательную обработку для add user sync.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        """
         key, public_ref, username = self._resolve_presence_user_identity(user)
         if not key:
             return
@@ -262,9 +338,20 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _add_user(self, user: Any) -> None:
+        """Выполняет вспомогательную обработку для add user.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        """
         await _to_async(self._add_user_sync)(user)
 
     def _remove_user_sync(self, user: Any, graceful: bool = False) -> None:
+        """Удаляет user sync из целевого набора данных.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+            graceful: Флаг штатного завершения соединения без ошибки.
+        """
         key, _public_ref, username = self._resolve_presence_user_identity(user)
         if not key:
             return
@@ -300,9 +387,20 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _remove_user(self, user: Any, graceful: bool = False) -> None:
+        """Удаляет user из целевого набора данных.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+            graceful: Флаг штатного завершения соединения без ошибки.
+        """
         await _to_async(self._remove_user_sync)(user, graceful)
 
     def _get_online_sync(self) -> list[dict[str, object]]:
+        """Возвращает online sync из текущего контекста или хранилища.
+        
+        Returns:
+            Список типа list[dict[str, object]] с результатами операции.
+        """
         data = cache.get(self.cache_key, {}) or {}
         now = time.time()
         cleaned = {}
@@ -335,9 +433,19 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         ]
 
     async def _get_online(self) -> list[dict[str, object]]:
+        """Возвращает online из текущего контекста или хранилища.
+        
+        Returns:
+            Список типа list[dict[str, object]] с результатами операции.
+        """
         return await _to_async(self._get_online_sync)()
 
     def _add_guest_sync(self, ip: str | None) -> None:
+        """Добавляет guest sync в целевую коллекцию.
+        
+        Args:
+            ip: IP-адрес клиента.
+        """
         if not ip:
             return
         data = cache.get(self.guest_cache_key, {}) or {}
@@ -350,9 +458,20 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         cache.set(self.guest_cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _add_guest(self, ip: str | None) -> None:
+        """Добавляет guest в целевую коллекцию.
+        
+        Args:
+            ip: IP-адрес клиента.
+        """
         await _to_async(self._add_guest_sync)(ip)
 
     def _remove_guest_sync(self, ip: str | None, graceful: bool = False) -> None:
+        """Удаляет guest sync из целевого набора данных.
+        
+        Args:
+            ip: IP-адрес клиента или узла, выполняющего запрос.
+            graceful: Флаг штатного завершения соединения без ошибки.
+        """
         if not ip:
             return
         data = cache.get(self.guest_cache_key, {}) or {}
@@ -376,9 +495,20 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             cache.delete(self.guest_cache_key)
 
     async def _remove_guest(self, ip: str | None, graceful: bool = False) -> None:
+        """Удаляет guest из целевого набора данных.
+        
+        Args:
+            ip: IP-адрес клиента или узла, выполняющего запрос.
+            graceful: Флаг штатного завершения соединения без ошибки.
+        """
         await _to_async(self._remove_guest_sync)(ip, graceful)
 
     def _get_guest_count_sync(self) -> int:
+        """Возвращает guest count sync из текущего контекста или хранилища.
+        
+        Returns:
+            Целочисленное значение результата вычисления.
+        """
         data = cache.get(self.guest_cache_key, {}) or {}
         now = time.time()
         cleaned = {}
@@ -403,9 +533,19 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         return len(cleaned)
 
     async def _get_guest_count(self) -> int:
+        """Возвращает guest count из текущего контекста или хранилища.
+        
+        Returns:
+            Целочисленное значение результата вычисления.
+        """
         return await _to_async(self._get_guest_count_sync)()
 
     def _touch_user_sync(self, user: Any) -> None:
+        """Обновляет метку активности для user sync.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        """
         key, public_ref, username = self._resolve_presence_user_identity(user)
         if not key:
             return
@@ -445,9 +585,19 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         cache.set(self.cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _touch_user(self, user: Any) -> None:
+        """Обновляет метку активности для user.
+        
+        Args:
+            user: Пользователь, для которого выполняется операция.
+        """
         await _to_async(self._touch_user_sync)(user)
 
     def _touch_guest_sync(self, ip: str | None) -> None:
+        """Обновляет метку активности для guest sync.
+        
+        Args:
+            ip: IP-адрес клиента или узла, выполняющего запрос.
+        """
         if not ip:
             return
         data = cache.get(self.guest_cache_key, {}) or {}
@@ -463,10 +613,19 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         cache.set(self.guest_cache_key, data, timeout=self.cache_timeout_seconds)
 
     async def _touch_guest(self, ip: str | None) -> None:
+        """Обновляет метку активности для guest.
+        
+        Args:
+            ip: IP-адрес клиента или узла, выполняющего запрос.
+        """
         await _to_async(self._touch_guest_sync)(ip)
 
     def _get_guest_session_key(self) -> str | None:
-        """Returns guest session key from scope when session is initialized."""
+        """Возвращает guest session key из текущего контекста или хранилища.
+        
+        Returns:
+            Объект типа str | None, сформированный в рамках обработки.
+        """
         session = self.scope.get("session")
         if not session:
             return None

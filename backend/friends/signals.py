@@ -11,6 +11,14 @@ from .utils import get_from_user_id, get_to_user_id
 
 @receiver(post_save, sender=Friendship)
 def audit_friendship_save(sender, instance: Friendship, created: bool, **kwargs):
+    """Фиксирует friendship save в системе аудита.
+    
+    Args:
+        sender: Параметр sender, используемый в логике функции.
+        instance: Экземпляр модели или доменного объекта.
+        created: Флаг создания новой записи.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     from_user_id = get_from_user_id(instance)
     to_user_id = get_to_user_id(instance)
     audit_security_event(
@@ -25,6 +33,13 @@ def audit_friendship_save(sender, instance: Friendship, created: bool, **kwargs)
 
 @receiver(post_delete, sender=Friendship)
 def audit_friendship_delete(sender, instance: Friendship, **kwargs):
+    """Фиксирует friendship delete в системе аудита.
+    
+    Args:
+        sender: Параметр sender, используемый в логике функции.
+        instance: Экземпляр модели или доменного объекта.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     from_user_id = get_from_user_id(instance)
     to_user_id = get_to_user_id(instance)
     audit_security_event(

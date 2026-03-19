@@ -1,8 +1,9 @@
 /**
- * Выполняет функцию `debugLog`.
- * @param args Входной параметр `args`.
- * @returns Результат выполнения `debugLog`.
+ * Реализует функцию `debugLog`.
+ * @param args Список аргументов для логирования или проксирования.
+
  */
+
 
 export const debugLog = (...args: unknown[]) => {
   if (import.meta.env.DEV && import.meta.env.MODE !== "test") {

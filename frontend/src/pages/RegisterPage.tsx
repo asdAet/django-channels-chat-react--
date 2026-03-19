@@ -1,6 +1,9 @@
 ﻿import styles from "../styles/pages/RegisterPage.module.css";
 import { AuthForm } from "../widgets/auth/AuthForm";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   onSubmit: (payload: {
     login: string;
@@ -17,6 +20,11 @@ type Props = {
   passwordRules?: string[];
 };
 
+/**
+ * Компонент RegisterPage рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function RegisterPage({
   onSubmit,
   onGoogleAuth,

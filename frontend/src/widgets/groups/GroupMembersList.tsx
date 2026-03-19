@@ -2,6 +2,9 @@ import type { GroupMember } from "../../entities/group/types";
 import { Avatar } from "../../shared/ui";
 import styles from "../../styles/groups/GroupsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   members: GroupMember[];
   isAdmin: boolean;
@@ -11,6 +14,11 @@ type Props = {
   onUnmute?: (userId: number) => void;
 };
 
+/**
+ * Компонент GroupMembersList рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function GroupMembersList({
   members,
   isAdmin,

@@ -15,16 +15,20 @@ import {
 } from "../shared/cache/cacheManager";
 import { debugLog } from "../shared/lib/debug";
 
+/**
+ * Описывает структуру состояния `Auth`.
+ */
 export type AuthState = {
   user: UserProfileDto | null;
   loading: boolean;
 };
 
 /**
- * Выполняет функцию `normalizeProfileImage`.
- * @param user Входной параметр `user`.
- * @returns Результат выполнения `normalizeProfileImage`.
+ * Нормализует profile image.
+ * @param user Текущий пользователь.
+ * @returns Нормализованное значение после обработки входа.
  */
+
 
 const normalizeProfileImage = (user: UserProfileDto): UserProfileDto => {
   if (!user.profileImage || user.profileImage.length === 0) {
@@ -34,17 +38,17 @@ const normalizeProfileImage = (user: UserProfileDto): UserProfileDto => {
 };
 
 /**
- * Управляет состоянием и эффектами хука `useAuth`.
- * @returns Результат выполнения `useAuth`.
+ * Хук useAuth управляет состоянием и побочными эффектами текущего сценария.
  */
+
 
 export const useAuth = () => {
   const [auth, setAuth] = useState<AuthState>({ user: null, loading: true });
 
   /**
-   * Выполняет метод `useEffect`.
-   * @param props Входной параметр `props`.
-   * @returns Результат выполнения `useEffect`.
+   * Вызывает `useEffect` как шаг текущего сценария.
+   * @param props Свойства компонента.
+   * @returns Ничего не возвращает.
    */
 
   useEffect(() => {
@@ -58,26 +62,26 @@ export const useAuth = () => {
           .then((session) => {
             if (!active) return;
             /**
-             * Выполняет метод `setAuth`.
-             * @param props Входной параметр `props`.
-             * @returns Результат выполнения `setAuth`.
+             * Вызывает `setAuth` как шаг текущего сценария.
+             * @param props Свойства компонента.
+
              */
 
             setAuth({ user: session.user, loading: false });
           })
           .catch((err) => {
             /**
-             * Выполняет метод `debugLog`.
-             * @param err Входной параметр `err`.
-             * @returns Результат выполнения `debugLog`.
+             * Вызывает `debugLog` как шаг текущего сценария.
+             * @param err Ошибка, полученная в процессе выполнения.
+
              */
 
             debugLog("Session fetch failed", err);
             if (!active) return;
             /**
-             * Выполняет метод `setAuth`.
-             * @param props Входной параметр `props`.
-             * @returns Результат выполнения `setAuth`.
+             * Вызывает `setAuth` как шаг текущего сценария.
+             * @param props Свойства компонента.
+
              */
 
             setAuth({ user: null, loading: false });
@@ -93,15 +97,15 @@ export const useAuth = () => {
     await authController.ensureCsrf();
     const session = await authController.login(dto);
     /**
-     * Выполняет метод `setAuth`.
-     * @param props Входной параметр `props`.
-     * @returns Результат выполнения `setAuth`.
+     * Вызывает `setAuth` как шаг текущего сценария.
+     * @param props Свойства компонента.
+
      */
 
     setAuth({ user: session.user, loading: false });
     /**
-     * Выполняет метод `clearAllUserCaches`.
-     * @returns Результат выполнения `clearAllUserCaches`.
+     * Вызывает `clearAllUserCaches` как шаг текущего сценария.
+
      */
 
     clearAllUserCaches();
@@ -126,15 +130,15 @@ export const useAuth = () => {
     await authController.ensureCsrf();
     const session = await authController.register(dto);
     /**
-     * Выполняет метод `setAuth`.
-     * @param props Входной параметр `props`.
-     * @returns Результат выполнения `setAuth`.
+     * Вызывает `setAuth` как шаг текущего сценария.
+     * @param props Свойства компонента.
+
      */
 
     setAuth({ user: session.user, loading: false });
     /**
-     * Выполняет метод `clearAllUserCaches`.
-     * @returns Результат выполнения `clearAllUserCaches`.
+     * Вызывает `clearAllUserCaches` как шаг текущего сценария.
+
      */
 
     clearAllUserCaches();
@@ -144,15 +148,15 @@ export const useAuth = () => {
   const logout = useCallback(async () => {
     await authController.logout().catch(() => {});
     /**
-     * Выполняет метод `setAuth`.
-     * @param props Входной параметр `props`.
-     * @returns Результат выполнения `setAuth`.
+     * Вызывает `setAuth` как шаг текущего сценария.
+     * @param props Свойства компонента.
+
      */
 
     setAuth({ user: null, loading: false });
     /**
-     * Выполняет метод `clearAllUserCaches`.
-     * @returns Результат выполнения `clearAllUserCaches`.
+     * Вызывает `clearAllUserCaches` как шаг текущего сценария.
+
      */
 
     clearAllUserCaches();
@@ -166,14 +170,14 @@ export const useAuth = () => {
         const normalizedUser = normalizeProfileImage(user);
         const previousUsername = auth.user?.username ?? null;
         /**
-         * Выполняет метод `setAuth`.
-         * @returns Результат выполнения `setAuth`.
+         * Вызывает `setAuth` как шаг текущего сценария.
+         * @returns Ничего не возвращает.
          */
 
         setAuth((prev) => ({ ...prev, user: normalizedUser }));
         /**
-         * Выполняет метод `invalidateSelfProfile`.
-         * @returns Результат выполнения `invalidateSelfProfile`.
+         * Вызывает `invalidateSelfProfile` как шаг текущего сценария.
+
          */
 
         invalidateSelfProfile();
@@ -194,9 +198,9 @@ export const useAuth = () => {
           apiErr.status === 401
         ) {
           /**
-           * Выполняет метод `setAuth`.
-           * @param props Входной параметр `props`.
-           * @returns Результат выполнения `setAuth`.
+           * Вызывает `setAuth` как шаг текущего сценария.
+           * @param props Свойства компонента.
+
            */
 
           setAuth({ user: null, loading: false });

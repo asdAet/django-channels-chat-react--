@@ -4,6 +4,12 @@ import type { UpdateGroupInput } from "../../domain/interfaces/IApiService";
 import { decodeGroupResponse } from "../../dto";
 import type { Group } from "../../entities/group/types";
 
+/**
+ * Выполняет API-запрос для операции append scalar.
+ * @param formData Аргумент `formData` текущего вызова.
+ * @param key Аргумент `key` текущего вызова.
+ * @param value Входное значение для преобразования.
+ */
 const appendScalar = (formData: FormData, key: string, value: unknown) => {
   if (value === undefined) return;
   if (value === null) {
@@ -17,6 +23,13 @@ const appendScalar = (formData: FormData, key: string, value: unknown) => {
   formData.append(key, String(value));
 };
 
+/**
+ * Обновляет group.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param roomId Идентификатор комнаты.
+ * @param data Входные данные операции.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function updateGroup(
   apiClient: AxiosInstance,
   roomId: string,

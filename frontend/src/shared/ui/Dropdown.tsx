@@ -6,6 +6,9 @@ import {
   useState,
 } from "react";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   trigger: ReactNode;
   children: ReactNode;
@@ -24,6 +27,9 @@ const menuStyle: React.CSSProperties = {
   padding: "4px 0",
 };
 
+/**
+ * React-компонент Dropdown отвечает за отрисовку и обработку UI-сценария.
+ */
 export function Dropdown({ trigger, children, align = "left" }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

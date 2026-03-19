@@ -32,6 +32,11 @@ const authUser = {
   registeredAt: null,
 };
 
+/**
+ * Создает тестовый объект сообщения.
+ * @param overrides Переопределения параметров тестового сценария.
+ * @returns Возвращает значение типа Message.
+ */
 const makeMessage = (
   overrides: Pick<Message, "id" | "username" | "content" | "createdAt"> &
     Partial<Message>,

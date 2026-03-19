@@ -8,18 +8,27 @@ import { Button, Panel } from "../shared/ui";
 import styles from "../styles/pages/DirectChatByUsernamePage.module.css";
 import { ChatRoomPage } from "./ChatRoomPage";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   publicRef: string;
   onNavigate: (path: string) => void;
 };
 
+/**
+ * Описывает структуру состояния `DirectChat`.
+ */
 type DirectChatState = {
   key: string;
   roomRef: string | null;
   error: string | null;
 };
 
+/**
+ * React-компонент DirectChatByUsernamePage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function DirectChatByUsernamePage({ user, publicRef, onNavigate }: Props) {
   const requestKey = useMemo(
     () => (user ? `${user.username}:${publicRef}` : "guest"),

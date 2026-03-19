@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState } from "react";
 import { groupController } from "../controllers/GroupController";
 import type { GroupListItem } from "../entities/group/types";
 
+/**
+ * Описывает результат операции `UseGroupList`.
+ */
 type UseGroupListResult = {
   groups: GroupListItem[];
   total: number;
@@ -13,6 +16,10 @@ type UseGroupListResult = {
   reload: () => void;
 };
 
+/**
+ * Хук useGroupList управляет состоянием и побочными эффектами текущего сценария.
+ * @returns Публичное состояние хука и его обработчики.
+ */
 export function useGroupList(): UseGroupListResult {
   const [groups, setGroups] = useState<GroupListItem[]>([]);
   const [total, setTotal] = useState(0);

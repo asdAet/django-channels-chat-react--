@@ -1,6 +1,9 @@
 ﻿import styles from "../styles/pages/LoginPage.module.css";
 import { AuthForm } from "../widgets/auth/AuthForm";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   onSubmit: (identifier: string, password: string) => void;
   onGoogleAuth?: () => Promise<void> | void;
@@ -9,6 +12,11 @@ type Props = {
   error?: string | null;
 };
 
+/**
+ * Компонент LoginPage рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function LoginPage({
   onSubmit,
   onGoogleAuth,

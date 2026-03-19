@@ -10,7 +10,14 @@ from rest_framework.response import Response
 
 
 def parse_request_payload(request) -> Mapping[str, object]:
-    """Возвращает словарь payload из JSON или form-data без выбрасывания ошибок наружу."""
+    """Разбирает request payload из входных данных с валидацией формата.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Объект типа Mapping[str, object], сформированный в рамках обработки.
+    """
     content_type = request.META.get("CONTENT_TYPE", "")
     if content_type.startswith("multipart/form-data") or content_type.startswith(
         "application/x-www-form-urlencoded"
@@ -40,7 +47,17 @@ def error_response(
     detail: str | None = None,
     errors: Mapping[str, list[str] | str] | None = None,
 ) -> Response:
-    """Формирует единый JSON-ответ ошибки в формате error/detail/errors."""
+    """Формирует структуру ошибки response для ответа API.
+    
+    Args:
+        status: HTTP-статус ответа, который будет возвращен клиенту.
+        error: Короткий код ошибки для машинной обработки на клиенте.
+        detail: Подробное описание ошибки для отображения и диагностики.
+        errors: Набор ошибок валидации, сгруппированных по полям.
+    
+    Returns:
+        HTTP-ответ с данными результата операции.
+    """
     payload: dict[str, object] = {}
     if error:
         payload["error"] = error

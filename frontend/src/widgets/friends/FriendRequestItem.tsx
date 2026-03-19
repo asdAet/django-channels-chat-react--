@@ -2,6 +2,9 @@ import type { FriendRequest } from "../../entities/friend/types";
 import { Avatar } from "../../shared/ui";
 import styles from "../../styles/friends/FriendsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Incoming`.
+ */
 type IncomingProps = {
   request: FriendRequest;
   direction: "incoming";
@@ -9,14 +12,24 @@ type IncomingProps = {
   onDecline: (id: number) => void;
 };
 
+/**
+ * Описывает входные props компонента `Outgoing`.
+ */
 type OutgoingProps = {
   request: FriendRequest;
   direction: "outgoing";
   onCancel: (id: number) => void;
 };
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = IncomingProps | OutgoingProps;
 
+/**
+ * React-компонент FriendRequestItem отвечает за отрисовку и обработку UI-сценария.
+ * @param props Свойства компонента или хука.
+ */
 export function FriendRequestItem(props: Props) {
   const { request, direction } = props;
   const displayName = request.displayName ?? request.username;

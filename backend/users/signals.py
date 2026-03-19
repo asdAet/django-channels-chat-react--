@@ -16,6 +16,13 @@ from .models import Profile, PublicHandle
 
 @receiver(pre_save, sender=User)
 def remember_previous_username(sender, instance, **kwargs):
+    """Вспомогательная функция `remember_previous_username` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        sender: Параметр sender, используемый в логике функции.
+        instance: Экземпляр модели или доменного объекта.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     if kwargs.get("raw", False):
         return
     if not instance.pk:
@@ -27,6 +34,13 @@ def remember_previous_username(sender, instance, **kwargs):
 
 @receiver(post_save, sender=User)
 def ensure_profile(sender, instance, **kwargs):
+    """Гарантирует корректность profile перед выполнением операции.
+    
+    Args:
+        sender: Источник сигнала Django.
+        instance: Экземпляр модели или доменного объекта.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     if kwargs.get("raw", False):
         return
     defaults = {"name": (instance.first_name or "").strip()}
@@ -46,6 +60,13 @@ def ensure_profile(sender, instance, **kwargs):
 
 @receiver(post_save, sender=User)
 def sync_chat_username_snapshots(sender, instance, **kwargs):
+    """Синхронизирует чат имя пользователя снимки состояния.
+    
+    Args:
+        sender: Параметр sender, используемый в логике функции.
+        instance: Экземпляр модели или доменного объекта.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     if kwargs.get("raw", False):
         return
     old_username = getattr(instance, "_old_username", None)
@@ -68,6 +89,13 @@ def sync_chat_username_snapshots(sender, instance, **kwargs):
 
 @receiver(post_save, sender=PublicHandle)
 def sync_chat_handle_snapshot_on_save(sender, instance, **kwargs):
+    """Синхронизирует чат handle snapshot on сохранение.
+    
+    Args:
+        sender: Параметр sender, используемый в логике функции.
+        instance: Экземпляр модели или доменного объекта.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     if kwargs.get("raw", False):
         return
     user = getattr(instance, "user", None)
@@ -88,6 +116,13 @@ def sync_chat_handle_snapshot_on_save(sender, instance, **kwargs):
 
 @receiver(post_delete, sender=PublicHandle)
 def sync_chat_handle_snapshot_on_delete(sender, instance, **kwargs):
+    """Синхронизирует чат handle snapshot on удаление.
+    
+    Args:
+        sender: Параметр sender, используемый в логике функции.
+        instance: Экземпляр модели или доменного объекта.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     user = getattr(instance, "user", None)
     if user is None:
         return

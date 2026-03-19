@@ -78,10 +78,8 @@ const user = {
 };
 
 /**
- * Рендерит компонент `Probe` и связанную разметку.
- * @returns Результат выполнения `Probe`.
+ * Проверяет состояние провайдера в тестовом окружении.
  */
-
 function Probe() {
   const inbox = useDirectInbox();
 
@@ -101,9 +99,12 @@ function Probe() {
 
 /**
  * Выполняет функцию `sentPayloads`.
- * @returns Результат выполнения `sentPayloads`.
+ * @returns Результат выполнения операции.
  */
 
+/**
+ * Возвращает отправленные payload для последующих проверок.
+ */
 const sentPayloads = () =>
   wsMock.send.mock.calls.map(([raw]) => {
     try {
@@ -116,7 +117,7 @@ const sentPayloads = () =>
 describe("DirectInboxProvider", () => {
   /**
    * Выполняет метод `beforeEach`.
-   * @returns Результат выполнения `beforeEach`.
+   * @returns Результат выполнения операции.
    */
 
   beforeEach(() => {
@@ -130,7 +131,7 @@ describe("DirectInboxProvider", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("loads initial chats and applies unread events", async () => {
@@ -147,7 +148,7 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `render`.
-     * @returns Результат выполнения `render`.
+     * @returns Результат выполнения операции.
      */
 
     render(
@@ -159,7 +160,7 @@ describe("DirectInboxProvider", () => {
     await waitFor(() => {
       /**
        * Выполняет метод `expect`.
-       * @returns Результат выполнения `expect`.
+       * @returns Результат выполнения операции.
        */
 
       expect(screen.getByTestId("items-order").textContent).toBe("1");
@@ -167,7 +168,7 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -183,20 +184,20 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-count").textContent).toBe("1");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":2}');
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -212,13 +213,13 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-count").textContent).toBe("0");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
@@ -226,7 +227,7 @@ describe("DirectInboxProvider", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("reorders chats when realtime item arrives", async () => {
@@ -249,7 +250,7 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `render`.
-     * @returns Результат выполнения `render`.
+     * @returns Результат выполнения операции.
      */
 
     render(
@@ -261,7 +262,7 @@ describe("DirectInboxProvider", () => {
     await waitFor(() => {
       /**
        * Выполняет метод `expect`.
-       * @returns Результат выполнения `expect`.
+       * @returns Результат выполнения операции.
        */
 
       expect(screen.getByTestId("items-order").textContent).toBe(
@@ -271,7 +272,7 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -297,19 +298,19 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("items-order").textContent).toBe("1,2");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-count").textContent).toBe("1");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-counts").textContent).toBe(
@@ -319,13 +320,13 @@ describe("DirectInboxProvider", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("sends mark_read and set_active_room commands", async () => {
     /**
      * Выполняет метод `render`.
-     * @returns Результат выполнения `render`.
+     * @returns Результат выполнения операции.
      */
 
     render(
@@ -337,7 +338,7 @@ describe("DirectInboxProvider", () => {
     await waitFor(() => {
       /**
        * Выполняет метод `expect`.
-       * @returns Результат выполнения `expect`.
+       * @returns Результат выполнения операции.
        */
 
       expect(chatMock.getDirectChats).toHaveBeenCalledTimes(1);
@@ -345,7 +346,7 @@ describe("DirectInboxProvider", () => {
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -365,7 +366,7 @@ describe("DirectInboxProvider", () => {
     const payloads = sentPayloads();
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(
@@ -376,7 +377,7 @@ describe("DirectInboxProvider", () => {
     ).toBe(true);
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(
@@ -387,13 +388,13 @@ describe("DirectInboxProvider", () => {
     ).toBe(true);
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-count").textContent).toBe("0");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
@@ -401,7 +402,7 @@ describe("DirectInboxProvider", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("re-sends active room after reconnect", async () => {
@@ -416,7 +417,7 @@ describe("DirectInboxProvider", () => {
     await waitFor(() => {
       /**
        * Выполняет метод `expect`.
-       * @returns Результат выполнения `expect`.
+       * @returns Результат выполнения операции.
        */
 
       expect(chatMock.getDirectChats).toHaveBeenCalledTimes(1);
@@ -428,7 +429,7 @@ describe("DirectInboxProvider", () => {
     wsMock.status = "online";
     /**
      * Выполняет метод `rerender`.
-     * @returns Результат выполнения `rerender`.
+     * @returns Результат выполнения операции.
      */
 
     rerender(
@@ -440,13 +441,13 @@ describe("DirectInboxProvider", () => {
     const payloads = sentPayloads();
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(payloads.some((payload) => payload?.type === "ping")).toBe(true);
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(

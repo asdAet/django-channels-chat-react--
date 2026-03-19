@@ -65,6 +65,11 @@ const myPermissionsSchema = z
   })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции map role.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapRole = (dto: z.infer<typeof roleSchema>): Role => ({
   id: dto.id,
   name: dto.name,
@@ -75,16 +80,34 @@ const mapRole = (dto: z.infer<typeof roleSchema>): Role => ({
   createdAt: dto.createdAt ?? dto.created_at ?? "",
 });
 
+/**
+ * Преобразует HTTP-данные для операции decode roles list response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeRolesListResponse = (input: unknown): Role[] => {
   const parsed = decodeOrThrow(roleListSchema, input, "roles/list");
   return parsed.items.map(mapRole);
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode role response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeRoleResponse = (input: unknown): Role => {
   const wrapped = z.object({ item: roleSchema }).passthrough();
   const parsed = decodeOrThrow(wrapped, input, "roles/single");
   return mapRole(parsed.item);
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode member roles response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeMemberRolesResponse = (input: unknown): MemberRoles => {
   const parsed = decodeOrThrow(memberRolesSchema, input, "roles/member");
@@ -100,6 +123,12 @@ export const decodeMemberRolesResponse = (input: unknown): MemberRoles => {
   };
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode overrides response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeOverridesResponse = (
   input: unknown,
 ): PermissionOverride[] => {
@@ -113,6 +142,12 @@ export const decodeOverridesResponse = (
   }));
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode override response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeOverrideResponse = (input: unknown): PermissionOverride => {
   const wrapped = z.object({ item: overrideSchema }).passthrough();
   const parsed = decodeOrThrow(wrapped, input, "roles/override");
@@ -124,6 +159,12 @@ export const decodeOverrideResponse = (input: unknown): PermissionOverride => {
     deny: parsed.item.deny ?? 0,
   };
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode my permissions response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeMyPermissionsResponse = (input: unknown): MyPermissions => {
   return decodeOrThrow(myPermissionsSchema, input, "roles/my-permissions");

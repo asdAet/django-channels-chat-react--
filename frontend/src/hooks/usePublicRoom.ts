@@ -6,25 +6,25 @@ import type { UserProfile as UserProfileDto } from "../entities/user/types";
 import { debugLog } from "../shared/lib/debug";
 
 /**
- * Управляет состоянием и эффектами хука `usePublicRoom`.
- * @param user Входной параметр `user`.
- * @returns Результат выполнения `usePublicRoom`.
+ * Хук usePublicRoom управляет состоянием и побочными эффектами текущего сценария.
+ * @param user Текущий пользователь.
  */
+
 
 export const usePublicRoom = (user: UserProfileDto | null) => {
   const [publicRoom, setPublicRoom] = useState<RoomDetailsDto | null>(null);
   const [loading, setLoading] = useState(false);
 
   /**
-   * Выполняет метод `useEffect`.
-   * @param props Входной параметр `props`.
-   * @returns Результат выполнения `useEffect`.
+   * Вызывает `useEffect` как шаг текущего сценария.
+   * @param props Свойства компонента.
+   * @returns Ничего не возвращает.
    */
 
   useEffect(() => {
     /**
-     * Выполняет метод `queueMicrotask`.
-     * @returns Результат выполнения `queueMicrotask`.
+     * Вызывает `queueMicrotask` как шаг текущего сценария.
+     * @returns Ничего не возвращает.
      */
 
     queueMicrotask(() => setLoading(true));
@@ -36,8 +36,8 @@ export const usePublicRoom = (user: UserProfileDto | null) => {
       })
       .catch(() => {
         /**
-         * Выполняет метод `debugLog`.
-         * @returns Результат выполнения `debugLog`.
+         * Вызывает `debugLog` как шаг текущего сценария.
+
          */
 
         debugLog("Public room fetch failed");

@@ -3,9 +3,9 @@
 import { decodePasswordRulesResponse } from "../../dto";
 
 /**
- * Загружает подсказки по правилам пароля.
- * @param apiClient HTTP-клиент.
- * @returns Нормализованный список правил.
+ * Возвращает password rules.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function getPasswordRules(
   apiClient: AxiosInstance,

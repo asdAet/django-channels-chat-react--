@@ -4,9 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useReconnectingWebSocket } from "./useReconnectingWebSocket";
 
 /**
- * Описывает назначение класса `MockWebSocket`.
+ * Реализует класс MockWebSocket.
  */
-
 class MockWebSocket {
   static CONNECTING = 0;
   static OPEN = 1;
@@ -24,70 +23,66 @@ class MockWebSocket {
   public readonly url: string;
   public readonly protocols?: string | string[];
 
-  constructor(url: string, protocols?: string | string[]) {
+    /**
+     * Инициализирует зависимости и внутреннее состояние экземпляра.
+     * @param url Параметр url, используемый в логике функции.
+     * @param protocols Параметр protocols, используемый в логике функции.
+     */
+constructor(url: string, protocols?: string | string[]) {
     this.url = url;
     this.protocols = protocols;
     MockWebSocket.instances.push(this);
   }
 
-  /**
-   * Выполняет метод `send`.
-   * @param data Входной параметр `data`.
-   * @returns Результат выполнения `send`.
+    /**
+   * Отправляет данные.
+   *
+   * @param data Данные запроса или полезная нагрузка операции.
    */
-
-  send(data: string) {
+send(data: string) {
     this.sent.push(data);
   }
 
-  /**
-   * Выполняет метод `close`.
-   * @returns Результат выполнения `close`.
+    /**
+   * Закрывает тестовое соединение и освобождает ресурсы.
    */
-
-  close() {
+close() {
     this.readyState = MockWebSocket.CLOSED;
     this.onclose?.({ code: 1000 } as CloseEvent);
   }
 
-  /**
-   * Выполняет метод `triggerOpen`.
-   * @returns Результат выполнения `triggerOpen`.
+    /**
+   * Выполняет open.
    */
-
-  triggerOpen() {
+triggerOpen() {
     this.readyState = MockWebSocket.OPEN;
     this.onopen?.(new Event("open"));
   }
 
-  /**
-   * Выполняет метод `triggerMessage`.
-   * @param data Входной параметр `data`.
-   * @returns Результат выполнения `triggerMessage`.
+    /**
+   * Выполняет сообщения.
+   *
+   * @param data Данные запроса или полезная нагрузка операции.
    */
-
-  triggerMessage(data: unknown) {
+triggerMessage(data: unknown) {
     this.onmessage?.(
       new MessageEvent("message", { data: JSON.stringify(data) }),
     );
   }
 
-  /**
-   * Выполняет метод `triggerError`.
-   * @returns Результат выполнения `triggerError`.
+    /**
+   * Выполняет error.
    */
-
-  triggerError() {
+triggerError() {
     this.onerror?.(new Event("error"));
   }
 
-  /**
-   * Выполняет метод `triggerClose`.
-   * @param code Входной параметр `code`.
-   * @returns Результат выполнения `triggerClose`.
+    /**
+   * Выполняет close.
+   *
+   * @param code Код приглашения или операции.
    */
-
-  triggerClose(code = 1006) {
+triggerClose(code = 1006) {
     this.readyState = MockWebSocket.CLOSED;
     this.onclose?.({ code } as CloseEvent);
   }
@@ -96,7 +91,7 @@ class MockWebSocket {
 describe("useReconnectingWebSocket", () => {
   /**
    * Выполняет метод `beforeEach`.
-   * @returns Результат выполнения `beforeEach`.
+   * @returns Результат выполнения операции.
    */
 
   beforeEach(() => {
@@ -111,7 +106,7 @@ describe("useReconnectingWebSocket", () => {
 
   /**
    * Выполняет метод `afterEach`.
-   * @returns Результат выполнения `afterEach`.
+   * @returns Результат выполнения операции.
    */
 
   afterEach(() => {
@@ -121,15 +116,15 @@ describe("useReconnectingWebSocket", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("connects and allows send when socket is open", async () => {
     const { result } = renderHook(() =>
       /**
        * Выполняет метод `useReconnectingWebSocket`.
-       * @param props Входной параметр `props`.
-       * @returns Результат выполнения `useReconnectingWebSocket`.
+       * @param props Свойства компонента.
+       * @returns Результат выполнения операции.
        */
 
       useReconnectingWebSocket({
@@ -141,7 +136,7 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -152,13 +147,13 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.send("ping")).toBe(true);
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(MockWebSocket.instances[0].sent).toEqual(["ping"]);
@@ -166,7 +161,7 @@ describe("useReconnectingWebSocket", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("reconnects after unexpected close with backoff", async () => {
@@ -176,8 +171,8 @@ describe("useReconnectingWebSocket", () => {
     const { result } = renderHook(() =>
       /**
        * Выполняет метод `useReconnectingWebSocket`.
-       * @param props Входной параметр `props`.
-       * @returns Результат выполнения `useReconnectingWebSocket`.
+       * @param props Свойства компонента.
+       * @returns Результат выполнения операции.
        */
 
       useReconnectingWebSocket({
@@ -193,14 +188,14 @@ describe("useReconnectingWebSocket", () => {
     });
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(MockWebSocket.instances).toHaveLength(1);
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -210,14 +205,14 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.status).toBe("closed");
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -226,7 +221,7 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(MockWebSocket.instances).toHaveLength(2);
@@ -234,7 +229,7 @@ describe("useReconnectingWebSocket", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("goes offline immediately when browser is offline", async () => {
@@ -246,8 +241,8 @@ describe("useReconnectingWebSocket", () => {
     const { result } = renderHook(() =>
       /**
        * Выполняет метод `useReconnectingWebSocket`.
-       * @param props Входной параметр `props`.
-       * @returns Результат выполнения `useReconnectingWebSocket`.
+       * @param props Свойства компонента.
+       * @returns Результат выполнения операции.
        */
 
       useReconnectingWebSocket({
@@ -258,7 +253,7 @@ describe("useReconnectingWebSocket", () => {
     await waitFor(() => expect(result.current.status).toBe("offline"));
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(MockWebSocket.instances).toHaveLength(0);
@@ -266,7 +261,7 @@ describe("useReconnectingWebSocket", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("marks error when retry limit is reached", async () => {
@@ -276,8 +271,8 @@ describe("useReconnectingWebSocket", () => {
     const { result } = renderHook(() =>
       /**
        * Выполняет метод `useReconnectingWebSocket`.
-       * @param props Входной параметр `props`.
-       * @returns Результат выполнения `useReconnectingWebSocket`.
+       * @param props Свойства компонента.
+       * @returns Результат выполнения операции.
        */
 
       useReconnectingWebSocket({
@@ -293,7 +288,7 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -302,13 +297,13 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.status).toBe("error");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.lastError).toBe("reconnect_limit");
@@ -316,7 +311,7 @@ describe("useReconnectingWebSocket", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("exposes connection error and send=false when not open", async () => {
@@ -324,8 +319,8 @@ describe("useReconnectingWebSocket", () => {
     const { result } = renderHook(() =>
       /**
        * Выполняет метод `useReconnectingWebSocket`.
-       * @param props Входной параметр `props`.
-       * @returns Результат выполнения `useReconnectingWebSocket`.
+       * @param props Свойства компонента.
+       * @returns Результат выполнения операции.
        */
 
       useReconnectingWebSocket({
@@ -338,7 +333,7 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -347,26 +342,26 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @param onError Входной параметр `onError`.
-     * @returns Результат выполнения `expect`.
+     * @param onError Обработчик ошибки.
+     * @returns Результат выполнения операции.
      */
 
     expect(onError).toHaveBeenCalledTimes(1);
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.status).toBe("error");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.lastError).toBe("connection_error");
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.send("x")).toBe(false);
@@ -374,7 +369,7 @@ describe("useReconnectingWebSocket", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("calls onMessage callback", async () => {
@@ -382,14 +377,14 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `renderHook`.
-     * @returns Результат выполнения `renderHook`.
+     * @returns Результат выполнения операции.
      */
 
     renderHook(() =>
       /**
        * Выполняет метод `useReconnectingWebSocket`.
-       * @param props Входной параметр `props`.
-       * @returns Результат выполнения `useReconnectingWebSocket`.
+       * @param props Свойства компонента.
+       * @returns Результат выполнения операции.
        */
 
       useReconnectingWebSocket({
@@ -402,7 +397,7 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `act`.
-     * @returns Результат выполнения `act`.
+     * @returns Результат выполнения операции.
      */
 
     act(() => {
@@ -412,8 +407,8 @@ describe("useReconnectingWebSocket", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @param onMessage Входной параметр `onMessage`.
-     * @returns Результат выполнения `expect`.
+     * @param onMessage Обработчик входящего сообщения.
+     * @returns Результат выполнения операции.
      */
 
     expect(onMessage).toHaveBeenCalledTimes(1);

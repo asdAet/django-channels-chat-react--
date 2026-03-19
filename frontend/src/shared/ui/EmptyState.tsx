@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 
 import styles from "../../styles/ui/EmptyState.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   icon?: string;
   title?: string;
@@ -10,6 +13,11 @@ type Props = {
   className?: string;
 };
 
+/**
+ * Компонент EmptyState рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function EmptyState({
   icon,
   title,

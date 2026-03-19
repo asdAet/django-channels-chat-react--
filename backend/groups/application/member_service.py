@@ -38,7 +38,12 @@ User = get_user_model()
 
 
 def _broadcast_membership_revoked(room: Room, target_user_id: int) -> None:
-    """Force-close active chat sockets for a user in the room."""
+    """Выполняет вспомогательную обработку для broadcast membership revoked.
+    
+    Args:
+        room: Комната, в контексте которой выполняется действие.
+        target_user_id: Идентификатор target user.
+    """
     channel_layer = get_channel_layer()
     if channel_layer is None:
         return
@@ -56,12 +61,27 @@ def _broadcast_membership_revoked(room: Room, target_user_id: int) -> None:
 
 
 def _schedule_membership_revoked(room: Room, target_user_id: int) -> None:
+    """Выполняет вспомогательную обработку для schedule membership revoked.
+    
+    Args:
+        room: Комната, в контексте которой выполняется действие.
+        target_user_id: Идентификатор target user.
+    """
     transaction.on_commit(
         lambda: _broadcast_membership_revoked(room, int(target_user_id))
     )
 
 
 def _get_membership_or_raise(room: Room, user) -> Membership:
+    """Возвращает membership or raise из текущего контекста.
+    
+    Args:
+        room: Комната, в контексте которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа Membership, полученный при выполнении операции.
+    """
     membership = Membership.objects.filter(room=room, user=user).first()
     if not membership:
         raise GroupNotFoundError("Участник не найден")
@@ -69,12 +89,26 @@ def _get_membership_or_raise(room: Room, user) -> Membership:
 
 
 def _get_target_top_position(membership: Membership) -> int:
+    """Возвращает target top position из текущего контекста или хранилища.
+    
+    Args:
+        membership: Запись участия пользователя в комнате.
+    
+    Returns:
+        Целочисленный результат вычисления.
+    """
     top_role = membership.roles.order_by("-position").first()
     return int(top_role.position) if top_role else 0
 
 
 def _ensure_hierarchy(room: Room, actor, target_membership: Membership) -> None:
-    """Ensure actor's top role position > target's top role position."""
+    """Проверяет обязательные условия для hierarchy.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        actor: Пользователь, инициирующий действие.
+        target_membership: Целевое membership-состояние участника комнаты.
+    """
     actor_ctx = get_actor_context(room, actor)
     target_pos = _get_target_top_position(target_membership)
     if not can_manage_target(
@@ -85,6 +119,12 @@ def _ensure_hierarchy(room: Room, actor, target_membership: Membership) -> None:
 
 
 def _ensure_not_self(actor, target_user_id: int) -> None:
+    """Гарантирует корректность not self перед выполнением операции.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        target_user_id: Идентификатор target user.
+    """
     actor_id = getattr(actor, "pk", None)
     if actor_id is None:
         return
@@ -93,7 +133,15 @@ def _ensure_not_self(actor, target_user_id: int) -> None:
 
 
 def join_group(actor, room_id: int) -> Membership:
-    """Join a public group directly."""
+    """Добавляет участника или объект в group.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Объект типа Membership, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -139,7 +187,10 @@ def join_group(actor, room_id: int) -> Membership:
 
 
 def leave_group(actor, room_id: int) -> None:
-    """Leave a group. Owners cannot leave without transferring ownership."""
+    """Удаляет участника из группы.
+    
+    Владелец обязан сначала передать владение другой роли.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -167,7 +218,7 @@ def leave_group(actor, room_id: int) -> None:
 
 
 def kick_member(actor, room_id: int, target_user_id: int) -> None:
-    """Kick a member from the group."""
+    """Исключает участника из группы после проверки полномочий."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     _ensure_not_self(actor, int(target_user_id))
@@ -212,7 +263,7 @@ def ban_member(
     *,
     reason: str = "",
 ) -> None:
-    """Ban a member from the group."""
+    """Блокирует участника в группе и фиксирует причину блокировки."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     _ensure_not_self(actor, int(target_user_id))
@@ -275,7 +326,7 @@ def ban_member(
 
 
 def unban_member(actor, room_id: int, target_user_id: int) -> None:
-    """Unban a member from the group."""
+    """Снимает блокировку с ранее заблокированного участника."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -309,7 +360,7 @@ def mute_member(
     *,
     duration_seconds: int,
 ) -> Membership:
-    """Mute a member for a specified duration."""
+    """Выдает мут участнику на заданный интервал времени."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     _ensure_not_self(actor, int(target_user_id))
@@ -348,7 +399,7 @@ def mute_member(
 
 
 def unmute_member(actor, room_id: int, target_user_id: int) -> Membership:
-    """Unmute a member."""
+    """Снимает мут с участника и возвращает возможность писать сообщения."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     _ensure_not_self(actor, int(target_user_id))
@@ -386,7 +437,18 @@ def list_members(
     limit: int = 50,
     request=None,
 ) -> dict:
-    """List group members with their roles."""
+    """Возвращает список members с учетом фильтров доступа.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        before_id: Идентификатор курсора для пагинации назад.
+        limit: Лимит количества записей в ответе.
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     limit = max(1, min(int(limit), 200))
@@ -412,6 +474,14 @@ def list_members(
     actor_user_id = getattr(actor, "pk", None)
 
     def _member_dict(m):
+        """Вспомогательная функция `_member_dict` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            m: Параметр m, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         profile = getattr(m.user, "profile", None)
         profile_image = resolve_user_avatar_url_from_request(request, m.user) if request is not None else None
         avatar_crop = None
@@ -454,7 +524,17 @@ def list_banned(
     before_id: int | None = None,
     limit: int = 50,
 ) -> dict:
-    """List banned members. Requires BAN_MEMBERS permission."""
+    """Возвращает список banned с учетом фильтров доступа.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        before_id: Идентификатор курсора для пагинации назад.
+        limit: Лимит количества записей в ответе.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
     limit = max(1, min(int(limit), 200))
@@ -498,7 +578,7 @@ def list_banned(
 
 
 def approve_join_request(actor, room_id: int, request_id: int) -> Membership:
-    """Approve a pending join request."""
+    """Одобряет заявку на вступление и добавляет пользователя в группу."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -550,7 +630,7 @@ def approve_join_request(actor, room_id: int, request_id: int) -> Membership:
 
 
 def reject_join_request(actor, room_id: int, request_id: int) -> None:
-    """Reject a pending join request."""
+    """Отклоняет заявку на вступление без добавления участника в группу."""
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -580,7 +660,15 @@ def reject_join_request(actor, room_id: int, request_id: int) -> None:
 
 
 def list_join_requests(actor, room_id: int) -> list[dict]:
-    """List pending join requests."""
+    """Возвращает список join requests, доступных в текущем контексте.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор room.
+    
+    Returns:
+        Список типа list[dict] с результатами операции.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -602,5 +690,4 @@ def list_join_requests(actor, room_id: int) -> list[dict]:
         }
         for r in requests
     ]
-
 

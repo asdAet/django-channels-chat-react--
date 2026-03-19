@@ -8,9 +8,15 @@ from auditlog.models import AuditEvent
 
 
 class Command(BaseCommand):
+    """Класс Command реализует management-команду Django."""
     help = "Удаляет события аудита старше N дней."
 
     def add_arguments(self, parser):
+        """Добавляет arguments в целевую коллекцию.
+        
+        Args:
+            parser: Парсер аргументов management-команды.
+        """
         parser.add_argument(
             "--days",
             type=int,
@@ -19,6 +25,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Обрабатывает данные.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            **options: Опции, переданные в management-команду.
+        """
         days = int(options["days"])
         if days < 1:
             raise CommandError("--days должно быть >= 1")

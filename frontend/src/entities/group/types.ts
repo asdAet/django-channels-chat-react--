@@ -1,5 +1,8 @@
 import type { AvatarCrop } from "../../shared/api/users";
 
+/**
+ * Описывает структуру данных `Group`.
+ */
 export type Group = {
   roomId: number;
   slug: string;
@@ -15,6 +18,9 @@ export type Group = {
   avatarCrop?: AvatarCrop | null;
 };
 
+/**
+ * Описывает структуру данных `GroupListItem`.
+ */
 export type GroupListItem = {
   roomId: number;
   slug: string;
@@ -26,6 +32,9 @@ export type GroupListItem = {
   avatarCrop?: AvatarCrop | null;
 };
 
+/**
+ * Описывает структуру данных `GroupMember`.
+ */
 export type GroupMember = {
   userId: number;
   username: string;
@@ -40,6 +49,9 @@ export type GroupMember = {
   isSelf?: boolean;
 };
 
+/**
+ * Описывает структуру данных `GroupInvite`.
+ */
 export type GroupInvite = {
   code: string;
   name: string;
@@ -52,6 +64,9 @@ export type GroupInvite = {
   createdAt: string;
 };
 
+/**
+ * Описывает структуру данных `InvitePreview`.
+ */
 export type InvitePreview = {
   code: string;
   groupId: number;
@@ -61,6 +76,9 @@ export type InvitePreview = {
   isPublic: boolean;
 };
 
+/**
+ * Описывает payload запроса `JoinRequest`.
+ */
 export type JoinRequest = {
   id: number;
   userId: number;
@@ -71,6 +89,9 @@ export type JoinRequest = {
   createdAt: string;
 };
 
+/**
+ * Описывает структуру данных `PinnedMessage`.
+ */
 export type PinnedMessage = {
   messageId: number;
   content: string;
@@ -80,6 +101,9 @@ export type PinnedMessage = {
   createdAt: string;
 };
 
+/**
+ * Описывает структуру данных `BannedMember`.
+ */
 export type BannedMember = {
   userId: number;
   username: string;

@@ -73,12 +73,18 @@ import {
   writePendingReadToStorage,
 } from "./chatRoomPage/utils";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   slug: string;
   user: UserProfile | null;
   onNavigate: (path: string) => void;
 };
 
+/**
+ * React-компонент ChatRoomPage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const {
     details,
@@ -488,12 +494,20 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
   useEffect(() => {
     if (!isHeaderSearchOpen) return;
+    /**
+     * Обрабатывает on key down.
+     * @param event Событие браузера.
+     */
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setHeaderSearchOpen(false);
       setHeaderSearchQuery("");
       setHeaderSearchResults([]);
     };
+    /**
+     * Обрабатывает on mouse down.
+     * @param event Событие браузера.
+     */
     const onMouseDown = (event: MouseEvent) => {
       if (!searchWrapRef.current) return;
       if (searchWrapRef.current.contains(event.target as Node)) return;
@@ -698,14 +712,23 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   useEffect(() => {
     if (!readStateEnabled) return;
 
+    /**
+     * Обрабатывает on visibility change.
+     */
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
         flushPendingRead();
       }
     };
+    /**
+     * Обрабатывает on page hide.
+     */
     const onPageHide = () => {
       flushPendingRead();
     };
+    /**
+     * Обрабатывает on before unload.
+     */
     const onBeforeUnload = () => {
       flushPendingRead();
     };

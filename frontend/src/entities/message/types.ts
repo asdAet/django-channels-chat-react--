@@ -1,5 +1,8 @@
 import type { AvatarCrop } from "../../shared/api/users";
 
+/**
+ * Описывает структуру данных `Attachment`.
+ */
 export type Attachment = {
   id: number;
   originalFilename: string;
@@ -11,12 +14,18 @@ export type Attachment = {
   height: number | null;
 };
 
+/**
+ * Описывает структуру данных `ReactionSummary`.
+ */
 export type ReactionSummary = {
   emoji: string;
   count: number;
   me: boolean;
 };
 
+/**
+ * Описывает структуру данных `ReplyTo`.
+ */
 export type ReplyTo = {
   id: number;
   publicRef: string | null;
@@ -25,6 +34,9 @@ export type ReplyTo = {
   content: string;
 };
 
+/**
+ * Описывает структуру данных `Message`.
+ */
 export type Message = {
   id: number;
   publicRef: string;

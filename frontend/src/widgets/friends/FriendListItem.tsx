@@ -2,6 +2,9 @@ import type { Friend } from "../../entities/friend/types";
 import { Avatar } from "../../shared/ui";
 import styles from "../../styles/friends/FriendsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   friend: Friend;
   isOnline: boolean;
@@ -10,6 +13,11 @@ type Props = {
   onBlock: (publicRef: string) => void;
 };
 
+/**
+ * Компонент FriendListItem рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function FriendListItem({
   friend,
   isOnline,

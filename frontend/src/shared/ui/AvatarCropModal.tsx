@@ -5,6 +5,9 @@ import styles from "../../styles/ui/AvatarCropModal.module.css";
 import type { AvatarCrop } from "../api/users";
 import { Button } from "./Button";
 
+/**
+ * Описывает входные props компонента `AvatarCropModal`.
+ */
 type AvatarCropModalProps = {
   open: boolean;
   image: string | null;
@@ -18,11 +21,27 @@ const ZOOM_STEP = 0.01;
 const EPSILON = 0.000001;
 const ROUND_FACTOR = 1_000_000;
 
+/**
+ * Обрабатывает clamp.
+ * @param value Входное значение для преобразования.
+ * @param min Аргумент `min` текущего вызова.
+ * @param max Аргумент `max` текущего вызова.
+ */
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+/**
+ * Обрабатывает round to six.
+ * @param value Входное значение для преобразования.
+ */
 const roundToSix = (value: number) =>
   Math.round(value * ROUND_FACTOR) / ROUND_FACTOR;
 
+/**
+ * Обрабатывает to normalized crop.
+ * @param areaPixels Список `areaPixels`, который обрабатывается функцией.
+ * @param mediaSize DOM-событие, вызвавшее обработчик.
+
+ */
 const toNormalizedCrop = (
   areaPixels: Area | null,
   mediaSize: MediaSize | null,
@@ -57,6 +76,11 @@ const toNormalizedCrop = (
   return { x, y, width, height };
 };
 
+/**
+ * Компонент AvatarCropModal рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function AvatarCropModal({
   open,
   image,

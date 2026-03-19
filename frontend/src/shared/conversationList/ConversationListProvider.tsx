@@ -23,8 +23,14 @@ import { usePresence } from "../presence";
 import { useUnreadOverrides } from "../unreadOverrides/store";
 import { CONVERSATION_LIST_REFRESH_EVENT } from "./events";
 
+/**
+ * Описывает структуру данных `FilterTab`.
+ */
 type FilterTab = "all" | "personal" | "groups";
 
+/**
+ * Описывает структуру состояния `ConversationList`.
+ */
 type ConversationListState = {
   items: ConversationItem[];
   loading: boolean;
@@ -61,12 +67,19 @@ const fallback: ConversationListState = {
 
 const ConversationListCtx = createContext<ConversationListState>(fallback);
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   ready: boolean;
   children: ReactNode;
 };
 
+/**
+ * Проверяет условие can run global search query.
+ * @param query Поисковый запрос.
+ */
 const canRunGlobalSearchQuery = (query: string) => {
   const normalized = query.trim();
   if (normalized.length < 2) return false;
@@ -74,9 +87,17 @@ const canRunGlobalSearchQuery = (query: string) => {
   return normalized.slice(1).trim().length >= 2;
 };
 
+/**
+ * Нормализует actor ref.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 const normalizeActorRef = (value: string): string =>
   normalizePublicRef(value).toLowerCase();
 
+/**
+ * React-компонент ConversationListProvider отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ConversationListProvider({ user, ready, children }: Props) {
   const { items: directItems, unreadCounts } = useDirectInbox();
   const unreadOverrides = useUnreadOverrides();
@@ -145,6 +166,9 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
   useEffect(() => {
     if (!ready || !user) return;
+    /**
+     * Обрабатывает on refresh.
+     */
     const onRefresh = () => {
       void fetchData();
     };
@@ -194,6 +218,11 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   }, [canRunGlobalSearch, isGlobalMode, searchQuery, user]);
 
   const items = useMemo<ConversationItem[]>(() => {
+    /**
+     * Определяет unread count.
+     * @param slug Человекочитаемый идентификатор сущности.
+     * @param wsUnreadCount Числовой параметр `wsUnreadCount`, ограничивающий объем данных.
+     */
     const resolveUnreadCount = (slug: string, wsUnreadCount?: number) => {
       const overrideUnread = unreadOverrides[slug];
       if (typeof overrideUnread === "number") return overrideUnread;
@@ -304,6 +333,9 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   );
 }
 
+/**
+ * Хук useConversationList управляет состоянием и побочными эффектами текущего сценария.
+ */
 export function useConversationList() {
   return useContext(ConversationListCtx);
 }

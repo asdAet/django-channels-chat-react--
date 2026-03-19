@@ -1,8 +1,9 @@
 /**
- * Выполняет функцию `formatTimestamp`.
- * @param iso Входной параметр `iso`.
- * @returns Результат выполнения `formatTimestamp`.
+ * Реализует функцию `formatTimestamp`.
+ * @param iso Дата в ISO-формате.
+ * @returns Строка в отформатированном виде.
  */
+
 
 export const formatTimestamp = (iso: string) =>
   new Intl.DateTimeFormat("ru-RU", {
@@ -11,11 +12,12 @@ export const formatTimestamp = (iso: string) =>
   }).format(new Date(iso));
 
 /**
- * Выполняет функцию `formatDayLabel`.
- * @param date Входной параметр `date`.
- * @param now Входной параметр `now`.
- * @returns Результат выполнения `formatDayLabel`.
+ * Реализует функцию `formatDayLabel`.
+ * @param date Дата для форматирования.
+ * @param now Текущая дата для вычислений.
+ * @returns Строка в отформатированном виде.
  */
+
 
 export const formatDayLabel = (date: Date, now: Date = new Date()) => {
   if (Number.isNaN(date.getTime())) return "";
@@ -28,13 +30,19 @@ export const formatDayLabel = (date: Date, now: Date = new Date()) => {
 };
 
 /**
- * Выполняет функцию `avatarFallback`.
- * @param username Входной параметр `username`.
- * @returns Результат выполнения `avatarFallback`.
+ * Обрабатывает avatar fallback.
+ * @param username Имя пользователя.
  */
+
 
 export const avatarFallback = (username: string) =>
   username ? username[0].toUpperCase() : "?";
+
+/**
+ * Форматирует full name.
+ *
+ * @returns Строка в отформатированном виде.
+ */
 
 export const formatFullName = (
   name: string | null | undefined,
@@ -47,10 +55,11 @@ export const formatFullName = (
 };
 
 /**
- * Выполняет функцию `formatRegistrationDate`.
- * @param iso Входной параметр `iso`.
- * @returns Результат выполнения `formatRegistrationDate`.
+ * Реализует функцию `formatRegistrationDate`.
+ * @param iso Дата в ISO-формате.
+ * @returns Строка в отформатированном виде.
  */
+
 
 export const formatRegistrationDate = (iso: string | null) => {
   if (!iso) return "";
@@ -68,10 +77,11 @@ export const formatRegistrationDate = (iso: string | null) => {
 };
 
 /**
- * Выполняет функцию `formatLastSeen`.
- * @param iso Входной параметр `iso`.
- * @returns Результат выполнения `formatLastSeen`.
+ * Реализует функцию `formatLastSeen`.
+ * @param iso Дата в ISO-формате.
+ * @returns Строка в отформатированном виде.
  */
+
 
 export const formatLastSeen = (iso: string | null) => {
   if (!iso) return "";

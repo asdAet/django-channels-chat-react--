@@ -3,6 +3,9 @@
 import type { DirectChatListItem as DirectChatListItemDto } from "../../entities/room/types";
 import type { WebSocketStatus } from "../../hooks/useReconnectingWebSocket";
 
+/**
+ * Описывает значение контекста `DirectInbox`.
+ */
 export type DirectInboxContextValue = {
   items: DirectChatListItemDto[];
   loading: boolean;
@@ -17,17 +20,21 @@ export type DirectInboxContextValue = {
 };
 
 /**
- * Выполняет функцию `noop`.
- * @returns Результат выполнения `noop`.
+ * Обрабатывает noop.
  */
+
 
 const noop = () => {};
 /**
- * Выполняет функцию `noopAsync`.
- * @returns Результат выполнения `noopAsync`.
+ * Обрабатывает noop async.
  */
 
+
 const noopAsync = async () => {};
+
+/**
+ * Константа `FALLBACK_DIRECT_INBOX` описывает резервное значение для безопасного fallback.
+ */
 
 export const FALLBACK_DIRECT_INBOX: DirectInboxContextValue = {
   items: [],
@@ -41,6 +48,10 @@ export const FALLBACK_DIRECT_INBOX: DirectInboxContextValue = {
   markRead: noop,
   refresh: noopAsync,
 };
+
+/**
+ * Константа `DirectInboxContext` хранит используемое в модуле значение.
+ */
 
 export const DirectInboxContext = createContext<DirectInboxContextValue>(
   FALLBACK_DIRECT_INBOX,

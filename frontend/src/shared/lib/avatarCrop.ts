@@ -4,6 +4,12 @@ import type { AvatarCrop } from "../api/users";
 
 const EPSILON = 0.000001;
 
+/**
+ * Нормализует avatar crop.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
+
 export const normalizeAvatarCrop = (
   value?: AvatarCrop | null,
 ): AvatarCrop | null => {
@@ -38,6 +44,14 @@ export const normalizeAvatarCrop = (
     height,
   };
 };
+
+/**
+ * Формирует avatar crop image style.
+ *
+ * @param crop Параметры обрезки изображения.
+ *
+ * @returns Сформированная структура данных.
+ */
 
 export const buildAvatarCropImageStyle = (crop: AvatarCrop): CSSProperties => ({
   width: `${100 / crop.width}%`,

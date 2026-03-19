@@ -15,10 +15,29 @@ from users import api as users_api
 
 
 def _absolute(request, raw_path: str) -> str:
+    """Вспомогательная функция `_absolute` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        raw_path: Параметр raw path, используемый в логике функции.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return request.build_absolute_uri(raw_path)
 
 
 def _link(request, name: str, kwargs: dict | None = None) -> str | None:
+    """Выполняет вспомогательную обработку для link.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        name: Человекочитаемое имя объекта или параметра.
+        kwargs: Дополнительные именованные аргументы вызова.
+    
+    Returns:
+        Объект типа str | None, полученный при выполнении операции.
+    """
     try:
         return request.build_absolute_uri(reverse(name, kwargs=kwargs))
     except NoReverseMatch:
@@ -26,6 +45,15 @@ def _link(request, name: str, kwargs: dict | None = None) -> str | None:
 
 
 def _first_link(request, names: list[str]) -> str | None:
+    """Вспомогательная функция `_first_link` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        names: Параметр names, используемый в логике функции.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     for name in names:
         link = _link(request, name)
         if link:
@@ -36,7 +64,14 @@ def _first_link(request, names: list[str]) -> str | None:
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def api_index(request):
-    """Returns API index with clickable links for manual testing."""
+    """Вспомогательная функция `api_index` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     endpoints = {
         "health": {
             "live": _link(request, "health-live"),
@@ -138,7 +173,14 @@ def api_index(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def api_root(request):
-    """Returns project root status and pointer to API index."""
+    """Вспомогательная функция `api_root` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     return Response(
         {
             "status": "ok",

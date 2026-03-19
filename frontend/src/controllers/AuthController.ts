@@ -8,51 +8,53 @@ import type {
 import type { UserProfile as UserProfileDto } from "../entities/user/types";
 
 /**
- * Описывает назначение класса AuthController.
+ * Класс AuthController инкапсулирует логику текущего слоя приложения.
  */
-
 class AuthController {
-  /**
-   * Выполняет метод ensureCsrf.
-   * @returns Результат выполнения ensureCsrf.
-   */
-
-  public async ensureCsrf(): Promise<{ csrfToken: string }> {
+    /**
+     * Гарантирует csrf.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async ensureCsrf(): Promise<{ csrfToken: string }> {
     return await apiService.ensureCsrf();
   }
 
-  /**
-   * Выполняет метод getSession.
-   * @returns Результат выполнения getSession.
-   */
-  public async getSession(): Promise<SessionDto> {
+    /**
+     * Возвращает session.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getSession(): Promise<SessionDto> {
     return await apiService.getSession();
   }
 
-  /**
-   * Выполняет метод login.
-   * @param dto Входной параметр dto.
-   * @returns Результат выполнения login.
-   */
-
-  public async login(dto: LoginDto): Promise<SessionDto> {
+    /**
+     * Обрабатывает login.
+     * @param dto DTO-объект для декодирования данных.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async login(dto: LoginDto): Promise<SessionDto> {
     return await apiService.login(dto.identifier, dto.password);
   }
 
-  public async oauthGoogle(
+    /**
+     * Обрабатывает oauth google.
+     * @param token Токен аутентификации.
+     * @param tokenType Тип токена аутентификации.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async oauthGoogle(
     token: string,
     tokenType: "idToken" | "accessToken" = "idToken",
   ): Promise<SessionDto> {
     return await apiService.oauthGoogle(token, tokenType);
   }
 
-  /**
-   * Выполняет метод register.
-   * @param dto Входной параметр dto.
-   * @returns Результат выполнения register.
-   */
-
-  public async register(dto: RegisterDto): Promise<SessionDto> {
+    /**
+     * Обрабатывает register.
+     * @param dto DTO-объект для декодирования данных.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async register(dto: RegisterDto): Promise<SessionDto> {
     return await apiService.register(
       dto.login,
       dto.password,
@@ -63,36 +65,39 @@ class AuthController {
     );
   }
 
-  /**
-   * Выполняет метод getPasswordRules.
-   * @returns Результат выполнения getPasswordRules.
-   */
-
-  public async getPasswordRules(): Promise<{ rules: string[] }> {
+    /**
+     * Возвращает password rules.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getPasswordRules(): Promise<{ rules: string[] }> {
     return await apiService.getPasswordRules();
   }
 
-  /**
-   * Выполняет метод logout.
-   * @returns Результат выполнения logout.
-   */
-
-  public async logout(): Promise<{ ok: boolean }> {
+    /**
+     * Обрабатывает logout.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async logout(): Promise<{ ok: boolean }> {
     return await apiService.logout();
   }
 
-  /**
-   * Выполняет метод updateProfile.
-   * @param dto Входной параметр dto.
-   * @returns Результат выполнения updateProfile.
-   */
-
-  public async updateProfile(
+    /**
+     * Обновляет profile.
+     * @param dto DTO-объект для декодирования данных.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async updateProfile(
     dto: UpdateProfileDto,
   ): Promise<{ user: UserProfileDto }> {
     return await apiService.updateProfile(dto);
   }
 }
+
+/**
+ * Хранит значение auth controller.
+ *
+
+ */
 
 export const authController = new AuthController();
 

@@ -7,6 +7,14 @@ import type {
 import { decodeUploadResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
+/**
+ * Выполняет API-запрос для операции upload attachments.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param roomId Идентификатор комнаты.
+ * @param files Список файлов для загрузки.
+ * @param options Опциональные параметры поведения.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function uploadAttachments(
   apiClient: AxiosInstance,
   roomId: string,

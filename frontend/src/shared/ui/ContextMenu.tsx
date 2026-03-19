@@ -8,6 +8,9 @@ import {
 
 import styles from "../../styles/ui/ContextMenu.module.css";
 
+/**
+ * Описывает структуру данных `ContextMenuItem`.
+ */
 export type ContextMenuItem = {
   label: string;
   icon?: ReactNode;
@@ -16,6 +19,9 @@ export type ContextMenuItem = {
   onClick: () => void;
 };
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   items: ContextMenuItem[];
   x: number;
@@ -23,6 +29,9 @@ type Props = {
   onClose: () => void;
 };
 
+/**
+ * React-компонент ContextMenu отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ContextMenu({ items, x, y, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -48,6 +57,9 @@ export function ContextMenu({ items, x, y, onClose }: Props) {
   }, [reposition]);
 
   useEffect(() => {
+    /**
+     * Обрабатывает handle resize.
+     */
     const handleResize = () => reposition();
     window.addEventListener("resize", handleResize);
     return () => {
@@ -56,6 +68,10 @@ export function ContextMenu({ items, x, y, onClose }: Props) {
   }, [reposition]);
 
   useEffect(() => {
+    /**
+     * Обрабатывает handle pointer down.
+     * @param event Событие браузера.
+     */
     const handlePointerDown = (event: Event) => {
       const target = event.target;
       if (!(target instanceof Node)) {
@@ -65,6 +81,10 @@ export function ContextMenu({ items, x, y, onClose }: Props) {
       if (ref.current?.contains(target)) return;
       onClose();
     };
+    /**
+     * Обрабатывает handle key.
+     * @param e DOM-событие, вызвавшее обработчик.
+     */
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };

@@ -10,7 +10,7 @@ from rooms.models import Room
 
 
 class InviteLink(models.Model):
-    """A shareable link to join a group."""
+    """Модель InviteLink описывает структуру и поведение данных в приложении."""
 
     room = models.ForeignKey(
         Room,
@@ -47,6 +47,7 @@ class InviteLink(models.Model):
     created_by_id: Optional[int]
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "groups_invite_link"
         ordering = ["-created_at"]
         indexes = [
@@ -54,10 +55,20 @@ class InviteLink(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.room.slug}:{self.code}"
 
     @property
     def is_expired(self) -> bool:
+        """Проверяет условие expired и возвращает логический результат.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         if self.is_revoked:
             return True
         if self.expires_at and timezone.now() > self.expires_at:
@@ -68,9 +79,10 @@ class InviteLink(models.Model):
 
 
 class JoinRequest(models.Model):
-    """A pending request to join a group that requires admin approval."""
+    """Модель JoinRequest описывает структуру и поведение данных в приложении."""
 
     class Status(models.TextChoices):
+        """Класс Status инкапсулирует связанную бизнес-логику модуля."""
         PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
         REJECTED = "rejected", "Rejected"
@@ -119,6 +131,7 @@ class JoinRequest(models.Model):
     reviewed_by_id: Optional[int]
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "groups_join_request"
         ordering = ["-created_at"]
         constraints = [
@@ -133,11 +146,16 @@ class JoinRequest(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.room.slug}:{self.user.username}:{self.status}"
 
 
 class PinnedMessage(models.Model):
-    """A message pinned in a group."""
+    """Модель PinnedMessage описывает структуру и поведение данных в приложении."""
 
     room = models.ForeignKey(
         Room,
@@ -161,6 +179,7 @@ class PinnedMessage(models.Model):
     pinned_by_id: Optional[int]
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "groups_pinned_message"
         ordering = ["-pinned_at"]
         constraints = [
@@ -171,4 +190,9 @@ class PinnedMessage(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.room.slug}:pin:{self.message_id}"

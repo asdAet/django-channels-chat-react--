@@ -4,6 +4,13 @@ import type { ReadStateResult } from "../../domain/interfaces/IApiService";
 import { decodeReadStateResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
+/**
+ * Выполняет API-запрос для операции mark read.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param roomId Идентификатор комнаты.
+ * @param messageId Идентификатор сообщения.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function markRead(
   apiClient: AxiosInstance,
   roomId: string,

@@ -130,6 +130,9 @@ const readReceiptSchema = z
   })
   .passthrough();
 
+/**
+ * Описывает полезную нагрузку события `ChatWsEvent`.
+ */
 export type ChatWsEvent =
   | {
       type: "rate_limited";
@@ -221,6 +224,11 @@ export type ChatWsEvent =
     }
   | { type: "unknown" };
 
+/**
+ * Преобразует WebSocket-данные для операции to number or null.
+ * @param value Входное значение для преобразования.
+ * @returns Числовое значение результата.
+ */
 const toNumberOrNull = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -231,10 +239,11 @@ const toNumberOrNull = (value: unknown): number | null => {
 };
 
 /**
- * Декодирует входящее WS-сообщение комнаты чата.
- * @param raw Сырой JSON payload из websocket.
- * @returns Нормализованное WS-событие.
+ * Преобразует WebSocket-данные для операции decode chat ws event.
+ * @param raw Сырые входные данные до нормализации.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
   const payload = parseJson(raw);
   if (!payload || typeof payload !== "object") {

@@ -5,11 +5,17 @@ import styles from "../../styles/friends/FriendsPage.module.css";
 const HANDLE_PUBLIC_REF_RE = /^@[a-z][a-z0-9_]{2,29}$/i;
 const USER_PUBLIC_ID_RE = /^[1-9]\d{9}$/;
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   onSubmit: (publicRef: string) => Promise<void>;
   onClose: () => void;
 };
 
+/**
+ * React-компонент AddFriendDialog отвечает за отрисовку и обработку UI-сценария.
+ */
 export function AddFriendDialog({ onSubmit, onClose }: Props) {
   const [publicRef, setPublicRef] = useState("");
   const [error, setError] = useState<string | null>(null);

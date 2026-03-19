@@ -91,12 +91,18 @@ vi.mock("../adapters/ApiService", () => ({
   apiService: apiMocks,
 }));
 
+/**
+ * Загружает экземпляр контроллера для тестового сценария.
+ */
 const loadController = async () => {
   vi.resetModules();
   const mod = await import("./ChatController");
   return mod.chatController;
 };
 
+/**
+ * Сбрасывает состояния моков API перед каждым тестом.
+ */
 const resetApiMocks = () => {
   Object.values(apiMocks).forEach((mock) => {
     mock.mockReset();
@@ -109,6 +115,9 @@ describe("ChatController", () => {
   });
 
   it("deduplicates in-flight public room request", async () => {
+    /**
+     * Хранит значение settle.
+     */
     let settle: (value: RoomDetailsDto) => void = () => undefined;
     const pending = new Promise<RoomDetailsDto>((res) => {
       settle = res;
@@ -154,6 +163,9 @@ describe("ChatController", () => {
   });
 
   it("deduplicates in-flight room details by slug", async () => {
+    /**
+     * Хранит значение settle.
+     */
     let settle: (value: RoomDetailsDto) => void = () => undefined;
     const pending = new Promise<RoomDetailsDto>((res) => {
       settle = res;
@@ -200,6 +212,9 @@ describe("ChatController", () => {
   });
 
   it("deduplicates in-flight room messages by params", async () => {
+    /**
+     * Хранит значение settle.
+     */
     let settle: (value: RoomMessagesDto) => void = () => undefined;
     const pending = new Promise<RoomMessagesDto>((res) => {
       settle = res;
@@ -240,6 +255,9 @@ describe("ChatController", () => {
   });
 
   it("deduplicates in-flight direct chats request", async () => {
+    /**
+     * Хранит значение settle.
+     */
     let settle: (value: DirectChatsResponseDto) => void = () => undefined;
     const pending = new Promise<DirectChatsResponseDto>((res) => {
       settle = res;

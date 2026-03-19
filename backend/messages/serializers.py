@@ -10,6 +10,7 @@ from users.identity import (
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
+    """Класс AttachmentSerializer сериализует и валидирует данные API."""
     url = serializers.SerializerMethodField()
     thumbnailUrl = serializers.SerializerMethodField()
     originalFilename = serializers.CharField(source="original_filename")
@@ -17,6 +18,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
     fileSize = serializers.IntegerField(source="file_size")
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = MessageAttachment
         fields = (
             "id", "originalFilename", "contentType", "fileSize",
@@ -25,6 +27,15 @@ class AttachmentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def _build_url(self, field_file, obj):
+        """Формирует url для дальнейшего использования в потоке обработки.
+        
+        Args:
+            field_file: Объект файлового поля модели или формы.
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         if not field_file:
             return None
 
@@ -43,13 +54,30 @@ class AttachmentSerializer(serializers.ModelSerializer):
         return build_fn(field_file)
 
     def get_url(self, obj):
+        """Возвращает url из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return self._build_url(obj.file, obj)
 
     def get_thumbnailUrl(self, obj):
+        """Возвращает thumbnail url из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return self._build_url(obj.thumbnail, obj)
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    """Класс MessageSerializer сериализует и валидирует данные API."""
     publicRef = serializers.SerializerMethodField()
     content = serializers.CharField(source="message_content")
     createdAt = serializers.DateTimeField(source="date_added")
@@ -65,6 +93,7 @@ class MessageSerializer(serializers.ModelSerializer):
     reactions = serializers.SerializerMethodField()
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Message
         fields = (
             "id", "publicRef", "username", "displayName", "content", "profilePic", "avatarCrop",
@@ -74,6 +103,14 @@ class MessageSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_profilePic(self, obj):
+        """Возвращает profile pic из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         if obj.is_deleted:
             return None
         build_fn = self.context.get("build_profile_pic_url")
@@ -89,18 +126,42 @@ class MessageSerializer(serializers.ModelSerializer):
         return build_fn(obj.profile_pic) if obj.profile_pic else None
 
     def get_publicRef(self, obj):
+        """Возвращает public ref из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         user = getattr(obj, "user", None)
         if user:
             return user_public_ref(user)
         return obj.username or ""
 
     def get_displayName(self, obj):
+        """Возвращает display name из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         user = getattr(obj, "user", None)
         if user:
             return user_display_name(user)
         return obj.username or ""
 
     def get_avatarCrop(self, obj):
+        """Возвращает avatar crop из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         if obj.is_deleted:
             return None
         serialize_fn = self.context.get("serialize_avatar_crop")
@@ -115,6 +176,14 @@ class MessageSerializer(serializers.ModelSerializer):
         return None
 
     def get_replyTo(self, obj):
+        """Возвращает reply to из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         reply = obj.reply_to
         if not reply:
             return None
@@ -135,6 +204,14 @@ class MessageSerializer(serializers.ModelSerializer):
         }
 
     def get_reactions(self, obj):
+        """Возвращает reactions из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         reactions_qs = obj.reactions.all()
         counts: dict[str, int] = {}
         user_reacted: set[str] = set()
@@ -152,6 +229,14 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
+        """Преобразует объект во внешнее представление для API.
+        
+        Args:
+            instance: Экземпляр модели или доменного объекта.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         ret = super().to_representation(instance)
         user = getattr(instance, "user", None)
         if user:
@@ -166,9 +251,11 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class MessageCreateSerializer(serializers.Serializer):
+    """Класс MessageCreateSerializer сериализует и валидирует данные API."""
     message = serializers.CharField(max_length=1000)
 
 
 class MessagePaginationSerializer(serializers.Serializer):
+    """Класс MessagePaginationSerializer сериализует и валидирует данные API."""
     messages = MessageSerializer(many=True)
     pagination = serializers.DictField()

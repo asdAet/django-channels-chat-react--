@@ -14,11 +14,28 @@ from .models import Room
 
 
 def direct_pair_key(user_a_id: int, user_b_id: int) -> str:
+    """Вспомогательная функция `direct_pair_key` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        user_a_id: Идентификатор user a.
+        user_b_id: Идентификатор user b.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     low, high = sorted([int(user_a_id), int(user_b_id)])
     return f"{low}:{high}"
 
 
 def direct_room_slug(pair_key: str) -> str:
+    """Вспомогательная функция `direct_room_slug` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        pair_key: Параметр pair key, используемый в логике функции.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     salt = str(getattr(settings, "CHAT_DIRECT_SLUG_SALT", "") or settings.SECRET_KEY)
     digest = hmac.new(
         salt.encode("utf-8"),
@@ -29,6 +46,14 @@ def direct_room_slug(pair_key: str) -> str:
 
 
 def parse_pair_key_users(pair_key: str | None) -> tuple[int, int] | None:
+    """Разбирает pair key users из входных данных с валидацией формата.
+    
+    Args:
+        pair_key: Ключ пары разрешений allow/deny.
+    
+    Returns:
+        Кортеж типа tuple[int, int] | None с результатами операции.
+    """
     if not pair_key or ":" not in pair_key:
         return None
     first, second = pair_key.split(":", 1)
@@ -41,9 +66,15 @@ def parse_pair_key_users(pair_key: str | None) -> tuple[int, int] | None:
 # -- Membership helpers --------------------------------------------------
 
 def ensure_membership(room: Room, user, role_name: str | None = None) -> Membership:
-    """Get or create a Membership, optionally assigning a role by name.
-
-    If the room has no roles yet, creates the default role set first.
+    """Гарантирует корректность состояния membership перед выполнением операции.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+        role_name: Данные role name, участвующие в обработке текущей операции.
+    
+    Returns:
+        Объект типа Membership, сформированный в рамках обработки.
     """
     membership, _ = Membership.objects.get_or_create(
         room=room,
@@ -63,19 +94,23 @@ def ensure_membership(room: Room, user, role_name: str | None = None) -> Members
 
 
 def ensure_room_owner(room: Room) -> None:
-    """Ensure the room creator has Owner membership."""
+    """Гарантирует корректность состояния room owner перед выполнением операции.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+    """
     if not room.created_by:
         return
     ensure_membership(room, room.created_by, role_name=Role.OWNER)
 
 
 def ensure_direct_memberships(room: Room, initiator, peer) -> None:
-    """Create and normalize memberships for both DM participants.
-
-    Direct rooms are strict:
-    - `kind=direct`;
-    - exactly two members from `direct_pair_key`;
-    - no extra participants.
+    """Гарантирует корректность состояния direct memberships перед выполнением операции.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        initiator: Данные initiator, участвующие в обработке текущей операции.
+        peer: Данные peer, участвующие в обработке текущей операции.
     """
     if room.kind != Room.Kind.DIRECT:
         room.kind = Room.Kind.DIRECT
@@ -102,6 +137,17 @@ def ensure_direct_memberships(room: Room, initiator, peer) -> None:
 # -- Direct room creation -----------------------------------------------
 
 def _create_or_get_direct_room(initiator, target, pair_key: str, slug: str):
+    """Создает or get direct room и возвращает созданную сущность.
+    
+    Args:
+        initiator: Данные initiator, участвующие в обработке текущей операции.
+        target: Данные target, участвующие в обработке текущей операции.
+        pair_key: Ключ пары разрешений allow/deny.
+        slug: Данные slug, участвующие в обработке текущей операции.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     initiator_ref = user_public_username(initiator) or f"user_{initiator.pk}"
     target_ref = user_public_username(target) or f"user_{target.pk}"
     room_display_name = f"{initiator_ref} - {target_ref}"[:50]
@@ -133,6 +179,17 @@ def _create_or_get_direct_room(initiator, target, pair_key: str, slug: str):
 
 
 def ensure_direct_room_with_retry(initiator, target, pair_key: str, slug: str):
+    """Гарантирует корректность состояния direct room with retry перед выполнением операции.
+    
+    Args:
+        initiator: Данные initiator, участвующие в обработке текущей операции.
+        target: Данные target, участвующие в обработке текущей операции.
+        pair_key: Ключ пары разрешений allow/deny.
+        slug: Данные slug, участвующие в обработке текущей операции.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     attempts = max(1, int(getattr(settings, "CHAT_DIRECT_START_RETRIES", 3)))
 
     for attempt in range(attempts):
@@ -157,7 +214,15 @@ def ensure_direct_room_with_retry(initiator, target, pair_key: str, slug: str):
 
 
 def direct_peer_for_user(room: Room, user):
-    """Get the other participant in a direct room."""
+    """Вспомогательная функция `direct_peer_for_user` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     peer_membership = (
         Membership.objects.filter(room=room)
         .exclude(user=user)

@@ -7,8 +7,14 @@ import {
   useState,
 } from "react";
 
+/**
+ * Описывает структуру данных `InfoPanelContent`.
+ */
 type InfoPanelContent = "profile" | "group" | "search" | "direct" | null;
 
+/**
+ * Описывает структуру состояния `InfoPanel`.
+ */
 type InfoPanelState = {
   isOpen: boolean;
   content: InfoPanelContent;
@@ -35,6 +41,9 @@ const InfoPanelCtx = createContext<InfoPanelState>({
   toggle: () => {},
 });
 
+/**
+ * React-компонент InfoPanelProvider отвечает за отрисовку и обработку UI-сценария.
+ */
 export function InfoPanelProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{
     isOpen: boolean;
@@ -99,6 +108,9 @@ export function InfoPanelProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Хук useInfoPanel управляет состоянием и побочными эффектами текущего сценария.
+ */
 export function useInfoPanel() {
   return useContext(InfoPanelCtx);
 }

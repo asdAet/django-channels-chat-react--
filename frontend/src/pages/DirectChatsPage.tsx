@@ -8,20 +8,36 @@ import { usePresence } from "../shared/presence";
 import { Avatar, Button, Card, Panel, Toast } from "../shared/ui";
 import styles from "../styles/pages/DirectChatsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
 };
 
+/**
+ * Описывает входные props компонента `List`.
+ */
 type ListProps = Props & {
   activeUsername?: string;
   resetActiveOnMount?: boolean;
   className?: string;
 };
 
+/**
+ * Нормализует actor ref.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 const normalizeActorRef = (value: string): string =>
   normalizePublicRef(value).toLowerCase();
 
+/**
+ * Компонент DirectChatsList рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function DirectChatsList({
   user,
   onNavigate,
@@ -144,6 +160,9 @@ export function DirectChatsList({
   );
 }
 
+/**
+ * React-компонент DirectChatsPage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function DirectChatsPage({ user, onNavigate }: Props) {
   return <DirectChatsList user={user} onNavigate={onNavigate} />;
 }

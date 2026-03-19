@@ -3,6 +3,14 @@ import type { AxiosInstance } from "axios";
 import { decodeGroupListResponse } from "../../dto";
 import type { GroupListItem } from "../../entities/group/types";
 
+/**
+ * Асинхронно возвращает my групп.
+ *
+ * @param apiClient HTTP-клиент для выполнения API-запросов.
+ * @param params Параметры запроса.
+ *
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function getMyGroups(
   apiClient: AxiosInstance,
   params?: { search?: string; limit?: number; before?: number },

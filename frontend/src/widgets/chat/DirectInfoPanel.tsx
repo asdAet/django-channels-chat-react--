@@ -11,21 +11,42 @@ import { formatLastSeen, formatTimestamp } from "../../shared/lib/format";
 import { AudioAttachmentPlayer, Avatar, Spinner } from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   slug: string;
 };
 
+/**
+ * Описывает структуру данных `Tab`.
+ */
 type Tab = "profile" | "attachments";
 
+/**
+ * Проверяет условие is video.
+ * @param contentType MIME-тип файла.
+ */
 const isVideo = (contentType: string) => contentType.startsWith("video/");
+/**
+ * Проверяет условие is audio.
+ * @param contentType MIME-тип файла.
+ */
 const isAudio = (contentType: string) => contentType.startsWith("audio/");
 
+/**
+ * Форматирует file size.
+ * @param bytes Размер файла в байтах.
+ */
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+/**
+ * React-компонент AttachmentCard отвечает за отрисовку и обработку UI-сценария.
+ */
 function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
   const isImage = isImageAttachment(item.contentType, item.originalFilename);
   const imageSrc = resolveImagePreviewUrl({
@@ -123,6 +144,9 @@ function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
   return <div className={cardClassName}>{preview}</div>;
 }
 
+/**
+ * React-компонент DirectInfoPanel отвечает за отрисовку и обработку UI-сценария.
+ */
 export function DirectInfoPanel({ slug }: Props) {
   const [tab, setTab] = useState<Tab>("profile");
   const [details, setDetails] = useState<RoomDetails | null>(null);

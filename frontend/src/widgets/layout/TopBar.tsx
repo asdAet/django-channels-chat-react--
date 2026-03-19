@@ -8,12 +8,18 @@ import { usePresence } from "../../shared/presence";
 import { Avatar, Button } from "../../shared/ui";
 import styles from "./TopBar.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
   onLogout: () => void;
 };
 
+/**
+ * React-компонент TopBar отвечает за отрисовку и обработку UI-сценария.
+ */
 export function TopBar({ user, onNavigate }: Props) {
   const { unreadDialogsCount } = useDirectInbox();
   const { online: presenceOnline, status: presenceStatus } = usePresence();

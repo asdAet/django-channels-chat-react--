@@ -13,6 +13,16 @@ def apply_filters(
     *,
     include_action_filters: bool = True,
 ) -> QuerySet[AuditEvent]:
+    """Применяет filters к текущему набору данных.
+    
+    Args:
+        queryset: Набор записей, к которому применяются фильтры.
+        filters: Параметр filters, используемый в логике функции.
+        include_action_filters: Параметр include action filters, используемый в логике функции.
+    
+    Returns:
+        Объект типа QuerySet[AuditEvent], сформированный в ходе выполнения.
+    """
     qs = queryset
     if filters.actor_user_id is not None:
         qs = qs.filter(actor_user_id_snapshot=filters.actor_user_id)

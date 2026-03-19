@@ -14,28 +14,44 @@ from users.models import SecurityRateLimitBucket
 
 @dataclass(frozen=True)
 class RateLimitPolicy:
-    """Policy with request limit and window in seconds."""
+    """Класс RateLimitPolicy инкапсулирует связанную бизнес-логику модуля."""
 
     limit: int
     window_seconds: int
 
     def normalized_limit(self) -> int:
-        """Return a safe limit value (minimum 1)."""
+        """Вспомогательная функция `normalized_limit` реализует внутренний шаг бизнес-логики.
+        
+        Returns:
+            Целочисленный результат вычисления.
+        """
         return max(1, int(self.limit))
 
     def normalized_window(self) -> int:
-        """Return a safe window value (minimum 1 second)."""
+        """Вспомогательная функция `normalized_window` реализует внутренний шаг бизнес-логики.
+        
+        Returns:
+            Целочисленный результат вычисления.
+        """
         return max(1, int(self.window_seconds))
 
 
 class DbRateLimiter:
-    """Atomic DB-based rate limiter."""
+    """Класс DbRateLimiter инкапсулирует связанную бизнес-логику модуля."""
 
     _MAX_RETRIES = 3
 
     @classmethod
     def is_limited(cls, scope_key: str, policy: RateLimitPolicy) -> bool:
-        """Increment bucket and return whether the scope is currently limited."""
+        """Проверяет условие limited и возвращает логический результат.
+        
+        Args:
+            scope_key: Уникальный ключ области действия для счетчика лимитов.
+            policy: Политика rate-limit с лимитом и временным окном.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         if not scope_key:
             # Security fail-closed for invalid scope keys.
             return True
@@ -86,7 +102,14 @@ class DbRateLimiter:
 
     @classmethod
     def retry_after_seconds(cls, scope_key: str) -> int | None:
-        """Return remaining bucket lifetime in seconds for `scope_key`."""
+        """Вспомогательная функция `retry_after_seconds` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            scope_key: Параметр scope key, используемый в логике функции.
+        
+        Returns:
+            Объект типа int | None, сформированный в ходе выполнения.
+        """
         if not scope_key:
             # Keep fail-closed behavior for callers that need a cooldown value.
             return 1

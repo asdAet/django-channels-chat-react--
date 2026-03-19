@@ -4,10 +4,10 @@ import { decodeProfileEnvelopeResponse } from "../../dto";
 import type { UserProfile } from "../../entities/user/types";
 
 /**
- * Загружает публичный профиль пользователя.
- * @param apiClient HTTP-клиент.
- * @param ref Публичный ref пользователя (handle/fallback-id).
- * @returns Нормализованный профиль пользователя.
+ * Возвращает user profile.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param ref Аргумент `ref` текущего вызова.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function getUserProfile(
   apiClient: AxiosInstance,

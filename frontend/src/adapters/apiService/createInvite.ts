@@ -3,6 +3,15 @@ import type { AxiosInstance } from "axios";
 import { decodeInviteResponse } from "../../dto";
 import type { GroupInvite } from "../../entities/group/types";
 
+/**
+ * Асинхронно создаёт приглашение.
+ *
+ * @param apiClient HTTP-клиент для выполнения API-запросов.
+ * @param roomId Идентификатор комнаты.
+ * @param data Данные запроса или полезная нагрузка операции.
+ *
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function createInvite(
   apiClient: AxiosInstance,
   roomId: string,

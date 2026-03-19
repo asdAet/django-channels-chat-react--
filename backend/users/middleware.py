@@ -1,5 +1,5 @@
 
-"""Содержит логику модуля `middleware` подсистемы `users`."""
+"""Модуль middleware реализует прикладную логику подсистемы users."""
 
 
 from datetime import timedelta
@@ -12,14 +12,25 @@ from .models import Profile
 
 
 class UpdateLastSeenMiddleware:
-    """Инкапсулирует логику класса `UpdateLastSeenMiddleware`."""
+    """Класс UpdateLastSeenMiddleware инкапсулирует связанную бизнес-логику модуля."""
 
     def __init__(self, get_response):
-        """Инициализирует экземпляр `UpdateLastSeenMiddleware`."""
+        """Инициализирует экземпляр класса и подготавливает внутреннее состояние.
+        
+        Args:
+            get_response: Следующий middleware-обработчик в цепочке Django.
+        """
         self.get_response = get_response
 
     def __call__(self, request):
-        """Выполняет логику `__call__` с параметрами из сигнатуры."""
+        """Выполняет объект как вызываемый обработчик.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         user = getattr(request, "user", None)
         if user and user.is_authenticated:
             try:

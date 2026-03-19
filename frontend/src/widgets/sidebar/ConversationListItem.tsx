@@ -3,12 +3,18 @@ import { formatTimestamp } from "../../shared/lib/format";
 import { Avatar } from "../../shared/ui";
 import styles from "../../styles/sidebar/ConversationList.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   item: ConversationItem;
   isActive: boolean;
   onClick: () => void;
 };
 
+/**
+ * React-компонент ConversationListItem отвечает за отрисовку и обработку UI-сценария.
+ */
 export function ConversationListItem({ item, isActive, onClick }: Props) {
   return (
     <button

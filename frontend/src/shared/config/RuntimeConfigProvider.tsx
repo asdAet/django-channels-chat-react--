@@ -7,12 +7,17 @@ import { debugLog } from "../lib/debug";
 import { getRuntimeConfig, setRuntimeConfig } from "./runtimeConfig";
 import { RuntimeConfigContext } from "./RuntimeConfigContext";
 
+/**
+ * Описывает входные props компонента `RuntimeConfigProvider`.
+ */
 type RuntimeConfigProviderProps = {
   children: ReactNode;
 };
 
 /**
- * Подгружает runtime policy-конфиг и делает его доступным всему frontend.
+ * Компонент RuntimeConfigProvider рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function RuntimeConfigProvider({
   children,

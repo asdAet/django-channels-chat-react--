@@ -26,7 +26,7 @@ from .permissions import (
 
 
 class Role(models.Model):
-    """A named role with a permission bitmask, scoped to a room."""
+    """Модель Role описывает структуру и поведение данных в приложении."""
 
     EVERYONE = "@everyone"
     VIEWER = "Viewer"
@@ -61,6 +61,7 @@ class Role(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "roles_role"
         ordering = ["-position"]
         constraints = [
@@ -74,17 +75,24 @@ class Role(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.room.slug}:{self.name}"
 
     # ── Convenience helpers for creating standard roles ──────────────
 
     @classmethod
     def create_defaults_for_room(cls, room: Room) -> dict[str, "Role"]:
-        """Create the standard role set for a non-DM room.
-
-        Returns a dict keyed by canonical name:
-            {"@everyone": ..., "Viewer": ..., "Member": ...,
-             "Moderator": ..., "Admin": ..., "Owner": ...}
+        """Создает defaults for room и возвращает созданную сущность.
+        
+        Args:
+            room: Экземпляр комнаты, над которой выполняется действие.
+        
+        Returns:
+            Словарь типа dict[str, 'Role'] с результатами операции.
         """
         if room.kind == Room.Kind.GROUP:
             if room.is_public:
@@ -121,11 +129,7 @@ class Role(models.Model):
 
 
 class Membership(models.Model):
-    """Links a user to a room with optional roles and ban state.
-
-    For direct chats, membership is created with no roles —
-    access is purely based on Room.direct_pair_key.
-    """
+    """Модель Membership описывает структуру и поведение данных в приложении."""
 
     room = models.ForeignKey(
         Room,
@@ -176,6 +180,7 @@ class Membership(models.Model):
     muted_by_id: Optional[int]
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "roles_membership"
         constraints = [
             models.UniqueConstraint(
@@ -188,15 +193,29 @@ class Membership(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.room.slug}:{self.user.username}"
 
     @property
     def display_name(self) -> str:
-        """Returns nickname if set, otherwise username."""
+        """Вспомогательная функция `display_name` реализует внутренний шаг бизнес-логики.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         return self.nickname or self.user.username
 
     @property
     def is_muted(self) -> bool:
+        """Проверяет условие muted и возвращает логический результат.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         if self.muted_until is None:
             return False
         from django.utils import timezone
@@ -204,13 +223,7 @@ class Membership(models.Model):
 
 
 class PermissionOverride(models.Model):
-    """Per-role or per-user permission override within a room.
-
-    Works like Discord channel permission overrides:
-    - `allow` bits are added on top of computed permissions.
-    - `deny` bits are removed from computed permissions.
-    - User-level overrides take precedence over role-level.
-    """
+    """Модель PermissionOverride описывает структуру и поведение данных в приложении."""
 
     room = models.ForeignKey(
         Room,
@@ -235,6 +248,7 @@ class PermissionOverride(models.Model):
     deny = models.BigIntegerField(default=0)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "roles_permissionoverride"
         constraints = [
             models.CheckConstraint(
@@ -247,5 +261,10 @@ class PermissionOverride(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         target = self.target_role or self.target_user
         return f"{self.room.slug}:override:{target}"

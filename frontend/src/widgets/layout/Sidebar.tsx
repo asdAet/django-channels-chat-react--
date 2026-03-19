@@ -13,12 +13,18 @@ import { Avatar, Button } from "../../shared/ui";
 import styles from "../../styles/layout/Sidebar.module.css";
 import { ConversationList } from "../sidebar/ConversationList";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
   onLogout: () => void;
 };
 
+/**
+ * React-компонент IconMenu отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconMenu = () => (
   <svg
     width="22"
@@ -35,6 +41,9 @@ const IconMenu = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconSearch отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconSearch = () => (
   <svg
     className={styles.searchIcon}
@@ -49,6 +58,9 @@ const IconSearch = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconHome отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconHome = () => (
   <svg
     className={styles.drawerIcon}
@@ -64,6 +76,9 @@ const IconHome = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconFriends отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconFriends = () => (
   <svg
     className={styles.drawerIcon}
@@ -81,6 +96,9 @@ const IconFriends = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconGroup отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconGroup = () => (
   <svg
     className={styles.drawerIcon}
@@ -98,6 +116,9 @@ const IconGroup = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconSettings отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconSettings = () => (
   <svg
     className={styles.drawerIcon}
@@ -113,6 +134,9 @@ const IconSettings = () => (
   </svg>
 );
 
+/**
+ * React-компонент IconLogout отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconLogout = () => (
   <svg
     width="18"
@@ -130,6 +154,9 @@ const IconLogout = () => (
   </svg>
 );
 
+/**
+ * React-компонент Sidebar отвечает за отрисовку и обработку UI-сценария.
+ */
 export function Sidebar({ user, onNavigate, onLogout }: Props) {
   const location = useLocation();
   const { unreadDialogsCount } = useDirectInbox();
@@ -154,6 +181,10 @@ export function Sidebar({ user, onNavigate, onLogout }: Props) {
 
   useEffect(() => {
     if (!drawerOpen) return;
+    /**
+     * Обрабатывает handler.
+     * @param e DOM-событие, вызвавшее обработчик.
+     */
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") setDrawerOpen(false);
     };

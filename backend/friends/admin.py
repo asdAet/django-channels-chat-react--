@@ -6,6 +6,7 @@ from .utils import get_from_user_id, get_to_user_id
 
 @admin.register(Friendship)
 class FriendshipAdmin(admin.ModelAdmin):
+    """Класс FriendshipAdmin настраивает поведение сущности в Django Admin."""
     list_display = (
         "id",
         "from_user",
@@ -26,13 +27,38 @@ class FriendshipAdmin(admin.ModelAdmin):
 
     @admin.display(description="ID отправителя")
     def from_user_id_value(self, obj: Friendship) -> int | None:
+        """Формирует значение from user id value для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Объект типа int | None, сформированный в ходе выполнения.
+        """
         return get_from_user_id(obj)
 
     @admin.display(description="ID получателя")
     def to_user_id_value(self, obj: Friendship) -> int | None:
+        """Формирует значение to user id value для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Объект типа int | None, сформированный в ходе выполнения.
+        """
         return get_to_user_id(obj)
 
     def _set_status(self, queryset, status: str) -> int:
+        """Устанавливает status с учетом текущих правил приложения.
+        
+        Args:
+            queryset: Набор записей, к которому применяются фильтры.
+            status: HTTP-статус ответа, который будет возвращен клиенту.
+        
+        Returns:
+            Целочисленное значение результата вычисления.
+        """
         updated = 0
         for friendship in queryset:
             if friendship.status == status:
@@ -44,26 +70,56 @@ class FriendshipAdmin(admin.ModelAdmin):
 
     @admin.action(description="Установить статус: в ожидании")
     def mark_pending(self, request, queryset):
+        """Помечает pending новым состоянием.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            queryset: Набор записей, к которому применяются фильтры.
+        """
         updated = self._set_status(queryset, Friendship.Status.PENDING)
         self.message_user(request, f"Обновлено дружб: {updated}, статус «в ожидании».")
 
     @admin.action(description="Установить статус: принята")
     def mark_accepted(self, request, queryset):
+        """Помечает accepted новым состоянием.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            queryset: Набор записей, к которому применяются фильтры.
+        """
         updated = self._set_status(queryset, Friendship.Status.ACCEPTED)
         self.message_user(request, f"Обновлено дружб: {updated}, статус «принята».")
 
     @admin.action(description="Установить статус: отклонена")
     def mark_declined(self, request, queryset):
+        """Помечает declined новым состоянием.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            queryset: Набор записей, к которому применяются фильтры.
+        """
         updated = self._set_status(queryset, Friendship.Status.DECLINED)
         self.message_user(request, f"Обновлено дружб: {updated}, статус «отклонена».")
 
     @admin.action(description="Установить статус: заблокирована")
     def mark_blocked(self, request, queryset):
+        """Помечает blocked новым состоянием.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            queryset: Набор записей, к которому применяются фильтры.
+        """
         updated = self._set_status(queryset, Friendship.Status.BLOCKED)
         self.message_user(request, f"Обновлено дружб: {updated}, статус «заблокирована».")
 
     @admin.action(description="Сделать принятой + создать зеркальные записи")
     def make_mutual_accepted(self, request, queryset):
+        """Формирует значение make mutual accepted для отображения в админ-панели.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            queryset: Набор записей, к которому применяются фильтры.
+        """
         created_or_updated = 0
         for friendship in queryset.select_related("from_user", "to_user"):
             if friendship.status != Friendship.Status.ACCEPTED:

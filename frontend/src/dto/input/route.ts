@@ -3,8 +3,9 @@ import { z } from "zod";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
 
 /**
- * Декодирует roomRef из route-параметра.
- * Разрешены: `public` и положительный roomId.
+ * Декодирует room ref param.
+ * @param value Входное значение для преобразования.
+ * @returns Строковое значение результата.
  */
 export const decodeRoomRefParam = (value: unknown): string | null => {
   if (value === "public") return "public";
@@ -16,8 +17,9 @@ export const decodeRoomRefParam = (value: unknown): string | null => {
 };
 
 /**
- * Декодирует public ref из route-параметра.
- * Нормализует `@handle` -> `handle`.
+ * Декодирует public ref param.
+ * @param value Входное значение для преобразования.
+ * @returns Строковое значение результата.
  */
 export const decodePublicRefParam = (value: unknown): string | null => {
   const parsed = z.string().safeParse(value);

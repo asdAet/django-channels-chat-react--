@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Содержит логику модуля `manage` подсистемы `manage.py`."""
+"""Модуль manage реализует прикладную логику подсистемы backend."""
 
 
 import os
@@ -7,7 +7,7 @@ import sys
 
 
 def main():
-    """Выполняет логику `main` с параметрами из сигнатуры."""
+    """Запускает точку входа для выполнения команды."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chat_app_django.settings')
     try:
         from django.core.management import execute_from_command_line

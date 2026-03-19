@@ -6,6 +6,7 @@ from datetime import datetime
 
 @dataclass(slots=True)
 class AuditQueryFilters:
+    """Класс AuditQueryFilters инкапсулирует связанную бизнес-логику модуля."""
     actor_user_id: int | None = None
     actor_username: str | None = None
     action: str | None = None

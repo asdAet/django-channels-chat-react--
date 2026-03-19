@@ -14,6 +14,11 @@ const TITLES: Record<string, string> = {
   direct: "Контакт и вложения",
 };
 
+/**
+ * Компонент PanelContent рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 function PanelContent({
   content,
   targetId,
@@ -58,6 +63,11 @@ function PanelContent({
   );
 }
 
+/**
+ * Компонент InfoPanel рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function InfoPanel({
   currentPublicRef,
 }: {
@@ -66,12 +76,21 @@ export function InfoPanel({
   const { isOpen, content, targetId, close, clearClosed } = useInfoPanel();
   const navigate = useNavigate();
 
+  /**
+   * Обрабатывает on jump to message.
+   * @param slug Человекочитаемый идентификатор сущности.
+   * @param messageId Идентификатор сообщения.
+   */
   const onJumpToMessage = (slug: string, messageId: number) => {
     navigate(`/rooms/${encodeURIComponent(slug)}?message=${messageId}`);
   };
 
   if (!content) return null;
 
+  /**
+   * Обрабатывает handle panel transition end.
+   * @param event Событие браузера.
+   */
   const handlePanelTransitionEnd = (
     event: React.TransitionEvent<HTMLElement>,
   ) => {

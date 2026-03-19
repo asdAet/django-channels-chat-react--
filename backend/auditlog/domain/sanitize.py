@@ -17,6 +17,14 @@ SENSITIVE_KEYS = {
 
 
 def sanitize_value(value):
+    """Санитизирует значение.
+    
+    Args:
+        value: Значение, которое нужно нормализовать или проверить.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if isinstance(value, Mapping):
         return {
             str(key): ("***" if str(key).lower() in SENSITIVE_KEYS else sanitize_value(raw))

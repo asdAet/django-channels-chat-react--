@@ -1,5 +1,5 @@
 ﻿
-"""Содержит логику модуля `settings` подсистемы `chat_app_django`."""
+"""Модуль settings реализует прикладную логику подсистемы chat_app_django."""
 
 
 import os
@@ -15,6 +15,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _load_dotenv_file(path: Path, *, allowed_keys: set[str] | None = None) -> None:
+    """Загружает dotenv file из базы данных или кэша.
+    
+    Args:
+        path: Путь ресурса в storage или URL-маршруте.
+        allowed_keys: Параметр allowed keys, используемый в логике функции.
+    """
     if not path.exists() or not path.is_file():
         return
     try:
@@ -87,7 +93,15 @@ if not IS_PYTEST_RUN:
 
 
 def env_bool(name: str, default: bool) -> bool:
-    """Выполняет логику `env_bool` с параметрами из сигнатуры."""
+    """Вспомогательная функция `env_bool` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        name: Имя сущности или параметра.
+        default: Значение по умолчанию при отсутствии пользовательского ввода.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     value = os.getenv(name)
     if value is None:
         return default
@@ -95,7 +109,15 @@ def env_bool(name: str, default: bool) -> bool:
 
 
 def env_list(name: str, default: list[str]) -> list[str]:
-    """Выполняет логику `env_list` с параметрами из сигнатуры."""
+    """Возвращает список переменная окружения.
+    
+    Args:
+        name: Имя сущности или параметра.
+        default: Значение по умолчанию при отсутствии пользовательского ввода.
+    
+    Returns:
+        Список типа list[str] с данными результата.
+    """
     value = os.getenv(name)
     if not value:
         return default
@@ -103,6 +125,15 @@ def env_list(name: str, default: list[str]) -> list[str]:
 
 
 def _extend_unique(items: list[str], extra: list[str]) -> list[str]:
+    """Вспомогательная функция `_extend_unique` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        items: Параметр items, используемый в логике функции.
+        extra: Параметр extra, используемый в логике функции.
+    
+    Returns:
+        Список типа list[str] с данными результата.
+    """
     seen = {item for item in items if item}
     result = [item for item in items if item]
     for item in extra:
@@ -178,6 +209,14 @@ INSTALLED_APPS = [
 ]
 
 def build_rest_renderer_classes(debug: bool) -> list[str]:
+    """Формирует rest renderer classes для дальнейшего использования.
+    
+    Args:
+        debug: Параметр debug, используемый в логике функции.
+    
+    Returns:
+        Список типа list[str] с данными результата.
+    """
     classes = ["rest_framework.renderers.JSONRenderer"]
     if debug:
         classes.append("rest_framework.renderers.BrowsableAPIRenderer")
@@ -266,7 +305,14 @@ else:
 
 
 def _database_from_url(url: str) -> dict:
-    """Выполняет логику `_database_from_url` с параметрами из сигнатуры."""
+    """Вспомогательная функция `_database_from_url` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        url: Параметр url, используемый в логике функции.
+    
+    Returns:
+        Словарь типа dict с данными результата.
+    """
     parsed = urlparse(url)
     if parsed.scheme in {"postgres", "postgresql"}:
         return {
@@ -414,9 +460,15 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = (
     or "same-origin-allow-popups"
 )
 
-MAX_UPLOAD_SIZE_MB = int(os.getenv("DJANGO_UPLOAD_MAX_MB", "20"))
-DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
-FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+MAX_UPLOAD_SIZE_MB = env_int("DJANGO_UPLOAD_MAX_MB", 0, minimum=0)
+if MAX_UPLOAD_SIZE_MB == 0:
+    # 0 = disable Django request-size gate.
+    # Keep file upload buffering behavior unchanged from Django defaults.
+    DATA_UPLOAD_MAX_MEMORY_SIZE = None
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
+else:
+    DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 
 # -- Unified rate-limit configuration -----------------------------------------
@@ -520,6 +572,13 @@ LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "INFO").upper()
 
 # -- SQLite PRAGMAs via connection signal ------------------------------
 def _sqlite_pragmas(sender, connection, **kwargs):
+    """Вспомогательная функция `_sqlite_pragmas` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        sender: Параметр sender, используемый в логике функции.
+        connection: Параметр connection, используемый в логике функции.
+        **kwargs: Дополнительные именованные аргументы вызова.
+    """
     if connection.vendor == "sqlite":
         cursor = connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL;")

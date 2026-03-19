@@ -10,7 +10,7 @@ from enum import IntFlag
 
 
 class Perm(IntFlag):
-    """Granular permission flags (Discord-inspired)."""
+    """Класс Perm инкапсулирует связанную бизнес-логику модуля."""
 
     # --- Chat -----------------------------------------------------------
     SEND_MESSAGES = 1 << 0
@@ -114,7 +114,15 @@ ALL_PERMISSIONS = Perm(-1)  # every bit set
 
 
 def has_perm(permissions: int, perm: Perm) -> bool:
-    """Check if a permission bitmask includes the given permission."""
+    """Проверяет условие perm и возвращает логический результат.
+    
+    Args:
+        permissions: Набор прав доступа, применяемых к роли или участнику.
+        perm: Имя отдельного разрешения, проверяемого в наборе прав.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if int(permissions) & Perm.ADMINISTRATOR:
         return True
     return bool(int(permissions) & perm)

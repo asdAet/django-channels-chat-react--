@@ -1,5 +1,5 @@
 
-"""Содержит логику модуля `admin` подсистемы `users`."""
+"""Модуль admin реализует прикладную логику подсистемы users."""
 
 
 from django import forms
@@ -13,25 +13,37 @@ from .models import Profile
 
 
 class ProfileInlineForm(forms.ModelForm):
-    """Инкапсулирует логику класса `ProfileInlineForm`."""
+    """Форма ProfileInlineForm валидирует и подготавливает входные данные."""
     email = forms.EmailField(required=False, label="Email")
     is_staff = forms.BooleanField(required=False, label="Модератор/админ")
 
 
     class Meta:
-        """Инкапсулирует логику класса `Meta`."""
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Profile
         fields = ("image", "bio")
 
     def __init__(self, *args, **kwargs):
-        """Инициализирует экземпляр `ProfileInlineForm`."""
+        """Инициализирует экземпляр класса и подготавливает внутреннее состояние.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        """
         super().__init__(*args, **kwargs)
         user = getattr(self.instance, "user", None)
         if user:
             self.fields["is_staff"].initial = user.is_staff
 
     def save(self, commit=True):
-        """Выполняет логику `save` с параметрами из сигнатуры."""
+        """Сохраняет изменения объекта в хранилище.
+        
+        Args:
+            commit: Параметр commit, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         profile = super().save(commit=False)
         user = getattr(profile, "user", None)
         if user:
@@ -44,7 +56,7 @@ class ProfileInlineForm(forms.ModelForm):
 
 
 class ProfileInline(admin.StackedInline):
-    """Инкапсулирует логику класса `ProfileInline`."""
+    """Класс ProfileInline настраивает поведение сущности в Django Admin."""
     model = Profile
     form = ProfileInlineForm
     can_delete = False
@@ -62,12 +74,26 @@ class ProfileInline(admin.StackedInline):
 
     @admin.display(description="Логин")
     def username_display(self, obj):
-        """Выполняет логику `username_display` с параметрами из сигнатуры."""
+        """Вспомогательная функция `username_display` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         return getattr(obj.user, "username", "—")
 
     @admin.display(description="Avatar")
     def avatar_preview(self, obj):
-        """Выполняет логику `avatar_preview` с параметрами из сигнатуры."""
+        """Вспомогательная функция `avatar_preview` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         if obj and getattr(obj, "image", None):
             try:
                 return format_html(
@@ -88,7 +114,7 @@ except NotRegistered:
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    """Инкапсулирует логику класса `UserAdmin`."""
+    """Класс UserAdmin настраивает поведение сущности в Django Admin."""
     inlines = [ProfileInline]
     list_display = (
         "username",
@@ -102,22 +128,29 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.display(description="Last seen", ordering="profile__last_seen")
     def profile_last_seen(self, obj):
-        """Выполняет логику `profile_last_seen` с параметрами из сигнатуры."""
+        """Формирует значение profile last seen для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         profile = getattr(obj, "profile", None)
         return profile.last_seen if profile else "—"
 
 
 class ProfileAdminForm(ProfileInlineForm):
-    """Инкапсулирует логику класса `ProfileAdminForm`."""
+    """Класс ProfileAdminForm инкапсулирует связанную бизнес-логику модуля."""
     class Meta(ProfileInlineForm.Meta):
-        """Инкапсулирует логику класса `Meta`."""
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         model = Profile
         fields = ("user", "image", "bio")
 
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    """Инкапсулирует логику класса `ProfileAdmin`."""
+    """Класс ProfileAdmin настраивает поведение сущности в Django Admin."""
     form = ProfileAdminForm
     list_display = ("user", "is_staff", "last_seen", "avatar_preview")
     list_select_related = ("user",)
@@ -127,12 +160,26 @@ class ProfileAdmin(admin.ModelAdmin):
 
     @admin.display(boolean=True, description="Модератор/админ", ordering="user__is_staff")
     def is_staff(self, obj):
-        """Выполняет логику `is_staff` с параметрами из сигнатуры."""
+        """Проверяет условие staff и возвращает логический результат.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return getattr(obj.user, "is_staff", False)
 
     @admin.display(description="Avatar")
     def avatar_preview(self, obj):
-        """Выполняет логику `avatar_preview` с параметрами из сигнатуры."""
+        """Формирует значение avatar preview для отображения в админ-панели.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         if obj and getattr(obj, "image", None):
             try:
                 return format_html(

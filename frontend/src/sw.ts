@@ -27,23 +27,63 @@ self.skipWaiting();
 clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST);
 
+/**
+ * Проверяет условие is same origin.
+ * @param url URL-адрес ресурса.
+ */
 const isSameOrigin = (url: URL) => url.origin === self.location.origin;
+/**
+ * Проверяет условие is get request.
+ * @param request Объект HTTP-запроса.
+ */
 const isGetRequest = (request: Request) => request.method === "GET";
 
+/**
+ * Обрабатывает match signed media.
+ * @param url URL-адрес ресурса.
+ */
 const matchSignedMedia = (url: URL) =>
   url.pathname.startsWith("/api/auth/media/");
+/**
+ * Обрабатывает match room messages.
+ * @param url URL-адрес ресурса.
+ */
 const matchRoomMessages = (url: URL) =>
   url.pathname.startsWith("/api/chat/rooms/") &&
   url.pathname.endsWith("/messages/");
+/**
+ * Обрабатывает match room details.
+ * @param url URL-адрес ресурса.
+ */
 const matchRoomDetails = (url: URL) =>
   url.pathname.startsWith("/api/chat/rooms/") &&
   !url.pathname.endsWith("/messages/");
+/**
+ * Обрабатывает match public room.
+ * @param url URL-адрес ресурса.
+ */
 const matchPublicRoom = (url: URL) => url.pathname === "/api/chat/public-room/";
+/**
+ * Обрабатывает match direct chats.
+ * @param url URL-адрес ресурса.
+ */
 const matchDirectChats = (url: URL) =>
   url.pathname === "/api/chat/direct/chats/";
+/**
+ * Обрабатывает match user profile.
+ * @param url URL-адрес ресурса.
+ */
 const matchUserProfile = (url: URL) =>
   url.pathname.startsWith("/api/public/resolve/");
+/**
+ * Обрабатывает match self profile.
+ * @param url URL-адрес ресурса.
+ */
 const matchSelfProfile = (url: URL) => url.pathname === "/api/profile/";
+/**
+ * Обрабатывает match auth no cache.
+ * @param url URL-адрес ресурса.
+ */
 const matchAuthNoCache = (url: URL) =>
   url.pathname === "/api/auth/login/" ||
   url.pathname === "/api/auth/register/" ||
@@ -170,6 +210,11 @@ registerRoute(
   }),
 );
 
+/**
+ * Удаляет matching.
+ * @param cacheName Имя параметра или ключа, который используется в операции.
+ * @param predicate Функция-предикат для фильтрации записей.
+ */
 const deleteMatching = async (
   cacheName: string,
   predicate: (url: URL) => boolean,
@@ -186,6 +231,9 @@ const deleteMatching = async (
   );
 };
 
+/**
+ * Обрабатывает clear user caches.
+ */
 const clearUserCaches = async () => {
   await Promise.all([
     caches.delete(CACHE_NAMES.apiMessages),

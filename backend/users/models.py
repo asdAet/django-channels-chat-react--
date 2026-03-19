@@ -29,6 +29,7 @@ USER_PUBLIC_ID_VALIDATOR = RegexValidator(
 
 
 class Profile(models.Model):
+    """Модель Profile описывает структуру и поведение данных в приложении."""
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=150, blank=True, default="")
     image = models.ImageField(default="avatars/Password_defualt.jpg", upload_to=profile_avatar_upload_to)
@@ -43,14 +44,30 @@ class Profile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __init__(self, *args, **kwargs):
+        """Инициализирует экземпляр класса и подготавливает внутреннее состояние.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        """
         super().__init__(*args, **kwargs)
         self._old_image_name = self.image.name
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.user.username} profile"
 
     def save(self, *args, **kwargs):
-        """Нормализует профиль и безопасно обрабатывает файл аватара."""
+        """Сохраняет изменения объекта в хранилище.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        """
         if isinstance(self.bio, str):
             self.bio = strip_tags(self.bio).strip()
         if isinstance(self.name, str):
@@ -112,6 +129,7 @@ class Profile(models.Model):
 
 
 class UserIdentityCore(models.Model):
+    """Модель UserIdentityCore описывает структуру и поведение данных в приложении."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="identity_core")
     public_id = models.CharField(
         max_length=10,
@@ -123,9 +141,20 @@ class UserIdentityCore(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"user:{self.public_id}"
 
     def save(self, *args, **kwargs):
+        """Сохраняет изменения объекта в хранилище.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        """
         if self.pk is not None:
             old_public_id = (
                 type(self).objects.filter(pk=self.pk).values_list("public_id", flat=True).first()
@@ -136,6 +165,7 @@ class UserIdentityCore(models.Model):
 
 
 class LoginIdentity(models.Model):
+    """Модель LoginIdentity описывает структуру и поведение данных в приложении."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="login_identity")
     login_normalized = models.CharField(max_length=64, unique=True, db_index=True)
     password_hash = models.CharField(max_length=255)
@@ -143,10 +173,16 @@ class LoginIdentity(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"login:{self.login_normalized}"
 
 
 class EmailIdentity(models.Model):
+    """Модель EmailIdentity описывает структуру и поведение данных в приложении."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="email_identity")
     email_normalized = models.EmailField(unique=True, db_index=True, null=True, blank=True)
     email_verified = models.BooleanField(default=False)
@@ -154,11 +190,18 @@ class EmailIdentity(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"email:{self.email_normalized or ''}"
 
 
 class OAuthIdentity(models.Model):
+    """Модель OAuthIdentity описывает структуру и поведение данных в приложении."""
     class Provider(models.TextChoices):
+        """Класс Provider инкапсулирует связанную бизнес-логику модуля."""
         GOOGLE = "google", "Google"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="oauth_identities")
@@ -171,6 +214,7 @@ class OAuthIdentity(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         constraints = [
             models.UniqueConstraint(
                 fields=["provider", "provider_user_id"],
@@ -182,10 +226,16 @@ class OAuthIdentity(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.provider}:{self.provider_user_id}"
 
 
 class PublicHandle(models.Model):
+    """Модель PublicHandle описывает структуру и поведение данных в приложении."""
     handle = models.CharField(max_length=30, unique=True, db_index=True)
     user = models.OneToOneField(
         User,
@@ -205,6 +255,7 @@ class PublicHandle(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         constraints = [
             models.CheckConstraint(
                 check=(
@@ -216,11 +267,16 @@ class PublicHandle(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"@{self.handle}"
 
 
 class SecurityRateLimitBucket(models.Model):
-    """Хранит состояние ограничений запросов для защитных сценариев."""
+    """Модель SecurityRateLimitBucket описывает структуру и поведение данных в приложении."""
 
     scope_key = models.CharField(max_length=191, unique=True, db_index=True)
     count = models.PositiveIntegerField(default=0)
@@ -228,9 +284,15 @@ class SecurityRateLimitBucket(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         indexes = [
             models.Index(fields=["reset_at"], name="users_rl_reset_idx"),
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.scope_key}:{self.count}"

@@ -18,6 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 def _attachment_delete_retry_delay(attempt: int) -> float:
+    """Удаляет вложение с учетом повтор delay.
+    
+    Args:
+        attempt: Параметр attempt, используемый в логике функции.
+    
+    Returns:
+        Объект типа float, сформированный в ходе выполнения.
+    """
     base_delay = float(getattr(settings, "CHAT_ATTACHMENT_DELETE_RETRY_BASE_SECONDS", 0.1))
     return max(0.0, base_delay * (attempt + 1))
 
@@ -25,24 +33,37 @@ def _attachment_delete_retry_delay(attempt: int) -> float:
 # ── Exceptions ─────────────────────────────────────────────────────────
 
 class MessageError(Exception):
+    """Класс MessageError инкапсулирует связанную бизнес-логику модуля."""
     pass
 
 
 class MessageNotFoundError(MessageError):
+    """Класс MessageNotFoundError инкапсулирует связанную бизнес-логику модуля."""
     pass
 
 
 class MessageForbiddenError(MessageError):
+    """Класс MessageForbiddenError инкапсулирует связанную бизнес-логику модуля."""
     pass
 
 
 class MessageValidationError(MessageError):
+    """Класс MessageValidationError инкапсулирует связанную бизнес-логику модуля."""
     pass
 
 
 # ── Edit / Delete ──────────────────────────────────────────────────────
 
 def _load_message_or_raise(room: Room, message_id: int) -> Message:
+    """Загружает message or raise из хранилища с необходимыми проверками.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        message_id: Идентификатор message, используемый для выборки данных.
+    
+    Returns:
+        Объект типа Message, сформированный в рамках обработки.
+    """
     msg = (
         Message.objects
         .select_for_update()
@@ -55,13 +76,30 @@ def _load_message_or_raise(room: Room, message_id: int) -> Message:
 
 
 def _can_manage_message(room: Room, user, message: Message) -> bool:
-    """Check if user can edit/delete this message (author or moderator)."""
+    """Проверяет условие manage message и возвращает логический результат.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+        user: Пользователь, для которого выполняется операция.
+        message: Экземпляр сообщения для обработки.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if message.user_id == user.pk:
         return True
     return has_permission(room, user, Perm.MANAGE_MESSAGES)
 
 
 def _within_edit_window(message: Message) -> bool:
+    """Выполняет вспомогательную обработку для within edit window.
+    
+    Args:
+        message: Сообщение, участвующее в обработке.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     window = int(getattr(settings, "CHAT_MESSAGE_EDIT_WINDOW_SECONDS", 900))
     if window == 0:
         return True
@@ -76,6 +114,14 @@ def _delete_attachment_blob(
     attachment_id: int,
     field_name: str,
 ) -> None:
+    """Удаляет attachment blob и выполняет сопутствующие действия.
+    
+    Args:
+        storage: Объект файлового storage для чтения и удаления blob-файлов.
+        blob_name: Имя объекта в storage, подлежащего удалению или чтению.
+        attachment_id: Идентификатор attachment, используемый для выборки данных.
+        field_name: Имя поля модели, которое содержит путь к файлу.
+    """
     normalized_name = str(blob_name or "").strip()
     if not normalized_name:
         return
@@ -110,7 +156,17 @@ def _delete_attachment_blob(
 
 
 def edit_message(user, room: Room, message_id: int, new_content: str) -> Message:
-    """Edit a message. Returns the updated message."""
+    """Редактирует сообщение.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        room: Комната, в контексте которой выполняется операция.
+        message_id: Идентификатор сообщения.
+        new_content: Параметр new content, используемый в логике функции.
+    
+    Returns:
+        Объект типа Message, сформированный в ходе выполнения.
+    """
     new_content = new_content.strip()
     if not new_content:
         raise MessageValidationError("Текст сообщения не может быть пустым")
@@ -142,7 +198,16 @@ def edit_message(user, room: Room, message_id: int, new_content: str) -> Message
 
 
 def delete_message(user, room: Room, message_id: int) -> Message:
-    """Soft-delete a message. Returns the deleted message."""
+    """Удаляет message и выполняет сопутствующие действия.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        room: Экземпляр комнаты, над которой выполняется действие.
+        message_id: Идентификатор message, используемый для выборки данных.
+    
+    Returns:
+        Объект типа Message, сформированный в рамках обработки.
+    """
     with transaction.atomic():
         msg = _load_message_or_raise(room, message_id)
 
@@ -185,7 +250,17 @@ def delete_message(user, room: Room, message_id: int) -> Message:
 # ── Reactions ──────────────────────────────────────────────────────────
 
 def add_reaction(user, room: Room, message_id: int, emoji: str) -> Reaction:
-    """Add an emoji reaction to a message. Idempotent."""
+    """Добавляет reaction в целевую коллекцию.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        room: Комната, в контексте которой выполняется операция.
+        message_id: Идентификатор сообщения.
+        emoji: Эмодзи-реакция, над которой выполняется операция.
+    
+    Returns:
+        Объект типа Reaction, сформированный в ходе выполнения.
+    """
     emoji = emoji.strip()
     if not emoji or len(emoji) > 32:
         raise MessageValidationError("Некорректный эмодзи")
@@ -204,7 +279,14 @@ def add_reaction(user, room: Room, message_id: int, emoji: str) -> Reaction:
 
 
 def remove_reaction(user, room: Room, message_id: int, emoji: str) -> None:
-    """Remove an emoji reaction. Idempotent (no error if not found)."""
+    """Удаляет reaction из целевого набора данных.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        room: Экземпляр комнаты, над которой выполняется действие.
+        message_id: Идентификатор message, используемый для выборки данных.
+        emoji: Эмодзи-реакция, которую нужно добавить или удалить.
+    """
     Reaction.objects.filter(
         message_id=message_id, message__room=room, user=user, emoji=emoji,
     ).delete()
@@ -213,7 +295,16 @@ def remove_reaction(user, room: Room, message_id: int, emoji: str) -> None:
 # ── Read State ─────────────────────────────────────────────────────────
 
 def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
-    """Mark messages as read up to the given message ID."""
+    """Помечает read новым состоянием.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        room: Экземпляр комнаты, над которой выполняется действие.
+        last_read_message_id: Идентификатор last read message, используемый для выборки данных.
+    
+    Returns:
+        Объект типа MessageReadState, сформированный в рамках обработки.
+    """
     if not Message.objects.filter(pk=last_read_message_id, room=room).exists():
         raise MessageNotFoundError("Сообщение не найдено")
 
@@ -239,7 +330,14 @@ def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
 
 
 def get_unread_counts(user) -> list[dict]:
-    """Get unread message counts for all rooms the user is a member of."""
+    """Возвращает unread counts из текущего контекста или хранилища.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Список типа list[dict] с результатами операции.
+    """
     from roles.models import Membership
 
     memberships = (

@@ -33,19 +33,7 @@ import {
 } from "./lib/attachmentLayout";
 
 /**
- * Параметры компонента пузыря сообщения.
- * @property message Полный объект сообщения с текстом, вложениями и реакциями.
- * @property isOwn Признак, что сообщение принадлежит текущему пользователю.
- * @property canModerate Разрешение на модераторские действия над сообщением.
- * @property isRead Признак прочтения исходящего сообщения.
- * @property highlighted Признак подсветки сообщения в списке.
- * @property onlineUsernames Набор online-пользователей для индикатора статуса на аватаре.
- * @property onReply Колбэк ответа на сообщение.
- * @property onEdit Колбэк редактирования сообщения.
- * @property onDelete Колбэк удаления сообщения.
- * @property onReact Колбэк установки или снятия реакции.
- * @property onReplyQuoteClick Колбэк перехода к исходному сообщению из цитаты.
- * @property onAvatarClick Колбэк открытия профиля отправителя.
+ * Описывает входные props компонента `Props`.
  */
 type Props = {
   message: Message;
@@ -63,8 +51,7 @@ type Props = {
 };
 
 /**
- * Набор быстрых реакций для контекстного меню сообщения.
- * Порядок влияет на отображение кнопок в EmojiPicker.
+ * Константа `QUICK_REACTIONS` хранит используемое в модуле значение.
  */
 const QUICK_REACTIONS = [
   "\u{1F44D}",
@@ -79,8 +66,9 @@ const QUICK_REACTIONS = [
 /**
  * Форматирует размер файла для отображения рядом с вложением.
  * @param bytes Размер файла в байтах.
- * @returns Строку в формате B, KB или MB.
+ * @returns Строка в отформатированном виде.
  */
+
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -90,21 +78,23 @@ const formatFileSize = (bytes: number) => {
 
 /**
  * Проверяет, относится ли MIME-тип к видео.
- * @param ct MIME-тип вложения.
- * @returns true, если вложение является видео.
+ * @param ct Аргумент `ct` текущего вызова.
+ * @returns Логический флаг результата проверки.
  */
+
 const isVideoType = (ct: string) => ct.startsWith("video/");
 /**
  * Проверяет, относится ли MIME-тип к аудио.
- * @param ct MIME-тип вложения.
- * @returns true, если вложение является аудио.
+ * @param ct Аргумент `ct` текущего вызова.
+ * @returns Логический флаг результата проверки.
  */
+
 const isAudioType = (ct: string) => ct.startsWith("audio/");
 /**
- * Нормализует публичный идентификатор пользователя для сравнения.
- * @param value Исходный publicRef.
- * @returns Нормализованный идентификатор в нижнем регистре.
+ * Нормализует actor ref.
+ * @param value Входное значение для преобразования.
  */
+
 const normalizeActorRef = (value: string) =>
   normalizePublicRef(value).toLowerCase();
 const MEDIA_GRID_VARIANT_CLASS_MAP = {
@@ -119,9 +109,9 @@ const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
 
 /**
- * Определяет, что устройство работает как тач-устройство.
- * @returns true, если интерфейс должен использовать тач-поведение.
+ * Проверяет условие is touch like device.
  */
+
 const isTouchLikeDevice = () => {
   if (typeof window === "undefined") return false;
   if ("ontouchstart" in window || navigator.maxTouchPoints > 0) return true;
@@ -131,19 +121,18 @@ const isTouchLikeDevice = () => {
 };
 /**
  * Проверяет, что тап был по интерактивному элементу и меню открывать не нужно.
- * @param target Целевой DOM-узел события.
- * @returns true, если тап нужно проигнорировать для мобильного меню.
+ * @param target Аргумент `target` текущего вызова.
+ * @returns Логический флаг, нужно ли выполнять действие.
  */
+
 const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(MOBILE_MENU_IGNORE_SELECTOR));
 };
 /**
- * Рендерит блок цитаты ответа в верхней части сообщения.
- * @param props Свойства цитаты ответа.
- * @param props.replyTo Данные исходного сообщения, на которое сделан ответ.
- * @param props.onClick Опциональный обработчик перехода к исходному сообщению.
- * @returns JSX-элемент цитаты в виде кнопки или статичного блока.
+ * Компонент ReplyQuote рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 function ReplyQuote({
   replyTo,
@@ -176,11 +165,9 @@ function ReplyQuote({
   );
 }
 /**
- * Рендерит кнопку реакции с количеством и состоянием текущего пользователя.
- * @param props Свойства чипа реакции.
- * @param props.reaction Сводка по реакции конкретного emoji.
- * @param props.onToggle Обработчик переключения реакции.
- * @returns JSX-кнопку реакции.
+ * Компонент ReactionChip рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 function ReactionChip({
   reaction,
@@ -204,10 +191,7 @@ function ReactionChip({
   );
 }
 /**
- * Рендерит индикатор доставки и прочтения исходящего сообщения.
- * @param props Свойства индикатора прочтения.
- * @param props.isRead Признак, что сообщение прочитано собеседником.
- * @returns JSX-элемент с двойной галочкой.
+ * React-компонент CheckMark отвечает за отрисовку и обработку UI-сценария.
  */
 function CheckMark({ isRead }: { isRead: boolean }) {
   return (
@@ -240,11 +224,9 @@ function CheckMark({ isRead }: { isRead: boolean }) {
   );
 }
 /**
- * Рендерит панель быстрых emoji для выбора реакции.
- * @param props Свойства панели выбора реакции.
- * @param props.onPick Колбэк выбора emoji.
- * @param props.onClose Колбэк закрытия панели.
- * @returns JSX-панель выбора реакции с фоном-перехватчиком.
+ * Компонент EmojiPicker рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 function EmojiPicker({
   onPick,
@@ -282,9 +264,9 @@ function EmojiPicker({
   );
 }
 /**
- * Рендерит пузырь сообщения чата с текстом, вложениями, реакциями и контекстным меню.
- * @param props Параметры отображения и обработчики действий над сообщением.
- * @returns JSX-элемент сообщения вместе со вспомогательными оверлеями.
+ * Компонент MessageBubble рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function MessageBubble({
   message,

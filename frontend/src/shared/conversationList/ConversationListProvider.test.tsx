@@ -90,6 +90,9 @@ const user = {
   registeredAt: null,
 };
 
+/**
+ * Проверяет состояние провайдера в тестовом окружении.
+ */
 function Probe() {
   const { setSearchQuery } = useConversationList();
   return (

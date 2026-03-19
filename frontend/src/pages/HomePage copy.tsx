@@ -16,24 +16,24 @@ import { usePresence } from "../shared/presence";
 import { Avatar, Button, Card, Toast } from "../shared/ui";
 import styles from "../styles/pages/HomePage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
 
   onNavigate: (path: string) => void;
 };
 
+/**
+ * Формирует temp id.
+ * @param seed Аргумент `seed` текущего вызова.
+ */
 const buildTempId = (seed: number) => Date.now() * 1000 + seed;
 
 /**
-
- * Главная страница приложения с публичным эфиром и списком онлайн.
-
- * @param props Текущий пользователь и навигация.
-
- * @returns JSX главной страницы.
-
+ * React-компонент HomePage отвечает за отрисовку и обработку UI-сценария.
  */
-
 export function HomePage({ user, onNavigate }: Props) {
   const { publicRoom, loading } = usePublicRoom(user);
 
@@ -176,6 +176,10 @@ export function HomePage({ user, onNavigate }: Props) {
     onError: (err) => debugLog("Live feed WS error", err),
   });
 
+  /**
+   * Создает room slug.
+   * @param length Числовой параметр `length`, ограничивающий объем данных.
+   */
   const createRoomSlug = (length = 12) => {
     if (globalThis.crypto?.randomUUID) {
       return globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, length);
@@ -204,6 +208,9 @@ export function HomePage({ user, onNavigate }: Props) {
     return fallback;
   };
 
+  /**
+   * Обрабатывает on create room.
+   */
   const onCreateRoom = async () => {
     if (!user || creatingRoom) return;
 

@@ -64,6 +64,16 @@ def _protected_media_response(
     *,
     preferred_content_type: str | None = None,
 ) -> FileResponse | HttpResponse:
+    """Вспомогательная функция `_protected_media_response` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        normalized_path: Параметр normalized path, используемый в логике функции.
+        cache_control: Параметр cache control, используемый в логике функции.
+        preferred_content_type: Параметр preferred content type, используемый в логике функции.
+    
+    Returns:
+        HTTP-ответ с результатом обработки.
+    """
     content_type = resolve_media_content_type(
         normalized_path,
         preferred_content_type=preferred_content_type,
@@ -81,6 +91,14 @@ def _protected_media_response(
 
 
 def _extract_payload(request) -> Mapping[str, object]:
+    """Выполняет вспомогательную обработку для extract payload.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Объект типа Mapping[str, object], полученный при выполнении операции.
+    """
     try:
         data = getattr(request, "data", None)
     except (ParseError, UnsupportedMediaType):
@@ -92,6 +110,14 @@ def _extract_payload(request) -> Mapping[str, object]:
 
 
 def _resolve_email(user) -> str:
+    """Определяет email на основе доступного контекста.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     identity = getattr(user, "email_identity", None)
     if identity and getattr(identity, "email_normalized", None):
         return identity.email_normalized
@@ -99,6 +125,15 @@ def _resolve_email(user) -> str:
 
 
 def _serialize_user(request, user):
+    """Сериализует user для передачи клиенту.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     profile = ensure_profile(user)
     profile_image = resolve_user_avatar_url_from_request(request, user)
 
@@ -123,16 +158,42 @@ def _serialize_user(request, user):
 
 
 def _serialize_public_user(request, user):
+    """Сериализует public user для передачи клиенту.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     payload = _serialize_user(request, user)
     payload["email"] = ""
     return payload
 
 
 def _get_client_ip(request) -> str:
+    """Возвращает client ip из текущего контекста.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return get_client_ip_from_request(request) or ""
 
 
 def _rate_limited(request, action: str) -> bool:
+    """Вспомогательная функция `_rate_limited` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        action: Код или имя действия, которое фиксируется в аудите.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     ip = _get_client_ip(request) or "unknown"
     scope_key = f"rl:auth:{action}:{ip}"
     policy = auth_rate_limit_policy()
@@ -140,6 +201,14 @@ def _rate_limited(request, action: str) -> bool:
 
 
 def _identity_error_response(exc: IdentityServiceError) -> Response:
+    """Вспомогательная функция `_identity_error_response` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        exc: Параметр exc, используемый в логике функции.
+    
+    Returns:
+        HTTP-ответ с результатом обработки.
+    """
     payload: dict[str, object] = {
         "code": exc.code,
         "message": exc.message,
@@ -152,12 +221,28 @@ def _identity_error_response(exc: IdentityServiceError) -> Response:
 @ensure_csrf_cookie
 @api_view(["GET"])
 def csrf_token(request):
+    """Вспомогательная функция `csrf_token` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     return Response({"csrfToken": get_token(request)})
 
 
 @ensure_csrf_cookie
 @api_view(["GET"])
 def session_view(request):
+    """Обрабатывает API-представление для session.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
         return Response({"authenticated": True, "user": _serialize_user(request, user)})
@@ -167,6 +252,14 @@ def session_view(request):
 @ensure_csrf_cookie
 @api_view(["GET"])
 def presence_session_view(request):
+    """Обрабатывает API-представление для presence session.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if not request.session.session_key:
         request.session.create()
     request.session.modified = True
@@ -176,6 +269,14 @@ def presence_session_view(request):
 
 @api_view(["GET"])
 def password_rules_view(request):
+    """Обрабатывает API-представление для password rules.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     rules = [str(rule) for rule in password_validation.password_validators_help_texts()]
     return Response({"rules": rules})
 
@@ -183,6 +284,14 @@ def password_rules_view(request):
 @csrf_protect
 @api_view(["POST"])
 def login_view(request):
+    """Обрабатывает API-представление для login.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if _rate_limited(request, "login"):
         audit_http_event("auth.login.rate_limited", request)
         return error_response(status=429, error="Слишком много попыток")
@@ -213,6 +322,14 @@ def login_view(request):
 @csrf_protect
 @api_view(["POST"])
 def logout_view(request):
+    """Обрабатывает API-представление для logout.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
         try:
@@ -230,6 +347,14 @@ def logout_view(request):
 @csrf_protect
 @api_view(["POST"])
 def register_view(request):
+    """Обрабатывает API-представление для register.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if _rate_limited(request, "register"):
         audit_http_event("auth.register.rate_limited", request)
         return error_response(status=429, error="Слишком много попыток")
@@ -267,6 +392,14 @@ def register_view(request):
 @csrf_protect
 @api_view(["POST"])
 def oauth_google_view(request):
+    """Обрабатывает API-представление для oauth google.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     payload = _extract_payload(request)
     id_token = str(payload.get("idToken") or "").strip() or None
     access_token = str(payload.get("accessToken") or "").strip() or None
@@ -290,6 +423,15 @@ def oauth_google_view(request):
 
 @api_view(["GET"])
 def media_view(request, file_path: str):
+    """Обрабатывает API-представление для media.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        file_path: Параметр file path, используемый в логике функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     normalized_path = normalize_media_path(file_path)
     if not normalized_path:
         return Response({"error": "Не найдено"}, status=404)
@@ -340,6 +482,14 @@ def media_view(request, file_path: str):
 @csrf_protect
 @api_view(["GET", "PATCH"])
 def profile_view(request):
+    """Обрабатывает API-представление для profile.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return error_response(status=401, error="Требуется авторизация")
@@ -379,6 +529,14 @@ def profile_view(request):
 @csrf_protect
 @api_view(["PATCH"])
 def profile_handle_view(request):
+    """Обрабатывает API-представление для profile handle.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return error_response(status=401, error="Требуется авторизация")
@@ -398,6 +556,14 @@ def profile_handle_view(request):
 @csrf_protect
 @api_view(["GET", "PATCH"])
 def security_settings_view(request):
+    """Обрабатывает API-представление для security settings.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return error_response(status=401, error="Требуется авторизация")
@@ -438,6 +604,15 @@ def security_settings_view(request):
 
 @api_view(["GET"])
 def public_resolve_view(request, ref: str):
+    """Обрабатывает API-представление для public resolve.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        ref: Параметр ref, используемый в логике функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     owner_type, owner = resolve_public_ref(ref)
     if owner is None or owner_type is None:
         return Response({"error": "Не найдено"}, status=404)

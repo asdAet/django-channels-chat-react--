@@ -131,6 +131,11 @@ const invitePreviewSchema = z
   })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции to room id.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованные данные после декодирования.
+ */
 const toRoomId = (value: number | string): number => {
   const parsed =
     typeof value === "number" ? value : Number.parseInt(value, 10);
@@ -185,6 +190,11 @@ const bannedListSchema = z
   })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции map group.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapGroup = (dto: z.infer<typeof groupSchema>): Group => ({
   roomId: toRoomId(dto.roomId),
   slug: String(toRoomId(dto.roomId)),
@@ -200,8 +210,20 @@ const mapGroup = (dto: z.infer<typeof groupSchema>): Group => ({
   avatarCrop: dto.avatarCrop ?? null,
 });
 
+/**
+ * Преобразует HTTP-данные для операции decode group response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeGroupResponse = (input: unknown): Group =>
   mapGroup(decodeOrThrow(groupSchema, input, "groups/detail"));
+
+/**
+ * Декодирует group list response.
+ *
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeGroupListResponse = (
   input: unknown,
@@ -231,6 +253,12 @@ export const decodeGroupListResponse = (
     },
   };
 };
+
+/**
+ * Декодирует group members response.
+ *
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeGroupMembersResponse = (
   input: unknown,
@@ -268,6 +296,12 @@ export const decodeGroupMembersResponse = (
   };
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode invites response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeInvitesResponse = (input: unknown): GroupInvite[] => {
   const parsed = decodeOrThrow(inviteListSchema, input, "groups/invites");
   return parsed.items.map((i) => ({
@@ -282,6 +316,12 @@ export const decodeInvitesResponse = (input: unknown): GroupInvite[] => {
     createdAt: i.createdAt,
   }));
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode invite response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeInviteResponse = (input: unknown): GroupInvite => {
   const parsed = decodeOrThrow(inviteSchema, input, "groups/invite");
@@ -298,6 +338,12 @@ export const decodeInviteResponse = (input: unknown): GroupInvite => {
   };
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode invite preview response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeInvitePreviewResponse = (input: unknown): InvitePreview => {
   const parsed = decodeOrThrow(
     invitePreviewSchema,
@@ -313,6 +359,12 @@ export const decodeInvitePreviewResponse = (input: unknown): InvitePreview => {
     isPublic: parsed.isPublic ?? false,
   };
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode join requests response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeJoinRequestsResponse = (input: unknown): JoinRequest[] => {
   const parsed = decodeOrThrow(
@@ -331,6 +383,12 @@ export const decodeJoinRequestsResponse = (input: unknown): JoinRequest[] => {
   }));
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode pinned messages response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodePinnedMessagesResponse = (
   input: unknown,
 ): PinnedMessage[] => {
@@ -344,6 +402,12 @@ export const decodePinnedMessagesResponse = (
     createdAt: p.createdAt ?? p.pinnedAt,
   }));
 };
+
+/**
+ * Декодирует banned members response.
+ *
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeBannedMembersResponse = (
   input: unknown,

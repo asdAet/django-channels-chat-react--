@@ -5,10 +5,16 @@ import type { Role } from "../../entities/role/types";
 import { Spinner } from "../../shared/ui";
 import styles from "../../styles/admin/RolesManager.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   slug: string;
 };
 
+/**
+ * React-компонент RolesManager отвечает за отрисовку и обработку UI-сценария.
+ */
 export function RolesManager({ slug }: Props) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);

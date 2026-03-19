@@ -7,6 +7,9 @@ import {
   normalizeAvatarCrop,
 } from "../lib/avatarCrop";
 
+/**
+ * Описывает входные props компонента `AvatarMedia`.
+ */
 type AvatarMediaProps = {
   src: string;
   alt: string;
@@ -18,6 +21,11 @@ type AvatarMediaProps = {
   onError?: ImgHTMLAttributes<HTMLImageElement>["onError"];
 };
 
+/**
+ * Компонент AvatarMedia рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
+ */
 export function AvatarMedia({
   src,
   alt,

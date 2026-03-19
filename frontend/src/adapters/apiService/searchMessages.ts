@@ -4,6 +4,13 @@ import type { SearchResult } from "../../domain/interfaces/IApiService";
 import { decodeSearchResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
+/**
+ * Выполняет API-запрос для операции search messages.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param roomId Идентификатор комнаты.
+ * @param query Поисковый запрос.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function searchMessages(
   apiClient: AxiosInstance,
   roomId: string,

@@ -7,6 +7,7 @@ from rooms.models import Room
 
 
 class Message(models.Model):
+    """Модель Message описывает структуру и поведение данных в приложении."""
     username = models.CharField(max_length=50, db_index=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -51,6 +52,7 @@ class Message(models.Model):
     reply_to_id: Optional[int]
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "chat_message"
         ordering = ("date_added",)
         indexes = [
@@ -59,11 +61,17 @@ class Message(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         name = self.user.username if self.user else self.username
         return f"{name}: {self.message_content}"
 
 
 class Reaction(models.Model):
+    """Модель Reaction описывает структуру и поведение данных в приложении."""
     message = models.ForeignKey(
         Message,
         on_delete=models.CASCADE,
@@ -80,6 +88,7 @@ class Reaction(models.Model):
     user_id: int
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "messages_reaction"
         constraints = [
             models.UniqueConstraint(
@@ -92,10 +101,16 @@ class Reaction(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.user_id}:{self.emoji}:msg{self.message_id}"
 
 
 class MessageAttachment(models.Model):
+    """Модель MessageAttachment описывает структуру и поведение данных в приложении."""
     message = models.ForeignKey(
         Message,
         on_delete=models.CASCADE,
@@ -116,6 +131,7 @@ class MessageAttachment(models.Model):
     message_id: int
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "messages_attachment"
         ordering = ["uploaded_at"]
         indexes = [
@@ -123,10 +139,16 @@ class MessageAttachment(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.message_id}:{self.original_filename}"
 
 
 class MessageReadState(models.Model):
+    """Модель MessageReadState описывает структуру и поведение данных в приложении."""
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -150,6 +172,7 @@ class MessageReadState(models.Model):
     last_read_message_id: Optional[int]
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "messages_read_state"
         constraints = [
             models.UniqueConstraint(
@@ -159,4 +182,9 @@ class MessageReadState(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return f"{self.user_id}:room{self.room_id}:msg{self.last_read_message_id}"

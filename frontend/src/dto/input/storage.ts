@@ -6,10 +6,11 @@ const cookieNameSchema = z.string().trim().min(1);
 
 /**
  * Извлекает значение cookie по имени.
- * @param cookie Сырой document.cookie.
- * @param name Имя cookie.
- * @returns Значение cookie или null.
+ * @param cookie Строка cookie, из которой извлекается значение.
+ * @param name Отображаемое имя.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const readCookieValue = (
   cookie: string | null | undefined,
   name: string,
@@ -29,8 +30,9 @@ export const readCookieValue = (
 
 /**
  * Читает csrf token из document.cookie в браузере.
- * @returns Значение csrf cookie или null.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const readCsrfFromCookie = (): string | null => {
   if (typeof document === "undefined") return null;
   return readCookieValue(document.cookie, "csrftoken");
@@ -38,9 +40,10 @@ export const readCsrfFromCookie = (): string | null => {
 
 /**
  * Читает csrf token из sessionStorage.
- * @param storageKey Ключ в sessionStorage.
- * @returns Значение csrf token или null.
+ * @param storageKey Аргумент `storageKey` текущего вызова.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const readCsrfFromSessionStorage = (
   storageKey: string,
 ): string | null => {
@@ -52,9 +55,10 @@ export const readCsrfFromSessionStorage = (
 
 /**
  * Сохраняет csrf token в sessionStorage.
- * @param storageKey Ключ в sessionStorage.
- * @param token Значение токена.
+ * @param storageKey Аргумент `storageKey` текущего вызова.
+ * @param token Токен OAuth-провайдера.
  */
+
 export const writeCsrfToSessionStorage = (
   storageKey: string,
   token: string | null,

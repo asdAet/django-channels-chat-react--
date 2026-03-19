@@ -2,11 +2,17 @@ import type { GroupListItem as GroupListItemType } from "../../entities/group/ty
 import { Avatar } from "../../shared/ui";
 import styles from "../../styles/groups/GroupsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   group: GroupListItemType;
   onClick: (slug: string) => void;
 };
 
+/**
+ * React-компонент GroupListItem отвечает за отрисовку и обработку UI-сценария.
+ */
 export function GroupListItem({ group, onClick }: Props) {
   return (
     <div

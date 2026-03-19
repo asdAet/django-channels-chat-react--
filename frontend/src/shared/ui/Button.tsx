@@ -2,8 +2,14 @@ import type { ButtonHTMLAttributes } from "react";
 
 import styles from "../../styles/ui/Button.module.css";
 
+/**
+ * Описывает структуру данных `ButtonVariant`.
+ */
 type ButtonVariant = "primary" | "ghost" | "outline" | "link" | "dangerLink";
 
+/**
+ * Описывает входные props компонента `Button`.
+ */
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   fullWidth?: boolean;
@@ -18,9 +24,9 @@ const variantClassMap: Record<ButtonVariant, string> = {
 };
 
 /**
- * Универсальная кнопка интерфейса с вариантами оформления.
- * @param props HTML-параметры кнопки и UI-модификаторы.
- * @returns JSX-кнопка с модульными стилями.
+ * Компонент Button рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function Button({
   variant = "primary",

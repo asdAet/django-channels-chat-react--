@@ -28,7 +28,14 @@ INTERNAL_HOSTNAMES: set[str] = set(
 
 
 def serialize_avatar_crop(profile) -> dict[str, float] | None:
-    """Serialize avatar crop metadata into a unified API format."""
+    """Сериализует avatar crop в формат, пригодный для передачи клиенту.
+    
+    Args:
+        profile: Профиль пользователя, для которого вычисляется состояние.
+    
+    Returns:
+        Словарь типа dict[str, float] | None с результатами операции.
+    """
     if not profile:
         return None
 
@@ -56,6 +63,14 @@ def serialize_avatar_crop(profile) -> dict[str, float] | None:
 
 
 def _decode_header(value: bytes | None) -> str | None:
+    """Декодирует header из внешнего представления.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not value:
         return None
     try:
@@ -65,6 +80,15 @@ def _decode_header(value: bytes | None) -> str | None:
 
 
 def _get_header(scope, name: bytes) -> str | None:
+    """Возвращает header из текущего контекста или хранилища.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        name: Человекочитаемое имя сущности или объекта.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     for header, value in scope.get("headers", []):
         if header == name:
             return _decode_header(value)
@@ -72,12 +96,28 @@ def _get_header(scope, name: bytes) -> str | None:
 
 
 def _first_value(value: str | None) -> str | None:
+    """Выполняет вспомогательную обработку для first value.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа str | None, полученный при выполнении операции.
+    """
     if not value:
         return None
     return value.split(",")[0].strip()
 
 
 def _normalize_scheme(value: str | None) -> str | None:
+    """Нормализует scheme к внутреннему формату приложения.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not value:
         return None
     lowered = value.strip().lower()
@@ -91,6 +131,14 @@ def _normalize_scheme(value: str | None) -> str | None:
 
 
 def _normalize_base_url(value: str | None) -> str | None:
+    """Нормализует base url к внутреннему формату приложения.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not value:
         return None
     parsed = urlparse(value)
@@ -102,6 +150,15 @@ def _normalize_base_url(value: str | None) -> str | None:
 
 
 def _base_from_host_and_scheme(host: str | None, scheme: str | None) -> str | None:
+    """Вспомогательная функция `_base_from_host_and_scheme` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        host: Параметр host, используемый в логике функции.
+        scheme: Параметр scheme, используемый в логике функции.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     host_value = _first_value(host)
     if not host_value:
         return None
@@ -110,7 +167,14 @@ def _base_from_host_and_scheme(host: str | None, scheme: str | None) -> str | No
 
 
 def normalize_media_path(image_name: str | None) -> str | None:
-    """Normalize media path and reject traversal/empty values."""
+    """Нормализует media path к внутреннему формату приложения.
+    
+    Args:
+        image_name: Имя файла изображения в media-хранилище.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not image_name:
         return None
 
@@ -138,6 +202,14 @@ def normalize_media_path(image_name: str | None) -> str | None:
 
 
 def _is_internal_host(hostname: str | None) -> bool:
+    """Проверяет условие internal host и возвращает логический результат.
+    
+    Args:
+        hostname: Имя хоста без схемы и дополнительных частей URL.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if not hostname:
         return False
 
@@ -154,6 +226,14 @@ def _is_internal_host(hostname: str | None) -> bool:
 
 
 def _hostname_from_base(base: str | None) -> str | None:
+    """Вспомогательная функция `_hostname_from_base` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        base: Параметр base, используемый в логике функции.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     if not base:
         return None
     parsed = urlparse(base)
@@ -161,6 +241,15 @@ def _hostname_from_base(base: str | None) -> str | None:
 
 
 def _should_prefer_origin(candidate_base: str | None, origin_base: str | None) -> bool:
+    """Определяет, нужно ли выполнять действие prefer origin.
+    
+    Args:
+        candidate_base: Кандидат на роль базового URL для валидации и выбора.
+        origin_base: Базовый URL, полученный из заголовка Origin.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if not candidate_base or not origin_base:
         return False
 
@@ -178,6 +267,17 @@ def _pick_base_url(
     host_base: str | None,
     origin_base: str | None,
 ) -> str | None:
+    """Выбирает base url из набора кандидатов по заданным правилам.
+    
+    Args:
+        configured_base: Базовый URL, заданный в конфигурации приложения.
+        forwarded_base: Базовый URL, восстановленный из прокси-заголовков.
+        host_base: Базовый URL, собранный из host и схемы запроса.
+        origin_base: Базовый URL, полученный из заголовка Origin.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if configured_base:
         return configured_base
 
@@ -195,6 +295,15 @@ def _pick_base_url(
 
 
 def _coerce_media_source(image_name: str | None, trusted_hosts: set[str] | None = None) -> str | None:
+    """Преобразует media source к допустимому типу или формату.
+    
+    Args:
+        image_name: Имя файла изображения в media-хранилище.
+        trusted_hosts: Список доверенных хостов для проверки безопасности URL.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if not image_name:
         return None
 
@@ -216,17 +325,40 @@ def _coerce_media_source(image_name: str | None, trusted_hosts: set[str] | None 
 
 
 def _media_signing_key() -> bytes:
+    """Выполняет вспомогательную обработку для media signing key.
+    
+    Returns:
+        Объект типа bytes, полученный при выполнении операции.
+    """
     key = getattr(settings, "MEDIA_SIGNING_KEY", None) or getattr(settings, "SECRET_KEY", "")
     return str(key).encode("utf-8")
 
 
 def _media_signature(path: str, expires_at: int) -> str:
+    """Вспомогательная функция `_media_signature` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        path: Путь ресурса в storage или URL-маршруте.
+        expires_at: Параметр expires at, используемый в логике функции.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     payload = f"{path}:{expires_at}".encode("utf-8")
     return hmac.new(_media_signing_key(), payload, hashlib.sha256).hexdigest()
 
 
 def is_valid_media_signature(path: str, expires_at: int, signature: str | None) -> bool:
-    """Validate HMAC signature for a signed media URL."""
+    """Проверяет условие valid media signature и возвращает логический результат.
+    
+    Args:
+        path: Путь к ресурсу в storage или media-каталоге.
+        expires_at: Метка времени истечения срока действия ссылки или токена.
+        signature: Криптографическая подпись для валидации целостности ссылки.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     normalized = normalize_media_path(path)
     if not normalized or not signature:
         return False
@@ -235,6 +367,15 @@ def is_valid_media_signature(path: str, expires_at: int, signature: str | None) 
 
 
 def _signed_media_url_path(image_name: str | None, expires_at: int | None = None) -> str | None:
+    """Вспомогательная функция `_signed_media_url_path` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        image_name: Параметр image name, используемый в логике функции.
+        expires_at: Параметр expires at, используемый в логике функции.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     normalized = normalize_media_path(image_name)
     if not normalized:
         return None
@@ -248,6 +389,14 @@ def _signed_media_url_path(image_name: str | None, expires_at: int | None = None
 
 
 def is_chat_attachment_media_path(path: str | None) -> bool:
+    """Проверяет условие chat attachment media path и возвращает логический результат.
+    
+    Args:
+        path: Путь к ресурсу в storage или media-каталоге.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     normalized = normalize_media_path(path)
     if not normalized:
         return False
@@ -255,6 +404,14 @@ def is_chat_attachment_media_path(path: str | None) -> bool:
 
 
 def _parse_positive_room_id(room_id: int | str | None) -> int | None:
+    """Разбирает positive room id из входных данных с валидацией формата.
+    
+    Args:
+        room_id: Идентификатор room, используемый для выборки данных.
+    
+    Returns:
+        Объект типа int | None, сформированный в рамках обработки.
+    """
     if isinstance(room_id, bool):
         return None
 
@@ -277,6 +434,15 @@ def _parse_positive_room_id(room_id: int | str | None) -> int | None:
 
 
 def _room_scoped_media_url_path(image_name: str | None, room_id: int | str | None) -> str | None:
+    """Вспомогательная функция `_room_scoped_media_url_path` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        image_name: Параметр image name, используемый в логике функции.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Объект типа str | None, сформированный в ходе выполнения.
+    """
     normalized = normalize_media_path(image_name)
     if not normalized or not is_chat_attachment_media_path(normalized):
         return None
@@ -295,7 +461,16 @@ def build_room_media_url_from_request(
     image_name: str | None,
     room_id: int | str | None,
 ) -> str | None:
-    """Build absolute room-scoped URL for chat attachments and thumbnails."""
+    """Формирует room media url from request для дальнейшего использования в потоке обработки.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        image_name: Имя файла изображения в media-хранилище.
+        room_id: Идентификатор room, используемый для выборки данных.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     configured_base = _normalize_base_url(getattr(settings, "PUBLIC_BASE_URL", None))
     origin_base = _normalize_base_url(_first_value(request.META.get("HTTP_ORIGIN")))
     forwarded_base = _base_from_host_and_scheme(
@@ -338,7 +513,15 @@ def build_room_media_url_from_request(
 
 
 def build_profile_url_from_request(request, image_name: str | None) -> str | None:
-    """Build absolute avatar URL using HTTP request headers."""
+    """Формирует profile url from request для дальнейшего использования в потоке обработки.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        image_name: Имя файла изображения в media-хранилище.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     configured_base = _normalize_base_url(getattr(settings, "PUBLIC_BASE_URL", None))
     origin_base = _normalize_base_url(_first_value(request.META.get("HTTP_ORIGIN")))
     forwarded_base = _base_from_host_and_scheme(
@@ -380,7 +563,15 @@ def build_profile_url_from_request(request, image_name: str | None) -> str | Non
 
 
 def build_profile_url(scope, image_name: str | None) -> str | None:
-    """Build absolute avatar URL for WebSocket ASGI scope."""
+    """Формирует profile url для дальнейшего использования в потоке обработки.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        image_name: Имя файла изображения в media-хранилище.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     configured_base = _normalize_base_url(getattr(settings, "PUBLIC_BASE_URL", None))
     origin_base = _normalize_base_url(_first_value(_get_header(scope, b"origin")))
     forwarded_base = _base_from_host_and_scheme(

@@ -1,5 +1,8 @@
 import { type ReactNode, useCallback, useEffect } from "react";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -44,6 +47,9 @@ const titleStyle: React.CSSProperties = {
   marginBottom: 16,
 };
 
+/**
+ * React-компонент Modal отвечает за отрисовку и обработку UI-сценария.
+ */
 export function Modal({ open, onClose, title, children }: Props) {
   const handleEsc = useCallback(
     (e: KeyboardEvent) => {

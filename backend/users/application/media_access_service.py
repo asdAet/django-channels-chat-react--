@@ -23,19 +23,26 @@ _GENERIC_MEDIA_CONTENT_TYPES = {
 
 
 class MediaAccessNotFoundError(Exception):
-    """Файл недоступен в текущем контексте доступа."""
+    """Класс MediaAccessNotFoundError инкапсулирует связанную бизнес-логику модуля."""
 
 
 @dataclass(frozen=True)
 class AttachmentMediaAccessResult:
-    """Результат проверки room-scoped доступа для chat-вложений."""
+    """Класс AttachmentMediaAccessResult инкапсулирует связанную бизнес-логику модуля."""
 
     room_id: int
     preferred_content_type: str | None
 
 
 def _parse_positive_room_id(value: int | str | None) -> int | None:
-    """Преобразует room_id в положительное целое или возвращает None."""
+    """Разбирает positive room id из входных данных с валидацией формата.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа int | None, сформированный в рамках обработки.
+    """
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -60,7 +67,15 @@ def resolve_media_content_type(
     *,
     preferred_content_type: str | None = None,
 ) -> str:
-    """Определяет итоговый content type по метаданным и расширению файла."""
+    """Определяет media content type на основе доступного контекста.
+    
+    Args:
+        normalized_path: Нормализованный путь к файлу или media-объекту.
+        preferred_content_type: Предпочтительный MIME-тип ответа.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     normalized_preferred = (preferred_content_type or "").strip().lower()
     guessed_content_type = (mimetypes.guess_type(normalized_path)[0] or "").strip().lower()
     if normalized_preferred and normalized_preferred not in _GENERIC_MEDIA_CONTENT_TYPES:
@@ -78,7 +93,16 @@ def resolve_attachment_media_access(
     room_id_raw: int | str | None,
     user: Any,
 ) -> AttachmentMediaAccessResult:
-    """Проверяет доступ к вложению в комнате и возвращает метаданные выдачи."""
+    """Определяет attachment media access на основе доступного контекста.
+    
+    Args:
+        normalized_path: Нормализованный путь к файлу или media-объекту.
+        room_id_raw: Сырой идентификатор комнаты из query-параметров.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа AttachmentMediaAccessResult, сформированный в рамках обработки.
+    """
     room_id = _parse_positive_room_id(room_id_raw)
     if room_id is None:
         raise MediaAccessNotFoundError

@@ -24,17 +24,28 @@ let directChatsInFlight: Promise<DirectChatsResponseDto> | null = null;
 const roomDetailsInFlight = new Map<string, Promise<RoomDetailsDto>>();
 const roomMessagesInFlight = new Map<string, Promise<RoomMessagesDto>>();
 
-/** Формирует ключ in-flight-кэша для getRoomMessages. */
+
+/**
+ * Формирует room messages key.
+ * @param roomId Идентификатор комнаты.
+ * @param params Параметры запроса.
+ */
 const buildRoomMessagesKey = (roomId: string, params?: RoomMessagesParams) => {
   const limit = params?.limit ?? "";
   const beforeId = params?.beforeId ?? "";
   return `${roomId}|limit=${limit}|before=${beforeId}`;
 };
 
-/** Контроллер чата с дедупликацией одинаковых in-flight запросов. */
+
+/**
+ * Класс ChatController инкапсулирует логику текущего слоя приложения.
+ */
 class ChatController {
-  /** Возвращает публичную комнату и переиспользует активный запрос. */
-  public async getPublicRoom(): Promise<RoomDetailsDto> {
+    /**
+     * Возвращает public room.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getPublicRoom(): Promise<RoomDetailsDto> {
     if (publicRoomInFlight) {
       return publicRoomInFlight;
     }
@@ -46,8 +57,12 @@ class ChatController {
     return publicRoomInFlight;
   }
 
-  /** Возвращает детали комнаты и устраняет параллельные дубликаты. */
-  public async getRoomDetails(roomId: string): Promise<RoomDetailsDto> {
+    /**
+     * Возвращает room details.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getRoomDetails(roomId: string): Promise<RoomDetailsDto> {
     const inFlight = roomDetailsInFlight.get(roomId);
     if (inFlight) {
       return inFlight;
@@ -61,8 +76,13 @@ class ChatController {
     return request;
   }
 
-  /** Возвращает сообщения комнаты с дедупликацией по параметрам. */
-  public async getRoomMessages(
+    /**
+     * Возвращает room messages.
+     * @param roomId Идентификатор комнаты.
+     * @param params Параметры запроса.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getRoomMessages(
     roomId: string,
     params?: RoomMessagesParams,
   ): Promise<RoomMessagesDto> {
@@ -80,14 +100,23 @@ class ChatController {
     return request;
   }
 
-  public async startDirectChat(
+    /**
+     * Обрабатывает start direct chat.
+     * @param publicRef Публичный идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async startDirectChat(
     publicRef: string,
   ): Promise<DirectStartResponseDto> {
     const response = await apiService.startDirectChat(publicRef);
     return response;
   }
 
-  public async getDirectChats(): Promise<DirectChatsResponseDto> {
+    /**
+     * Возвращает direct chats.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getDirectChats(): Promise<DirectChatsResponseDto> {
     if (directChatsInFlight) {
       return directChatsInFlight;
     }
@@ -99,11 +128,22 @@ class ChatController {
     return directChatsInFlight;
   }
 
-  public async getUnreadCounts(): Promise<UnreadCountItem[]> {
+    /**
+     * Возвращает unread counts.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getUnreadCounts(): Promise<UnreadCountItem[]> {
     return apiService.getUnreadCounts();
   }
 
-  public async editMessage(
+    /**
+     * Обрабатывает edit message.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @param content Текст сообщения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async editMessage(
     roomId: string,
     messageId: number,
     content: string,
@@ -111,11 +151,24 @@ class ChatController {
     return apiService.editMessage(roomId, messageId, content);
   }
 
-  public async deleteMessage(roomId: string, messageId: number): Promise<void> {
+    /**
+     * Удаляет message.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async deleteMessage(roomId: string, messageId: number): Promise<void> {
     return apiService.deleteMessage(roomId, messageId);
   }
 
-  public async addReaction(
+    /**
+     * Добавляет reaction.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @param emoji Эмодзи реакции.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async addReaction(
     roomId: string,
     messageId: number,
     emoji: string,
@@ -123,7 +176,14 @@ class ChatController {
     return apiService.addReaction(roomId, messageId, emoji);
   }
 
-  public async removeReaction(
+    /**
+     * Удаляет reaction.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @param emoji Эмодзи реакции.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async removeReaction(
     roomId: string,
     messageId: number,
     emoji: string,
@@ -131,14 +191,27 @@ class ChatController {
     return apiService.removeReaction(roomId, messageId, emoji);
   }
 
-  public async searchMessages(
+    /**
+     * Обрабатывает search messages.
+     * @param roomId Идентификатор комнаты.
+     * @param query Поисковый запрос.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async searchMessages(
     roomId: string,
     query: string,
   ): Promise<SearchResult> {
     return apiService.searchMessages(roomId, query);
   }
 
-  public async uploadAttachments(
+    /**
+     * Обрабатывает upload attachments.
+     * @param roomId Идентификатор комнаты.
+     * @param files Список файлов для загрузки.
+     * @param options Опциональные параметры поведения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async uploadAttachments(
     roomId: string,
     files: File[],
     options?: UploadAttachmentsOptions,
@@ -146,14 +219,28 @@ class ChatController {
     return apiService.uploadAttachments(roomId, files, options);
   }
 
-  public async markRead(
+    /**
+     * Обрабатывает mark read.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async markRead(
     roomId: string,
     messageId?: number,
   ): Promise<ReadStateResult> {
     return apiService.markRead(roomId, messageId);
   }
 
-  public async globalSearch(
+    /**
+   * Асинхронно выполняет поиск.
+   *
+   * @param query Поисковый запрос.
+   * @param params Параметры запроса.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async globalSearch(
     query: string,
     params?: {
       usersLimit?: number;
@@ -164,7 +251,15 @@ class ChatController {
     return apiService.globalSearch(query, params);
   }
 
-  public async getRoomAttachments(
+    /**
+   * Асинхронно возвращает комнаты вложения.
+   *
+   * @param roomId Идентификатор комнаты.
+   * @param params Параметры запроса.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async getRoomAttachments(
     roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<RoomAttachmentsResult> {
@@ -172,4 +267,7 @@ class ChatController {
   }
 }
 
+/**
+ * Экспорт `chatController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+ */
 export const chatController = new ChatController();

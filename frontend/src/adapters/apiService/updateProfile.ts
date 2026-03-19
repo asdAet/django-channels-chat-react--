@@ -8,10 +8,10 @@ import {
 import type { UserProfile } from "../../entities/user/types";
 
 /**
- * Обновляет профиль пользователя.
- * @param apiClient HTTP-клиент.
- * @param fields Поля формы профиля.
- * @returns Нормализованный профиль пользователя.
+ * Обновляет profile.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param fields Набор полей для обновления.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function updateProfile(
   apiClient: AxiosInstance,

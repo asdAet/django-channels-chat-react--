@@ -4,9 +4,9 @@ import { decodePublicRoomResponse } from "../../dto";
 import type { RoomDetails } from "../../entities/room/types";
 
 /**
- * Загружает данные публичной комнаты.
- * @param apiClient HTTP-клиент.
- * @returns Нормализованные данные комнаты.
+ * Возвращает public room.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function getPublicRoom(
   apiClient: AxiosInstance,

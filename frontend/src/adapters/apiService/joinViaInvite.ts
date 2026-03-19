@@ -1,5 +1,11 @@
 import type { AxiosInstance } from "axios";
 
+/**
+ * Выполняет API-запрос для операции join via invite.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param code Код приглашения.
+ * @returns Промис с данными, возвращаемыми этой функцией.
+ */
 export async function joinViaInvite(
   apiClient: AxiosInstance,
   code: string,

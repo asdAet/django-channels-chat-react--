@@ -267,6 +267,7 @@ CI pipeline: `.github/workflows/test.yml`.
 - `WS_CONNECT_RATE_LIMIT`, `WS_CONNECT_RATE_WINDOW`
 - `CHAT_MESSAGE_MAX_LENGTH`
 - `CHAT_ATTACHMENT_MAX_SIZE_MB`, `CHAT_ATTACHMENT_MAX_PER_MESSAGE`, `CHAT_ATTACHMENT_ALLOW_ANY_TYPE`, `CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE`
+- `DJANGO_UPLOAD_MAX_MB`, `NGINX_CLIENT_MAX_BODY_SIZE` (важно для больших upload; значение `0` отключает лимит и убирает `413 Request Entity Too Large` на этих уровнях)
 - `DJANGO_MEDIA_URL_TTL_SECONDS`, `DJANGO_MEDIA_SIGNING_KEY`
 
 ## Production deployment

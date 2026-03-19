@@ -1,9 +1,9 @@
 ﻿import { useEffect, useState } from "react";
 
 /**
- * Управляет состоянием и эффектами хука `useOnlineStatus`.
- * @returns Результат выполнения `useOnlineStatus`.
+ * Хук useOnlineStatus управляет состоянием и побочными эффектами текущего сценария.
  */
+
 
 export const useOnlineStatus = () => {
   const [online, setOnline] = useState(() => {
@@ -12,13 +12,19 @@ export const useOnlineStatus = () => {
   });
 
   /**
-   * Выполняет метод `useEffect`.
-   * @param props Входной параметр `props`.
-   * @returns Результат выполнения `useEffect`.
+   * Вызывает `useEffect` как шаг текущего сценария.
+   * @param props Свойства компонента.
+   * @returns Ничего не возвращает.
    */
 
   useEffect(() => {
+    /**
+     * Обрабатывает handle online.
+     */
     const handleOnline = () => setOnline(true);
+    /**
+     * Обрабатывает handle offline.
+     */
     const handleOffline = () => setOnline(false);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);

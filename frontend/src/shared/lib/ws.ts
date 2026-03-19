@@ -4,6 +4,7 @@
  * В dev подключаемся напрямую к backend (`:8000`), чтобы не зависеть от
  * Vite WS-proxy и не получать `ws proxy ECONNABORTED` в терминале.
  */
+
 const resolveDevWsOrigin = (scheme: "ws" | "wss"): string => {
   const raw = String(import.meta.env.VITE_WS_BACKEND_ORIGIN ?? "").trim();
   if (!raw) {
@@ -16,6 +17,10 @@ const resolveDevWsOrigin = (scheme: "ws" | "wss"): string => {
 
   return `${scheme}://${raw.replace(/\/+$/, "")}`;
 };
+
+/**
+ * Возвращает web socket base.
+ */
 
 export const getWebSocketBase = () => {
   const scheme: "ws" | "wss" =

@@ -1,9 +1,15 @@
 import styles from "../../styles/chat/TypingIndicator.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   users: string[];
 };
 
+/**
+ * React-компонент TypingIndicator отвечает за отрисовку и обработку UI-сценария.
+ */
 export function TypingIndicator({ users }: Props) {
   if (!users.length) return null;
 

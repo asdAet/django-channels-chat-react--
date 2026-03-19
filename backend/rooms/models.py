@@ -16,7 +16,9 @@ GROUP_PUBLIC_ID_VALIDATOR = RegexValidator(
 
 
 class Room(models.Model):
+    """Модель Room описывает структуру и поведение данных."""
     class Kind(models.TextChoices):
+        """Модель Kind описывает структуру и поведение данных."""
         PUBLIC = "public", "Public"
         PRIVATE = "private", "Private"
         DIRECT = "direct", "Direct"
@@ -77,16 +79,33 @@ class Room(models.Model):
     member_count = models.PositiveIntegerField(default=0)
 
     class Meta:
+        """Класс Meta объединяет связанную прикладную логику подсистемы."""
         db_table = "chat_room"
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         return str(self.name)
 
     @property
     def is_group(self) -> bool:
+        """Проверяет условие group и возвращает логический результат.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         return self.kind == self.Kind.GROUP
 
     def save(self, *args, **kwargs):
+        """Сохраняет изменения объекта в хранилище.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        """
         if self.public_id and self.kind != self.Kind.GROUP:
             raise ValidationError({"public_id": "public_id is supported only for groups."})
 

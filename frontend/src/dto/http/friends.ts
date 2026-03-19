@@ -43,6 +43,11 @@ const requestListSchema = z
   .object({ items: z.array(friendshipSchema) })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции map friend.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapFriend = (dto: z.infer<typeof friendshipSchema>): Friend => ({
   id: dto.id,
   userId: dto.user.id,
@@ -54,6 +59,11 @@ const mapFriend = (dto: z.infer<typeof friendshipSchema>): Friend => ({
   lastSeen: null,
 });
 
+/**
+ * Преобразует HTTP-данные для операции map incoming request.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapIncomingRequest = (
   dto: z.infer<typeof friendshipSchema>,
 ): FriendRequest => ({
@@ -67,6 +77,11 @@ const mapIncomingRequest = (
   createdAt: dto.created_at,
 });
 
+/**
+ * Преобразует HTTP-данные для операции map outgoing request.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapOutgoingRequest = (
   dto: z.infer<typeof friendshipSchema>,
 ): FriendRequest => ({
@@ -80,10 +95,22 @@ const mapOutgoingRequest = (
   createdAt: dto.created_at,
 });
 
+/**
+ * Преобразует HTTP-данные для операции decode friends list response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeFriendsListResponse = (input: unknown): Friend[] => {
   const parsed = decodeOrThrow(friendListSchema, input, "friends/list");
   return parsed.items.map(mapFriend);
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode incoming requests response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeIncomingRequestsResponse = (
   input: unknown,
@@ -91,6 +118,12 @@ export const decodeIncomingRequestsResponse = (
   const parsed = decodeOrThrow(requestListSchema, input, "friends/incoming");
   return parsed.items.map(mapIncomingRequest);
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode outgoing requests response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeOutgoingRequestsResponse = (
   input: unknown,
@@ -111,10 +144,19 @@ const sendRequestResponseSchema = z
   })
   .passthrough();
 
+/**
+ * Описывает структуру ответа API `SendFriendRequestResponse`.
+ */
 export type SendFriendRequestResponse = {
   id: number;
   status: string;
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode send friend request response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeSendFriendRequestResponse = (
   input: unknown,
@@ -133,6 +175,12 @@ const blockResponseSchema = z
   })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции decode block response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeBlockResponse = (input: unknown): BlockedUser => {
   const parsed = decodeOrThrow(blockResponseSchema, input, "friends/block");
   return {
@@ -150,6 +198,11 @@ const blockedListSchema = z
   .object({ items: z.array(friendshipSchema) })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции map blocked user.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapBlockedUser = (
   dto: z.infer<typeof friendshipSchema>,
 ): BlockedUser => ({
@@ -161,6 +214,12 @@ const mapBlockedUser = (
   profileImage: dto.user.profileImage ?? null,
   avatarCrop: dto.user.avatarCrop ?? null,
 });
+
+/**
+ * Преобразует HTTP-данные для операции decode blocked list response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeBlockedListResponse = (input: unknown): BlockedUser[] => {
   const parsed = decodeOrThrow(blockedListSchema, input, "friends/blocked");

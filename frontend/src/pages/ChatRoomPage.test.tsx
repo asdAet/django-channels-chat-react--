@@ -167,6 +167,12 @@ const user = {
   registeredAt: null,
 };
 
+/**
+ * Создает сообщение от другого пользователя для проверки прав.
+ * @param id Идентификатор сущности.
+ * @param content Текстовое содержимое.
+ * @returns Возвращает значение типа Message.
+ */
 const makeForeignMessage = (id: number, content: string): Message => ({
   id,
   publicRef: "alice",
@@ -496,6 +502,9 @@ describe("ChatRoomPage", () => {
       '[aria-live="polite"]',
     ) as HTMLDivElement;
 
+    /**
+     * Эмулирует параметры viewport для тестового сценария.
+     */
     const mockViewport = () => {
       Object.defineProperty(chatLog, "getBoundingClientRect", {
         configurable: true,
@@ -826,6 +835,12 @@ describe("ChatRoomPage", () => {
       '[aria-live="polite"]',
     ) as HTMLDivElement;
 
+    /**
+     * Устанавливает scroll metrics.
+     * @param scrollTop Текущая позиция прокрутки сверху.
+     * @param scrollHeight Полная высота области прокрутки.
+     * @param clientHeight Высота видимой области.
+     */
     const setScrollMetrics = (
       scrollTop: number,
       scrollHeight = 1200,
@@ -846,6 +861,11 @@ describe("ChatRoomPage", () => {
       });
     };
 
+    /**
+     * Устанавливает viewport.
+     * @param listBottom Координата нижней границы списка.
+     * @param bottoms Список координат нижних границ элементов.
+     */
     const setViewport = (
       listBottom: number,
       bottoms: Record<number, number>,
@@ -1003,6 +1023,12 @@ describe("ChatRoomPage", () => {
       '[aria-live="polite"]',
     ) as HTMLDivElement;
 
+    /**
+     * Устанавливает scroll metrics.
+     * @param scrollTop Текущая позиция прокрутки сверху.
+     * @param scrollHeight Полная высота области прокрутки.
+     * @param clientHeight Высота видимой области.
+     */
     const setScrollMetrics = (
       scrollTop: number,
       scrollHeight = 1200,
@@ -1023,6 +1049,11 @@ describe("ChatRoomPage", () => {
       });
     };
 
+    /**
+     * Устанавливает viewport.
+     * @param listBottom Координата нижней границы списка.
+     * @param bottoms Список координат нижних границ элементов.
+     */
     const setViewport = (
       listBottom: number,
       bottoms: Record<number, number>,

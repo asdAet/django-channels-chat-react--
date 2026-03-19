@@ -1,5 +1,9 @@
 ﻿import { encodeSwCacheMessage, type SwCacheMessage } from "../../dto";
 
+/**
+ * Обрабатывает post message.
+ * @param message Сообщение, которое нужно обработать.
+ */
 const postMessage = (message: SwCacheMessage): void => {
   if (typeof navigator === "undefined") return;
   if (!navigator.serviceWorker) return;
@@ -19,18 +23,20 @@ const postMessage = (message: SwCacheMessage): void => {
 };
 
 /**
- * Инвалидирует кэш сообщений комнаты.
- * @param roomRef Room ref (обычно roomId).
+ * Обрабатывает invalidate room messages.
+ * @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
  */
+
 export const invalidateRoomMessages = (roomRef: string) => {
   if (!roomRef) return;
   postMessage({ type: "invalidate", key: "roomMessages", roomRef });
 };
 
 /**
- * Инвалидирует кэш деталей комнаты.
- * @param roomRef Room ref (обычно roomId).
+ * Обрабатывает invalidate room details.
+ * @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
  */
+
 export const invalidateRoomDetails = (roomRef: string) => {
   if (!roomRef) return;
   postMessage({ type: "invalidate", key: "roomDetails", roomRef });
@@ -39,14 +45,16 @@ export const invalidateRoomDetails = (roomRef: string) => {
 /**
  * Инвалидирует кэш списка direct-чатов.
  */
+
 export const invalidateDirectChats = () => {
   postMessage({ type: "invalidate", key: "directChats" });
 };
 
 /**
  * Инвалидирует кэш публичного профиля пользователя.
- * @param publicRef Публичный ref пользователя (handle или fallback-id).
+ * @param publicRef Публичный идентификатор пользователя или комнаты.
  */
+
 export const invalidateUserProfile = (publicRef: string) => {
   if (!publicRef) return;
   postMessage({ type: "invalidate", key: "userProfile", publicRef });
@@ -55,6 +63,7 @@ export const invalidateUserProfile = (publicRef: string) => {
 /**
  * Инвалидирует кэш собственного профиля.
  */
+
 export const invalidateSelfProfile = () => {
   postMessage({ type: "invalidate", key: "selfProfile" });
 };
@@ -62,6 +71,7 @@ export const invalidateSelfProfile = () => {
 /**
  * Очищает все пользовательские API-кэши.
  */
+
 export const clearAllUserCaches = () => {
   postMessage({ type: "clearUserCaches" });
 };

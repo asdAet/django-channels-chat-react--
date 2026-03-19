@@ -17,12 +17,20 @@ import { DirectInboxContext } from "./context";
 
 const DIRECT_INBOX_PING_MS = 15_000;
 
+/**
+ * Описывает входные props компонента `Provider`.
+ */
 type ProviderProps = {
   user: UserProfile | null;
   ready?: boolean;
   children: ReactNode;
 };
 
+/**
+ * Обрабатывает merge item.
+ * @param prev Предыдущее состояние перед обновлением.
+ * @param incoming Новые данные, пришедшие из внешнего источника.
+ */
 const mergeItem = (
   prev: DirectChatListItemDto[],
   incoming: DirectChatListItemDto,
@@ -42,6 +50,11 @@ const mergeItem = (
   return next;
 };
 
+/**
+ * Разбирает room id ref.
+ * @param value Входное значение для преобразования.
+ * @returns Числовое значение результата.
+ */
 const parseRoomIdRef = (
   value: string | number | null | undefined,
 ): number | null => {
@@ -58,9 +71,9 @@ const parseRoomIdRef = (
 };
 
 /**
- * Провайдер списка direct-чатов и unread-состояния.
- * @param props Пользователь, флаг готовности и дочерние компоненты.
- * @returns React context provider direct inbox.
+ * Компонент DirectInboxProvider рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function DirectInboxProvider({
   user,

@@ -5,8 +5,14 @@ import type { AvatarCrop } from "../api/users";
 import { avatarFallback } from "../lib/format";
 import { AvatarMedia } from "./AvatarMedia";
 
+/**
+ * Описывает структуру данных `AvatarSize`.
+ */
 type AvatarSize = "default" | "small" | "tiny";
 
+/**
+ * Описывает входные props компонента `Avatar`.
+ */
 type AvatarProps = {
   username: string;
   profileImage?: string | null;
@@ -26,9 +32,9 @@ const sizeClassMap: Record<AvatarSize, string> = {
 const failedAvatarSources = new Set<string>();
 
 /**
- * Унифицированный аватар пользователя с fallback-инициалами и online-бейджем.
- * @param props Параметры рендера аватара.
- * @returns JSX-блок аватара.
+ * Компонент Avatar рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function Avatar({
   username,

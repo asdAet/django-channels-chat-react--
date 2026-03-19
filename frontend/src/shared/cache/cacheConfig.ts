@@ -1,3 +1,7 @@
+/**
+ * Константа `CACHE_NAMES` описывает параметры кэширования.
+ */
+
 export const CACHE_NAMES = {
   assets: "assets-cache",
   media: "media-cache",
@@ -7,6 +11,10 @@ export const CACHE_NAMES = {
   apiProfiles: "api-profiles",
 } as const;
 
+/**
+ * Константа `CACHE_TTLS` описывает параметры кэширования.
+ */
+
 export const CACHE_TTLS = {
   assets: 60 * 60 * 24 * 365,
   media: 60 * 60 * 24 * 365,
@@ -15,6 +23,10 @@ export const CACHE_TTLS = {
   direct: 60,
   profiles: 300,
 } as const;
+
+/**
+ * Константа `CACHE_LIMITS` описывает параметры кэширования.
+ */
 
 export const CACHE_LIMITS = {
   assets: 1000,

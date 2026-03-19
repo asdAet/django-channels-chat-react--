@@ -5,6 +5,9 @@ import { hasPermissionFlag } from "../entities/role/bitmask";
 import type { MyPermissions } from "../entities/role/types";
 import { Perm } from "../entities/role/types";
 
+/**
+ * Описывает результат операции `UseRoomPermissions`.
+ */
 type UseRoomPermissionsResult = {
   loading: boolean;
   raw: MyPermissions | null;
@@ -26,6 +29,11 @@ type UseRoomPermissionsResult = {
   refresh: () => Promise<void>;
 };
 
+/**
+ * Хук useRoomPermissions управляет состоянием и побочными эффектами текущего сценария.
+ * @param slug Человекочитаемый идентификатор сущности.
+ * @returns Публичное состояние хука и его обработчики.
+ */
 export function useRoomPermissions(
   slug: string | null,
 ): UseRoomPermissionsResult {

@@ -1,5 +1,8 @@
 import type { AvatarCrop } from "../../shared/api/users";
 
+/**
+ * Описывает структуру данных `Friend`.
+ */
 export type Friend = {
   id: number;
   userId: number;
@@ -11,6 +14,9 @@ export type Friend = {
   lastSeen: string | null;
 };
 
+/**
+ * Описывает payload запроса `FriendRequest`.
+ */
 export type FriendRequest = {
   id: number;
   userId: number;
@@ -22,6 +28,9 @@ export type FriendRequest = {
   createdAt: string;
 };
 
+/**
+ * Описывает структуру данных `BlockedUser`.
+ */
 export type BlockedUser = {
   id: number;
   userId: number;

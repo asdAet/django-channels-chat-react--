@@ -1,6 +1,9 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+/**
+ * Задает алиас типа MockCropArea.
+ */
 type MockCropArea = {
   x: number;
   y: number;
@@ -8,6 +11,9 @@ type MockCropArea = {
   height: number;
 };
 
+/**
+ * Задает алиас типа MockMediaSize.
+ */
 type MockMediaSize = {
   width: number;
   height: number;
@@ -15,6 +21,9 @@ type MockMediaSize = {
   naturalHeight: number;
 };
 
+/**
+ * Задает алиас типа MockCropperProps.
+ */
 type MockCropperProps = {
   style?: {
     cropAreaStyle?: Record<string, string>;

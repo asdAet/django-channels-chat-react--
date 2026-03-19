@@ -1,5 +1,8 @@
 import type { AvatarCrop } from "../../shared/api/users";
 
+/**
+ * Описывает структуру данных `UserProfile`.
+ */
 export type UserProfile = {
   name?: string;
   username: string;

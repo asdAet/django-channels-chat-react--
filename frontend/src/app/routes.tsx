@@ -15,11 +15,20 @@ import { RegisterPage } from "../pages/RegisterPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { UserProfilePage } from "../pages/UserProfilePage";
 
+/**
+ * Описывает структуру данных `ProfileFieldErrors`.
+ */
 type ProfileFieldErrors = Record<string, string[]>;
+/**
+ * Описывает результат операции `ProfileSave`.
+ */
 type ProfileSaveResult =
   | { ok: true }
   | { ok: false; errors?: ProfileFieldErrors; message?: string };
 
+/**
+ * Описывает входные props компонента `AppRoutes`.
+ */
 type AppRoutesProps = {
   user: UserProfile | null;
   error: string | null;
@@ -46,7 +55,9 @@ type AppRoutesProps = {
 };
 
 /**
- * Обертка для пользовательского профиля с получением username из URL.
+ * Компонент UserProfileRoute рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 function UserProfileRoute({
   user,
@@ -72,7 +83,9 @@ function UserProfileRoute({
 }
 
 /**
- * Обертка для direct-чата по username из URL.
+ * Компонент DirectRoute рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 function DirectRoute({
   user,
@@ -88,7 +101,9 @@ function DirectRoute({
 }
 
 /**
- * Обертка для комнаты с валидацией roomRef.
+ * Компонент RoomRoute рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 function RoomRoute({
   user,
@@ -106,7 +121,7 @@ function RoomRoute({
 }
 
 /**
- * Обертка для инвайт-превью с получением code из URL.
+ * React-компонент InviteRoute отвечает за отрисовку и обработку UI-сценария.
  */
 function InviteRoute({ onNavigate }: Pick<AppRoutesProps, "onNavigate">) {
   const params = useParams<{ code: string }>();
@@ -118,7 +133,9 @@ function InviteRoute({ onNavigate }: Pick<AppRoutesProps, "onNavigate">) {
 }
 
 /**
- * Декларация всех frontend-маршрутов приложения.
+ * Компонент AppRoutes рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function AppRoutes({
   user,

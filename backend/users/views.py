@@ -11,6 +11,14 @@ from .forms import EmailRegisterForm, ProfileUpdateForm, UserUpdateForm
 
 
 def register(request):
+    """Регистрирует данные.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if request.method == "POST":
         form = EmailRegisterForm(request.POST)
         if form.is_valid():
@@ -35,6 +43,14 @@ def register(request):
 
 @login_required
 def profile(request):
+    """Вспомогательная функция `profile` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     profile_obj = ensure_profile(request.user)
 
     if request.method == "POST":

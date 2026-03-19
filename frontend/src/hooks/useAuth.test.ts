@@ -59,7 +59,7 @@ const sessionUser = {
 describe("useAuth", () => {
   /**
    * Выполняет метод `beforeEach`.
-   * @returns Результат выполнения `beforeEach`.
+   * @returns Результат выполнения операции.
    */
 
   beforeEach(() => {
@@ -86,7 +86,7 @@ describe("useAuth", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("loads session on mount", async () => {
@@ -96,19 +96,19 @@ describe("useAuth", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(authControllerMock.ensureCsrf).toHaveBeenCalledTimes(1);
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(authControllerMock.getSession).toHaveBeenCalledTimes(1);
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.auth.user?.username).toBe("demo");
@@ -116,7 +116,7 @@ describe("useAuth", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("falls back to guest state when session request fails", async () => {
@@ -129,7 +129,7 @@ describe("useAuth", () => {
     await waitFor(() => expect(result.current.auth.loading).toBe(false));
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.auth.user).toBeNull();
@@ -137,7 +137,7 @@ describe("useAuth", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("login and register refresh auth user", async () => {
@@ -158,7 +158,7 @@ describe("useAuth", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(authControllerMock.login).toHaveBeenCalledWith({
@@ -167,7 +167,7 @@ describe("useAuth", () => {
     });
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(authControllerMock.register).toHaveBeenCalledWith({
@@ -180,7 +180,7 @@ describe("useAuth", () => {
     });
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.auth.user?.username).toBe("demo");
@@ -203,7 +203,7 @@ describe("useAuth", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("logout clears auth user even when api fails", async () => {
@@ -218,7 +218,7 @@ describe("useAuth", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.auth.user).toBeNull();
@@ -226,7 +226,7 @@ describe("useAuth", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("updateProfile normalizes empty profile image", async () => {
@@ -246,7 +246,7 @@ describe("useAuth", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @returns Результат выполнения `expect`.
+     * @returns Результат выполнения операции.
      */
 
     expect(result.current.auth.user?.profileImage).toBeNull();
@@ -254,7 +254,7 @@ describe("useAuth", () => {
 
   /**
    * Выполняет метод `it`.
-   * @returns Результат выполнения `it`.
+   * @returns Результат выполнения операции.
    */
 
   it("updateProfile drops user on 401", async () => {
@@ -277,8 +277,8 @@ describe("useAuth", () => {
 
     /**
      * Выполняет метод `expect`.
-     * @param thrown Входной параметр `thrown`.
-     * @returns Результат выполнения `expect`.
+     * @param thrown Пойманное исключение.
+     * @returns Результат выполнения операции.
      */
 
     expect(thrown).toMatchObject({ status: 401 });

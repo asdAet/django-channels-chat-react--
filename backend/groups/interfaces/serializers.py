@@ -8,6 +8,7 @@ from users.identity import user_public_username
 # ── Group ──────────────────────────────────────────────────────────────
 
 class GroupCreateInputSerializer(serializers.Serializer):
+    """Класс GroupCreateInputSerializer сериализует и валидирует данные API."""
     name = serializers.CharField(max_length=50)
     description = serializers.CharField(max_length=2000, required=False, default="")
     isPublic = serializers.BooleanField(required=False)
@@ -15,6 +16,7 @@ class GroupCreateInputSerializer(serializers.Serializer):
 
 
 class GroupUpdateInputSerializer(serializers.Serializer):
+    """Класс GroupUpdateInputSerializer сериализует и валидирует данные API."""
     name = serializers.CharField(max_length=50, required=False)
     description = serializers.CharField(max_length=2000, required=False, allow_blank=True)
     isPublic = serializers.BooleanField(required=False)
@@ -29,6 +31,7 @@ class GroupUpdateInputSerializer(serializers.Serializer):
 
 
 class GroupOutputSerializer(serializers.Serializer):
+    """Класс GroupOutputSerializer сериализует и валидирует данные API."""
     roomId = serializers.IntegerField()
     name = serializers.CharField()
     description = serializers.CharField()
@@ -45,6 +48,7 @@ class GroupOutputSerializer(serializers.Serializer):
 
 
 class GroupListItemSerializer(serializers.Serializer):
+    """Класс GroupListItemSerializer сериализует и валидирует данные API."""
     roomId = serializers.IntegerField()
     name = serializers.CharField()
     description = serializers.CharField()
@@ -59,12 +63,14 @@ class GroupListItemSerializer(serializers.Serializer):
 # ── Invite ─────────────────────────────────────────────────────────────
 
 class InviteCreateInputSerializer(serializers.Serializer):
+    """Класс InviteCreateInputSerializer сериализует и валидирует данные API."""
     name = serializers.CharField(max_length=100, required=False, default="")
     expiresInSeconds = serializers.IntegerField(required=False, allow_null=True, default=None, min_value=60)
     maxUses = serializers.IntegerField(required=False, default=0, min_value=0)
 
 
 class InviteOutputSerializer(serializers.Serializer):
+    """Класс InviteOutputSerializer сериализует и валидирует данные API."""
     code = serializers.CharField()
     name = serializers.CharField()
     createdBy = serializers.SerializerMethodField()
@@ -76,10 +82,19 @@ class InviteOutputSerializer(serializers.Serializer):
     createdAt = serializers.DateTimeField(source="created_at")
 
     def get_createdBy(self, obj):
+        """Возвращает created by из текущего контекста или хранилища.
+        
+        Args:
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return user_public_username(obj.created_by) if obj.created_by else None
 
 
 class InvitePreviewSerializer(serializers.Serializer):
+    """Класс InvitePreviewSerializer сериализует и валидирует данные API."""
     code = serializers.CharField()
     groupId = serializers.IntegerField(required=False)
     groupPublicRef = serializers.CharField(required=False)
@@ -92,6 +107,7 @@ class InvitePreviewSerializer(serializers.Serializer):
 # ── Members ────────────────────────────────────────────────────────────
 
 class MemberOutputSerializer(serializers.Serializer):
+    """Класс MemberOutputSerializer сериализует и валидирует данные API."""
     userId = serializers.IntegerField()
     username = serializers.CharField()
     displayName = serializers.CharField(required=False)
@@ -105,6 +121,7 @@ class MemberOutputSerializer(serializers.Serializer):
 
 
 class BannedMemberSerializer(serializers.Serializer):
+    """Класс BannedMemberSerializer сериализует и валидирует данные API."""
     userId = serializers.IntegerField()
     username = serializers.CharField()
     displayName = serializers.CharField(required=False)
@@ -114,16 +131,19 @@ class BannedMemberSerializer(serializers.Serializer):
 
 
 class BanInputSerializer(serializers.Serializer):
+    """Класс BanInputSerializer сериализует и валидирует данные API."""
     reason = serializers.CharField(max_length=500, required=False, default="")
 
 
 class MuteInputSerializer(serializers.Serializer):
+    """Класс MuteInputSerializer сериализует и валидирует данные API."""
     durationSeconds = serializers.IntegerField(min_value=1, max_value=366 * 86400)
 
 
 # ── Join Requests ──────────────────────────────────────────────────────
 
 class JoinRequestOutputSerializer(serializers.Serializer):
+    """Класс JoinRequestOutputSerializer сериализует и валидирует данные API."""
     id = serializers.IntegerField()
     userId = serializers.IntegerField()
     username = serializers.CharField()
@@ -134,10 +154,12 @@ class JoinRequestOutputSerializer(serializers.Serializer):
 # ── Pins ───────────────────────────────────────────────────────────────
 
 class PinInputSerializer(serializers.Serializer):
+    """Класс PinInputSerializer сериализует и валидирует данные API."""
     messageId = serializers.IntegerField()
 
 
 class PinOutputSerializer(serializers.Serializer):
+    """Класс PinOutputSerializer сериализует и валидирует данные API."""
     messageId = serializers.IntegerField()
     content = serializers.CharField()
     author = serializers.CharField()
@@ -149,4 +171,5 @@ class PinOutputSerializer(serializers.Serializer):
 # ── Ownership ──────────────────────────────────────────────────────────
 
 class TransferOwnershipInputSerializer(serializers.Serializer):
+    """Класс TransferOwnershipInputSerializer сериализует и валидирует данные API."""
     userId = serializers.IntegerField()

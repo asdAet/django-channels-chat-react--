@@ -11,6 +11,12 @@ import { sanitizeText } from "../shared/lib/sanitize";
 
 const PAGE_SIZE = 50;
 
+/**
+ * Очищает message.
+ * @param message Сообщение, которое нужно обработать.
+ * @param maxMessageLength Числовой параметр `maxMessageLength`, ограничивающий объем данных.
+ * @returns Нормализованное значение после обработки входа.
+ */
 const sanitizeMessage = (
   message: Message,
   maxMessageLength: number,
@@ -19,8 +25,16 @@ const sanitizeMessage = (
   content: sanitizeText(message.content, maxMessageLength),
 });
 
+/**
+ * Обрабатывает message key.
+ * @param message Сообщение, которое нужно обработать.
+ */
 const messageKey = (message: Message) => `${message.id}-${message.createdAt}`;
 
+/**
+ * Обрабатывает dedupe messages.
+ * @param messages Список сообщений для дальнейшей обработки.
+ */
 const dedupeMessages = (messages: Message[]) => {
   const seen = new Set<string>();
   const unique: Message[] = [];
@@ -33,6 +47,11 @@ const dedupeMessages = (messages: Message[]) => {
   return unique;
 };
 
+/**
+ * Определяет has more.
+ * @param payload Полезная нагрузка запроса.
+ * @param fetched Порция данных, полученная с сервера.
+ */
 const resolveHasMore = (payload: RoomMessagesDto, fetched: Message[]) => {
   if (typeof payload.pagination?.hasMore === "boolean") {
     return payload.pagination.hasMore;
@@ -40,6 +59,11 @@ const resolveHasMore = (payload: RoomMessagesDto, fetched: Message[]) => {
   return fetched.length >= PAGE_SIZE;
 };
 
+/**
+ * Определяет next before.
+ * @param payload Полезная нагрузка запроса.
+ * @param fetched Порция данных, полученная с сервера.
+ */
 const resolveNextBefore = (payload: RoomMessagesDto, fetched: Message[]) => {
   const nextBefore = payload.pagination?.nextBefore;
   if (typeof nextBefore === "number") return nextBefore;
@@ -47,6 +71,9 @@ const resolveNextBefore = (payload: RoomMessagesDto, fetched: Message[]) => {
   return fetched.length > 0 ? fetched[0].id : null;
 };
 
+/**
+ * Описывает структуру состояния `ChatRoom`.
+ */
 export type ChatRoomState = {
   roomSlug: string;
   details: RoomDetailsDto | null;
@@ -58,6 +85,11 @@ export type ChatRoomState = {
   error: string | null;
 };
 
+/**
+ * Создает initial room state.
+ * @param roomSlug Слаг комнаты чата.
+ * @returns Сформированное значение для дальнейшего использования.
+ */
 const createInitialRoomState = (roomSlug: string): ChatRoomState => ({
   roomSlug,
   details: null,
@@ -70,8 +102,11 @@ const createInitialRoomState = (roomSlug: string): ChatRoomState => ({
 });
 
 /**
- * Управляет состоянием страницы комнаты: загрузка, пагинация и дедуп сообщений.
+ * Хук useChatRoom управляет состоянием и побочными эффектами текущего сценария.
+ * @param slug Человекочитаемый идентификатор сущности.
+ * @param user Текущий пользователь.
  */
+
 export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
   const messageMaxLength = useChatMessageMaxLength();
   const isPublicRoom = slug === "public";

@@ -27,18 +27,40 @@ _USER_DEFAULT_IMAGE_ALIASES = (
 
 
 def _trimmed(value: Any) -> str:
-    """Приводит значение к строке и обрезает пробелы."""
+    """Выполняет вспомогательную обработку для trimmed.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return str(value or "").strip()
 
 
 def _normalized_media_path(value: str | None) -> str:
-    """Нормализует путь к media и гарантирует строковый результат."""
+    """Выполняет вспомогательную обработку для normalized media path.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     normalized = normalize_media_path(value)
     return normalized or ""
 
 
 def _setting_media_path(name: str, default: str) -> str:
-    """Читает путь из настроек и возвращает безопасное значение."""
+    """Выполняет вспомогательную обработку для setting media path.
+    
+    Args:
+        name: Человекочитаемое имя объекта или параметра.
+        default: Значение по умолчанию при отсутствии входных данных.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     configured = _trimmed(getattr(settings, name, default))
     normalized = _normalized_media_path(configured)
     if normalized:
@@ -47,32 +69,73 @@ def _setting_media_path(name: str, default: str) -> str:
 
 
 def _setting_media_dir(name: str, default: str) -> str:
-    """Читает директорию из настроек и убирает ведущие слеши."""
+    """Выполняет вспомогательную обработку для setting media dir.
+    
+    Args:
+        name: Человекочитаемое имя объекта или параметра.
+        default: Значение по умолчанию при отсутствии входных данных.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     value = _setting_media_path(name, default).strip("/")
     return value or default.strip("/")
 
 
 def user_password_default_avatar_path() -> str:
+    """Вспомогательная функция `user_password_default_avatar_path` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return _setting_media_path("USER_PASSWORD_DEFAULT_AVATAR", _DEFAULT_USER_PASSWORD_AVATAR)
 
 
 def user_oauth_default_avatar_path() -> str:
+    """Вспомогательная функция `user_oauth_default_avatar_path` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return _setting_media_path("USER_OAUTH_DEFAULT_AVATAR", _DEFAULT_USER_OAUTH_AVATAR)
 
 
 def group_default_avatar_path() -> str:
+    """Вспомогательная функция `group_default_avatar_path` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return _setting_media_path("GROUP_DEFAULT_AVATAR", _DEFAULT_GROUP_AVATAR)
 
 
 def user_avatar_upload_dir() -> str:
+    """Вспомогательная функция `user_avatar_upload_dir` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return _setting_media_dir("USER_AVATAR_UPLOAD_DIR", _DEFAULT_USER_UPLOAD_DIR)
 
 
 def group_avatar_upload_dir() -> str:
+    """Вспомогательная функция `group_avatar_upload_dir` реализует внутренний шаг бизнес-логики.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return _setting_media_dir("GROUP_AVATAR_UPLOAD_DIR", _DEFAULT_GROUP_UPLOAD_DIR)
 
 
 def _safe_upload_filename(filename: str | None) -> str:
+    """Выполняет вспомогательную обработку для safe upload filename.
+    
+    Args:
+        filename: Имя файла, переданного в обработку.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     name = PurePosixPath(_trimmed(filename).replace("\\", "/")).name
     if not name or name in {".", ".."}:
         return "avatar"
@@ -80,7 +143,14 @@ def _safe_upload_filename(filename: str | None) -> str:
 
 
 def user_has_oauth_identity(user: Any) -> bool:
-    """Проверяет наличие OAuth-идентичности у пользователя."""
+    """Проверяет наличие пользователь с учетом OAuth identity-данные.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     if user is None:
         return False
     user_pk = getattr(user, "pk", None)
@@ -104,18 +174,41 @@ def user_has_oauth_identity(user: Any) -> bool:
 
 
 def profile_avatar_upload_to(profile, filename: str) -> str:
-    """Формирует путь сохранения пользовательской аватарки."""
+    """Вспомогательная функция `profile_avatar_upload_to` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        profile: Параметр profile, используемый в логике функции.
+        filename: Параметр filename, используемый в логике функции.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     base_dir = user_avatar_upload_dir()
     return f"{base_dir}/{_safe_upload_filename(filename)}"
 
 
 def group_avatar_upload_to(_room, filename: str) -> str:
-    """Формирует путь сохранения групповой аватарки."""
+    """Вспомогательная функция `group_avatar_upload_to` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        _room: Комната, переданная в upload_to-хук.
+        filename: Параметр filename, используемый в логике функции.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     return f"{group_avatar_upload_dir()}/{_safe_upload_filename(filename)}"
 
 
 def _safe_profile(user: Any):
-    """Безопасно получает профиль пользователя без падений в рантайме."""
+    """Выполняет вспомогательную обработку для safe profile.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if user is None:
         return None
     try:
@@ -138,11 +231,28 @@ def _safe_profile(user: Any):
 
 
 def _is_http_url(value: str) -> bool:
+    """Проверяет условие http url и возвращает логический результат.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     normalized = value.lower()
     return normalized.startswith("http://") or normalized.startswith("https://")
 
 
 def _is_same_media_file(path: str, candidate: str) -> bool:
+    """Проверяет условие same media file и возвращает логический результат.
+    
+    Args:
+        path: Путь к ресурсу в storage или media-каталоге.
+        candidate: Кандидатный объект для сравнения с текущим контекстом.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     left = _normalized_media_path(path)
     right = _normalized_media_path(candidate)
     if not left or not right:
@@ -153,6 +263,14 @@ def _is_same_media_file(path: str, candidate: str) -> bool:
 
 
 def _is_default_user_image(path: str) -> bool:
+    """Проверяет условие default user image и возвращает логический результат.
+    
+    Args:
+        path: Путь к ресурсу в storage или media-каталоге.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     defaults = (
         *_USER_DEFAULT_IMAGE_ALIASES,
         user_password_default_avatar_path(),
@@ -162,7 +280,14 @@ def _is_default_user_image(path: str) -> bool:
 
 
 def resolve_user_avatar_source(user: Any) -> str | None:
-    """Возвращает источник аватара пользователя с учетом fallback-логики."""
+    """Определяет user avatar source на основе доступного контекста.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     profile = _safe_profile(user)
     is_oauth_user = user_has_oauth_identity(user)
     fallback_avatar = (
@@ -191,7 +316,14 @@ def resolve_user_avatar_source(user: Any) -> str | None:
 
 
 def resolve_group_avatar_source(room: Any) -> str | None:
-    """Возвращает источник аватара группы или дефолтную картинку."""
+    """Определяет group avatar source на основе доступного контекста.
+    
+    Args:
+        room: Экземпляр комнаты, над которой выполняется действие.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     if room is None:
         return group_default_avatar_path() or None
 
@@ -204,7 +336,15 @@ def resolve_group_avatar_source(room: Any) -> str | None:
 
 
 def resolve_avatar_url_from_request(request, source: str | None) -> str | None:
-    """Собирает абсолютный URL аватара из HTTP-запроса."""
+    """Определяет avatar url from request на основе доступного контекста.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        source: Источник данных или медиа-путь, который нужно обработать.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     normalized = _trimmed(source)
     if not normalized:
         return None
@@ -212,7 +352,15 @@ def resolve_avatar_url_from_request(request, source: str | None) -> str | None:
 
 
 def resolve_avatar_url_from_scope(scope, source: str | None) -> str | None:
-    """Собирает абсолютный URL аватара из ASGI scope."""
+    """Определяет avatar url from scope на основе доступного контекста.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        source: Источник данных или медиа-путь, который нужно обработать.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     normalized = _trimmed(source)
     if not normalized:
         return None
@@ -220,16 +368,52 @@ def resolve_avatar_url_from_scope(scope, source: str | None) -> str | None:
 
 
 def resolve_user_avatar_url_from_request(request, user: Any) -> str | None:
+    """Определяет user avatar url from request на основе доступного контекста.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     return resolve_avatar_url_from_request(request, resolve_user_avatar_source(user))
 
 
 def resolve_user_avatar_url_from_scope(scope, user: Any) -> str | None:
+    """Определяет user avatar url from scope на основе доступного контекста.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     return resolve_avatar_url_from_scope(scope, resolve_user_avatar_source(user))
 
 
 def resolve_group_avatar_url_from_request(request, room: Any) -> str | None:
+    """Определяет group avatar url from request на основе доступного контекста.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room: Экземпляр комнаты, над которой выполняется действие.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     return resolve_avatar_url_from_request(request, resolve_group_avatar_source(room))
 
 
 def resolve_group_avatar_url_from_scope(scope, room: Any) -> str | None:
+    """Определяет group avatar url from scope на основе доступного контекста.
+    
+    Args:
+        scope: ASGI-scope с метаданными соединения.
+        room: Экземпляр комнаты, над которой выполняется действие.
+    
+    Returns:
+        Объект типа str | None, сформированный в рамках обработки.
+    """
     return resolve_avatar_url_from_scope(scope, resolve_group_avatar_source(room))

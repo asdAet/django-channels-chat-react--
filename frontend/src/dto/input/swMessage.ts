@@ -25,6 +25,11 @@ const clearMessageSchema = z
 
 const swMessageSchema = z.union([invalidateMessageSchema, clearMessageSchema]);
 
+/**
+ * Проверяет условие has required discriminator fields.
+ * @param message Сообщение, которое нужно обработать.
+ * @returns Нормализованные данные после декодирования.
+ */
 const hasRequiredDiscriminatorFields = (
   message: z.infer<typeof swMessageSchema>,
 ): message is z.infer<typeof swMessageSchema> => {
@@ -38,13 +43,17 @@ const hasRequiredDiscriminatorFields = (
   return true;
 };
 
+/**
+ * Описывает структуру данных `SwCacheMessage`.
+ */
 export type SwCacheMessage = z.infer<typeof swMessageSchema>;
 
 /**
  * Валидирует исходящее сообщение в Service Worker.
- * @param input Сырой payload.
- * @returns Валидированный payload.
+ * @param input Входные данные для валидации и преобразования.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const encodeSwCacheMessage = (input: unknown): SwCacheMessage => {
   const message = decodeOrThrow(swMessageSchema, input, "sw/cache-message");
   if (!hasRequiredDiscriminatorFields(message)) {
@@ -55,9 +64,10 @@ export const encodeSwCacheMessage = (input: unknown): SwCacheMessage => {
 
 /**
  * Безопасно декодирует входящее сообщение в Service Worker.
- * @param input Сырой payload.
- * @returns Валидированный payload или null.
+ * @param input Входные данные для валидации и преобразования.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeSwCacheMessage = (input: unknown): SwCacheMessage | null => {
   const message = safeDecode(swMessageSchema, input);
   if (!message) return null;

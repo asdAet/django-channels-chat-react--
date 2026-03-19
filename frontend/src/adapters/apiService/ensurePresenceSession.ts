@@ -3,9 +3,9 @@
 import { decodePresenceSessionResponse } from "../../dto";
 
 /**
- * Фиксирует гостевую session перед presence websocket.
- * @param apiClient HTTP-клиент.
- * @returns Признак успешного bootstrap.
+ * Гарантирует presence session.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function ensurePresenceSession(
   apiClient: AxiosInstance,

@@ -18,17 +18,38 @@ from users.identity import user_public_username
 
 
 def _ensure_authenticated(actor) -> None:
+    """Гарантирует корректность состояния authenticated перед выполнением операции.
+    
+    Args:
+        actor: Пользователь, инициирующий действие в системе.
+    """
     if not actor or not getattr(actor, "is_authenticated", False):
         raise FriendForbiddenError("Требуется аутентификация")
 
 
 def _normalize_public_ref(raw: str) -> str:
+    """Нормализует public ref к внутреннему формату приложения.
+    
+    Args:
+        raw: Сырое значение из внешнего источника до нормализации.
+    
+    Returns:
+        Строковое значение, сформированное функцией.
+    """
     if not isinstance(raw, str):
         return ""
     return raw.strip().lstrip("@")
 
 
 def _friend_from_user_id(friendship: Friendship) -> int:
+    """Вспомогательная функция `_friend_from_user_id` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        friendship: Запись дружбы между пользователями.
+    
+    Returns:
+        Целочисленный результат вычисления.
+    """
     from_user_id = getattr(friendship, "from_user_id", None)
     if from_user_id is not None:
         return int(from_user_id)
@@ -40,6 +61,14 @@ def _friend_from_user_id(friendship: Friendship) -> int:
 
 
 def _friend_to_user_id(friendship: Friendship) -> int:
+    """Вспомогательная функция `_friend_to_user_id` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        friendship: Запись дружбы между пользователями.
+    
+    Returns:
+        Целочисленный результат вычисления.
+    """
     to_user_id = getattr(friendship, "to_user_id", None)
     if to_user_id is not None:
         return int(to_user_id)
@@ -53,27 +82,67 @@ def _friend_to_user_id(friendship: Friendship) -> int:
 # ── Queries ───────────────────────────────────────────────────────────
 
 def list_friends(actor) -> list:
+    """Возвращает список friends, доступных в текущем контексте.
+    
+    Args:
+        actor: Пользователь, инициирующий действие в системе.
+    
+    Returns:
+        Список типа list с результатами операции.
+    """
     _ensure_authenticated(actor)
     return list(repositories.list_friends_for_user(actor))
 
 
 def list_incoming_requests(actor) -> list:
+    """Возвращает список incoming requests, доступных в текущем контексте.
+    
+    Args:
+        actor: Пользователь, инициирующий действие в системе.
+    
+    Returns:
+        Список типа list с результатами операции.
+    """
     _ensure_authenticated(actor)
     return list(repositories.list_pending_incoming(actor))
 
 
 def list_outgoing_requests(actor) -> list:
+    """Возвращает список outgoing requests, доступных в текущем контексте.
+    
+    Args:
+        actor: Пользователь, инициирующий действие в системе.
+    
+    Returns:
+        Список типа list с результатами операции.
+    """
     _ensure_authenticated(actor)
     return list(repositories.list_pending_outgoing(actor))
 
 
 def list_blocked(actor) -> list:
+    """Возвращает список blocked, доступных в текущем контексте.
+    
+    Args:
+        actor: Пользователь, инициирующий действие в системе.
+    
+    Returns:
+        Список типа list с результатами операции.
+    """
     _ensure_authenticated(actor)
     return list(repositories.list_blocked_by_user(actor))
 
 
 def is_blocked_between(user_a, user_b) -> bool:
-    """Return True if either user has blocked the other."""
+    """Проверяет условие blocked between и возвращает логический результат.
+    
+    Args:
+        user_a: Данные user a, участвующие в обработке текущей операции.
+        user_b: Данные user b, участвующие в обработке текущей операции.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     return Friendship.objects.filter(
         status=Friendship.Status.BLOCKED,
     ).filter(
@@ -85,6 +154,15 @@ def is_blocked_between(user_a, user_b) -> bool:
 # ── Send request ──────────────────────────────────────────────────────
 
 def send_request(actor, target_ref: str) -> Friendship:
+    """Отправляет request целевому получателю.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        target_ref: Публичный референс целевого пользователя.
+    
+    Returns:
+        Объект типа Friendship, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     target_lookup_ref = _normalize_public_ref(target_ref)
     if not target_lookup_ref:
@@ -153,6 +231,15 @@ def send_request(actor, target_ref: str) -> Friendship:
 # ── Accept / Decline ──────────────────────────────────────────────────
 
 def accept_request(actor, friendship_id: int) -> Friendship:
+    """Вспомогательная функция `accept_request` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        friendship_id: Идентификатор friendship.
+    
+    Returns:
+        Объект типа Friendship, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     friendship = repositories.get_friendship_by_id(int(friendship_id))
     if not friendship or friendship.status != Friendship.Status.PENDING:
@@ -186,6 +273,15 @@ def accept_request(actor, friendship_id: int) -> Friendship:
 
 
 def decline_request(actor, friendship_id: int) -> Friendship:
+    """Вспомогательная функция `decline_request` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        friendship_id: Идентификатор friendship.
+    
+    Returns:
+        Объект типа Friendship, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     friendship = repositories.get_friendship_by_id(int(friendship_id))
     if not friendship or friendship.status != Friendship.Status.PENDING:
@@ -214,6 +310,15 @@ def decline_request(actor, friendship_id: int) -> Friendship:
 # ── Remove friend ─────────────────────────────────────────────────────
 
 def cancel_outgoing_request(actor, friendship_id: int) -> Friendship:
+    """Отменяет исходящий запрос запрос.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        friendship_id: Идентификатор friendship.
+    
+    Returns:
+        Объект типа Friendship, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     friendship = repositories.get_friendship_by_id(int(friendship_id))
     if not friendship or friendship.status != Friendship.Status.PENDING:
@@ -236,6 +341,12 @@ def cancel_outgoing_request(actor, friendship_id: int) -> Friendship:
 
 
 def remove_friend(actor, target_user_id: int) -> None:
+    """Удаляет friend из целевого набора данных.
+    
+    Args:
+        actor: Пользователь, инициирующий действие в системе.
+        target_user_id: Идентификатор target user, используемый для выборки данных.
+    """
     _ensure_authenticated(actor)
     target = repositories.get_user_by_id(int(target_user_id))
     if not target:
@@ -259,6 +370,15 @@ def remove_friend(actor, target_user_id: int) -> None:
 # ── Block / Unblock ──────────────────────────────────────────────────
 
 def block_user(actor, target_ref: str) -> Friendship:
+    """Блокирует пользователь.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        target_ref: Публичный референс целевого пользователя.
+    
+    Returns:
+        Объект типа Friendship, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     target_lookup_ref = _normalize_public_ref(target_ref)
     if not target_lookup_ref:
@@ -296,6 +416,12 @@ def block_user(actor, target_ref: str) -> Friendship:
 
 
 def unblock_user(actor, target_user_id: int) -> None:
+    """Снимает блокировку с пользователь.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        target_user_id: Идентификатор целевого пользователя.
+    """
     _ensure_authenticated(actor)
     target = repositories.get_user_by_id(int(target_user_id))
     if not target:

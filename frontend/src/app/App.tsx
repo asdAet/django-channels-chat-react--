@@ -15,13 +15,19 @@ import shellStyles from "../styles/layout/AppShell.module.css";
 import { AppShell } from "../widgets/layout/AppShell";
 import { AppRoutes } from "./routes";
 
+/**
+ * Описывает структуру данных `ProfileFieldErrors`.
+ */
 type ProfileFieldErrors = Record<string, string[]>;
+/**
+ * Описывает результат операции `ProfileSave`.
+ */
 type ProfileSaveResult =
   | { ok: true }
   | { ok: false; errors?: ProfileFieldErrors; message?: string };
 
 /**
- * Внутренний роутинг-слой приложения с глобальными провайдерами.
+ * React-компонент AppInner отвечает за отрисовку и обработку UI-сценария.
  */
 function AppInner() {
   const navigate = useNavigate();
@@ -36,6 +42,9 @@ function AppInner() {
 
   useEffect(() => {
     const root = document.documentElement;
+    /**
+     * Обновляет viewport vars.
+     */
     const updateViewportVars = () => {
       const visualViewport = window.visualViewport;
       const viewportHeight = Math.round(
@@ -70,6 +79,10 @@ function AppInner() {
     return () => window.clearTimeout(timerId);
   }, [banner]);
 
+  /**
+   * Извлекает message.
+   * @param err Объект ошибки, полученный в обработчике.
+   */
   const extractMessage = (err: unknown) => {
     if (
       err &&
@@ -95,7 +108,16 @@ function AppInner() {
     return "Не удалось выполнить запрос. Попробуйте еще раз.";
   };
 
+  /**
+   * Извлекает auth message.
+   * @param err Объект ошибки, полученный в обработчике.
+   * @param fallback Резервное значение на случай ошибки или отсутствия данных.
+   */
   const extractAuthMessage = (err: unknown, fallback: string) => {
+    /**
+     * Извлекает from data.
+     * @param data Входные данные операции.
+     */
     const extractFromData = (data: unknown) => {
       if (!data || typeof data !== "object") return null;
       const record = data as Record<string, unknown>;
@@ -134,6 +156,11 @@ function AppInner() {
     return fallback;
   };
 
+  /**
+   * Извлекает profile errors.
+   * @param err Объект ошибки, полученный в обработчике.
+   * @returns Извлеченное значение из входных данных.
+   */
   const extractProfileErrors = (err: unknown): ProfileFieldErrors | null => {
     if (!err || typeof err !== "object") return null;
     const anyErr = err as ApiError & { response?: { data?: unknown } };
@@ -334,7 +361,7 @@ function AppInner() {
 }
 
 /**
- * Корневой компонент frontend-приложения.
+ * React-компонент App отвечает за отрисовку и обработку UI-сценария.
  */
 export function App() {
   return (

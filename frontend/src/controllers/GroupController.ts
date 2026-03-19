@@ -12,8 +12,18 @@ import type {
 } from "../entities/group/types";
 import { emitConversationListRefresh } from "../shared/conversationList/events";
 
+/**
+ * Класс GroupController инкапсулирует логику текущего слоя приложения.
+ */
 class GroupController {
-  public async createGroup(data: {
+    /**
+   * Асинхронно создаёт группы.
+   *
+   * @param data Данные запроса или полезная нагрузка операции.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async createGroup(data: {
     name: string;
     description?: string;
     isPublic?: boolean;
@@ -24,7 +34,14 @@ class GroupController {
     return group;
   }
 
-  public async getPublicGroups(params?: {
+    /**
+   * Асинхронно возвращает public групп.
+   *
+   * @param params Параметры запроса.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async getPublicGroups(params?: {
     search?: string;
     limit?: number;
     before?: number;
@@ -32,7 +49,14 @@ class GroupController {
     return apiService.getPublicGroups(params);
   }
 
-  public async getMyGroups(params?: {
+    /**
+   * Асинхронно возвращает my групп.
+   *
+   * @param params Параметры запроса.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async getMyGroups(params?: {
     search?: string;
     limit?: number;
     before?: number;
@@ -40,11 +64,22 @@ class GroupController {
     return apiService.getMyGroups(params);
   }
 
-  public async getGroupDetails(roomId: string): Promise<Group> {
+    /**
+     * Возвращает group details.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getGroupDetails(roomId: string): Promise<Group> {
     return apiService.getGroupDetails(roomId);
   }
 
-  public async updateGroup(
+    /**
+     * Обновляет group.
+     * @param roomId Идентификатор комнаты.
+     * @param data Входные данные операции.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async updateGroup(
     roomId: string,
     data: UpdateGroupInput,
   ): Promise<Group> {
@@ -53,33 +88,69 @@ class GroupController {
     return group;
   }
 
-  public async deleteGroup(roomId: string): Promise<void> {
+    /**
+     * Удаляет group.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async deleteGroup(roomId: string): Promise<void> {
     await apiService.deleteGroup(roomId);
     emitConversationListRefresh();
   }
 
-  public async joinGroup(roomId: string): Promise<void> {
+    /**
+     * Обрабатывает join group.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async joinGroup(roomId: string): Promise<void> {
     await apiService.joinGroup(roomId);
     emitConversationListRefresh();
   }
 
-  public async leaveGroup(roomId: string): Promise<void> {
+    /**
+     * Обрабатывает leave group.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async leaveGroup(roomId: string): Promise<void> {
     await apiService.leaveGroup(roomId);
     emitConversationListRefresh();
   }
 
-  public async getGroupMembers(
+    /**
+   * Асинхронно возвращает группы участников.
+   *
+   * @param roomId Идентификатор комнаты.
+   * @param params Параметры запроса.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async getGroupMembers(
     roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{ items: GroupMember[]; total: number }> {
     return apiService.getGroupMembers(roomId, params);
   }
 
-  public async kickMember(roomId: string, userId: number): Promise<void> {
+    /**
+     * Обрабатывает kick member.
+     * @param roomId Идентификатор комнаты.
+     * @param userId Идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async kickMember(roomId: string, userId: number): Promise<void> {
     return apiService.kickMember(roomId, userId);
   }
 
-  public async banMember(
+    /**
+     * Обрабатывает ban member.
+     * @param roomId Идентификатор комнаты.
+     * @param userId Идентификатор пользователя.
+     * @param reason Причина административного действия.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async banMember(
     roomId: string,
     userId: number,
     reason?: string,
@@ -87,11 +158,24 @@ class GroupController {
     return apiService.banMember(roomId, userId, reason);
   }
 
-  public async unbanMember(roomId: string, userId: number): Promise<void> {
+    /**
+     * Обрабатывает unban member.
+     * @param roomId Идентификатор комнаты.
+     * @param userId Идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async unbanMember(roomId: string, userId: number): Promise<void> {
     return apiService.unbanMember(roomId, userId);
   }
 
-  public async muteMember(
+    /**
+     * Обрабатывает mute member.
+     * @param roomId Идентификатор комнаты.
+     * @param userId Идентификатор пользователя.
+     * @param durationSeconds Длительность действия в секундах.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async muteMember(
     roomId: string,
     userId: number,
     durationSeconds = 3600,
@@ -99,75 +183,161 @@ class GroupController {
     return apiService.muteMember(roomId, userId, durationSeconds);
   }
 
-  public async unmuteMember(roomId: string, userId: number): Promise<void> {
+    /**
+     * Обрабатывает unmute member.
+     * @param roomId Идентификатор комнаты.
+     * @param userId Идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async unmuteMember(roomId: string, userId: number): Promise<void> {
     return apiService.unmuteMember(roomId, userId);
   }
 
-  public async getBannedMembers(
+    /**
+   * Асинхронно возвращает заблокированные участников.
+   *
+   * @param roomId Идентификатор комнаты.
+   * @param params Параметры запроса.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async getBannedMembers(
     roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{ items: BannedMember[]; total: number }> {
     return apiService.getBannedMembers(roomId, params);
   }
 
-  public async createInvite(
+    /**
+   * Асинхронно создаёт приглашение.
+   *
+   * @param roomId Идентификатор комнаты.
+   * @param data Данные запроса или полезная нагрузка операции.
+   *
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+public async createInvite(
     roomId: string,
     data?: { maxUses?: number; expiresInHours?: number },
   ): Promise<GroupInvite> {
     return apiService.createInvite(roomId, data);
   }
 
-  public async getInvites(roomId: string): Promise<GroupInvite[]> {
+    /**
+     * Возвращает invites.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getInvites(roomId: string): Promise<GroupInvite[]> {
     return apiService.getInvites(roomId);
   }
 
-  public async revokeInvite(roomId: string, code: string): Promise<void> {
+    /**
+     * Обрабатывает revoke invite.
+     * @param roomId Идентификатор комнаты.
+     * @param code Код приглашения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async revokeInvite(roomId: string, code: string): Promise<void> {
     return apiService.revokeInvite(roomId, code);
   }
 
-  public async getInvitePreview(code: string): Promise<InvitePreview> {
+    /**
+     * Возвращает invite preview.
+     * @param code Код приглашения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getInvitePreview(code: string): Promise<InvitePreview> {
     return apiService.getInvitePreview(code);
   }
 
-  public async joinViaInvite(code: string): Promise<{ roomId: number }> {
+    /**
+     * Обрабатывает join via invite.
+     * @param code Код приглашения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async joinViaInvite(code: string): Promise<{ roomId: number }> {
     const result = await apiService.joinViaInvite(code);
     emitConversationListRefresh();
     return result;
   }
 
-  public async getJoinRequests(roomId: string): Promise<JoinRequest[]> {
+    /**
+     * Возвращает join requests.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getJoinRequests(roomId: string): Promise<JoinRequest[]> {
     return apiService.getJoinRequests(roomId);
   }
 
-  public async approveJoinRequest(
+    /**
+     * Обрабатывает approve join request.
+     * @param roomId Идентификатор комнаты.
+     * @param requestId Идентификатор заявки.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async approveJoinRequest(
     roomId: string,
     requestId: number,
   ): Promise<void> {
     return apiService.approveJoinRequest(roomId, requestId);
   }
 
-  public async rejectJoinRequest(
+    /**
+     * Обрабатывает reject join request.
+     * @param roomId Идентификатор комнаты.
+     * @param requestId Идентификатор заявки.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async rejectJoinRequest(
     roomId: string,
     requestId: number,
   ): Promise<void> {
     return apiService.rejectJoinRequest(roomId, requestId);
   }
 
-  public async getPinnedMessages(roomId: string): Promise<PinnedMessage[]> {
+    /**
+     * Возвращает pinned messages.
+     * @param roomId Идентификатор комнаты.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getPinnedMessages(roomId: string): Promise<PinnedMessage[]> {
     return apiService.getPinnedMessages(roomId);
   }
 
-  public async pinMessage(roomId: string, messageId: number): Promise<void> {
+    /**
+     * Обрабатывает pin message.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async pinMessage(roomId: string, messageId: number): Promise<void> {
     return apiService.pinMessage(roomId, messageId);
   }
 
-  public async unpinMessage(roomId: string, messageId: number): Promise<void> {
+    /**
+     * Обрабатывает unpin message.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async unpinMessage(roomId: string, messageId: number): Promise<void> {
     return apiService.unpinMessage(roomId, messageId);
   }
 
-  public async transferOwnership(roomId: string, userId: number): Promise<void> {
+    /**
+     * Обрабатывает transfer ownership.
+     * @param roomId Идентификатор комнаты.
+     * @param userId Идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async transferOwnership(roomId: string, userId: number): Promise<void> {
     return apiService.transferOwnership(roomId, userId);
   }
 }
 
+/**
+ * Экспорт `groupController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+ */
 export const groupController = new GroupController();

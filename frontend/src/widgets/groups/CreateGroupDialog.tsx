@@ -3,11 +3,17 @@ import { type KeyboardEvent, useCallback, useState } from "react";
 import { groupController } from "../../controllers/GroupController";
 import styles from "../../styles/groups/GroupsPage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   onCreated: (slug: string) => void;
   onClose: () => void;
 };
 
+/**
+ * React-компонент CreateGroupDialog отвечает за отрисовку и обработку UI-сценария.
+ */
 export function CreateGroupDialog({ onCreated, onClose }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

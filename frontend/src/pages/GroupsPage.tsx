@@ -7,11 +7,17 @@ import styles from "../styles/groups/GroupsPage.module.css";
 import { CreateGroupDialog } from "../widgets/groups/CreateGroupDialog";
 import { GroupListItem } from "../widgets/groups/GroupListItem";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
 };
 
+/**
+ * React-компонент IconPlus отвечает за отрисовку и обработку UI-сценария.
+ */
 const IconPlus = () => (
   <svg
     width="14"
@@ -27,6 +33,9 @@ const IconPlus = () => (
   </svg>
 );
 
+/**
+ * React-компонент GroupsPage отвечает за отрисовку и обработку UI-сценария.
+ */
 export function GroupsPage({ user, onNavigate }: Props) {
   const { groups, loading, error, search, setSearch, reload } = useGroupList();
   const [showCreate, setShowCreate] = useState(false);

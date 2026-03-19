@@ -4,11 +4,11 @@ import type { SessionResponse } from "../../domain/interfaces/IApiService";
 import { buildLoginRequestDto, decodeSessionResponse } from "../../dto";
 
 /**
- * Выполняет логин пользователя.
- * @param apiClient HTTP-клиент.
- * @param identifier Логин или email.
- * @param password Пароль.
- * @returns Декодированное состояние сессии.
+ * Выполняет API-запрос для операции login.
+ * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+ * @param identifier Идентификатор сущности, с которой выполняется операция.
+ * @param password Пароль пользователя.
+ * @returns Промис с данными, возвращаемыми этой функцией.
  */
 export async function login(
   apiClient: AxiosInstance,

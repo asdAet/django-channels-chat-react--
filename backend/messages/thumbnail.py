@@ -13,9 +13,13 @@ logger = logging.getLogger(__name__)
 
 
 def generate_thumbnail(source_field) -> dict | None:
-    """Generate a thumbnail for an image file field.
-
-    Returns dict with 'path' (ContentFile), 'width', 'height' or None on failure.
+    """Генерирует thumbnail по заданным правилам.
+    
+    Args:
+        source_field: Параметр source field, используемый в логике функции.
+    
+    Returns:
+        Словарь типа dict | None с данными результата.
     """
     try:
         from PIL import Image

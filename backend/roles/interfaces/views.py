@@ -24,6 +24,14 @@ from roles.interfaces.serializers import (
 
 
 def _service_error_response(exc: RoleServiceError) -> Response:
+    """Вспомогательная функция `_service_error_response` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        exc: Параметр exc, используемый в логике функции.
+    
+    Returns:
+        HTTP-ответ с результатом обработки.
+    """
     return Response(
         {"error": exc.message, "code": exc.code},
         status=exc.status_code,
@@ -31,15 +39,33 @@ def _service_error_response(exc: RoleServiceError) -> Response:
 
 
 def _optional_int(value: Any) -> int | None:
+    """Выполняет вспомогательную обработку для optional int.
+    
+    Args:
+        value: Входное значение для проверки или преобразования.
+    
+    Returns:
+        Объект типа int | None, полученный при выполнении операции.
+    """
     if value is None:
         return None
     return int(value)
 
 
 class RoomRolesApiView(APIView):
+    """Класс RoomRolesApiView реализует HTTP-обработчики для API."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, room_id: int):
+        """Обрабатывает HTTP GET запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         try:
             items = management_service.list_room_roles(room_id, request.user)
         except RoleServiceError as exc:
@@ -48,6 +74,15 @@ class RoomRolesApiView(APIView):
         return Response({"items": serializer.data})
 
     def post(self, request, room_id: int):
+        """Обрабатывает HTTP POST запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         serializer = RoleCreateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = cast(dict[str, Any], serializer.validated_data)
@@ -67,9 +102,20 @@ class RoomRolesApiView(APIView):
 
 
 class RoomRoleDetailApiView(APIView):
+    """Класс RoomRoleDetailApiView реализует HTTP-обработчики для API."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, room_id: int, role_id: int):
+        """Обрабатывает HTTP PATCH запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+            role_id: Идентификатор role.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         serializer = RoleUpdateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = cast(dict[str, Any], serializer.validated_data)
@@ -89,6 +135,16 @@ class RoomRoleDetailApiView(APIView):
         return Response({"item": output.data})
 
     def delete(self, request, room_id: int, role_id: int):
+        """Обрабатывает HTTP DELETE запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+            role_id: Идентификатор role.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         try:
             management_service.delete_room_role(
                 room_id=room_id,
@@ -101,9 +157,20 @@ class RoomRoleDetailApiView(APIView):
 
 
 class RoomMemberRolesApiView(APIView):
+    """Класс RoomMemberRolesApiView реализует HTTP-обработчики для API."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, room_id: int, user_id: int):
+        """Обрабатывает HTTP GET запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+            user_id: Идентификатор user.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         try:
             membership = management_service.get_member_roles(
                 room_id=room_id,
@@ -116,6 +183,16 @@ class RoomMemberRolesApiView(APIView):
         return Response({"item": serializer.data})
 
     def patch(self, request, room_id: int, user_id: int):
+        """Обрабатывает HTTP PATCH запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+            user_id: Идентификатор user.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         serializer = MemberRolesUpdateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = cast(dict[str, Any], serializer.validated_data)
@@ -135,9 +212,19 @@ class RoomMemberRolesApiView(APIView):
 
 
 class RoomOverridesApiView(APIView):
+    """Класс RoomOverridesApiView реализует HTTP-обработчики для API."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, room_id: int):
+        """Обрабатывает HTTP GET запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         try:
             items = management_service.list_room_overrides(room_id, request.user)
         except RoleServiceError as exc:
@@ -146,6 +233,15 @@ class RoomOverridesApiView(APIView):
         return Response({"items": serializer.data})
 
     def post(self, request, room_id: int):
+        """Обрабатывает HTTP POST запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         serializer = OverrideCreateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = cast(dict[str, Any], serializer.validated_data)
@@ -165,9 +261,20 @@ class RoomOverridesApiView(APIView):
 
 
 class RoomOverrideDetailApiView(APIView):
+    """Класс RoomOverrideDetailApiView реализует HTTP-обработчики для API."""
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, room_id: int, override_id: int):
+        """Обрабатывает HTTP PATCH запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+            override_id: Идентификатор override.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         serializer = OverrideUpdateInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = cast(dict[str, Any], serializer.validated_data)
@@ -185,6 +292,16 @@ class RoomOverrideDetailApiView(APIView):
         return Response({"item": output.data})
 
     def delete(self, request, room_id: int, override_id: int):
+        """Обрабатывает HTTP DELETE запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+            override_id: Идентификатор override.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         try:
             management_service.delete_room_override(
                 room_id=room_id,
@@ -197,9 +314,19 @@ class RoomOverrideDetailApiView(APIView):
 
 
 class RoomMyPermissionsApiView(APIView):
+    """Класс RoomMyPermissionsApiView реализует HTTP-обработчики для API."""
     permission_classes = [IsAuthenticated]
 
     def get(self, request, room_id: int):
+        """Обрабатывает HTTP GET запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         try:
             payload = management_service.permissions_for_me(room_id, request.user)
         except RoleServiceError as exc:

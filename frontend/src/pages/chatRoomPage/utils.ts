@@ -3,9 +3,18 @@ import type { UserProfile } from "../../entities/user/types";
 import { normalizeAvatarCrop } from "../../shared/lib/avatarCrop";
 import { formatDayLabel } from "../../shared/lib/format";
 
+/**
+ * Описывает структуру данных `InitialPositioningPhase`.
+ */
 export type InitialPositioningPhase = "pending" | "positioning" | "settled";
+/**
+ * Описывает структуру данных `InitialPositioningTarget`.
+ */
 export type InitialPositioningTarget = "unread" | "bottom";
 
+/**
+ * Описывает структуру данных `ReadReceipt`.
+ */
 export type ReadReceipt = {
   userId: number;
   publicRef: string;
@@ -14,11 +23,17 @@ export type ReadReceipt = {
   lastReadMessageId: number;
 };
 
+/**
+ * Описывает структуру данных `UnreadDividerRenderTarget`.
+ */
 export type UnreadDividerRenderTarget = {
   messageId: number | null;
   insertAtTop: boolean;
 };
 
+/**
+ * Описывает структуру данных `TimelineItem`.
+ */
 export type TimelineItem =
   | { type: "day"; key: string; label: string }
   | { type: "message"; message: Message }
@@ -27,10 +42,32 @@ export type TimelineItem =
 const PENDING_READ_STORAGE_PREFIX = "chat.pendingRead.";
 const CSRF_SESSION_STORAGE_KEY = "csrfToken";
 
+/**
+ * Константа `TYPING_TIMEOUT_MS` хранит используемое в модуле значение.
+ */
+
 export const TYPING_TIMEOUT_MS = 5_000;
+/**
+ * Константа `MAX_HISTORY_JUMP_ATTEMPTS` задает верхнюю границу для соответствующего лимита.
+ */
+
 export const MAX_HISTORY_JUMP_ATTEMPTS = 60;
+/**
+ * Константа `MAX_HISTORY_NO_PROGRESS_ATTEMPTS` задает верхнюю границу для соответствующего лимита.
+ */
+
 export const MAX_HISTORY_NO_PROGRESS_ATTEMPTS = 2;
+/**
+ * Константа `MARK_READ_DEBOUNCE_MS` хранит используемое в модуле значение.
+ */
+
 export const MARK_READ_DEBOUNCE_MS = 180;
+
+/**
+ * Нормализует actor ref.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 
 export const normalizeActorRef = (value: string | null | undefined): string => {
   if (!value) return "";
@@ -38,6 +75,14 @@ export const normalizeActorRef = (value: string | null | undefined): string => {
   if (!normalized) return "";
   return normalized.startsWith("@") ? normalized.slice(1) : normalized;
 };
+
+/**
+ * Определяет current actor ref.
+ *
+ * @param user Пользователь текущего контекста.
+ *
+ * @returns Разрешенное значение с учетом fallback-логики.
+ */
 
 export const resolveCurrentActorRef = (user: UserProfile | null): string => {
   if (!user) return "";
@@ -49,14 +94,35 @@ export const resolveCurrentActorRef = (user: UserProfile | null): string => {
   );
 };
 
+/**
+ * Определяет message actor ref.
+ *
+ * @returns Разрешенное значение с учетом fallback-логики.
+ */
+
 export const resolveMessageActorRef = (
   message: Pick<Message, "publicRef">,
 ): string => normalizeActorRef(message.publicRef);
+
+/**
+ * Проверяет own message.
+ *
+ * @param message Текст сообщения.
+ * @param currentActorRef Публичный идентификатор текущего пользователя.
+ *
+ * @returns Логический флаг результата проверки.
+ */
 
 export const isOwnMessage = (message: Message, currentActorRef: string) =>
   Boolean(
     currentActorRef && resolveMessageActorRef(message) === currentActorRef,
   );
+
+/**
+ * Нормализует read message id.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 
 export const normalizeReadMessageId = (value: unknown): number => {
   if (typeof value === "number" && Number.isFinite(value))
@@ -67,6 +133,12 @@ export const normalizeReadMessageId = (value: unknown): number => {
   }
   return 0;
 };
+
+/**
+ * Разбирает room id ref.
+ * @param value Входное значение для преобразования.
+ * @returns Числовое значение результата.
+ */
 
 export const parseRoomIdRef = (value: unknown): number | null => {
   if (typeof value === "number") {
@@ -80,6 +152,12 @@ export const parseRoomIdRef = (value: unknown): number | null => {
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return Math.trunc(parsed);
 };
+
+/**
+ * Проверяет условие is file drag payload.
+ * @param dataTransfer Объект DataTransfer из drag-and-drop события.
+ * @returns Булев результат проверки условия.
+ */
 
 export const isFileDragPayload = (
   dataTransfer: DataTransfer | null | undefined,
@@ -100,8 +178,20 @@ export const isFileDragPayload = (
   return Array.from(transferTypes).includes("Files");
 };
 
+/**
+ * Обрабатывает pending read storage key.
+ * @param roomSlug Слаг комнаты чата.
+ */
 const pendingReadStorageKey = (roomSlug: string) =>
   `${PENDING_READ_STORAGE_PREFIX}${roomSlug}`;
+
+/**
+ * Выполняет pending read from storage.
+ *
+ * @param roomSlug Slug комнаты.
+ *
+ * @returns Прочитанные данные из источника.
+ */
 
 export const readPendingReadFromStorage = (roomSlug: string): number => {
   if (typeof window === "undefined") return 0;
@@ -113,6 +203,12 @@ export const readPendingReadFromStorage = (roomSlug: string): number => {
     return 0;
   }
 };
+
+/**
+ * Выполняет pending read to storage.
+ *
+ * @returns Ничего не возвращает.
+ */
 
 export const writePendingReadToStorage = (
   roomSlug: string,
@@ -134,6 +230,14 @@ export const writePendingReadToStorage = (
   }
 };
 
+/**
+ * Выполняет pending read from storage.
+ *
+ * @param roomSlug Slug комнаты.
+ *
+ * @returns Ничего не возвращает.
+ */
+
 export const clearPendingReadFromStorage = (roomSlug: string): void => {
   if (typeof window === "undefined") return;
   try {
@@ -143,6 +247,12 @@ export const clearPendingReadFromStorage = (roomSlug: string): void => {
   }
 };
 
+/**
+ * Обрабатывает read cookie value.
+ * @param cookie Строка cookie, из которой извлекается значение.
+ * @param name Имя параметра или ключа, который используется в операции.
+ * @returns Строковое значение результата.
+ */
 const readCookieValue = (cookie: string, name: string): string | null => {
   const chunks = cookie.split(";").map((entry) => entry.trim());
   const match = chunks.find((entry) => entry.startsWith(`${name}=`));
@@ -150,6 +260,11 @@ const readCookieValue = (cookie: string, name: string): string | null => {
   const value = match.slice(name.length + 1).trim();
   return value || null;
 };
+
+/**
+ * Определяет csrf token.
+ * @returns Строковое значение результата.
+ */
 
 export const resolveCsrfToken = (): string | null => {
   if (
@@ -174,6 +289,15 @@ export const resolveCsrfToken = (): string | null => {
 
   return null;
 };
+
+/**
+ * Выполняет api error message.
+ *
+ * @param error Ошибка, полученная в процессе выполнения.
+ * @param fallback Резервное значение при ошибке.
+ *
+ * @returns Извлеченное значение из входных данных.
+ */
 
 export const extractApiErrorMessage = (error: unknown, fallback: string) => {
   if (!error || typeof error !== "object") return fallback;
@@ -228,6 +352,12 @@ export const extractApiErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+/**
+ * Выполняет avatar crop.
+ *
+
+ */
+
 export const sameAvatarCrop = (
   left: Message["avatarCrop"],
   right: Message["avatarCrop"],
@@ -244,6 +374,13 @@ export const sameAvatarCrop = (
   );
 };
 
+/**
+ * Форматирует group typing label.
+ * @param kind Аргумент `kind` текущего вызова.
+ * @param activeTypingUsers Список `activeTypingUsers`, который обрабатывается функцией.
+ * @returns Строковое значение результата.
+ */
+
 export const formatGroupTypingLabel = (
   kind: string | null | undefined,
   activeTypingUsers: string[],
@@ -255,6 +392,13 @@ export const formatGroupTypingLabel = (
     return `${activeTypingUsers[0]} и ${activeTypingUsers[1]} печатают...`;
   return `${activeTypingUsers[0]} и ещё ${activeTypingUsers.length - 1} печатают...`;
 };
+
+/**
+ * Формирует timeline.
+ * @param messages Список сообщений для дальнейшей обработки.
+ * @param unreadDividerRenderTarget Аргумент `unreadDividerRenderTarget` текущего вызова.
+ * @returns Сформированное значение для дальнейшего использования.
+ */
 
 export const buildTimeline = (
   messages: Message[],

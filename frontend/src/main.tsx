@@ -7,9 +7,9 @@ import { Workbox } from "workbox-window";
 import App from "./App";
 
 /**
- * Выполняет функцию `registerServiceWorker`.
- * @returns Результат выполнения `registerServiceWorker`.
+ * Обрабатывает register service worker.
  */
+
 
 const registerServiceWorker = () => {
   if (!("serviceWorker" in navigator)) return;
@@ -21,8 +21,8 @@ const registerServiceWorker = () => {
 
 if (import.meta.env.PROD) {
   /**
-   * Выполняет метод `registerServiceWorker`.
-   * @returns Результат выполнения `registerServiceWorker`.
+   * Вызывает `registerServiceWorker` как шаг текущего сценария.
+
    */
 
   registerServiceWorker();

@@ -6,54 +6,112 @@ import type {
   FriendRequest,
 } from "../entities/friend/types";
 
+
+/**
+ * Класс FriendsController инкапсулирует логику текущего слоя приложения.
+ */
 class FriendsController {
-  public async getFriends(): Promise<Friend[]> {
+    /**
+     * Возвращает friends.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getFriends(): Promise<Friend[]> {
     return apiService.getFriends();
   }
 
-  public async sendFriendRequest(
+    /**
+     * Обрабатывает send friend request.
+     * @param publicRef Публичный идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async sendFriendRequest(
     publicRef: string,
   ): Promise<SendFriendRequestResponse> {
     return apiService.sendFriendRequest(publicRef);
   }
 
-  public async getIncomingRequests(): Promise<FriendRequest[]> {
+    /**
+     * Возвращает incoming requests.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getIncomingRequests(): Promise<FriendRequest[]> {
     return apiService.getIncomingRequests();
   }
 
-  public async getOutgoingRequests(): Promise<FriendRequest[]> {
+    /**
+     * Возвращает outgoing requests.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getOutgoingRequests(): Promise<FriendRequest[]> {
     return apiService.getOutgoingRequests();
   }
 
-  public async acceptFriendRequest(friendshipId: number): Promise<void> {
+    /**
+     * Обрабатывает accept friend request.
+     * @param friendshipId Идентификатор связи дружбы.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async acceptFriendRequest(friendshipId: number): Promise<void> {
     return apiService.acceptFriendRequest(friendshipId);
   }
 
-  public async declineFriendRequest(friendshipId: number): Promise<void> {
+    /**
+     * Обрабатывает decline friend request.
+     * @param friendshipId Идентификатор связи дружбы.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async declineFriendRequest(friendshipId: number): Promise<void> {
     return apiService.declineFriendRequest(friendshipId);
   }
 
-  public async cancelOutgoingFriendRequest(
+    /**
+     * Проверяет условие cancel outgoing friend request.
+     * @param friendshipId Идентификатор связи дружбы.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async cancelOutgoingFriendRequest(
     friendshipId: number,
   ): Promise<void> {
     return apiService.cancelOutgoingFriendRequest(friendshipId);
   }
 
-  public async removeFriend(userId: number): Promise<void> {
+    /**
+     * Удаляет friend.
+     * @param userId Идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async removeFriend(userId: number): Promise<void> {
     return apiService.removeFriend(userId);
   }
 
-  public async blockUser(publicRef: string): Promise<void> {
+    /**
+     * Обрабатывает block user.
+     * @param publicRef Публичный идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async blockUser(publicRef: string): Promise<void> {
     return apiService.blockUser(publicRef);
   }
 
-  public async unblockUser(userId: number): Promise<void> {
+    /**
+     * Обрабатывает unblock user.
+     * @param userId Идентификатор пользователя.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async unblockUser(userId: number): Promise<void> {
     return apiService.unblockUser(userId);
   }
 
-  public async getBlockedUsers(): Promise<BlockedUser[]> {
+    /**
+     * Возвращает blocked users.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+public async getBlockedUsers(): Promise<BlockedUser[]> {
     return apiService.getBlockedUsers();
   }
 }
 
+/**
+ * Экспорт `friendsController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+ */
 export const friendsController = new FriendsController();

@@ -38,7 +38,13 @@ import { formatPublicRef, isHandleRef } from "../../shared/lib/publicRef";
 import { Avatar, AvatarCropModal, Modal, Spinner } from "../../shared/ui";
 import styles from "../../styles/groups/GroupInfoPanel.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = { slug: string };
+/**
+ * Описывает структуру состояния `View`.
+ */
 type ViewState =
   | "info"
   | "media"
@@ -47,7 +53,13 @@ type ViewState =
   | "settings"
   | "invites"
   | "users";
+/**
+ * Описывает структуру данных `SettingsTab`.
+ */
 type SettingsTab = "general" | "permissions";
+/**
+ * Описывает структуру данных `GroupLinkItem`.
+ */
 type GroupLinkItem = {
   url: string;
   messageId: number;
@@ -76,6 +88,11 @@ const PERMISSION_ITEMS: Array<{ bit: number; label: string }> = [
 ];
 const PERMISSION_BITS = PERMISSION_ITEMS.map((item) => item.bit);
 
+/**
+ * Извлекает error message.
+ * @param error Объект ошибки, полученный в обработчике.
+ * @param fallback Резервное значение на случай ошибки или отсутствия данных.
+ */
 const extractErrorMessage = (error: unknown, fallback: string) => {
   if (!error || typeof error !== "object") return fallback;
   const candidate = error as {
@@ -89,19 +106,43 @@ const extractErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+/**
+ * Возвращает elevated roles.
+ * @param roles Набор ролей, участвующих в вычислении.
+ */
 const getElevatedRoles = (roles: string[]) =>
   roles.filter((role) => !DEFAULT_MEMBER_ROLES.has(role.trim().toLowerCase()));
+/**
+ * Обрабатывает toggle bit.
+ * @param current Аргумент `current` текущего вызова.
+ * @param bit Проверяемый бит в маске разрешений.
+ * @returns Числовое значение результата.
+ */
 const toggleBit = (current: number[], bit: number): number[] =>
   current.includes(bit)
     ? current.filter((item) => item !== bit)
     : [...current, bit];
+/**
+ * Обрабатывает bits from mask.
+ * @param mask Битовая маска разрешений.
+ * @returns Числовое значение результата.
+ */
 const bitsFromMask = (mask: number): number[] =>
   flagsFromMask(mask, PERMISSION_BITS);
+/**
+ * Форматирует file size.
+ * @param bytes Размер файла в байтах.
+ */
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
+/**
+ * Обрабатывает same avatar crop.
+ * @param left Левое значение для сравнения.
+ * @param right Правое значение для сравнения.
+ */
 const sameAvatarCrop = (
   left: AvatarCrop | null | undefined,
   right: AvatarCrop | null | undefined,
@@ -116,22 +157,38 @@ const sameAvatarCrop = (
   );
 };
 const LINK_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+/**
+ * Извлекает http links.
+ * @param content Текст сообщения.
+ * @returns Строковое значение результата.
+ */
 const extractHttpLinks = (content: string): string[] => {
   const matches = content.match(LINK_PATTERN);
   if (!matches) return [];
   return matches.map((value) => value.replace(/[),.;!?]+$/, ""));
 };
+/**
+ * Форматирует date time.
+ * @param value Входное значение для преобразования.
+ */
 const formatDateTime = (value: string) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString();
 };
+/**
+ * Обрабатывает revoke blob url.
+ * @param value Входное значение для преобразования.
+ */
 const revokeBlobUrl = (value: string | null) => {
   if (value && value.startsWith("blob:")) {
     URL.revokeObjectURL(value);
   }
 };
 
+/**
+ * React-компонент GroupInfoPanel отвечает за отрисовку и обработку UI-сценария.
+ */
 export function GroupInfoPanel({ slug }: Props) {
   const [view, setView] = useState<ViewState>("info");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");

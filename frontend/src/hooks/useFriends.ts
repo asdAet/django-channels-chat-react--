@@ -7,6 +7,9 @@ import type {
   FriendRequest,
 } from "../entities/friend/types";
 
+/**
+ * Описывает результат операции `UseFriends`.
+ */
 type UseFriendsResult = {
   friends: Friend[];
   incoming: FriendRequest[];
@@ -26,6 +29,10 @@ type UseFriendsResult = {
   unblockUser: (userId: number) => Promise<void>;
 };
 
+/**
+ * Хук useFriends управляет состоянием и побочными эффектами текущего сценария.
+ * @returns Публичное состояние хука и его обработчики.
+ */
 export function useFriends(): UseFriendsResult {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incoming, setIncoming] = useState<FriendRequest[]>([]);

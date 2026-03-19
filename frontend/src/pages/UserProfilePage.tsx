@@ -25,6 +25,9 @@ import { usePresence } from "../shared/presence";
 import { AvatarMedia, Button, Card, Panel } from "../shared/ui";
 import styles from "../styles/pages/UserProfilePage.module.css";
 
+/**
+ * Описывает входные props компонента `Props`.
+ */
 type Props = {
   user: UserProfile | null;
   onLogout: () => void;
@@ -33,13 +36,18 @@ type Props = {
   onNavigate: (path: string) => void;
 };
 
+/**
+ * Нормализует actor ref.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованное значение после обработки входа.
+ */
 const normalizeActorRef = (value: string): string =>
   normalizePublicRef(value).toLowerCase();
 
 /**
- * Публичная страница профиля пользователя.
- * @param props Данные маршрута, текущей сессии и обработчики действий.
- * @returns JSX-страница профиля пользователя.
+ * Компонент UserProfilePage рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ *
+ * @param props Свойства компонента.
  */
 export function UserProfilePage({
   username,
@@ -69,8 +77,18 @@ export function UserProfilePage({
     panY: number;
   } | null>(null);
 
+  /**
+   * Обрабатывает clamp zoom.
+   * @param value Входное значение для преобразования.
+   */
   const clampZoom = (value: number) => Math.min(15, Math.max(1, value));
 
+  /**
+   * Обрабатывает clamp pan.
+   * @param nextX Новое состояние или значение после изменения.
+   * @param nextY Новое состояние или значение после изменения.
+   * @param zoomValue DOM-событие, вызвавшее обработчик.
+   */
   const clampPan = (nextX: number, nextY: number, zoomValue: number = zoom) => {
     const rect = contentRef.current?.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) {
@@ -89,6 +107,12 @@ export function UserProfilePage({
     };
   };
 
+  /**
+   * Обрабатывает apply zoom at point.
+   * @param clientX Аргумент `clientX` текущего вызова.
+   * @param clientY Аргумент `clientY` текущего вызова.
+   * @param nextZoom Новое состояние или значение после изменения.
+   */
   const applyZoomAtPoint = (
     clientX: number,
     clientY: number,
@@ -121,6 +145,9 @@ export function UserProfilePage({
     });
   };
 
+  /**
+   * Обрабатывает open preview.
+   */
   const openPreview = () => {
     if (!hasProfileImage) return;
     setZoom(1);
@@ -129,8 +156,15 @@ export function UserProfilePage({
     dragState.current = null;
     setIsPreviewOpen(true);
   };
+  /**
+   * Обрабатывает close preview.
+   */
   const closePreview = () => setIsPreviewOpen(false);
 
+  /**
+   * Обрабатывает handle wheel.
+   * @param event Событие браузера.
+   */
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     if (event.cancelable) {
       event.preventDefault();
@@ -139,6 +173,10 @@ export function UserProfilePage({
     applyZoomAtPoint(event.clientX, event.clientY, zoom + step);
   };
 
+  /**
+   * Возвращает touch distance.
+   * @param touches Список `touches`, который обрабатывается функцией.
+   */
   const getTouchDistance = (
     touches: ReactTouchEvent<HTMLDivElement>["touches"],
   ) => {
@@ -151,6 +189,10 @@ export function UserProfilePage({
     return Math.hypot(dx, dy);
   };
 
+  /**
+   * Обрабатывает handle touch start.
+   * @param event Событие браузера.
+   */
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
     if (event.touches.length === 1 && zoom > 1) {
       const touch = event.touches.item(0);
@@ -172,6 +214,10 @@ export function UserProfilePage({
     };
   };
 
+  /**
+   * Обрабатывает handle touch move.
+   * @param event Событие браузера.
+   */
   const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
     if (dragState.current && event.touches.length === 1) {
       const touch = event.touches.item(0);
@@ -209,11 +255,18 @@ export function UserProfilePage({
     }
   };
 
+  /**
+   * Обрабатывает handle touch end.
+   */
   const handleTouchEnd = () => {
     pinchState.current = null;
     dragState.current = null;
   };
 
+  /**
+   * Обрабатывает handle mouse down.
+   * @param event Событие браузера.
+   */
   const handleMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (zoom <= 1) return;
     event.preventDefault();
@@ -225,6 +278,10 @@ export function UserProfilePage({
     };
   };
 
+  /**
+   * Обрабатывает handle mouse move.
+   * @param event Событие браузера.
+   */
   const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (!dragState.current) return;
     event.preventDefault();
@@ -235,10 +292,17 @@ export function UserProfilePage({
     setPan(clampPan(nextX, nextY));
   };
 
+  /**
+   * Обрабатывает handle mouse up.
+   */
   const handleMouseUp = () => {
     dragState.current = null;
   };
 
+  /**
+   * Обрабатывает handle avatar key down.
+   * @param event Событие браузера.
+   */
   const handleAvatarKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!hasProfileImage) return;
     if (event.key === "Enter" || event.key === " ") {
@@ -249,6 +313,10 @@ export function UserProfilePage({
 
   useEffect(() => {
     if (!isPreviewOpen) return;
+    /**
+     * Обрабатывает on key down.
+     * @param event Событие браузера.
+     */
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") closePreview();
     };

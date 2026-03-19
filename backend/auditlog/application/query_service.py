@@ -15,6 +15,15 @@ from auditlog.infrastructure.repository import AuditEventRepository
 
 
 def _parse_int(raw_value, *, field_name: str) -> int | None:
+    """Разбирает int из входных данных с валидацией формата.
+    
+    Args:
+        raw_value: Исходное значение параметра до преобразования и валидации.
+        field_name: Имя поля модели, которое содержит путь к файлу.
+    
+    Returns:
+        Объект типа int | None, сформированный в рамках обработки.
+    """
     if raw_value in (None, ""):
         return None
     try:
@@ -24,6 +33,15 @@ def _parse_int(raw_value, *, field_name: str) -> int | None:
 
 
 def _parse_bool(raw_value, *, field_name: str) -> bool | None:
+    """Разбирает bool из входных данных с валидацией формата.
+    
+    Args:
+        raw_value: Исходное значение параметра до преобразования и валидации.
+        field_name: Имя поля модели, которое содержит путь к файлу.
+    
+    Returns:
+        Объект типа bool | None, сформированный в рамках обработки.
+    """
     if raw_value in (None, ""):
         return None
     value = str(raw_value).strip().lower()
@@ -35,6 +53,15 @@ def _parse_bool(raw_value, *, field_name: str) -> bool | None:
 
 
 def _parse_datetime(raw_value, *, field_name: str) -> datetime | None:
+    """Разбирает datetime из входных данных с валидацией формата.
+    
+    Args:
+        raw_value: Исходное значение параметра до преобразования и валидации.
+        field_name: Имя поля модели, которое содержит путь к файлу.
+    
+    Returns:
+        Объект типа datetime | None, сформированный в рамках обработки.
+    """
     if raw_value in (None, ""):
         return None
     try:
@@ -47,6 +74,14 @@ def _parse_datetime(raw_value, *, field_name: str) -> datetime | None:
 
 
 def parse_filters(params) -> AuditQueryFilters:
+    """Разбирает filters из входных данных с валидацией формата.
+    
+    Args:
+        params: Данные params, участвующие в обработке текущей операции.
+    
+    Returns:
+        Объект типа AuditQueryFilters, сформированный в рамках обработки.
+    """
     default_limit = int(getattr(settings, "AUDIT_API_DEFAULT_LIMIT", 50))
     max_limit = int(getattr(settings, "AUDIT_API_MAX_LIMIT", 200))
 
@@ -76,6 +111,14 @@ def parse_filters(params) -> AuditQueryFilters:
 
 
 def list_events(filters: AuditQueryFilters):
+    """Возвращает список events, доступных в текущем контексте.
+    
+    Args:
+        filters: Набор фильтров, применяемых к выборке событий или данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     queryset = apply_filters(AuditEventRepository.all(), filters).order_by("-created_at", "-id")
     batch = list(queryset[: filters.limit + 1])
     has_more = len(batch) > filters.limit
@@ -90,10 +133,26 @@ def list_events(filters: AuditQueryFilters):
 
 
 def get_event(event_id: int):
+    """Возвращает event из текущего контекста или хранилища.
+    
+    Args:
+        event_id: Идентификатор event, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     return AuditEventRepository.all().filter(id=event_id).first()
 
 
 def list_action_counts(filters: AuditQueryFilters):
+    """Возвращает список action counts, доступных в текущем контексте.
+    
+    Args:
+        filters: Набор фильтров, применяемых к выборке событий или данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     base_filters = replace(filters, action=None, action_prefix=None, cursor=None)
     queryset = apply_filters(
         AuditEventRepository.all(),

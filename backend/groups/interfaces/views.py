@@ -42,14 +42,40 @@ from .serializers import (
 
 
 def _error(msg: str, code: int = 400) -> Response:
+    """Вспомогательная функция `_error` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        msg: Параметр msg, используемый в логике функции.
+        code: Параметр code, используемый в логике функции.
+    
+    Returns:
+        HTTP-ответ с результатом обработки.
+    """
     return Response({"error": msg}, status=code)
 
 
 def _validated_data(serializer: Any) -> dict[str, Any]:
+    """Выполняет вспомогательную обработку для validated data.
+    
+    Args:
+        serializer: Сериализатор с входными или валидированными данными.
+    
+    Returns:
+        Словарь типа dict[str, Any] с результатами операции.
+    """
     return cast(dict[str, Any], serializer.validated_data)
 
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
+    """Разбирает positive int из входных данных с валидацией формата.
+    
+    Args:
+        raw_value: Исходное значение параметра до преобразования и валидации.
+        param_name: Имя входного параметра, участвующего в проверке.
+    
+    Returns:
+        Целочисленное значение результата вычисления.
+    """
     if raw_value is None:
         raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
     candidate = raw_value.strip()
@@ -65,9 +91,25 @@ def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
 
 
 def _handle_group_errors(func):
-    """Decorator to handle common group service errors."""
+    """Обрабатывает событие group errors и выполняет связанную бизнес-логику.
+    
+    Args:
+        func: Функция, которую оборачивает текущий декоратор.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
+        """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+        
+        Args:
+            *args: Дополнительные позиционные аргументы вызова.
+            **kwargs: Дополнительные именованные аргументы вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         try:
             return func(*args, **kwargs)
         except GroupNotFoundError as exc:
@@ -87,6 +129,14 @@ def _handle_group_errors(func):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def create_group(request):
+    """Создает group и возвращает созданную сущность.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     ser = GroupCreateInputSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     data = _validated_data(ser)
@@ -105,6 +155,14 @@ def create_group(request):
 @permission_classes([AllowAny])
 @_handle_group_errors
 def list_public_groups(request):
+    """Возвращает список public groups, доступных в текущем контексте.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     search = request.query_params.get("search")
     limit_raw = request.query_params.get("limit")
     before_raw = request.query_params.get("before")
@@ -124,6 +182,14 @@ def list_public_groups(request):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def list_my_groups(request):
+    """Возвращает список my groups, доступных в текущем контексте.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     search = request.query_params.get("search")
     limit_raw = request.query_params.get("limit")
     before_raw = request.query_params.get("before")
@@ -145,6 +211,15 @@ def list_my_groups(request):
 @parser_classes([JSONParser, FormParser, MultiPartParser])
 @_handle_group_errors
 def group_detail(request, room_id):
+    """Вспомогательная функция `group_detail` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if request.method == "GET":
         user = getattr(request, "user", None)
         actor = user if user and getattr(user, "is_authenticated", False) else None
@@ -204,6 +279,15 @@ def group_detail(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def join_group(request, room_id):
+    """Добавляет участника или объект в group.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     member_service.join_group(request.user, room_id)
     return Response({"roomId": int(room_id), "status": "joined"})
 
@@ -212,6 +296,15 @@ def join_group(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def leave_group(request, room_id):
+    """Удаляет участника или объект из group.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     member_service.leave_group(request.user, room_id)
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -220,6 +313,15 @@ def leave_group(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def list_members(request, room_id):
+    """Возвращает список members, доступных в текущем контексте.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     limit_raw = request.query_params.get("limit")
     before_raw = request.query_params.get("before")
     limit = 50 if limit_raw is None else min(_parse_positive_int(limit_raw, "limit"), 200)
@@ -238,6 +340,16 @@ def list_members(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def kick_member(request, room_id, user_id):
+    """Исключает member с учетом проверок полномочий.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        user_id: Идентификатор user, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     member_service.kick_member(request.user, room_id, int(user_id))
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -246,6 +358,16 @@ def kick_member(request, room_id, user_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def ban_member(request, room_id, user_id):
+    """Блокирует member в рамках текущего контекста.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        user_id: Идентификатор user, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     ser = BanInputSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     data = _validated_data(ser)
@@ -259,6 +381,16 @@ def ban_member(request, room_id, user_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def unban_member(request, room_id, user_id):
+    """Снимает блокировку с member.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        user_id: Идентификатор user, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     member_service.unban_member(request.user, room_id, int(user_id))
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -267,6 +399,16 @@ def unban_member(request, room_id, user_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def mute_member(request, room_id, user_id):
+    """Отключает активность member на заданный период.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        user_id: Идентификатор user, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     ser = MuteInputSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     data = _validated_data(ser)
@@ -281,6 +423,16 @@ def mute_member(request, room_id, user_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def unmute_member(request, room_id, user_id):
+    """Возвращает активность member после снятия ограничения.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        user_id: Идентификатор user, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     member_service.unmute_member(request.user, room_id, int(user_id))
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -289,6 +441,15 @@ def unmute_member(request, room_id, user_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def list_banned(request, room_id):
+    """Возвращает список banned, доступных в текущем контексте.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     limit_raw = request.query_params.get("limit")
     before_raw = request.query_params.get("before")
     limit = 50 if limit_raw is None else min(_parse_positive_int(limit_raw, "limit"), 200)
@@ -308,6 +469,15 @@ def list_banned(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def group_invites(request, room_id):
+    """Вспомогательная функция `group_invites` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if request.method == "POST":
         ser = InviteCreateInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -330,6 +500,16 @@ def group_invites(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def revoke_invite(request, room_id, code):
+    """Отзывает invite и аннулирует дальнейшее использование.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        code: Код операции, приглашения или ошибки.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     invite_service.revoke_invite(request.user, room_id, code)
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -338,6 +518,15 @@ def revoke_invite(request, room_id, code):
 @permission_classes([AllowAny])
 @_handle_group_errors
 def invite_preview(request, code):
+    """Вспомогательная функция `invite_preview` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        code: Параметр code, используемый в логике функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     info = invite_service.get_invite_info(code)
     return Response(InvitePreviewSerializer(info).data)
 
@@ -346,6 +535,15 @@ def invite_preview(request, code):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def join_via_invite(request, code):
+    """Добавляет участника или объект в via invite.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        code: Код операции, приглашения или ошибки.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     result = invite_service.join_via_invite(request.user, code)
     return Response(result)
 
@@ -356,6 +554,15 @@ def join_via_invite(request, code):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def list_join_requests(request, room_id):
+    """Возвращает список join requests, доступных в текущем контексте.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     items = member_service.list_join_requests(request.user, room_id)
     return Response({"items": JoinRequestOutputSerializer(items, many=True).data})
 
@@ -364,6 +571,16 @@ def list_join_requests(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def approve_join_request(request, room_id, request_id):
+    """Подтверждает join request и применяет изменения.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        request_id: Идентификатор request, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     member_service.approve_join_request(request.user, room_id, int(request_id))
     return Response({"status": "approved"})
 
@@ -372,6 +589,16 @@ def approve_join_request(request, room_id, request_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def reject_join_request(request, room_id, request_id):
+    """Отклоняет join request без применения изменений.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        request_id: Идентификатор request, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     member_service.reject_join_request(request.user, room_id, int(request_id))
     return Response({"status": "rejected"})
 
@@ -382,6 +609,15 @@ def reject_join_request(request, room_id, request_id):
 @permission_classes([AllowAny])
 @_handle_group_errors
 def group_pins(request, room_id):
+    """Вспомогательная функция `group_pins` реализует внутренний шаг бизнес-логики.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if request.method == "POST":
         if not getattr(request.user, "is_authenticated", False):
             return _error("Требуется аутентификация", 401)
@@ -407,6 +643,16 @@ def group_pins(request, room_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def unpin_message(request, room_id, message_id):
+    """Снимает закрепление с message.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room, используемый для выборки данных.
+        message_id: Идентификатор message, используемый для выборки данных.
+    
+    Returns:
+        Функция не возвращает значение.
+    """
     pin_service.unpin_message(request.user, room_id, int(message_id))
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
@@ -417,6 +663,15 @@ def unpin_message(request, room_id, message_id):
 @permission_classes([IsAuthenticated])
 @_handle_group_errors
 def transfer_ownership(request, room_id):
+    """Передает владение.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     ser = TransferOwnershipInputSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
     data = _validated_data(ser)
@@ -427,7 +682,16 @@ def transfer_ownership(request, room_id):
 
 
 class _HandledGroupAPIView(GenericAPIView):
+    """Класс _HandledGroupAPIView реализует HTTP-обработчики для API-слоя."""
     def _execute(self, handler):
+        """Обрабатывает шаг execute в HTTP API.
+        
+        Args:
+            handler: Параметр handler, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         try:
             return handler()
         except GroupNotFoundError as exc:
@@ -441,11 +705,25 @@ class _HandledGroupAPIView(GenericAPIView):
 
 
 class GroupCreateInteractiveView(_HandledGroupAPIView):
+    """Класс GroupCreateInteractiveView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
     serializer_class = GroupCreateInputSerializer
 
     def post(self, request):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             ser = self.get_serializer(data=request.data)
             ser.is_valid(raise_exception=True)
             data = _validated_data(ser)
@@ -466,12 +744,27 @@ class GroupCreateInteractiveView(_HandledGroupAPIView):
 
 
 class GroupDetailInteractiveView(_HandledGroupAPIView):
+    """Класс GroupDetailInteractiveView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [AllowAny]
     serializer_class = GroupUpdateInputSerializer
     parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def get(self, request, room_id):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             user = getattr(request, "user", None)
             actor = user if user and getattr(user, "is_authenticated", False) else None
             info = group_service.get_group_info(room_id, actor, request=request)
@@ -480,7 +773,21 @@ class GroupDetailInteractiveView(_HandledGroupAPIView):
         return self._execute(_impl)
 
     def patch(self, request, room_id):
+        """Обрабатывает HTTP PATCH запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             if not getattr(request.user, "is_authenticated", False):
                 return _error("Требуется аутентификация", 401)
             ser = self.get_serializer(data=request.data)
@@ -524,7 +831,21 @@ class GroupDetailInteractiveView(_HandledGroupAPIView):
         return self._execute(_impl)
 
     def delete(self, request, room_id):
+        """Обрабатывает HTTP DELETE запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             if not getattr(request.user, "is_authenticated", False):
                 return _error("Требуется аутентификация", 401)
             group_service.delete_group(request.user, room_id)
@@ -534,11 +855,27 @@ class GroupDetailInteractiveView(_HandledGroupAPIView):
 
 
 class BanMemberInteractiveView(_HandledGroupAPIView):
+    """Класс BanMemberInteractiveView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
     serializer_class = BanInputSerializer
 
     def post(self, request, room_id, user_id):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+            user_id: Идентификатор user, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             ser = self.get_serializer(data=request.data)
             ser.is_valid(raise_exception=True)
             data = _validated_data(ser)
@@ -554,11 +891,27 @@ class BanMemberInteractiveView(_HandledGroupAPIView):
 
 
 class MuteMemberInteractiveView(_HandledGroupAPIView):
+    """Класс MuteMemberInteractiveView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
     serializer_class = MuteInputSerializer
 
     def post(self, request, room_id, user_id):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+            user_id: Идентификатор user, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             ser = self.get_serializer(data=request.data)
             ser.is_valid(raise_exception=True)
             data = _validated_data(ser)
@@ -574,18 +927,47 @@ class MuteMemberInteractiveView(_HandledGroupAPIView):
 
 
 class GroupInvitesInteractiveView(_HandledGroupAPIView):
+    """Класс GroupInvitesInteractiveView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
     serializer_class = InviteCreateInputSerializer
 
     def get(self, request, room_id):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             invites = invite_service.list_invites(request.user, room_id)
             return Response({"items": InviteOutputSerializer(invites, many=True).data})
 
         return self._execute(_impl)
 
     def post(self, request, room_id):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             ser = self.get_serializer(data=request.data)
             ser.is_valid(raise_exception=True)
             data = _validated_data(ser)
@@ -605,11 +987,26 @@ class GroupInvitesInteractiveView(_HandledGroupAPIView):
 
 
 class GroupPinsInteractiveView(_HandledGroupAPIView):
+    """Класс GroupPinsInteractiveView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [AllowAny]
     serializer_class = PinInputSerializer
 
     def get(self, request, room_id):
+        """Обрабатывает HTTP GET запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             user = getattr(request, "user", None)
             actor = user if user and getattr(user, "is_authenticated", False) else None
             items = pin_service.list_pinned(room_id, actor)
@@ -618,7 +1015,21 @@ class GroupPinsInteractiveView(_HandledGroupAPIView):
         return self._execute(_impl)
 
     def post(self, request, room_id):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             if not getattr(request.user, "is_authenticated", False):
                 return _error("Требуется аутентификация", 401)
             ser = self.get_serializer(data=request.data)
@@ -637,11 +1048,26 @@ class GroupPinsInteractiveView(_HandledGroupAPIView):
 
 
 class TransferOwnershipInteractiveView(_HandledGroupAPIView):
+    """Класс TransferOwnershipInteractiveView реализует HTTP-обработчики для API-слоя."""
     permission_classes = [IsAuthenticated]
     serializer_class = TransferOwnershipInputSerializer
 
     def post(self, request, room_id):
+        """Обрабатывает HTTP POST запрос в рамках текущего представления.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            room_id: Идентификатор room, используемый для выборки данных.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         def _impl():
+            """Выполняет внутреннюю часть операции в рамках декоратора или вспомогательной обертки.
+            
+            Returns:
+                Функция не возвращает значение.
+            """
             ser = self.get_serializer(data=request.data)
             ser.is_valid(raise_exception=True)
             data = _validated_data(ser)

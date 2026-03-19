@@ -30,6 +30,11 @@ const presenceStateSchema = z
 
 const pingSchema = z.object({ type: z.literal("ping") }).passthrough();
 
+/**
+ * Преобразует WebSocket-данные для операции to guests.
+ * @param value Входное значение для преобразования.
+ * @returns Числовое значение результата.
+ */
 const toGuests = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -39,6 +44,9 @@ const toGuests = (value: unknown): number | null => {
   return null;
 };
 
+/**
+ * Описывает полезную нагрузку события `PresenceWsEvent`.
+ */
 export type PresenceWsEvent =
   | {
       type: "state";
@@ -49,10 +57,11 @@ export type PresenceWsEvent =
   | { type: "unknown" };
 
 /**
- * Декодирует входящее WS-сообщение presence.
- * @param raw Сырой JSON payload из websocket.
- * @returns Нормализованное WS-событие.
+ * Преобразует WebSocket-данные для операции decode presence ws event.
+ * @param raw Сырые входные данные до нормализации.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodePresenceWsEvent = (raw: string): PresenceWsEvent => {
   const payload = parseJson(raw);
   if (!payload || typeof payload !== "object") {

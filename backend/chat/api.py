@@ -70,10 +70,20 @@ User = get_user_model()
 
 
 class DirectStartInputSerializer(serializers.Serializer):
+    """Сериализатор DirectStartInputSerializer преобразует данные между API и внутренними объектами."""
     ref = serializers.CharField()
 
 
 def _build_profile_pic_url(request, profile_pic):
+    """Формирует profile pic url для дальнейшего использования.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        profile_pic: Параметр profile pic, используемый в логике функции.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if not profile_pic:
         return None
     try:
@@ -84,6 +94,16 @@ def _build_profile_pic_url(request, profile_pic):
 
 
 def _build_attachment_url(request, attachment_file, room_id: int | None):
+    """Формирует attachment url для дальнейшего использования.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        attachment_file: Параметр attachment file, используемый в логике функции.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if not attachment_file or room_id is None:
         return None
     try:
@@ -94,6 +114,16 @@ def _build_attachment_url(request, attachment_file, room_id: int | None):
 
 
 def _serialize_peer(request, user, *, is_blocked: bool = False):
+    """Сериализует peer для передачи клиенту.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        user: Пользователь, для которого выполняется операция.
+        is_blocked: Булев флаг условия blocked.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     profile_pic = resolve_user_avatar_url_from_request(request, user)
 
     profile = getattr(user, "profile", None)
@@ -115,6 +145,14 @@ def _serialize_peer(request, user, *, is_blocked: bool = False):
 
 
 def _serialize_reply_to(message: Message | None):
+    """Сериализует reply to для передачи клиенту.
+    
+    Args:
+        message: Сообщение, участвующее в обработке.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     if not message:
         return None
     if message.is_deleted:
@@ -140,6 +178,16 @@ def _serialize_attachment_item(
     *,
     room_id: int | None,
 ):
+    """Сериализует attachment item для ответа API.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        attachment: Параметр attachment, используемый в логике функции.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     return {
         "id": attachment.pk,
         "originalFilename": attachment.original_filename,
@@ -157,6 +205,15 @@ def _serialize_attachment_item(
 
 
 def _serialize_group_avatar_for_room(request, room: Room) -> tuple[str | None, dict[str, float] | None]:
+    """Сериализует group avatar for room для передачи клиенту.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room: Комната, в контексте которой выполняется действие.
+    
+    Returns:
+        Кортеж типа tuple[str | None, dict[str, float] | None] с результатами операции.
+    """
     if room.kind != Room.Kind.GROUP:
         return None, None
 
@@ -164,6 +221,11 @@ def _serialize_group_avatar_for_room(request, room: Room) -> tuple[str | None, d
 
 
 def _public_room():
+    """Выполняет вспомогательную обработку для public room.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     try:
         room, _created = Room.objects.get_or_create(
             slug=PUBLIC_ROOM_SLUG,
@@ -184,6 +246,15 @@ def _public_room():
 
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
+    """Разбирает и валидирует positive int.
+    
+    Args:
+        raw_value: Параметр raw value, используемый в логике функции.
+        param_name: Параметр param name, используемый в логике функции.
+    
+    Returns:
+        Целочисленный результат вычисления.
+    """
     if raw_value is None:
         raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
 
@@ -201,11 +272,26 @@ def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
 
 
 def _is_transient_db_lock(exc: OperationalError) -> bool:
+    """Проверяет условие transient db lock и возвращает булев результат.
+    
+    Args:
+        exc: Параметр exc, используемый в логике функции.
+    
+    Returns:
+        Логическое значение результата проверки.
+    """
     message = str(exc).lower()
     return "locked" in message or "deadlock" in message
 
 
 def _ensure_direct_memberships_with_retry(room: Room, initiator, peer) -> None:
+    """Проверяет обязательные условия для direct memberships with retry.
+    
+    Args:
+        room: Комната, в контексте которой выполняется операция.
+        initiator: Параметр initiator, используемый в логике функции.
+        peer: Параметр peer, используемый в логике функции.
+    """
     attempts = max(
         1,
         int(
@@ -228,11 +314,29 @@ def _ensure_direct_memberships_with_retry(room: Room, initiator, peer) -> None:
 
 
 def _resolve_room(room_id: int):
+    """Определяет room на основе доступного контекста.
+    
+    Args:
+        room_id: Идентификатор room.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room = Room.objects.filter(pk=room_id).first()
     return room, None
 
 
 def _serialize_room_details(request, room: Room, created: bool):
+    """Сериализует room details для передачи клиенту.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room: Комната, в контексте которой выполняется действие.
+        created: Флаг создания новой записи.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     group_avatar_url, group_avatar_crop = _serialize_group_avatar_for_room(request, room)
     payload = {
         "roomId": room.pk,
@@ -275,19 +379,44 @@ def _serialize_room_details(request, room: Room, created: bool):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def public_room(request):
+    """Возвращает или создает публичную комнату для текущего пользователя.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room = _public_room()
     serializer = RoomPublicSerializer({"roomId": room.pk, "name": room.name, "kind": room.kind})
     return Response(serializer.data)
 
 
 class DirectStartApiView(GenericAPIView):
+    """Класс DirectStartApiView реализует HTTP-обработчики для API."""
     permission_classes = [IsAuthenticated]
     serializer_class = DirectStartInputSerializer
 
     def get(self, _request):
+        """Обрабатывает HTTP GET запрос.
+        
+        Args:
+            _request: HTTP-запрос, который не используется напрямую в теле функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         return Response({"detail": "Используйте POST с публичным ref пользователя"})
 
     def post(self, request):
+        """Обрабатывает HTTP POST запрос.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         target_ref = str(request.data.get("ref") or "").strip()
         if not target_ref:
             return Response({"error": "Требуется ref"}, status=http_status.HTTP_400_BAD_REQUEST)
@@ -328,6 +457,14 @@ direct_start = DirectStartApiView.as_view()
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def direct_chats(request):
+    """Возвращает список direct-чатов пользователя.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     membership_qs = (
         Membership.objects.filter(
             user=request.user,
@@ -384,6 +521,15 @@ def direct_chats(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def room_details(request, room_id: int):
+    """Возвращает подробные данные комнаты.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     try:
         room, error_response = _resolve_room(room_id)
         if error_response:
@@ -417,6 +563,15 @@ def room_details(request, room_id: int):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def room_messages(request, room_id: int):
+    """Возвращает сообщения комнаты с учетом пагинации и доступа.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room, error_response = _resolve_room(room_id)
     if error_response:
         return error_response
@@ -516,7 +671,12 @@ def room_messages(request, room_id: int):
 # ── Helpers for WS broadcast from REST views ──────────────────────────
 
 def _broadcast_to_room(room: Room, event: dict):
-    """Send a channel-layer event to the room group."""
+    """Выполняет вспомогательную обработку для broadcast to room.
+    
+    Args:
+        room: Комната, в контексте которой выполняется действие.
+        event: Событие для логирования или трансляции.
+    """
     channel_layer = get_channel_layer()
     if channel_layer is None:
         return
@@ -527,7 +687,12 @@ def _broadcast_to_room(room: Room, event: dict):
 
 
 def _ensure_room_read_access(request, room: Room):
-    """Raise Http404 if user cannot read this room."""
+    """Гарантирует корректность room read access перед выполнением операции.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room: Комната, в контексте которой выполняется действие.
+    """
     if room.kind in {Room.Kind.PRIVATE, Room.Kind.DIRECT, Room.Kind.GROUP}:
         ensure_can_read_or_404(room, request.user)
 
@@ -537,6 +702,16 @@ def _ensure_room_read_access(request, room: Room):
 @api_view(["PATCH", "DELETE"])
 @permission_classes([IsAuthenticated])
 def message_detail(request, room_id: int, message_id):
+    """Обрабатывает операции над конкретным сообщением.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+        message_id: Идентификатор сообщения.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room, error_response = _resolve_room(room_id)
     if error_response:
         return error_response
@@ -591,6 +766,16 @@ def message_detail(request, room_id: int, message_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def message_reactions(request, room_id: int, message_id):
+    """Добавляет или возвращает реакции сообщения.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+        message_id: Идентификатор сообщения.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room, error_response = _resolve_room(room_id)
     if error_response:
         return error_response
@@ -636,6 +821,17 @@ def message_reactions(request, room_id: int, message_id):
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def message_reaction_remove(request, room_id: int, message_id, emoji):
+    """Удаляет реакцию пользователя с сообщения.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+        message_id: Идентификатор сообщения.
+        emoji: Эмодзи-реакция, над которой выполняется операция.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room, error_response = _resolve_room(room_id)
     if error_response:
         return error_response
@@ -666,6 +862,15 @@ def message_reaction_remove(request, room_id: int, message_id, emoji):
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser])
 def upload_attachments(request, room_id: int):
+    """Загружает вложения сообщения и возвращает их метаданные.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room, error_response = _resolve_room(room_id)
     if error_response:
         return error_response
@@ -755,12 +960,28 @@ def upload_attachments(request, room_id: int):
         details: dict[str, object] | None = None,
         status_code: int = http_status.HTTP_400_BAD_REQUEST,
     ) -> Response:
+        """Формирует структуру ошибки response для API-ответа.
+        
+        Args:
+            message: Сообщение, участвующее в обработке.
+            code: Параметр code, используемый в логике функции.
+            details: Подробности ошибки или диагностические данные ответа.
+            status_code: HTTP-код результата операции.
+        
+        Returns:
+            HTTP-ответ с результатом обработки.
+        """
         payload: dict[str, object] = {"error": message, "code": code}
         if details:
             payload["details"] = details
         return Response(payload, status=status_code)
 
     def _collect_uploaded_files() -> list:
+        """Выполняет вспомогательную обработку для collect uploaded files.
+        
+        Returns:
+            Список типа list с результатами операции.
+        """
         keys = ("files", "file", "attachments", "attachments[]")
         collected: list = []
         seen_ids: set[int] = set()
@@ -833,6 +1054,15 @@ def upload_attachments(request, room_id: int):
     }
 
     def _canonical_content_type(content_type: str, *, file_name: str = "") -> str:
+        """Определяет канонический MIME-тип загруженного файла.
+        
+        Args:
+            content_type: MIME-тип файла или ответа.
+            file_name: Имя файла, используемое для определения формата.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         normalized = content_type.strip().lower()
         aliased = alias_map.get(normalized, normalized)
 
@@ -864,6 +1094,14 @@ def upload_attachments(request, room_id: int):
                 )
 
     def _resolve_content_type(uploaded_file) -> str:
+        """Определяет content type на основе доступного контекста.
+        
+        Args:
+            uploaded_file: Файл, полученный из multipart-запроса.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         file_name = getattr(uploaded_file, "name", "") or ""
         raw_content_type = (getattr(uploaded_file, "content_type", "") or "").strip().lower()
         lower_name = file_name.strip().lower()
@@ -989,6 +1227,15 @@ def upload_attachments(request, room_id: int):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def search_messages(request, room_id: int):
+    """Ищет сообщения в рамках доступного контекста.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        room_id: Идентификатор комнаты.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room, error_response = _resolve_room(room_id)
     if error_response:
         return error_response
@@ -1083,6 +1330,17 @@ def search_messages(request, room_id: int):
 # ── Read Receipts ─────────────────────────────────────────────────────
 
 def _parse_section_limit(request, key: str, default: int, max_value: int) -> int:
+    """Разбирает и валидирует section limit.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+        key: Параметр key, используемый в логике функции.
+        default: Значение по умолчанию при отсутствии пользовательского ввода.
+        max_value: Параметр max value, используемый в логике функции.
+    
+    Returns:
+        Целочисленный результат вычисления.
+    """
     raw = request.query_params.get(key)
     if raw is None:
         return default
@@ -1094,6 +1352,14 @@ def _parse_section_limit(request, key: str, default: int, max_value: int) -> int
 
 
 def _interaction_room_ids(user) -> set[int]:
+    """Выполняет вспомогательную обработку для interaction room ids.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+    
+    Returns:
+        Объект типа set[int], полученный при выполнении операции.
+    """
     room_ids = set(
         Membership.objects.filter(
             user=user,
@@ -1109,6 +1375,15 @@ def _interaction_room_ids(user) -> set[int]:
 
 
 def _interaction_user_ids(user, room_ids: set[int]) -> set[int]:
+    """Выполняет вспомогательную обработку для interaction user ids.
+    
+    Args:
+        user: Пользователь, для которого выполняется операция.
+        room_ids: Список идентификаторов room.
+    
+    Returns:
+        Объект типа set[int], полученный при выполнении операции.
+    """
     if not room_ids:
         return set()
 
@@ -1137,6 +1412,14 @@ def _interaction_user_ids(user, room_ids: set[int]) -> set[int]:
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def global_search(request):
+    """Выполняет глобальный поиск по поддерживаемым сущностям.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     raw_q = request.query_params.get("q", "").strip()
     if len(raw_q) < 2:
         return Response({"error": "Запрос должен содержать минимум 2 символа"}, status=http_status.HTTP_400_BAD_REQUEST)
@@ -1243,6 +1526,15 @@ def global_search(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def mark_read_view(request, room_id: int):
+    """Помечает read view новым состоянием.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        room_id: Идентификатор room.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     room, error_response = _resolve_room(room_id)
     if error_response:
         return error_response
@@ -1299,6 +1591,14 @@ def mark_read_view(request, room_id: int):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def unread_counts(request):
+    """Возвращает счетчики непрочитанных сообщений по комнатам.
+    
+    Args:
+        request: HTTP-запрос с контекстом пользователя и входными данными.
+    
+    Returns:
+        Результат вычислений, сформированный в ходе выполнения функции.
+    """
     items = get_unread_counts(request.user)
     return Response({"items": items})
 

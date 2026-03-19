@@ -161,6 +161,9 @@ const sampleGroup: Group = {
   avatarCrop: null,
 };
 
+/**
+ * Создает тестовое окружение с базовыми моками зависимостей.
+ */
 const withBaseMocks = () => {
   groupControllerMock.getGroupMembers.mockResolvedValue({
     items: [],

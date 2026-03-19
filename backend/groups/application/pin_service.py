@@ -21,7 +21,16 @@ from users.identity import user_public_username
 
 
 def pin_message(actor, room_id: int, message_id: int) -> PinnedMessage:
-    """Pin a message in a group. Requires PIN_MESSAGES or MANAGE_MESSAGES."""
+    """Закрепляет message в интерфейсе комнаты.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        message_id: Идентификатор сообщения.
+    
+    Returns:
+        Объект типа PinnedMessage, сформированный в ходе выполнения.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -58,7 +67,13 @@ def pin_message(actor, room_id: int, message_id: int) -> PinnedMessage:
 
 
 def unpin_message(actor, room_id: int, message_id: int) -> None:
-    """Unpin a message from a group."""
+    """Снимает закрепление с message.
+    
+    Args:
+        actor: Пользователь, инициирующий действие.
+        room_id: Идентификатор комнаты.
+        message_id: Идентификатор сообщения.
+    """
     _ensure_authenticated(actor)
     room = _load_group_or_raise(room_id)
 
@@ -86,7 +101,15 @@ def unpin_message(actor, room_id: int, message_id: int) -> None:
 
 
 def list_pinned(room_id: int, actor) -> list[dict]:
-    """List pinned messages for a group."""
+    """Возвращает список pinned, доступных в текущем контексте.
+    
+    Args:
+        room_id: Идентификатор room.
+        actor: Пользователь, инициирующий действие.
+    
+    Returns:
+        Список типа list[dict] с результатами операции.
+    """
     room = _load_group_or_raise(room_id)
 
     # Public groups: anyone can see pins; private groups: need READ_MESSAGES

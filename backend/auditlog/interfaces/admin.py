@@ -14,6 +14,7 @@ from auditlog.models import AuditEvent
 
 
 class StatusFamilyFilter(admin.SimpleListFilter):
+    """Класс StatusFamilyFilter настраивает поведение сущности в Django Admin."""
     title = "Группа статусов"
     parameter_name = "status_family"
 
@@ -22,6 +23,15 @@ class StatusFamilyFilter(admin.SimpleListFilter):
         request: HttpRequest,
         model_admin: admin.ModelAdmin,
     ) -> list[tuple[Any, str]]:
+        """Вспомогательная функция `lookups` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            model_admin: Экземпляр ModelAdmin, для которого строится фильтр.
+        
+        Returns:
+            Список типа list[tuple[Any, str]] с данными результата.
+        """
         del request, model_admin
         return [
             ("2xx", "2xx"),
@@ -35,6 +45,15 @@ class StatusFamilyFilter(admin.SimpleListFilter):
         request: HttpRequest,
         queryset: QuerySet[Any] | None,
     ) -> QuerySet[Any] | None:
+        """Вспомогательная функция `queryset` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            queryset: Набор записей, к которому применяются фильтры.
+        
+        Returns:
+            Объект типа QuerySet[Any] | None, сформированный в ходе выполнения.
+        """
         del request
         if queryset is None:
             return None
@@ -51,6 +70,7 @@ class StatusFamilyFilter(admin.SimpleListFilter):
 
 
 class HasActorFilter(admin.SimpleListFilter):
+    """Класс HasActorFilter настраивает поведение сущности в Django Admin."""
     title = "Есть актёр"
     parameter_name = "has_actor"
 
@@ -59,6 +79,15 @@ class HasActorFilter(admin.SimpleListFilter):
         request: HttpRequest,
         model_admin: admin.ModelAdmin,
     ) -> list[tuple[Any, str]]:
+        """Вспомогательная функция `lookups` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            model_admin: Экземпляр ModelAdmin, для которого строится фильтр.
+        
+        Returns:
+            Список типа list[tuple[Any, str]] с данными результата.
+        """
         del request, model_admin
         return [
             ("yes", "Да"),
@@ -70,6 +99,15 @@ class HasActorFilter(admin.SimpleListFilter):
         request: HttpRequest,
         queryset: QuerySet[Any] | None,
     ) -> QuerySet[Any] | None:
+        """Вспомогательная функция `queryset` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            queryset: Набор записей, к которому применяются фильтры.
+        
+        Returns:
+            Объект типа QuerySet[Any] | None, сформированный в ходе выполнения.
+        """
         del request
         if queryset is None:
             return None
@@ -82,6 +120,7 @@ class HasActorFilter(admin.SimpleListFilter):
 
 
 class HasRequestIdFilter(admin.SimpleListFilter):
+    """Класс HasRequestIdFilter настраивает поведение сущности в Django Admin."""
     title = "Есть request_id"
     parameter_name = "has_request_id"
 
@@ -90,6 +129,15 @@ class HasRequestIdFilter(admin.SimpleListFilter):
         request: HttpRequest,
         model_admin: admin.ModelAdmin,
     ) -> list[tuple[Any, str]]:
+        """Вспомогательная функция `lookups` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            model_admin: Экземпляр ModelAdmin, для которого строится фильтр.
+        
+        Returns:
+            Список типа list[tuple[Any, str]] с данными результата.
+        """
         del request, model_admin
         return [
             ("yes", "Да"),
@@ -101,6 +149,15 @@ class HasRequestIdFilter(admin.SimpleListFilter):
         request: HttpRequest,
         queryset: QuerySet[Any] | None,
     ) -> QuerySet[Any] | None:
+        """Вспомогательная функция `queryset` реализует внутренний шаг бизнес-логики.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            queryset: Набор записей, к которому применяются фильтры.
+        
+        Returns:
+            Объект типа QuerySet[Any] | None, сформированный в ходе выполнения.
+        """
         del request
         if queryset is None:
             return None
@@ -114,6 +171,7 @@ class HasRequestIdFilter(admin.SimpleListFilter):
 
 @admin.register(AuditEvent)
 class AuditEventAdmin(admin.ModelAdmin):
+    """Класс AuditEventAdmin настраивает поведение сущности в Django Admin."""
     change_list_template = "admin/auditlog/auditevent/change_list.html"
     list_display = (
         "id",
@@ -179,31 +237,97 @@ class AuditEventAdmin(admin.ModelAdmin):
 
     @admin.display(description="Path")
     def short_path(self, obj):
+        """Формирует краткое представление path.
+        
+        Args:
+            obj: Параметр obj, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         path_value = obj.path or ""
         return path_value if len(path_value) <= 80 else f"{path_value[:77]}..."
 
     def has_add_permission(self, request):
+        """Проверяет условие add permission и возвращает логический результат.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return False
 
     def has_change_permission(self, request, obj=None):
+        """Проверяет условие change permission и возвращает логический результат.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return False
 
     def has_delete_permission(self, request, obj=None):
+        """Проверяет условие delete permission и возвращает логический результат.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+            obj: Объект доменной модели или ORM-сущность.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         return False
 
     @admin.action(description="Экспортировать выбранные (CSV)")
     def export_selected_as_csv(self, _request, queryset):
+        """Экспортирует selected as csv в запрошенный формат.
+        
+        Args:
+            _request: HTTP-запрос, не используемый напрямую в теле функции.
+            queryset: Набор записей, к которому применяются фильтры.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         return self._build_export_response(queryset, export_format="csv")
 
     @admin.action(description="Экспортировать выбранные (JSON)")
     def export_selected_as_json(self, _request, queryset):
+        """Экспортирует selected as json в запрошенный формат.
+        
+        Args:
+            _request: HTTP-запрос, не используемый напрямую в теле функции.
+            queryset: Набор записей, к которому применяются фильтры.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         return self._build_export_response(queryset, export_format="json")
 
     @admin.action(description="Экспортировать выбранные (JSONL)")
     def export_selected_as_jsonl(self, _request, queryset):
+        """Экспортирует selected as jsonl в запрошенный формат.
+        
+        Args:
+            _request: HTTP-запрос, не используемый напрямую в теле функции.
+            queryset: Набор записей, к которому применяются фильтры.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         return self._build_export_response(queryset, export_format="jsonl")
 
     def get_urls(self):
+        """Возвращает urls из текущего контекста или хранилища.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         urls = super().get_urls()
         custom_urls = [
             path(
@@ -219,6 +343,15 @@ class AuditEventAdmin(admin.ModelAdmin):
         request: HttpRequest,
         extra_context: dict[str, Any] | None = None,
     ):
+        """Обрабатывает API-представление для changelist.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+            extra_context: Параметр extra context, используемый в логике функции.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         context: dict[str, Any] = dict(extra_context or {})
         params = request.GET.copy()
         for param in self._EXPORT_CONTROL_PARAMS:
@@ -235,6 +368,14 @@ class AuditEventAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context=context)
 
     def export_view(self, request):
+        """Экспортирует view в запрошенный формат.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и входными данными.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         export_format = (request.GET.get("format") or "csv").strip().lower()
         if export_format not in {"csv", "json", "jsonl"}:
             return HttpResponseBadRequest("Неподдерживаемый формат экспорта".encode("utf-8"))
@@ -248,6 +389,14 @@ class AuditEventAdmin(admin.ModelAdmin):
         return self._build_export_response(queryset, export_format=export_format)
 
     def _get_filtered_queryset(self, request):
+        """Возвращает filtered queryset из текущего контекста или хранилища.
+        
+        Args:
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         original_get = request.GET
         mutable_get = request.GET.copy()
         for param in self._EXPORT_CONTROL_PARAMS:
@@ -261,6 +410,15 @@ class AuditEventAdmin(admin.ModelAdmin):
 
     @staticmethod
     def _parse_iso_date(value: str | None, *, param: str) -> date | None:
+        """Разбирает iso date из входных данных с валидацией формата.
+        
+        Args:
+            value: Входное значение для проверки или преобразования.
+            param: Строковый параметр запроса или фильтра выгрузки.
+        
+        Returns:
+            Объект типа date | None, сформированный в рамках обработки.
+        """
         normalized = (value or "").strip()
         if not normalized:
             return None
@@ -273,6 +431,14 @@ class AuditEventAdmin(admin.ModelAdmin):
 
     @staticmethod
     def _parse_selected_ids(values: list[str]) -> list[int]:
+        """Разбирает selected ids из входных данных с валидацией формата.
+        
+        Args:
+            values: Набор значений, выбранных для фильтрации или экспорта.
+        
+        Returns:
+            Список типа list[int] с результатами операции.
+        """
         selected_ids: list[int] = []
         for raw in values:
             normalized = str(raw).strip()
@@ -289,9 +455,26 @@ class AuditEventAdmin(admin.ModelAdmin):
 
     @staticmethod
     def _parse_selected_only(value: str | None) -> bool:
+        """Разбирает selected only из входных данных с валидацией формата.
+        
+        Args:
+            value: Входное значение для проверки или преобразования.
+        
+        Returns:
+            Логическое значение результата проверки.
+        """
         return (value or "").strip().lower() in {"1", "true", "yes", "on"}
 
     def _apply_export_date_filters(self, queryset, request):
+        """Применяет export date filters к целевым данным.
+        
+        Args:
+            queryset: Набор записей, к которому применяются фильтры.
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         export_date = self._parse_iso_date(request.GET.get("export_date"), param="export_date")
         date_from = self._parse_iso_date(request.GET.get("date_from"), param="date_from")
         date_to = self._parse_iso_date(request.GET.get("date_to"), param="date_to")
@@ -306,6 +489,15 @@ class AuditEventAdmin(admin.ModelAdmin):
         return queryset
 
     def _apply_export_selected_filters(self, queryset, request):
+        """Применяет export selected filters к целевым данным.
+        
+        Args:
+            queryset: Набор записей, к которому применяются фильтры.
+            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         selected_only = self._parse_selected_only(request.GET.get("selected_only"))
         selected_ids = self._parse_selected_ids(request.GET.getlist("_selected_action"))
         if selected_ids:
@@ -317,6 +509,14 @@ class AuditEventAdmin(admin.ModelAdmin):
         return queryset
 
     def _serialize_event(self, event: AuditEvent) -> dict[str, object]:
+        """Сериализует event в формат, пригодный для передачи клиенту.
+        
+        Args:
+            event: Событие для логирования или последующей обработки.
+        
+        Returns:
+            Словарь типа dict[str, object] с результатами операции.
+        """
         created_at = cast(datetime | None, event.created_at)
         return {
             "id": event.pk,
@@ -336,10 +536,27 @@ class AuditEventAdmin(admin.ModelAdmin):
         }
 
     def _build_export_filename(self, export_format: str) -> str:
+        """Формирует export filename для дальнейшего использования в потоке обработки.
+        
+        Args:
+            export_format: Формат выгрузки аудита, например csv или json.
+        
+        Returns:
+            Строковое значение, сформированное функцией.
+        """
         timestamp = timezone.now().strftime("%Y%m%d-%H%M%S")
         return f"audit-events-{timestamp}.{slugify(export_format) or export_format}"
 
     def _build_export_response(self, queryset, *, export_format: str) -> HttpResponse:
+        """Формирует export response для дальнейшего использования в потоке обработки.
+        
+        Args:
+            queryset: Набор записей, к которому применяются фильтры.
+            export_format: Формат выгрузки аудита, например csv или json.
+        
+        Returns:
+            HTTP-ответ с данными результата операции.
+        """
         if export_format == "csv":
             return self._as_csv(queryset, filename=self._build_export_filename("csv"))
         if export_format == "json":
@@ -349,6 +566,15 @@ class AuditEventAdmin(admin.ModelAdmin):
         return HttpResponseBadRequest("Неподдерживаемый формат экспорта".encode("utf-8"))
 
     def _as_csv(self, queryset, *, filename: str) -> HttpResponse:
+        """Преобразует данные в представление csv.
+        
+        Args:
+            queryset: Набор записей, к которому применяются фильтры.
+            filename: Исходное имя файла, переданного в обработку.
+        
+        Returns:
+            HTTP-ответ с данными результата операции.
+        """
         response = HttpResponse(content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
@@ -377,6 +603,15 @@ class AuditEventAdmin(admin.ModelAdmin):
         return response
 
     def _as_json(self, queryset, *, filename: str) -> HttpResponse:
+        """Преобразует данные в представление json.
+        
+        Args:
+            queryset: Набор записей, к которому применяются фильтры.
+            filename: Исходное имя файла, переданного в обработку.
+        
+        Returns:
+            HTTP-ответ с данными результата операции.
+        """
         payload = [self._serialize_event(event) for event in queryset.iterator(chunk_size=1000)]
         response = HttpResponse(content_type="application/json; charset=utf-8")
         response.write(
@@ -386,6 +621,15 @@ class AuditEventAdmin(admin.ModelAdmin):
         return response
 
     def _as_jsonl(self, queryset, *, filename: str) -> HttpResponse:
+        """Преобразует данные в представление jsonl.
+        
+        Args:
+            queryset: Набор записей, к которому применяются фильтры.
+            filename: Исходное имя файла, переданного в обработку.
+        
+        Returns:
+            HTTP-ответ с данными результата операции.
+        """
         lines = []
         for event in queryset.iterator(chunk_size=1000):
             lines.append(
@@ -398,6 +642,14 @@ class AuditEventAdmin(admin.ModelAdmin):
 
     @staticmethod
     def _json_default(value):
+        """Выполняет вспомогательную обработку для json default.
+        
+        Args:
+            value: Входное значение для проверки или преобразования.
+        
+        Returns:
+            Результат вычислений, сформированный в ходе выполнения функции.
+        """
         if isinstance(value, datetime):
             return value.isoformat()
         return str(value)

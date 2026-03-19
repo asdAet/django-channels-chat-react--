@@ -131,6 +131,11 @@ const directChatsSchema = z
   })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции map peer.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapPeer = (dto: z.infer<typeof roomPeerSchema>): RoomPeer => {
   const raw = dto as Record<string, unknown>;
   return {
@@ -145,6 +150,11 @@ const mapPeer = (dto: z.infer<typeof roomPeerSchema>): RoomPeer => {
   };
 };
 
+/**
+ * Преобразует HTTP-данные для операции map room details.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapRoomDetails = (
   dto: z.infer<typeof roomDetailsSchema>,
 ): RoomDetails => {
@@ -174,6 +184,11 @@ const mapRoomDetails = (
   };
 };
 
+/**
+ * Преобразует HTTP-данные для операции map message.
+ * @param dto DTO-объект для декодирования данных.
+ * @returns Нормализованные данные после декодирования.
+ */
 const mapMessage = (dto: z.infer<typeof messageSchema>): Message => ({
   id: dto.id,
   publicRef: dto.publicRef,
@@ -213,6 +228,9 @@ const mapMessage = (dto: z.infer<typeof messageSchema>): Message => ({
   })),
 });
 
+/**
+ * Описывает структуру данных `RoomMessagesDto`.
+ */
 export type RoomMessagesDto = {
   messages: Message[];
   pagination?: {
@@ -222,40 +240,58 @@ export type RoomMessagesDto = {
   };
 };
 
+/**
+ * Описывает параметры вызова для `RoomMessages`.
+ */
 export type RoomMessagesParams = {
   limit?: number;
   beforeId?: number;
 };
 
+/**
+ * Описывает структуру ответа API `DirectStartResponseDto`.
+ */
 export type DirectStartResponseDto = {
   roomId: number;
   kind: RoomDetails["kind"];
   peer: RoomPeer;
 };
 
+/**
+ * Описывает структуру ответа API `DirectChatsResponseDto`.
+ */
 export type DirectChatsResponseDto = {
   items: DirectChatListItem[];
 };
 
 /**
- * Декодирует payload /api/chat/public-room/.
+ * Преобразует HTTP-данные для операции decode public room response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodePublicRoomResponse = (input: unknown): RoomDetails => {
   const parsed = decodeOrThrow(roomDetailsSchema, input, "chat/public-room");
   return mapRoomDetails(parsed);
 };
 
 /**
- * Декодирует payload /api/chat/rooms/{room_id}/.
+ * Преобразует HTTP-данные для операции decode room details response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeRoomDetailsResponse = (input: unknown): RoomDetails => {
   const parsed = decodeOrThrow(roomDetailsSchema, input, "chat/room-details");
   return mapRoomDetails(parsed);
 };
 
 /**
- * Декодирует payload /api/chat/rooms/{room_id}/messages/.
+ * Преобразует HTTP-данные для операции decode room messages response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeRoomMessagesResponse = (input: unknown): RoomMessagesDto => {
   const parsed = decodeOrThrow(roomMessagesSchema, input, "chat/room-messages");
   return {
@@ -265,8 +301,11 @@ export const decodeRoomMessagesResponse = (input: unknown): RoomMessagesDto => {
 };
 
 /**
- * Декодирует payload /api/chat/direct/start/.
+ * Преобразует HTTP-данные для операции decode direct start response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeDirectStartResponse = (
   input: unknown,
 ): DirectStartResponseDto => {
@@ -279,8 +318,11 @@ export const decodeDirectStartResponse = (
 };
 
 /**
- * Декодирует payload /api/chat/direct/chats/.
+ * Преобразует HTTP-данные для операции decode direct chats response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
  */
+
 export const decodeDirectChatsResponse = (
   input: unknown,
 ): DirectChatsResponseDto => {
@@ -408,17 +450,28 @@ const globalSearchResponseSchema = z
   })
   .passthrough();
 
+/**
+ * Преобразует HTTP-данные для операции to room id.
+ * @param value Входное значение для преобразования.
+ * @returns Нормализованные данные после декодирования.
+ */
 const toRoomId = (value: number | string): number => {
   const parsed =
     typeof value === "number" ? value : Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
 };
 
+/**
+ * Описывает структуру ответа API `EditMessageResponse`.
+ */
 export type EditMessageResponse = {
   id: number;
   content: string;
   editedAt: string;
 };
+/**
+ * Описывает структуру ответа API `ReactionResponse`.
+ */
 export type ReactionResponse = {
   messageId: number;
   emoji: string;
@@ -427,6 +480,9 @@ export type ReactionResponse = {
   username: string;
   displayName?: string;
 };
+/**
+ * Описывает результат операции `Search`.
+ */
 export type SearchResult = {
   id: number;
   publicRef: string;
@@ -436,26 +492,47 @@ export type SearchResult = {
   createdAt: string;
   highlight: string | null;
 };
+/**
+ * Описывает структуру ответа API `SearchResponse`.
+ */
 export type SearchResponse = {
   results: SearchResult[];
   pagination?: { limit: number; hasMore: boolean; nextBefore: number | null };
 };
+/**
+ * Описывает структуру ответа API `UploadResponse`.
+ */
 export type UploadResponse = {
   id: number;
   content: string;
   attachments: import("../../entities/message/types").Attachment[];
 };
+/**
+ * Описывает структуру ответа API `ReadStateResponse`.
+ */
 export type ReadStateResponse = {
   roomId: number;
   lastReadMessageId: number | null;
 };
+/**
+ * Описывает структуру данных `UnreadCountItem`.
+ */
 export type UnreadCountItem = { roomId: number; unreadCount: number };
+/**
+ * Описывает структуру данных `RoomAttachmentItem`.
+ */
 export type RoomAttachmentItem =
   import("../../domain/interfaces/IApiService").RoomAttachmentItem;
+/**
+ * Описывает структуру ответа API `RoomAttachmentsResponse`.
+ */
 export type RoomAttachmentsResponse = {
   items: RoomAttachmentItem[];
   pagination: { limit: number; hasMore: boolean; nextBefore: number | null };
 };
+/**
+ * Описывает структуру ответа API `GlobalSearchResponse`.
+ */
 export type GlobalSearchResponse = {
   users: {
     publicRef: string;
@@ -486,15 +563,33 @@ export type GlobalSearchResponse = {
   }[];
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode edit message response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeEditMessageResponse = (
   input: unknown,
 ): EditMessageResponse => {
   return decodeOrThrow(editMessageResponseSchema, input, "chat/edit-message");
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode reaction response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeReactionResponse = (input: unknown): ReactionResponse => {
   return decodeOrThrow(reactionResponseSchema, input, "chat/reaction");
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode search response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeSearchResponse = (input: unknown): SearchResponse => {
   const parsed = decodeOrThrow(searchResponseSchema, input, "chat/search");
@@ -511,6 +606,12 @@ export const decodeSearchResponse = (input: unknown): SearchResponse => {
     pagination: parsed.pagination,
   };
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode upload response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeUploadResponse = (input: unknown): UploadResponse => {
   const parsed = decodeOrThrow(uploadResponseSchema, input, "chat/upload");
@@ -530,6 +631,12 @@ export const decodeUploadResponse = (input: unknown): UploadResponse => {
   };
 };
 
+/**
+ * Преобразует HTTP-данные для операции decode read state response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+
 export const decodeReadStateResponse = (input: unknown): ReadStateResponse => {
   const parsed = decodeOrThrow(readStateResponseSchema, input, "chat/read-state");
   return {
@@ -537,6 +644,12 @@ export const decodeReadStateResponse = (input: unknown): ReadStateResponse => {
     lastReadMessageId: parsed.lastReadMessageId,
   };
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode unread counts response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeUnreadCountsResponse = (
   input: unknown,
@@ -551,6 +664,12 @@ export const decodeUnreadCountsResponse = (
     unreadCount: item.unreadCount,
   }));
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode room attachments response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeRoomAttachmentsResponse = (
   input: unknown,
@@ -579,6 +698,12 @@ export const decodeRoomAttachmentsResponse = (
     pagination: parsed.pagination,
   };
 };
+
+/**
+ * Преобразует HTTP-данные для операции decode global search response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
 
 export const decodeGlobalSearchResponse = (
   input: unknown,

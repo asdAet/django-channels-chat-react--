@@ -5,7 +5,9 @@ from django.db import models
 
 
 class Friendship(models.Model):
+    """Модель Friendship описывает структуру и поведение данных в приложении."""
     class Status(models.TextChoices):
+        """Класс Status инкапсулирует связанную бизнес-логику модуля."""
         PENDING = "pending"
         ACCEPTED = "accepted"
         DECLINED = "declined"
@@ -30,6 +32,7 @@ class Friendship(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
         db_table = "friends_friendship"
         constraints = [
             models.UniqueConstraint(
@@ -47,6 +50,11 @@ class Friendship(models.Model):
         ]
 
     def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+        
+        Returns:
+            Функция не возвращает значение.
+        """
         from_user_id = getattr(self, "from_user_id", None)
         if from_user_id is None:
             from_user_id = getattr(getattr(self, "from_user", None), "pk", "?")
