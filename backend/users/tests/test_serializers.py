@@ -22,6 +22,7 @@ class UsersSerializersTests(SimpleTestCase):
                 "handle": "user",
                 "publicId": "1234567890",
                 "publicRef": "@user",
+                "isSuperuser": False,
                 "email": "user@example.com",
                 "profileImage": None,
                 "avatarCrop": None,

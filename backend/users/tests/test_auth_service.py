@@ -96,15 +96,15 @@ class AuthServiceUnitTests(TestCase):
         self.assertEqual(auth_service.login_user("admin@example.com", "adminpass123"), admin)
 
     def test_login_user_rejects_non_staff_without_identity_records(self):
-        legacy_user = User.objects.create_user(
-            username="legacy_user",
-            email="legacy@example.com",
-            password="legacypass123",
+        user_without_identity = User.objects.create_user(
+            username="plain_user",
+            email="plain@example.com",
+            password="plainpass123",
         )
-        self.assertFalse(LoginIdentity.objects.filter(user=legacy_user).exists())
+        self.assertFalse(LoginIdentity.objects.filter(user=user_without_identity).exists())
 
         with self.assertRaises(IdentityUnauthorizedError):
-            auth_service.login_user("legacy_user", "legacypass123")
+            auth_service.login_user("plain_user", "plainpass123")
 
     @override_settings(GOOGLE_OAUTH_CLIENT_ID="")
     def test_get_expected_google_audience_requires_setting(self):

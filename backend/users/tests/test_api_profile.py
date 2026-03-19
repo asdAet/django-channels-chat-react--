@@ -18,6 +18,7 @@ from messages.models import Message, MessageAttachment
 from rooms.models import Room
 from rooms.services import ensure_membership
 from users.application import auth_service
+from users.avatar_service import user_password_default_avatar_path
 from users.identity import user_public_ref
 from users.models import MAX_PROFILE_IMAGE_SIDE
 
@@ -54,6 +55,14 @@ class ProfileApiTests(TestCase):
         buff.seek(0)
         return SimpleUploadedFile(filename, buff.read(), content_type="image/png")
 
+    @staticmethod
+    def _svg_upload(filename: str = "avatar.svg") -> SimpleUploadedFile:
+        payload = (
+            b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'>"
+            b"<rect width='20' height='20' fill='red'/></svg>"
+        )
+        return SimpleUploadedFile(filename, payload, content_type="image/svg+xml")
+
     def _assert_signed_profile_image(self, url: str):
         parsed = urlparse(url)
         self.assertTrue(parsed.path.startswith("/api/auth/media/"))
@@ -77,6 +86,23 @@ class ProfileApiTests(TestCase):
         self.assertEqual(payload["publicRef"], user_public_ref(self.user))
         self.assertEqual(payload["email"], "profile@example.com")
         self.assertIn("avatarCrop", payload)
+        self.assertFalse(payload.get("isSuperuser"))
+
+    def test_get_profile_authenticated_superuser_includes_flag(self):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        admin = User.objects.create_superuser(
+            username="profile_admin",
+            email="profile_admin@example.com",
+            password="pass12345",
+        )
+
+        self.client.force_login(admin)
+        response = self.client.get("/api/profile/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()["user"]
+        self.assertTrue(payload.get("isSuperuser"))
 
     def test_profile_update_name_and_bio(self):
         self.client.force_login(self.user)
@@ -165,7 +191,7 @@ class ProfileApiTests(TestCase):
         self.assertEqual(self.client.get(expired_url).status_code, 403)
 
     @override_settings(DEBUG=True)
-    def test_signed_media_endpoint_accepts_double_encoded_path_for_legacy_clients(self):
+    def test_signed_media_endpoint_accepts_double_encoded_path(self):
         self.user.profile.image = self._image_upload()
         self.user.profile.save(update_fields=["image"])
 
@@ -175,13 +201,13 @@ class ProfileApiTests(TestCase):
         if signed_url is None:
             self.fail("Expected signed media url")
 
-        parsed = urlparse(signed_url)
-        encoded_path = parsed.path.removeprefix("/api/auth/media/")
+        encoded_path = quote(media_path, safe="/")
         double_encoded_path = quote(encoded_path, safe="/")
-        legacy_url = f"/api/auth/media/{double_encoded_path}?{parsed.query}"
+        parsed = urlparse(signed_url)
+        compat_url = f"/api/auth/media/{double_encoded_path}?{parsed.query}"
 
-        valid_response = self.client.get(legacy_url)
-        self.assertEqual(valid_response.status_code, 200)
+        response = self.client.get(compat_url)
+        self.assertEqual(response.status_code, 200)
 
     def test_profile_update_rejects_oversized_image(self):
         api_client = APIClient()
@@ -193,6 +219,55 @@ class ProfileApiTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("image", response.json().get("errors", {}))
+
+    def test_profile_update_accepts_custom_avatar_upload(self):
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.user)
+
+        response = api_client.patch(
+            "/api/profile/",
+            {"image": self._image_upload(filename="new_avatar.png", size=(64, 64))},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json().get("user", {})
+        profile_image = payload.get("profileImage")
+        self.assertTrue(profile_image)
+        self._assert_signed_profile_image(str(profile_image))
+
+        parsed = urlparse(str(profile_image))
+        media_path = parsed.path.removeprefix("/api/auth/media/")
+        self.assertNotEqual(media_path, user_password_default_avatar_path())
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.profile.avatar_url, "")
+        self.assertNotEqual(self.user.profile.image.name, user_password_default_avatar_path())
+
+    def test_profile_update_accepts_svg_avatar_and_serves_svg_content_type(self):
+        api_client = APIClient()
+        api_client.force_authenticate(user=self.user)
+
+        response = api_client.patch(
+            "/api/profile/",
+            {"image": self._svg_upload()},
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json().get("user", {})
+        profile_image = str(payload.get("profileImage") or "")
+        self.assertTrue(profile_image)
+        self._assert_signed_profile_image(profile_image)
+
+        media_response = self.client.get(profile_image)
+        self.assertEqual(media_response.status_code, 200)
+        self.assertEqual(
+            media_response.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
+        media_response.close()
+
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.profile.image.name.endswith(".svg"))
 
 
 class AttachmentMediaAccessTests(TestCase):
@@ -248,6 +323,89 @@ class AttachmentMediaAccessTests(TestCase):
             thumbnail=SimpleUploadedFile("thumb.txt", b"thumb", content_type="text/plain"),
         )
 
+    def _attachment_with_custom_file(
+        self,
+        room: Room,
+        *,
+        author,
+        file_name: str,
+        file_content_type: str,
+        file_payload: bytes,
+        thumbnail_name: str | None = None,
+        thumbnail_content_type: str = "application/octet-stream",
+        thumbnail_payload: bytes = b"thumb",
+    ) -> MessageAttachment:
+        message = Message.objects.create(
+            username=author.username,
+            user=author,
+            room=room,
+            message_content="custom attachment message",
+        )
+        return MessageAttachment.objects.create(
+            message=message,
+            file=SimpleUploadedFile(file_name, file_payload, content_type=file_content_type),
+            original_filename=file_name,
+            content_type=file_content_type,
+            file_size=len(file_payload),
+            thumbnail=(
+                SimpleUploadedFile(
+                    thumbnail_name,
+                    thumbnail_payload,
+                    content_type=thumbnail_content_type,
+                )
+                if thumbnail_name
+                else None
+            ),
+        )
+
+    def _svg_attachment_for_room(self, room: Room, *, author) -> MessageAttachment:
+        message = Message.objects.create(
+            username=author.username,
+            user=author,
+            room=room,
+            message_content="svg attachment message",
+        )
+        svg_payload = (
+            b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'>"
+            b"<rect width='20' height='20' fill='red'/>"
+            b"</svg>"
+        )
+        return MessageAttachment.objects.create(
+            message=message,
+            file=SimpleUploadedFile("pizza.svg", svg_payload, content_type="text/plain"),
+            original_filename="pizza.svg",
+            content_type="text/plain",
+            file_size=len(svg_payload),
+        )
+
+    @staticmethod
+    def _png_payload() -> bytes:
+        image = Image.new("RGB", (2, 2), (255, 0, 0))
+        buff = io.BytesIO()
+        image.save(buff, format="PNG")
+        buff.seek(0)
+        return buff.read()
+
+    def _attachment_with_png_thumbnail_for_room(self, room: Room, *, author) -> MessageAttachment:
+        message = Message.objects.create(
+            username=author.username,
+            user=author,
+            room=room,
+            message_content="png thumbnail attachment message",
+        )
+        return MessageAttachment.objects.create(
+            message=message,
+            file=SimpleUploadedFile("doc.txt", b"hello", content_type="text/plain"),
+            original_filename="doc.txt",
+            content_type="text/plain",
+            file_size=5,
+            thumbnail=SimpleUploadedFile(
+                "thumb.png",
+                self._png_payload(),
+                content_type="application/octet-stream",
+            ),
+        )
+
     def test_attachment_media_view_returns_200_for_room_participant(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
         self.client.force_login(self.owner)
@@ -263,6 +421,17 @@ class AttachmentMediaAccessTests(TestCase):
         self.assertEqual(thumb_response.status_code, 200)
         file_response.close()
         thumb_response.close()
+
+    def test_attachment_media_view_returns_200_for_non_owner_direct_participant(self):
+        attachment = self._attachment_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.peer)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        response.close()
 
     def test_attachment_media_view_returns_404_for_invalid_access_context(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
@@ -316,7 +485,7 @@ class AttachmentMediaAccessTests(TestCase):
         )
         self.assertEqual(deleted_message.status_code, 404)
 
-    def test_public_room_attachment_access_uses_room_read_permissions(self):
+    def test_public_room_attachment_access_allows_authenticated_reader_without_membership(self):
         public_room = Room.objects.create(
             slug="media_room_public_03",
             name="media public",
@@ -326,8 +495,147 @@ class AttachmentMediaAccessTests(TestCase):
         attachment = self._attachment_for_room(public_room, author=self.owner)
         self.client.force_login(self.outsider)
 
-        response = self.client.get(
+        outsider_response = self.client.get(
             f"/api/auth/media/{attachment.file.name}?roomId={public_room.pk}",
         )
+        self.assertEqual(outsider_response.status_code, 200)
+        outsider_response.close()
+
+        ensure_membership(public_room, self.outsider)
+        member_response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={public_room.pk}",
+        )
+        self.assertEqual(member_response.status_code, 200)
+        member_response.close()
+
+    def test_attachment_media_view_serves_svg_with_image_content_type(self):
+        attachment = self._svg_attachment_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
         response.close()
+
+    def test_attachment_media_view_serves_png_thumbnail_with_image_content_type(self):
+        attachment = self._attachment_with_png_thumbnail_for_room(self.direct_room, author=self.owner)
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("Content-Type", "").split(";")[0],
+            "image/png",
+        )
+        response.close()
+
+    def test_attachment_media_view_serves_common_thumbnail_image_content_types(self):
+        self.client.force_login(self.owner)
+        test_cases = [
+            ("thumb.png", "application/octet-stream", b"\x89PNG\r\n\x1a\n", "image/png"),
+            ("thumb.jpg", "text/plain", b"\xff\xd8\xff\xe0", "image/jpeg"),
+            ("thumb.gif", "application/octet-stream", b"GIF89a", "image/gif"),
+        ]
+
+        for thumbnail_name, thumbnail_content_type, thumbnail_payload, expected_content_type in test_cases:
+            with self.subTest(thumbnail=thumbnail_name):
+                attachment = self._attachment_with_custom_file(
+                    self.direct_room,
+                    author=self.owner,
+                    file_name="doc.txt",
+                    file_content_type="text/plain",
+                    file_payload=b"hello",
+                    thumbnail_name=thumbnail_name,
+                    thumbnail_content_type=thumbnail_content_type,
+                    thumbnail_payload=thumbnail_payload,
+                )
+                response = self.client.get(
+                    f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.headers.get("Content-Type", "").split(";")[0],
+                    expected_content_type,
+                )
+                response.close()
+
+    def test_attachment_media_view_denies_unauthorized_for_any_attachment_type(self):
+        guest_client = Client()
+        outsider_client = Client()
+        outsider_client.force_login(self.outsider)
+        owner_client = Client()
+        owner_client.force_login(self.owner)
+
+        attachment_cases = [
+            {
+                "file_name": "report.pdf",
+                "file_content_type": "application/pdf",
+                "file_payload": b"%PDF-1.4",
+                "thumbnail_name": None,
+            },
+            {
+                "file_name": "voice.mp3",
+                "file_content_type": "audio/mpeg",
+                "file_payload": b"ID3",
+                "thumbnail_name": None,
+            },
+            {
+                "file_name": "clip.mp4",
+                "file_content_type": "video/mp4",
+                "file_payload": b"....ftyp",
+                "thumbnail_name": None,
+            },
+            {
+                "file_name": "image.png",
+                "file_content_type": "image/png",
+                "file_payload": b"\x89PNG\r\n\x1a\n",
+                "thumbnail_name": "thumb.png",
+            },
+            {
+                "file_name": "diagram.svg",
+                "file_content_type": "text/plain",
+                "file_payload": b"<svg xmlns='http://www.w3.org/2000/svg'></svg>",
+                "thumbnail_name": None,
+            },
+        ]
+
+        for case in attachment_cases:
+            with self.subTest(file=case["file_name"]):
+                attachment = self._attachment_with_custom_file(
+                    self.direct_room,
+                    author=self.owner,
+                    file_name=case["file_name"],
+                    file_content_type=case["file_content_type"],
+                    file_payload=case["file_payload"],
+                    thumbnail_name=case["thumbnail_name"],
+                )
+                target_paths = [attachment.file.name]
+                if attachment.thumbnail:
+                    target_paths.append(attachment.thumbnail.name)
+
+                for target_path in target_paths:
+                    with self.subTest(path=target_path):
+                        owner_response = owner_client.get(
+                            f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
+                        )
+                        self.assertEqual(owner_response.status_code, 200)
+                        owner_response.close()
+
+                        guest_response = guest_client.get(
+                            f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
+                        )
+                        self.assertEqual(guest_response.status_code, 404)
+
+                        outsider_response = outsider_client.get(
+                            f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
+                        )
+                        self.assertEqual(outsider_response.status_code, 404)

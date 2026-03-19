@@ -1,4 +1,4 @@
-"""WebSocket consumer for chat rooms."""
+"""WebSocket consumer для комнатного чата."""
 
 import asyncio
 import json
@@ -40,7 +40,7 @@ from .constants import CHAT_CLOSE_IDLE_CODE
 
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
-    """Checks websocket connect rate limit per endpoint and IP."""
+    """Проверяет лимит WebSocket-подключений по endpoint и IP."""
     if ws_connect_rate_limit_disabled():
         return False
     ip = get_client_ip_from_scope(scope) or "unknown"
@@ -396,7 +396,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _is_blocked_in_dm(self, room: Room, user) -> bool:
-        """Check if either user in a DM has blocked the other."""
+        """Проверяет блокировку между участниками в личном диалоге."""
         from friends.application.friend_service import is_blocked_between
         if room.kind != Room.Kind.DIRECT:
             return False
@@ -412,7 +412,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _rate_limited(self, user) -> bool:
-        """Checks chat message rate limit for the current user."""
+        """Проверяет лимит отправки сообщений для текущего пользователя."""
         if bool(getattr(user, "is_superuser", False)):
             return False
         scope_key = self._chat_message_rate_limit_scope_key(user)
@@ -421,7 +421,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _rate_limit_retry_after_seconds(self, user) -> int | None:
-        """Returns remaining chat message cooldown for current user."""
+        """Возвращает оставшееся время ожидания после rate limit."""
         if bool(getattr(user, "is_superuser", False)):
             return None
         scope_key = self._chat_message_rate_limit_scope_key(user)
@@ -433,7 +433,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @sync_to_async
     def _slow_mode_limited(self, user) -> bool:
-        """Checks group slow mode: 1 message per slow_mode_seconds per user."""
+        """Проверяет slow mode для группы по текущему пользователю."""
         room = getattr(self, "room", None)
         if not room or room.kind != Room.Kind.GROUP:
             return False
@@ -443,8 +443,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         scope_key = f"rl:slow:{room.pk}:{user.pk}"
         policy = RateLimitPolicy(limit=1, window_seconds=slow)
         return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
-
-    # ── Typing indicator ────────────────────────────────────────────────
+    # Обработка индикатора набора текста.
 
     async def _handle_typing(self):
         user = self.scope.get("user")
@@ -488,8 +487,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "displayName": event.get("displayName") or event["username"],
             "userId": event["userId"],
         }))
-
-    # ── Reply data helper ─────────────────────────────────────────────
+    # Формирование данных reply-сообщения.
 
     @sync_to_async
     def _get_reply_data(self, saved_message):
@@ -511,8 +509,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "displayName": user_display_name(reply.user) if reply.user else (reply.username or ""),
             "content": reply.message_content[:150],
         }
-
-    # ── Edit / Delete / Reaction / Read receipt handlers ──────────────
+    # Обработчики edit, delete, reactions и read receipts.
 
     async def chat_message_edit(self, event):
         self._last_activity = time.monotonic()
@@ -569,8 +566,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "lastReadMessageId": event["lastReadMessageId"],
             "roomId": event["roomId"],
         }))
-
-    # ── Mark read via WS ──────────────────────────────────────────────
+    # Обработка отметки прочитанного через WebSocket.
 
     async def chat_membership_revoked(self, event):
         target_user_id = event.get("targetUserId")

@@ -1,4 +1,4 @@
-"""Remove legacy ChatRole model and fix Role.room related_name."""
+"""Remove ChatRole model and fix Role.room related_name."""
 
 from django.db import migrations, models
 import django.db.models.deletion

@@ -9,8 +9,14 @@
 }
 
 @keyframes msgAppear {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message:hover {
@@ -46,6 +52,7 @@
   max-width: min(78%, 720px);
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 }
 
 .messageOwn .body {
@@ -55,16 +62,26 @@
 /* ---- bubble ---- */
 
 .bubble {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 6px 10px 4px;
-  border-radius: var(--tg-radius-bubble, 12px) var(--tg-radius-bubble, 12px) var(--tg-radius-bubble, 12px) 4px;
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  border-radius: var(--tg-radius-bubble, 12px) var(--tg-radius-bubble, 12px)
+    var(--tg-radius-bubble, 12px) 4px;
   background: var(--tg-msg-in-bg, #212121);
   position: relative;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .messageOwn .bubble {
-  border-radius: var(--tg-radius-bubble, 12px) var(--tg-radius-bubble, 12px) 4px var(--tg-radius-bubble, 12px);
-  background: var(--tg-msg-out-bg, #364368);
+  align-self: flex-end;
+  border-radius: var(--tg-radius-bubble, 12px) var(--tg-radius-bubble, 12px) 4px
+    var(--tg-radius-bubble, 12px);
+  /* background: var(--tg-msg-out-bg, #364368); */
+  background: #364368;
 }
 
 .deleted .bubble {
@@ -162,11 +179,10 @@
   align-items: center;
   gap: 4px;
   justify-content: flex-end;
-  float: right;
-  margin-left: 8px;
+  align-self: flex-end;
+  margin-left: auto;
   margin-top: 2px;
-  position: relative;
-  bottom: -2px;
+  position: static;
 }
 
 .time {
@@ -193,43 +209,149 @@
 }
 
 .checkRead {
-  color: #5CC85E;
+  color: #5cc85e;
 }
 
 /* ---- attachments ---- */
 
 .attachments {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: flex-start;
+  max-width: min(78vw, 420px);
 }
 
-.attachments [data-testid="audio-attachment-player"] {
-  width: 100%;
-  max-width: min(100%, 360px);
+.messageOwn .attachments {
+  align-items: flex-start;
+}
+
+.mediaGrid {
+  --media-gap: 3px;
+  display: grid;
+  gap: var(--media-gap);
+  width: clamp(220px, 58vw, 420px);
+  max-width: min(78vw, 420px);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(11, 17, 25, 0.8);
+}
+
+.mediaGridSingle {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mediaGridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mediaGridThree {
+  grid-template-columns: 1.3fr 1fr;
+  grid-auto-rows: minmax(92px, 1fr);
+}
+
+.mediaGridThree .mediaTile:first-child {
+  grid-row: 1 / span 2;
+}
+
+.mediaGridFour {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(100px, 1fr);
+}
+
+.mediaGridMany {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(88px, 1fr);
+}
+
+.mediaGridMany .mediaTile:first-child {
+  grid-column: 1 / span 2;
+  grid-row: 1 / span 2;
+}
+
+.mediaTile {
+  position: relative;
+  display: block;
+  min-height: 88px;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: #0b1020;
+  line-height: 0;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.mediaTile:focus-visible {
+  outline: 2px solid var(--tg-primary, #2fb3a3);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.mediaTileOverflow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.46);
+}
+
+.mediaMoreCount {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.fileAttachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: fit-content;
+  max-width: min(74vw, 360px);
+}
+
+.fileAttachments [data-testid="audio-attachment-player"] {
+  width: min(74vw, 360px);
+  max-width: min(74vw, 360px);
 }
 
 .attachImage {
-  width: min(100%, clamp(180px, 62vw, 340px));
-  max-width: min(100%, 340px);
-  max-height: 240px;
-  border-radius: 6px;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  max-height: none;
   object-fit: cover;
-  cursor: pointer;
-  transition: opacity var(--tg-transition-fast, 150ms);
+  object-position: center;
+  display: block;
+  transition: transform var(--tg-transition-fast, 150ms);
 }
 
-.attachImage:hover {
-  opacity: 0.9;
+.mediaTile:hover .attachImage {
+  transform: scale(1.03);
+}
+
+.attachImageSingle {
+  object-fit: contain;
+  background: #0a1020;
+  max-height: min(56vh, 420px);
 }
 
 .attachVideo {
-  width: min(100%, clamp(200px, 64vw, 360px));
+  width: 100%;
   max-width: min(100%, 360px);
-  max-height: 200px;
-  border-radius: 6px;
+  max-height: 260px;
+  border-radius: 8px;
   background: #000;
+  display: block;
 }
 
 .attachFile {
@@ -242,7 +364,8 @@
   color: var(--tg-text-primary, #fff);
   text-decoration: none;
   font-size: 13px;
-  max-width: min(100%, 320px);
+  width: auto;
+  max-width: min(70vw, 340px);
   transition: background var(--tg-transition-fast, 150ms);
 }
 
@@ -296,7 +419,10 @@
   background: rgba(255, 255, 255, 0.04);
   font-size: 13px;
   cursor: pointer;
-  transition: background var(--tg-transition-fast, 150ms), border-color var(--tg-transition-fast, 150ms), transform 150ms ease;
+  transition:
+    background var(--tg-transition-fast, 150ms),
+    border-color var(--tg-transition-fast, 150ms),
+    transform 150ms ease;
 }
 
 .reaction:hover {
@@ -350,8 +476,14 @@
 }
 
 @keyframes emojiIn {
-  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .emojiBtn {
@@ -365,7 +497,9 @@
   background: none;
   font-size: 22px;
   cursor: pointer;
-  transition: background 120ms ease, transform 120ms ease;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
 }
 
 .emojiBtn:hover {
@@ -390,20 +524,31 @@
     max-width: 86%;
   }
 
-  .attachImage {
-    width: min(100%, clamp(170px, 70vw, 280px));
-    max-width: min(100%, 280px);
-    max-height: 200px;
+  .mediaGrid {
+    width: clamp(210px, 76vw, 340px);
+    max-width: min(82vw, 340px);
+  }
+
+  .mediaGridFour {
+    grid-auto-rows: minmax(84px, 1fr);
+  }
+
+  .mediaGridMany {
+    grid-auto-rows: minmax(74px, 1fr);
   }
 
   .attachVideo {
-    width: min(100%, clamp(190px, 72vw, 300px));
     max-width: min(100%, 300px);
     max-height: 220px;
   }
 
-  .attachments [data-testid="audio-attachment-player"] {
-    max-width: min(100%, 300px);
+  .fileAttachments {
+    max-width: min(82vw, 300px);
+  }
+
+  .fileAttachments [data-testid="audio-attachment-player"] {
+    width: min(82vw, 300px);
+    max-width: min(82vw, 300px);
   }
 
   .footerInfo {
@@ -435,6 +580,23 @@
 
   .body {
     max-width: 92%;
+  }
+
+  .mediaGrid {
+    width: min(84vw, 300px);
+    max-width: min(84vw, 300px);
+  }
+
+  .mediaGridMany {
+    grid-auto-rows: minmax(66px, 1fr);
+  }
+
+  .attachImageSingle {
+    max-height: min(46vh, 320px);
+  }
+
+  .fileAttachments {
+    max-width: min(84vw, 280px);
   }
 
   .message {

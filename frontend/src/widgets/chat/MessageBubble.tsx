@@ -1,4 +1,5 @@
-﻿import {
+import {
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
@@ -12,8 +13,10 @@ import type {
   ReactionSummary,
   ReplyTo,
 } from "../../entities/message/types";
+import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
+import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
 import type { ContextMenuItem } from "../../shared/ui";
 import {
   AudioAttachmentPlayer,
@@ -22,7 +25,28 @@ import {
   ImageLightbox,
 } from "../../shared/ui";
 import styles from "../../styles/chat/MessageBubble.module.css";
+import {
+  buildAttachmentRenderItems,
+  resolveImageAspectRatio,
+  resolveMediaGridVariant,
+  splitAttachmentRenderItems,
+} from "./lib/attachmentLayout";
 
+/**
+ * Параметры компонента пузыря сообщения.
+ * @property message Полный объект сообщения с текстом, вложениями и реакциями.
+ * @property isOwn Признак, что сообщение принадлежит текущему пользователю.
+ * @property canModerate Разрешение на модераторские действия над сообщением.
+ * @property isRead Признак прочтения исходящего сообщения.
+ * @property highlighted Признак подсветки сообщения в списке.
+ * @property onlineUsernames Набор online-пользователей для индикатора статуса на аватаре.
+ * @property onReply Колбэк ответа на сообщение.
+ * @property onEdit Колбэк редактирования сообщения.
+ * @property onDelete Колбэк удаления сообщения.
+ * @property onReact Колбэк установки или снятия реакции.
+ * @property onReplyQuoteClick Колбэк перехода к исходному сообщению из цитаты.
+ * @property onAvatarClick Колбэк открытия профиля отправителя.
+ */
 type Props = {
   message: Message;
   isOwn: boolean;
@@ -38,6 +62,10 @@ type Props = {
   onAvatarClick?: (actorRef: string) => void;
 };
 
+/**
+ * Набор быстрых реакций для контекстного меню сообщения.
+ * Порядок влияет на отображение кнопок в EmojiPicker.
+ */
 const QUICK_REACTIONS = [
   "\u{1F44D}",
   "\u{2764}\u{FE0F}",
@@ -48,22 +76,52 @@ const QUICK_REACTIONS = [
   "\u{1F389}",
   "\u{1F622}",
 ];
-
+/**
+ * Форматирует размер файла для отображения рядом с вложением.
+ * @param bytes Размер файла в байтах.
+ * @returns Строку в формате B, KB или MB.
+ */
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const isImageType = (ct: string) => ct.startsWith("image/");
+
+/**
+ * Проверяет, относится ли MIME-тип к видео.
+ * @param ct MIME-тип вложения.
+ * @returns true, если вложение является видео.
+ */
 const isVideoType = (ct: string) => ct.startsWith("video/");
+/**
+ * Проверяет, относится ли MIME-тип к аудио.
+ * @param ct MIME-тип вложения.
+ * @returns true, если вложение является аудио.
+ */
 const isAudioType = (ct: string) => ct.startsWith("audio/");
+/**
+ * Нормализует публичный идентификатор пользователя для сравнения.
+ * @param value Исходный publicRef.
+ * @returns Нормализованный идентификатор в нижнем регистре.
+ */
 const normalizeActorRef = (value: string) =>
   normalizePublicRef(value).toLowerCase();
+const MEDIA_GRID_VARIANT_CLASS_MAP = {
+  single: styles.mediaGridSingle,
+  two: styles.mediaGridTwo,
+  three: styles.mediaGridThree,
+  four: styles.mediaGridFour,
+  many: styles.mediaGridMany,
+} as const;
 
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
 
+/**
+ * Определяет, что устройство работает как тач-устройство.
+ * @returns true, если интерфейс должен использовать тач-поведение.
+ */
 const isTouchLikeDevice = () => {
   if (typeof window === "undefined") return false;
   if ("ontouchstart" in window || navigator.maxTouchPoints > 0) return true;
@@ -71,12 +129,22 @@ const isTouchLikeDevice = () => {
   if (window.matchMedia?.("(hover: none)").matches) return true;
   return window.innerWidth <= 768;
 };
-
+/**
+ * Проверяет, что тап был по интерактивному элементу и меню открывать не нужно.
+ * @param target Целевой DOM-узел события.
+ * @returns true, если тап нужно проигнорировать для мобильного меню.
+ */
 const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(MOBILE_MENU_IGNORE_SELECTOR));
 };
-
+/**
+ * Рендерит блок цитаты ответа в верхней части сообщения.
+ * @param props Свойства цитаты ответа.
+ * @param props.replyTo Данные исходного сообщения, на которое сделан ответ.
+ * @param props.onClick Опциональный обработчик перехода к исходному сообщению.
+ * @returns JSX-элемент цитаты в виде кнопки или статичного блока.
+ */
 function ReplyQuote({
   replyTo,
   onClick,
@@ -107,7 +175,13 @@ function ReplyQuote({
     </div>
   );
 }
-
+/**
+ * Рендерит кнопку реакции с количеством и состоянием текущего пользователя.
+ * @param props Свойства чипа реакции.
+ * @param props.reaction Сводка по реакции конкретного emoji.
+ * @param props.onToggle Обработчик переключения реакции.
+ * @returns JSX-кнопку реакции.
+ */
 function ReactionChip({
   reaction,
   onToggle,
@@ -129,7 +203,12 @@ function ReactionChip({
     </button>
   );
 }
-
+/**
+ * Рендерит индикатор доставки и прочтения исходящего сообщения.
+ * @param props Свойства индикатора прочтения.
+ * @param props.isRead Признак, что сообщение прочитано собеседником.
+ * @returns JSX-элемент с двойной галочкой.
+ */
 function CheckMark({ isRead }: { isRead: boolean }) {
   return (
     <span
@@ -138,7 +217,7 @@ function CheckMark({ isRead }: { isRead: boolean }) {
       className={[styles.checkMark, isRead ? styles.checkRead : ""]
         .filter(Boolean)
         .join(" ")}
-      aria-label={isRead ? "Прочитано" : "Отправлено"}
+      aria-label={isRead ? "\u041f\u0440\u043e\u0447\u0438\u0442\u0430\u043d\u043e" : "\u041e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e"}
     >
       <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
         <path
@@ -160,7 +239,13 @@ function CheckMark({ isRead }: { isRead: boolean }) {
     </span>
   );
 }
-
+/**
+ * Рендерит панель быстрых emoji для выбора реакции.
+ * @param props Свойства панели выбора реакции.
+ * @param props.onPick Колбэк выбора emoji.
+ * @param props.onClose Колбэк закрытия панели.
+ * @returns JSX-панель выбора реакции с фоном-перехватчиком.
+ */
 function EmojiPicker({
   onPick,
   onClose,
@@ -196,7 +281,11 @@ function EmojiPicker({
     </>
   );
 }
-
+/**
+ * Рендерит пузырь сообщения чата с текстом, вложениями, реакциями и контекстным меню.
+ * @param props Параметры отображения и обработчики действий над сообщением.
+ * @returns JSX-элемент сообщения вместе со вспомогательными оверлеями.
+ */
 export function MessageBubble({
   message,
   isOwn,
@@ -331,7 +420,7 @@ export function MessageBubble({
     const messageText = message.content.trim();
 
     contextMenuItems.push({
-      label: "Ответить",
+      label: "\u041e\u0442\u0432\u0435\u0442\u0438\u0442\u044c",
       icon: (
         <svg
           width="16"
@@ -352,7 +441,7 @@ export function MessageBubble({
 
     if (messageText.length > 0) {
       contextMenuItems.push({
-        label: "Копировать текст",
+        label: "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0442\u0435\u043a\u0441\u0442",
         icon: (
           <svg
             width="16"
@@ -372,7 +461,7 @@ export function MessageBubble({
     }
 
     contextMenuItems.push({
-      label: "Реакция",
+      label: "\u0420\u0435\u0430\u043a\u0446\u0438\u044f",
       icon: <span style={{ fontSize: 14 }}>{"\u{1F44D}"}</span>,
       disabled: !onReact,
       onClick: () => {
@@ -383,7 +472,7 @@ export function MessageBubble({
 
     if (!isOwn) {
       contextMenuItems.push({
-        label: "Профиль",
+        label: "\u041f\u0440\u043e\u0444\u0438\u043b\u044c",
         icon: (
           <svg
             width="16"
@@ -405,7 +494,7 @@ export function MessageBubble({
 
     if (canManageMessage) {
       contextMenuItems.push({
-        label: "Редактировать",
+        label: "\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c",
         icon: (
           <svg
             width="16"
@@ -425,7 +514,7 @@ export function MessageBubble({
       });
 
       contextMenuItems.push({
-        label: "Удалить",
+        label: "\u0423\u0434\u0430\u043b\u0438\u0442\u044c",
         icon: (
           <svg
             width="16"
@@ -447,6 +536,16 @@ export function MessageBubble({
     }
   }
   const isDeleted = message.isDeleted;
+  const maxVisibleImageAttachments = useChatAttachmentMaxPerMessage();
+  const attachmentItems = buildAttachmentRenderItems(message.attachments);
+  const attachmentBuckets = splitAttachmentRenderItems(
+    attachmentItems,
+    maxVisibleImageAttachments,
+  );
+  const mediaGridVariant = resolveMediaGridVariant(
+    attachmentBuckets.visibleImages.length,
+  );
+  const mediaGridVariantClass = MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
 
   return (
     <>
@@ -471,7 +570,7 @@ export function MessageBubble({
           type="button"
           className={styles.avatarBtn}
           onClick={() => onAvatarClick?.(message.publicRef)}
-          aria-label={`Профиль ${message.displayName ?? message.username}`}
+          aria-label={`\u041f\u0440\u043e\u0444\u0438\u043b\u044c ${message.displayName ?? message.username}`}
         >
           <Avatar
             username={message.displayName ?? message.username}
@@ -504,7 +603,7 @@ export function MessageBubble({
             </div>
 
             {isDeleted ? (
-              <p className={styles.deletedContent}>Сообщение удалено</p>
+              <p className={styles.deletedContent}>\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0443\u0434\u0430\u043b\u0435\u043d\u043e</p>
             ) : (
               <>
                 {message.content && (
@@ -515,127 +614,183 @@ export function MessageBubble({
 
             {!isDeleted && message.attachments.length > 0 && (
               <div className={styles.attachments}>
-                {message.attachments.map((att) => {
-                  if (isImageType(att.contentType) && att.url) {
-                    return (
-                      <img
-                        key={att.id}
-                        src={att.thumbnailUrl ?? att.url}
-                        alt={att.originalFilename}
-                        className={styles.attachImage}
-                        loading="lazy"
-                        onClick={() => setLightboxSrc(att.url!)}
-                      />
-                    );
-                  }
-                  if (isVideoType(att.contentType) && att.url) {
-                    return (
-                      <video
-                        key={att.id}
-                        src={att.url}
-                        controls
-                        preload="metadata"
-                        className={styles.attachVideo}
-                      >
-                        <track kind="captions" />
-                      </video>
-                    );
-                  }
-                  if (isAudioType(att.contentType) && att.url) {
-                    return (
-                      <AudioAttachmentPlayer
-                        key={att.id}
-                        src={att.url}
-                        title={att.originalFilename}
-                        subtitle={formatFileSize(att.fileSize)}
-                        downloadName={att.originalFilename}
-                        compact
-                      />
-                    );
-                  }
-                  const contentTypeLabel =
-                    att.contentType &&
-                    att.contentType !== "application/octet-stream"
-                      ? att.contentType
-                      : "неизвестный тип";
-                  const fileMeta = `${formatFileSize(att.fileSize)} • ${contentTypeLabel}`;
+                {attachmentBuckets.visibleImages.length > 0 && (
+                  <div
+                    className={[styles.mediaGrid, mediaGridVariantClass]
+                      .filter(Boolean)
+                      .join(" ")}
+                    data-testid="message-media-grid"
+                    data-count={attachmentBuckets.visibleImages.length}
+                  >
+                    {attachmentBuckets.visibleImages.map(
+                      ({ attachment, imageSrc }, index) => {
+                        const isSingleTile =
+                          attachmentBuckets.visibleImages.length === 1;
+                        const isOverflowTile =
+                          attachmentBuckets.hiddenImageCount > 0 &&
+                          index === attachmentBuckets.visibleImages.length - 1;
 
-                  if (att.url) {
-                    return (
-                      <a
-                        key={att.id}
-                        href={att.url}
-                        className={styles.attachFile}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download={att.originalFilename}
-                      >
-                        <span className={styles.attachFileIcon}>
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                        return (
+                          <button
+                            key={attachment.id}
+                            type="button"
+                            className={[
+                              styles.mediaTile,
+                              isOverflowTile ? styles.mediaTileOverflow : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            data-message-menu-ignore="true"
+                            style={
+                              isSingleTile
+                                ? ({
+                                    aspectRatio:
+                                      resolveImageAspectRatio(
+                                        attachment,
+                                      ).toString(),
+                                  } satisfies CSSProperties)
+                                : undefined
+                            }
+                            onClick={() =>
+                              attachment.url && setLightboxSrc(attachment.url)
+                            }
+                            aria-label={`\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435 ${attachment.originalFilename}`}
                           >
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                          </svg>
-                        </span>
-                        <span className={styles.attachFileInfo}>
-                          <span className={styles.attachFileName}>
-                            {att.originalFilename}
-                          </span>
-                          <span className={styles.attachFileSize}>
-                            {fileMeta}
-                          </span>
-                        </span>
-                      </a>
-                    );
-                  }
+                            <img
+                              src={imageSrc}
+                              alt={attachment.originalFilename}
+                              className={[
+                                styles.attachImage,
+                                isSingleTile ? styles.attachImageSingle : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              loading="lazy"
+                            />
+                            {isOverflowTile && (
+                              <span className={styles.mediaMoreCount}>
+                                +{attachmentBuckets.hiddenImageCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                )}
 
-                  return (
-                    <div
-                      key={att.id}
-                      className={styles.attachFile}
-                      data-message-menu-ignore="true"
-                    >
-                      <span className={styles.attachFileIcon}>
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                {attachmentBuckets.others.length > 0 && (
+                  <div className={styles.fileAttachments}>
+                    {attachmentBuckets.others.map(({ attachment: att }) => {
+                      if (isVideoType(att.contentType) && att.url) {
+                        return (
+                          <video
+                            key={att.id}
+                            src={att.url}
+                            controls
+                            preload="metadata"
+                            className={styles.attachVideo}
+                          >
+                            <track kind="captions" />
+                          </video>
+                        );
+                      }
+                      if (isAudioType(att.contentType) && att.url) {
+                        return (
+                          <AudioAttachmentPlayer
+                            key={att.id}
+                            src={att.url}
+                            title={att.originalFilename}
+                            subtitle={formatFileSize(att.fileSize)}
+                            downloadName={att.originalFilename}
+                            compact
+                          />
+                        );
+                      }
+                      const contentTypeLabel = resolveAttachmentTypeLabel(
+                        att.contentType,
+                        att.originalFilename,
+                      );
+                      const fileMeta = `${formatFileSize(att.fileSize)} \u2022 ${contentTypeLabel}`;
+
+                      if (att.url) {
+                        return (
+                          <a
+                            key={att.id}
+                            href={att.url}
+                            className={styles.attachFile}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={att.originalFilename}
+                          >
+                            <span className={styles.attachFileIcon}>
+                              <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                              </svg>
+                            </span>
+                            <span className={styles.attachFileInfo}>
+                              <span className={styles.attachFileName}>
+                                {att.originalFilename}
+                              </span>
+                              <span className={styles.attachFileSize}>
+                                {fileMeta}
+                              </span>
+                            </span>
+                          </a>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={att.id}
+                          className={styles.attachFile}
+                          data-message-menu-ignore="true"
                         >
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                        </svg>
-                      </span>
-                      <span className={styles.attachFileInfo}>
-                        <span className={styles.attachFileName}>
-                          {att.originalFilename}
-                        </span>
-                        <span className={styles.attachFileSize}>
-                          {fileMeta}
-                        </span>
-                      </span>
-                    </div>
-                  );
-                })}
+                          <span className={styles.attachFileIcon}>
+                            <svg
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                              <polyline points="14 2 14 8 20 8" />
+                            </svg>
+                          </span>
+                          <span className={styles.attachFileInfo}>
+                            <span className={styles.attachFileName}>
+                              {att.originalFilename}
+                            </span>
+                            <span className={styles.attachFileSize}>
+                              {fileMeta}
+                            </span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
             {!isDeleted && (
               <div className={styles.footerInfo}>
                 {message.editedAt && (
-                  <span className={styles.editedTag}>ред.</span>
+                  <span className={styles.editedTag}>\u0440\u0435\u0434.</span>
                 )}
                 <span className={styles.time}>
                   {formatTimestamp(message.createdAt)}

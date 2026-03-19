@@ -1,6 +1,6 @@
 import csv
 import json
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, cast
 
 from django.contrib import admin
@@ -168,6 +168,14 @@ class AuditEventAdmin(admin.ModelAdmin):
     ordering = ("-created_at", "-id")
     date_hierarchy = "created_at"
     actions = ("export_selected_as_csv", "export_selected_as_json", "export_selected_as_jsonl")
+    _EXPORT_CONTROL_PARAMS = {
+        "format",
+        "export_date",
+        "date_from",
+        "date_to",
+        "selected_only",
+        "_selected_action",
+    }
 
     @admin.display(description="Path")
     def short_path(self, obj):
@@ -206,36 +214,107 @@ class AuditEventAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
-    def changelist_view(self, request, extra_context=None):
-        extra_context = dict(extra_context or {})
+    def changelist_view(
+        self,
+        request: HttpRequest,
+        extra_context: dict[str, Any] | None = None,
+    ):
+        context: dict[str, Any] = dict(extra_context or {})
         params = request.GET.copy()
-        params.pop("format", None)
+        for param in self._EXPORT_CONTROL_PARAMS:
+            params.pop(param, None)
+        preserved_items = list(params.lists())
         query_string = params.urlencode()
         export_base = reverse("admin:auditlog_auditevent_export")
         separator = f"?{query_string}&" if query_string else "?"
-        extra_context["export_csv_url"] = f"{export_base}{separator}format=csv"
-        extra_context["export_json_url"] = f"{export_base}{separator}format=json"
-        extra_context["export_jsonl_url"] = f"{export_base}{separator}format=jsonl"
-        return super().changelist_view(request, extra_context=extra_context)
+        context["export_csv_url"] = f"{export_base}{separator}format=csv"
+        context["export_json_url"] = f"{export_base}{separator}format=json"
+        context["export_jsonl_url"] = f"{export_base}{separator}format=jsonl"
+        context["export_url"] = export_base
+        context["export_preserved_items"] = preserved_items
+        return super().changelist_view(request, extra_context=context)
 
     def export_view(self, request):
         export_format = (request.GET.get("format") or "csv").strip().lower()
         if export_format not in {"csv", "json", "jsonl"}:
             return HttpResponseBadRequest("Неподдерживаемый формат экспорта".encode("utf-8"))
 
-        queryset = self._get_filtered_queryset(request)
+        try:
+            queryset = self._get_filtered_queryset(request)
+            queryset = self._apply_export_date_filters(queryset, request)
+            queryset = self._apply_export_selected_filters(queryset, request)
+        except ValueError as exc:
+            return HttpResponseBadRequest(str(exc).encode("utf-8"))
         return self._build_export_response(queryset, export_format=export_format)
 
     def _get_filtered_queryset(self, request):
         original_get = request.GET
         mutable_get = request.GET.copy()
-        mutable_get.pop("format", None)
+        for param in self._EXPORT_CONTROL_PARAMS:
+            mutable_get.pop(param, None)
         request.GET = mutable_get
         try:
             changelist = self.get_changelist_instance(request)
             return changelist.get_queryset(request)
         finally:
             request.GET = original_get
+
+    @staticmethod
+    def _parse_iso_date(value: str | None, *, param: str) -> date | None:
+        normalized = (value or "").strip()
+        if not normalized:
+            return None
+        try:
+            return date.fromisoformat(normalized)
+        except ValueError as exc:
+            raise ValueError(
+                f"Некорректный параметр '{param}': ожидается дата в формате YYYY-MM-DD"
+            ) from exc
+
+    @staticmethod
+    def _parse_selected_ids(values: list[str]) -> list[int]:
+        selected_ids: list[int] = []
+        for raw in values:
+            normalized = str(raw).strip()
+            if not normalized:
+                continue
+            try:
+                event_id = int(normalized)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Некорректный идентификатор выбранного аудит-события") from exc
+            if event_id < 1:
+                raise ValueError("Идентификатор аудит-события должен быть >= 1")
+            selected_ids.append(event_id)
+        return selected_ids
+
+    @staticmethod
+    def _parse_selected_only(value: str | None) -> bool:
+        return (value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+    def _apply_export_date_filters(self, queryset, request):
+        export_date = self._parse_iso_date(request.GET.get("export_date"), param="export_date")
+        date_from = self._parse_iso_date(request.GET.get("date_from"), param="date_from")
+        date_to = self._parse_iso_date(request.GET.get("date_to"), param="date_to")
+        if date_from is not None and date_to is not None and date_from > date_to:
+            raise ValueError("Некорректный диапазон дат: date_from должен быть <= date_to")
+        if export_date is not None:
+            return queryset.filter(created_at__date=export_date)
+        if date_from is not None:
+            queryset = queryset.filter(created_at__date__gte=date_from)
+        if date_to is not None:
+            queryset = queryset.filter(created_at__date__lte=date_to)
+        return queryset
+
+    def _apply_export_selected_filters(self, queryset, request):
+        selected_only = self._parse_selected_only(request.GET.get("selected_only"))
+        selected_ids = self._parse_selected_ids(request.GET.getlist("_selected_action"))
+        if selected_ids:
+            return queryset.filter(pk__in=selected_ids)
+        if selected_only:
+            raise ValueError(
+                "Для экспорта только выбранных записей отметьте хотя бы одну строку в чекбоксах"
+            )
+        return queryset
 
     def _serialize_event(self, event: AuditEvent) -> dict[str, object]:
         created_at = cast(datetime | None, event.created_at)

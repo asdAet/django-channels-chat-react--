@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from rooms.models import Room
+from users.avatar_service import user_password_default_avatar_path
 from users import identity
 from users.models import Profile, UserIdentityCore
 
@@ -65,11 +66,25 @@ class UsersIdentityTests(TestCase):
         self.assertEqual(identity.user_public_username(user), identity.user_public_id(user))
         self.assertEqual(identity.user_display_name(user), "First")
 
+    def test_user_profile_avatar_source_returns_default_avatar_for_non_oauth_user(self):
+        user = User.objects.create_user(username="default_avatar_user", password="pass12345")
+        profile = identity.ensure_profile(user)
+        profile.avatar_url = ""
+        profile.save(update_fields=["avatar_url"])
+        self.assertEqual(identity.user_profile_avatar_source(user), user_password_default_avatar_path())
+
+    def test_user_profile_avatar_source_prefers_oauth_avatar_when_image_is_default(self):
+        user = User.objects.create_user(username="oauth_avatar_user", password="pass12345")
+        profile = identity.ensure_profile(user)
+        profile.avatar_url = "https://cdn.example.com/avatar.png"
+        profile.save(update_fields=["avatar_url"])
+        self.assertEqual(identity.user_profile_avatar_source(user), "https://cdn.example.com/avatar.png")
+
     def test_get_user_by_public_handle_and_public_id(self):
-        by_handle = User.objects.create_user(username="legacy_a", password="pass12345")
+        by_handle = User.objects.create_user(username="handle_lookup_user", password="pass12345")
         identity.set_user_public_handle(by_handle, "profile_handle")
 
-        by_public_id = User.objects.create_user(username="legacy_handle", password="pass12345")
+        by_public_id = User.objects.create_user(username="id_lookup_user", password="pass12345")
         public_id = identity.user_public_id(by_public_id)
 
         self.assertEqual(identity.get_user_by_public_handle("profile_handle"), by_handle)

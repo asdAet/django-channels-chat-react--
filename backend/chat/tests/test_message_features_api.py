@@ -14,6 +14,7 @@ from django.test import Client, TestCase, override_settings
 from chat import api
 from chat.services import MessageForbiddenError
 from messages.models import Message, MessageAttachment, Reaction
+from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
 from users.identity import ensure_user_identity_core, set_room_public_handle, set_user_public_handle
@@ -337,6 +338,38 @@ class ChatMessageFeatureApiTests(TestCase):
         items = get_response.json()["items"]
         self.assertTrue(any(item["messageId"] == created_id for item in items))
 
+    def test_attachment_upload_in_public_room_creates_membership_and_media_is_readable(self):
+        public_room = Room.objects.create(
+            slug="public_features_attachments_01",
+            name="public features attachments",
+            kind=Room.Kind.PUBLIC,
+            created_by=self.owner,
+        )
+        self.assertFalse(
+            Membership.objects.filter(room=public_room, user=self.outsider, is_banned=False).exists()
+        )
+
+        self.client.force_login(self.outsider)
+        upload_file = SimpleUploadedFile(
+            "public-note.txt",
+            b"public room attachment",
+            content_type="text/plain",
+        )
+        post_response = self.client.post(
+            f"/api/chat/rooms/{public_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+        self.assertEqual(post_response.status_code, 201)
+        self.assertTrue(
+            Membership.objects.filter(room=public_room, user=self.outsider, is_banned=False).exists()
+        )
+
+        attachment_url = post_response.json()["attachments"][0]["url"]
+        parsed = urlparse(attachment_url)
+        media_response = self.client.get(f"{parsed.path}?{parsed.query}")
+        self.assertEqual(media_response.status_code, 200)
+        media_response.close()
+
     def test_attachment_urls_are_room_scoped_without_signed_query(self):
         self.client.force_login(self.owner)
 
@@ -398,7 +431,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
         upload_file = SimpleUploadedFile(
             "note.txt",
-            b"legacy key file",
+            b"compat key file",
             content_type="text/plain",
         )
         response = self.client.post(
@@ -412,7 +445,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
         upload_file = SimpleUploadedFile(
             "note-array.txt",
-            b"legacy array key file",
+            b"compat array key file",
             content_type="text/plain",
         )
         response = self.client.post(
@@ -426,7 +459,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
         upload_file = SimpleUploadedFile(
             "note-compat.txt",
-            b"legacy attachments key file",
+            b"compat attachments key file",
             content_type="text/plain",
         )
         response = self.client.post(
@@ -457,6 +490,27 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "too_many_files")
 
+    @override_settings(CHAT_ATTACHMENT_MAX_PER_MESSAGE=1)
+    def test_attachment_upload_allows_too_many_files_for_superuser(self):
+        superuser = User.objects.create_superuser(
+            username="attach_count_superuser",
+            email="attach_count_superuser@example.com",
+            password="pass12345",
+        )
+        set_user_public_handle(superuser, "attach_count_superuser")
+        ensure_user_identity_core(superuser)
+
+        self.client.force_login(superuser)
+        file_one = SimpleUploadedFile("one.txt", b"1", content_type="text/plain")
+        file_two = SimpleUploadedFile("two.txt", b"2", content_type="text/plain")
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [file_one, file_two]},
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(len(payload.get("attachments", [])), 2)
+
     def test_attachment_upload_returns_code_for_invalid_reply(self):
         self.client.force_login(self.owner)
         upload_file = SimpleUploadedFile("reply.txt", b"file", content_type="text/plain")
@@ -483,6 +537,32 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "file_too_large")
 
+    @override_settings(CHAT_ATTACHMENT_MAX_SIZE_MB=1)
+    def test_attachment_upload_allows_oversized_file_for_superuser(self):
+        superuser = User.objects.create_superuser(
+            username="attach_size_superuser",
+            email="attach_size_superuser@example.com",
+            password="pass12345",
+        )
+        set_user_public_handle(superuser, "attach_size_superuser")
+        ensure_user_identity_core(superuser)
+
+        self.client.force_login(superuser)
+        large_payload = b"x" * (2 * 1024 * 1024)
+        upload_file = SimpleUploadedFile(
+            "large-superuser.txt",
+            large_payload,
+            content_type="text/plain",
+        )
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(len(payload.get("attachments", [])), 1)
+        self.assertEqual(payload["attachments"][0]["originalFilename"], "large-superuser.txt")
+
     @override_settings(
         CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
         CHAT_ATTACHMENT_ALLOWED_TYPES=["audio/mpeg"],
@@ -501,6 +581,93 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         payload = response.json()
         self.assertEqual(payload["attachments"][0]["contentType"], "audio/mpeg")
+
+    @override_settings(
+        CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
+        CHAT_ATTACHMENT_ALLOWED_TYPES=["image/svg+xml"],
+    )
+    def test_attachment_upload_normalizes_svg_content_type_from_generic_mime(self):
+        self.client.force_login(self.owner)
+        upload_file = SimpleUploadedFile(
+            "pizza.svg",
+            b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'></svg>",
+            content_type="text/plain",
+        )
+
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["attachments"][0]["contentType"], "image/svg+xml")
+
+    @override_settings(
+        CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
+        CHAT_ATTACHMENT_ALLOWED_TYPES=["application/zip"],
+    )
+    def test_attachment_upload_normalizes_zip_alias_from_windows_mime(self):
+        self.client.force_login(self.owner)
+        upload_file = SimpleUploadedFile(
+            "mods.zip",
+            b"PK\x03\x04",
+            content_type="application/x-zip-compressed",
+        )
+
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["attachments"][0]["contentType"], "application/zip")
+
+    @override_settings(
+        CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
+        CHAT_ATTACHMENT_ALLOWED_TYPES=["application/vnd.rar"],
+    )
+    def test_attachment_upload_guesses_rar_from_extension_for_x_compressed(self):
+        self.client.force_login(self.owner)
+        upload_file = SimpleUploadedFile(
+            "modpack.rar",
+            b"Rar!\x1a\x07\x00",
+            content_type="application/x-compressed",
+        )
+
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["attachments"][0]["contentType"], "application/vnd.rar")
+
+    @override_settings(
+        CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
+        CHAT_ATTACHMENT_ALLOWED_TYPES=["application/java-archive"],
+    )
+    def test_attachment_upload_guesses_jar_from_extension_for_octet_stream(self):
+        self.client.force_login(self.owner)
+        upload_file = SimpleUploadedFile(
+            "cannedgoods-1.20.1-1.jar",
+            b"PK\x03\x04",
+            content_type="application/octet-stream",
+        )
+
+        response = self.client.post(
+            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            data={"files": [upload_file]},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(
+            payload["attachments"][0]["contentType"],
+            "application/java-archive",
+        )
 
     def test_mark_read_is_monotonic_and_persisted_in_room_details(self):
         first_message = Message.objects.create(

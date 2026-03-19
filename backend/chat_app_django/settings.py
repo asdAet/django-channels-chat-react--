@@ -46,21 +46,43 @@ def _load_dotenv_file(path: Path, *, allowed_keys: set[str] | None = None) -> No
             os.environ[key] = value
 
 
-# Load env files for local app run. For root `.env`, import only explicit
-# safe keys (e.g. OAuth client id), so local runserver won't pick docker DB
-# host like `postgres`.
+# Load env files for local app run.
+# Root `.env` may contain production-only infrastructure values (e.g. DB host
+# `postgres` valid only inside docker network), so by default we import a safe
+# subset required for local server behavior. Full import can be explicitly
+# enabled via DJANGO_LOAD_ROOT_ENV_ALL=1.
 IS_PYTEST_RUN = (
     "pytest" in Path(sys.argv[0]).name.lower()
     or "PYTEST_CURRENT_TEST" in os.environ
 )
+LOAD_ROOT_ENV_ALL = os.getenv("DJANGO_LOAD_ROOT_ENV_ALL", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 if not IS_PYTEST_RUN:
-    _load_dotenv_file(
-        BASE_DIR.parent / ".env",
-        allowed_keys={
-            "GOOGLE_OAUTH_CLIENT_ID",
-            "DJANGO_SECRET_KEY",
-        },
-    )
+    if LOAD_ROOT_ENV_ALL:
+        _load_dotenv_file(BASE_DIR.parent / ".env")
+    else:
+        _load_dotenv_file(
+            BASE_DIR.parent / ".env",
+            allowed_keys={
+                "GOOGLE_OAUTH_CLIENT_ID",
+                "DJANGO_SECRET_KEY",
+                "CHAT_ATTACHMENT_MAX_PER_MESSAGE",
+                "CHAT_ATTACHMENT_MAX_SIZE_MB",
+                "CHAT_ATTACHMENT_ALLOW_ANY_TYPE",
+                "CHAT_ATTACHMENT_ALLOWED_TYPES",
+                "CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE",
+                "CHAT_THUMBNAIL_MAX_SIDE",
+                "USER_PASSWORD_DEFAULT_AVATAR",
+                "USER_OAUTH_DEFAULT_AVATAR",
+                "GROUP_DEFAULT_AVATAR",
+                "USER_AVATAR_UPLOAD_DIR",
+                "GROUP_AVATAR_UPLOAD_DIR",
+            },
+        )
     _load_dotenv_file(BASE_DIR / ".env")
 
 
@@ -322,6 +344,20 @@ STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
+USER_AVATAR_UPLOAD_DIR = os.getenv("USER_AVATAR_UPLOAD_DIR", "avatars/users").strip()
+GROUP_AVATAR_UPLOAD_DIR = os.getenv("GROUP_AVATAR_UPLOAD_DIR", "avatars/groups").strip()
+USER_PASSWORD_DEFAULT_AVATAR = os.getenv(
+    "USER_PASSWORD_DEFAULT_AVATAR",
+    "avatars/Password_defualt.jpg",
+).strip()
+USER_OAUTH_DEFAULT_AVATAR = os.getenv(
+    "USER_OAUTH_DEFAULT_AVATAR",
+    "avatars/OAuth_defualt.jpg",
+).strip()
+GROUP_DEFAULT_AVATAR = os.getenv(
+    "GROUP_DEFAULT_AVATAR",
+    "avatars/Group_defualt.jpg",
+).strip()
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CRISPY_TEMPLATE_PACK = "bootstrap4"
@@ -434,7 +470,7 @@ CHAT_ATTACHMENT_MAX_SIZE_MB = env_int("CHAT_ATTACHMENT_MAX_SIZE_MB", 10, minimum
 CHAT_ATTACHMENT_MAX_PER_MESSAGE = env_int("CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5, minimum=1)
 CHAT_ATTACHMENT_ALLOW_ANY_TYPE = env_bool("CHAT_ATTACHMENT_ALLOW_ANY_TYPE", True)
 CHAT_ATTACHMENT_ALLOWED_TYPES = env_list("CHAT_ATTACHMENT_ALLOWED_TYPES", [
-    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
     "application/pdf", "text/plain", "video/mp4", "audio/mpeg", "audio/webm",
 ])
 CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE = env_bool(

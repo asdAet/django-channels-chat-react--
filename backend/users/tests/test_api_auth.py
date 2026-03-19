@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 
+from chat import utils
 from users.application import auth_service
+from users.avatar_service import user_password_default_avatar_path
 from users.application.errors import IdentityServiceError
 from users.models import EmailIdentity, LoginIdentity
 
@@ -63,6 +66,17 @@ class AuthApiTests(TestCase):
         self.assertEqual(payload.get("user", {}).get("email"), "new@example.com")
         self.assertEqual(payload.get("user", {}).get("handle"), None)
         self.assertTrue(payload.get("user", {}).get("publicId"))
+        profile_image = payload.get("user", {}).get("profileImage")
+        self.assertTrue(profile_image)
+        parsed = urlparse(str(profile_image))
+        default_avatar_path = user_password_default_avatar_path()
+        self.assertEqual(parsed.path, f"/api/auth/media/{default_avatar_path}")
+        query = parse_qs(parsed.query)
+        self.assertIn("exp", query)
+        self.assertIn("sig", query)
+        self.assertTrue(
+            utils.is_valid_media_signature(default_avatar_path, int(query["exp"][0]), query["sig"][0])
+        )
 
         self.assertTrue(LoginIdentity.objects.filter(login_normalized="newlogin").exists())
         self.assertTrue(EmailIdentity.objects.filter(email_normalized="new@example.com").exists())
@@ -182,7 +196,9 @@ class AuthApiTests(TestCase):
             HTTP_X_CSRFTOKEN=csrf,
         )
         self.assertEqual(login_response.status_code, 200)
-        self.assertTrue(login_response.json().get("authenticated"))
+        payload = login_response.json()
+        self.assertTrue(payload.get("authenticated"))
+        self.assertFalse(payload.get("user", {}).get("isSuperuser"))
 
         session_response = self.client.get("/api/auth/session/")
         self.assertEqual(session_response.status_code, 200)
@@ -208,7 +224,9 @@ class AuthApiTests(TestCase):
             HTTP_X_CSRFTOKEN=csrf,
         )
         self.assertEqual(login_response.status_code, 200)
-        self.assertTrue(login_response.json().get("authenticated"))
+        payload = login_response.json()
+        self.assertTrue(payload.get("authenticated"))
+        self.assertTrue(payload.get("user", {}).get("isSuperuser"))
 
     @override_settings(
         RATE_LIMITS={

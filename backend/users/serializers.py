@@ -7,6 +7,7 @@ class UserSerializer(serializers.Serializer):
     handle = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     publicId = serializers.CharField(required=False, allow_blank=True)
     publicRef = serializers.CharField(required=False, allow_blank=True)
+    isSuperuser = serializers.BooleanField(required=False)
     email = serializers.EmailField(required=False, allow_blank=True)
     profileImage = serializers.CharField(allow_null=True)
     avatarCrop = serializers.DictField(allow_null=True)
@@ -61,7 +62,7 @@ class LogoutSerializer(serializers.Serializer):
 class ProfileUpdateSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, allow_blank=True)
     bio = serializers.CharField(required=False, allow_blank=True)
-    image = serializers.ImageField(required=False, allow_null=True)
+    image = serializers.FileField(required=False, allow_null=True)
     avatarCropX = serializers.FloatField(required=False)
     avatarCropY = serializers.FloatField(required=False)
     avatarCropWidth = serializers.FloatField(required=False)

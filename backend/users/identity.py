@@ -3,7 +3,6 @@
 import re
 import secrets
 import time
-from pathlib import PurePosixPath
 from typing import Any
 
 from django.contrib.auth import get_user_model
@@ -11,6 +10,7 @@ from django.db import IntegrityError, OperationalError, transaction
 
 from rooms.models import Room
 
+from .avatar_service import resolve_user_avatar_source
 from .models import Profile, PublicHandle, UserIdentityCore
 
 User = get_user_model()
@@ -273,39 +273,8 @@ def _safe_profile(user: Any) -> Profile | None:
         return None
 
 
-def _is_default_profile_image_name(image_name: str, default_image_name: str) -> bool:
-    if not image_name:
-        return True
-    if image_name == default_image_name:
-        return True
-    return PurePosixPath(image_name).name == PurePosixPath(default_image_name).name
-
-
 def user_profile_avatar_source(user: Any) -> str | None:
-    profile = _safe_profile(user)
-    if profile is None:
-        return None
-
-    image = getattr(profile, "image", None)
-    image_name = getattr(image, "name", "") if image is not None else ""
-    if isinstance(image_name, str):
-        image_name = image_name.strip()
-    else:
-        image_name = ""
-
-    default_image_name = ""
-    meta = getattr(profile, "_meta", None)
-    if meta is not None:
-        try:
-            default_image_name = str(meta.get_field("image").default or "").strip()
-        except Exception:  # noqa: BLE001
-            default_image_name = ""
-
-    if image_name and not _is_default_profile_image_name(image_name, default_image_name):
-        return image_name
-
-    avatar_url = str(getattr(profile, "avatar_url", "") or "").strip()
-    return avatar_url or None
+    return resolve_user_avatar_source(user)
 
 
 def get_user_by_public_handle(handle: str | None):

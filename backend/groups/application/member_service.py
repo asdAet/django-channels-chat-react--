@@ -10,7 +10,7 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
-from chat_app_django.media_utils import build_profile_url_from_request, serialize_avatar_crop
+from chat_app_django.media_utils import serialize_avatar_crop
 from chat_app_django.security.audit import audit_security_event
 from groups.application.group_service import (
     GroupError,
@@ -31,6 +31,7 @@ from roles.domain.rules import can_manage_target
 from roles.models import Membership, Role
 from roles.permissions import Perm
 from rooms.models import Room
+from users.avatar_service import resolve_user_avatar_url_from_request
 from users.identity import user_display_name, user_public_ref, user_public_username
 
 User = get_user_model()
@@ -412,20 +413,9 @@ def list_members(
 
     def _member_dict(m):
         profile = getattr(m.user, "profile", None)
-        profile_image = None
+        profile_image = resolve_user_avatar_url_from_request(request, m.user) if request is not None else None
         avatar_crop = None
         if profile:
-            image = getattr(profile, "image", None)
-            if image:
-                image_name = getattr(image, "name", "")
-                if image_name:
-                    if request is not None:
-                        profile_image = build_profile_url_from_request(request, image_name)
-                    else:
-                        try:
-                            profile_image = image.url
-                        except (AttributeError, ValueError):
-                            profile_image = None
             avatar_crop = serialize_avatar_crop(profile)
         return {
             "userId": m.user_id,

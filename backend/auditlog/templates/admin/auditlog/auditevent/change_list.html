@@ -1,6 +1,82 @@
 {% extends "admin/change_list.html" %}
 
+{% block extrahead %}
+  {{ block.super }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const form = document.getElementById("audit-export-form");
+      if (!form) {
+        return;
+      }
+
+      form.addEventListener("submit", function (event) {
+        form.querySelectorAll('input[name="_selected_action"][data-export-selected="1"]').forEach(function (node) {
+          node.remove();
+        });
+
+        const selectedOnly = form.querySelector('input[name="selected_only"]');
+        if (!selectedOnly || !selectedOnly.checked) {
+          return;
+        }
+
+        const checkedRows = document.querySelectorAll('input.action-select:checked');
+        if (!checkedRows.length) {
+          event.preventDefault();
+          window.alert("Отметьте хотя бы одну запись для экспорта выбранных.");
+          return;
+        }
+
+        checkedRows.forEach(function (checkbox) {
+          const hidden = document.createElement("input");
+          hidden.type = "hidden";
+          hidden.name = "_selected_action";
+          hidden.value = checkbox.value;
+          hidden.dataset.exportSelected = "1";
+          form.appendChild(hidden);
+        });
+      });
+    });
+  </script>
+{% endblock %}
+
 {% block object-tools-items %}
+  <li>
+    <form
+      id="audit-export-form"
+      action="{{ export_url }}"
+      method="get"
+      style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-right:8px;"
+    >
+      {% for key, values in export_preserved_items %}
+        {% for value in values %}
+          <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
+      {% endfor %}
+
+      <label for="id_export_format">Формат</label>
+      <select id="id_export_format" name="format">
+        <option value="csv">CSV</option>
+        <option value="json">JSON</option>
+        <option value="jsonl">JSONL</option>
+      </select>
+
+      <label for="id_export_date">Дата</label>
+      <input id="id_export_date" type="date" name="export_date">
+
+      <label for="id_date_from">С</label>
+      <input id="id_date_from" type="date" name="date_from">
+
+      <label for="id_date_to">По</label>
+      <input id="id_date_to" type="date" name="date_to">
+
+      <label for="id_selected_only">
+        <input id="id_selected_only" type="checkbox" name="selected_only" value="1">
+        Только выбранные
+      </label>
+
+      <button type="submit" class="button">Экспорт</button>
+    </form>
+  </li>
   <li>
     <a href="{{ export_csv_url }}">Экспорт CSV</a>
   </li>

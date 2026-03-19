@@ -1,4 +1,4 @@
-"""Template-based views for legacy users pages."""
+"""Template-based views for users pages."""
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required

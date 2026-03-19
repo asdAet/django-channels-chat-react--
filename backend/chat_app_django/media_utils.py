@@ -1,4 +1,4 @@
-"""Shared media URL utilities: signed and room-scoped URLs, avatar crop serialization."""
+"""Утилиты media URL: signed-ссылки, room-scoped ссылки и crop аватарок."""
 
 import hashlib
 import hmac
@@ -114,10 +114,10 @@ def normalize_media_path(image_name: str | None) -> str | None:
     if not image_name:
         return None
 
-    # Accept plain, encoded and double-encoded paths from legacy clients/cache.
     raw = image_name.strip()
     if not raw:
         return None
+    # Поддерживает обычный, URL-кодированный и двойной URL-кодированный путь.
     for _ in range(2):
         decoded = unquote(raw)
         if decoded == raw:
@@ -322,7 +322,7 @@ def build_room_media_url_from_request(
     if not source:
         return None
 
-    # Room-scoped attachment links must stay in local protected-media flow.
+    # Room-scoped ссылки вложений не должны перенаправляться на внешние URL.
     if source.startswith("http://") or source.startswith("https://"):
         return None
 

@@ -1,9 +1,11 @@
-﻿"""Forms for auth/profile workflows."""
+"""Формы для регистрации, профиля и публичного имени пользователя."""
 
 from __future__ import annotations
 
 import re
 import warnings
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
 from django import forms
 from django.conf import settings
@@ -25,11 +27,79 @@ from .models import (
 USERNAME_MAX_LENGTH = max(1, min(int(getattr(settings, "USERNAME_MAX_LENGTH", 30)), 150))
 USERNAME_ALLOWED_RE = re.compile(r"^[a-z][a-z0-9_]{2,29}$")
 USERNAME_ALLOWED_HINT = "Username: a-z, 0-9, _, длина 3-30, начинается с буквы."
+SVG_CONTENT_TYPES = {"image/svg+xml", "image/svg", "text/svg"}
+SVG_EXTENSION = ".svg"
+SVG_DISALLOWED_SNIPPETS = (
+    b"<script",
+    b"javascript:",
+    b"<!doctype",
+    b"<!entity",
+    b"<?xml-stylesheet",
+    b"<iframe",
+    b"<object",
+    b"<embed",
+    b"<foreignobject",
+)
+SVG_EVENT_HANDLER_RE = re.compile(r"\son[a-z0-9_-]+\s*=", flags=re.IGNORECASE)
 
 
 def _validate_username_symbols(username: str) -> None:
+    """Проверяет допустимые символы и формат публичного имени."""
     if username and not USERNAME_ALLOWED_RE.fullmatch(username):
         raise forms.ValidationError(USERNAME_ALLOWED_HINT)
+
+
+def _is_svg_upload(uploaded_file) -> bool:
+    """Определяет SVG по расширению или content_type."""
+    filename = str(getattr(uploaded_file, "name", "") or "")
+    content_type = str(getattr(uploaded_file, "content_type", "") or "").strip().lower()
+    extension = Path(filename).suffix.lower()
+    return extension == SVG_EXTENSION or content_type in SVG_CONTENT_TYPES
+
+
+def _read_uploaded_bytes(uploaded_file) -> bytes:
+    """Читает файл и возвращает исходные байты с восстановлением указателя."""
+    if hasattr(uploaded_file, "seek"):
+        uploaded_file.seek(0)
+    raw = uploaded_file.read()
+    if hasattr(uploaded_file, "seek"):
+        uploaded_file.seek(0)
+    if isinstance(raw, bytes):
+        return raw
+    if isinstance(raw, str):
+        return raw.encode("utf-8", errors="ignore")
+    return bytes(raw or b"")
+
+
+def _validate_svg_avatar(uploaded_file) -> None:
+    """Проверяет SVG на базовую безопасность и корректный XML-контейнер."""
+    raw = _read_uploaded_bytes(uploaded_file)
+    if not raw:
+        raise forms.ValidationError("SVG файл пустой.")
+
+    lowered = raw.lower()
+    for snippet in SVG_DISALLOWED_SNIPPETS:
+        if snippet in lowered:
+            raise forms.ValidationError("SVG содержит запрещенные элементы.")
+
+    try:
+        decoded = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise forms.ValidationError("SVG должен быть в кодировке UTF-8.") from exc
+
+    if SVG_EVENT_HANDLER_RE.search(decoded):
+        raise forms.ValidationError("SVG содержит запрещенные атрибуты.")
+
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError as exc:
+        raise forms.ValidationError("Некорректный SVG файл.") from exc
+
+    tag = str(getattr(root, "tag", "") or "")
+    if "}" in tag:
+        tag = tag.rsplit("}", 1)[-1]
+    if tag.lower() != "svg":
+        raise forms.ValidationError("Файл не является SVG изображением.")
 
 
 class EmailRegisterForm(forms.Form):
@@ -61,7 +131,7 @@ class EmailRegisterForm(forms.Form):
         except forms.ValidationError as exc:
             self.add_error("password1", exc)
         except Exception:
-            # Normalized as weak password for API layer.
+            # Любая непредвиденная ошибка валидации возвращается как слабый пароль.
             self.add_error("password1", "Пароль слишком слабый")
         return cleaned
 
@@ -138,6 +208,8 @@ class ProfileIdentityUpdateForm(forms.Form):
 
 
 class ProfileUpdateForm(forms.ModelForm):
+    image = forms.FileField(required=False)
+
     class Meta:
         model = Profile
         fields = ["image", "bio"]
@@ -206,6 +278,10 @@ class ProfileUpdateForm(forms.ModelForm):
     def clean_image(self):
         image = self.cleaned_data.get("image")
         if not image:
+            return image
+
+        if _is_svg_upload(image):
+            _validate_svg_avatar(image)
             return image
 
         try:

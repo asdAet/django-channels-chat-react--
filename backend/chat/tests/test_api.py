@@ -147,11 +147,11 @@ class RoomMessagesApiTests(TestCase):
         room = api._public_room()
         for i in range(total):
             Message.objects.create(
-                username="legacy_name",
+                username="snapshot_name",
                 user=self.owner,
                 room=room,
                 message_content=f"message-{i}",
-                profile_pic="profile_pics/legacy.jpg",
+                profile_pic="profile_pics/snapshot.jpg",
             )
         return room
 

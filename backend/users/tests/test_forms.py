@@ -63,6 +63,20 @@ class ProfileUpdateFormTests(TestCase):
         buffer.seek(0)
         return SimpleUploadedFile("avatar.png", buffer.read(), content_type="image/png")
 
+    @staticmethod
+    def _svg_upload(*, with_script: bool = False) -> SimpleUploadedFile:
+        if with_script:
+            payload = (
+                b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'>"
+                b"<script>alert('x')</script></svg>"
+            )
+        else:
+            payload = (
+                b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'>"
+                b"<rect width='20' height='20' fill='red'/></svg>"
+            )
+        return SimpleUploadedFile("avatar.svg", payload, content_type="image/svg+xml")
+
     def test_clean_bio_strips_html_tags(self):
         """Проверяет сценарий `test_clean_bio_strips_html_tags`."""
         user = User.objects.create_user(username='bio_user', password='pass12345')
@@ -96,6 +110,25 @@ class ProfileUpdateFormTests(TestCase):
             )
             self.assertFalse(form.is_valid())
             self.assertIn("image", form.errors)
+
+    def test_clean_image_accepts_safe_svg(self):
+        user = User.objects.create_user(username="svg_image_ok", password="pass12345")
+        form = ProfileUpdateForm(
+            data={"bio": "ok"},
+            files={"image": self._svg_upload()},
+            instance=user.profile,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_clean_image_rejects_svg_with_script(self):
+        user = User.objects.create_user(username="svg_image_bad", password="pass12345")
+        form = ProfileUpdateForm(
+            data={"bio": "ok"},
+            files={"image": self._svg_upload(with_script=True)},
+            instance=user.profile,
+        )
+        self.assertFalse(form.is_valid())
+        self.assertIn("image", form.errors)
 
     def test_accepts_complete_avatar_crop_payload(self):
         """Сохраняет валидный набор crop-метаданных аватарки."""

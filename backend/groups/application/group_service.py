@@ -5,13 +5,14 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import transaction
 
-from chat_app_django.media_utils import build_profile_url_from_request, serialize_avatar_crop
+from chat_app_django.media_utils import serialize_avatar_crop
 from chat_app_django.security.audit import audit_security_event
 from groups.domain import rules as group_rules
 from roles.application.permission_service import compute_permissions, has_permission
 from roles.models import Membership, Role
 from roles.permissions import Perm
 from rooms.models import Room
+from users.avatar_service import resolve_group_avatar_source, resolve_group_avatar_url_from_request
 from users.identity import (
     ensure_group_public_id,
     room_public_handle,
@@ -34,7 +35,6 @@ _ROOM_AVATAR_CROP_FIELDS = (
     "avatar_crop_width",
     "avatar_crop_height",
 )
-_DEFAULT_GROUP_AVATAR = str(getattr(settings, "GROUP_DEFAULT_AVATAR", "default.jpg"))
 
 
 class GroupError(Exception):
@@ -106,23 +106,12 @@ def _validate_room_avatar_crop(crop_payload: dict[str, float]) -> dict[str, floa
 
 
 def _serialize_group_avatar(request, room: Room) -> tuple[str | None, dict[str, float] | None]:
-    avatar_url: str | None = None
-    if room.avatar:
-        image_name = getattr(room.avatar, "name", "")
-        if image_name:
-            if request is not None:
-                avatar_url = build_profile_url_from_request(request, image_name)
-            else:
-                try:
-                    avatar_url = room.avatar.url
-                except (AttributeError, ValueError):
-                    avatar_url = None
-    elif _DEFAULT_GROUP_AVATAR:
-        if request is not None:
-            avatar_url = build_profile_url_from_request(request, _DEFAULT_GROUP_AVATAR)
-        else:
+    avatar_url: str | None = resolve_group_avatar_url_from_request(request, room) if request is not None else None
+    if avatar_url is None and request is None:
+        source = resolve_group_avatar_source(room)
+        if source:
             media_url = str(getattr(settings, "MEDIA_URL", "/media/") or "/media/")
-            avatar_url = f"{media_url.rstrip('/')}/{_DEFAULT_GROUP_AVATAR.lstrip('/')}"
+            avatar_url = f"{media_url.rstrip('/')}/{str(source).lstrip('/')}"
     return avatar_url, serialize_avatar_crop(room)
 
 

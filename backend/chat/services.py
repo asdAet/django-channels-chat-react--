@@ -17,6 +17,11 @@ from rooms.models import Room
 logger = logging.getLogger(__name__)
 
 
+def _attachment_delete_retry_delay(attempt: int) -> float:
+    base_delay = float(getattr(settings, "CHAT_ATTACHMENT_DELETE_RETRY_BASE_SECONDS", 0.1))
+    return max(0.0, base_delay * (attempt + 1))
+
+
 # ── Exceptions ─────────────────────────────────────────────────────────
 
 class MessageError(Exception):
@@ -74,7 +79,7 @@ def _delete_attachment_blob(
     normalized_name = str(blob_name or "").strip()
     if not normalized_name:
         return
-    retries = max(1, int(getattr(settings, "CHAT_ATTACHMENT_DELETE_RETRIES", 3)))
+    retries = max(1, int(getattr(settings, "CHAT_ATTACHMENT_DELETE_RETRIES", 8)))
     for attempt in range(retries):
         try:
             storage.delete(normalized_name)
@@ -83,7 +88,7 @@ def _delete_attachment_blob(
             # Windows can transiently lock files while they are being streamed/read.
             is_locked = getattr(exc, "winerror", None) == 32
             if is_locked and attempt < (retries - 1):
-                time.sleep(0.05 * (attempt + 1))
+                time.sleep(_attachment_delete_retry_delay(attempt))
                 continue
             logger.warning(
                 "Failed to delete attachment %s blob for id=%s path=%s",

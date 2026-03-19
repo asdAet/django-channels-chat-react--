@@ -66,7 +66,7 @@ def _looks_like_email(identifier: str) -> bool:
     return bool(_EMAIL_RE.fullmatch(identifier))
 
 
-def _authenticate_legacy_admin(identifier: str, password: str) -> User | None:
+def _authenticate_admin_without_identity(identifier: str, password: str) -> User | None:
     """
     Allow Django-admin accounts created via `createsuperuser` to use API login.
 
@@ -234,9 +234,9 @@ def login_user(identifier: str, password: str) -> User:
         )
 
     if identity is None:
-        legacy_admin = _authenticate_legacy_admin(normalized_identifier, password)
-        if legacy_admin is not None:
-            return legacy_admin
+        admin_without_identity = _authenticate_admin_without_identity(normalized_identifier, password)
+        if admin_without_identity is not None:
+            return admin_without_identity
         raise _invalid_credentials_error()
 
     if not check_password(password, identity.password_hash):

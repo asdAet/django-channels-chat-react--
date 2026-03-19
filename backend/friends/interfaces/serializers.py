@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from rest_framework import serializers
 
-from chat_app_django.media_utils import build_profile_url_from_request, serialize_avatar_crop
+from chat_app_django.media_utils import serialize_avatar_crop
 from friends.models import Friendship
 from friends.utils import get_from_user_id, get_to_user_id
+from users.avatar_service import resolve_user_avatar_source, resolve_user_avatar_url_from_request
 from users.identity import user_display_name, user_public_ref, user_public_username
 
 
@@ -35,17 +37,16 @@ class _UserBriefSerializer(serializers.Serializer):
 
 def _serialize_user_brief(user, request) -> dict:
     profile = getattr(user, "profile", None)
-    profile_image = None
-    if profile and getattr(profile, "image", None):
-        image_name = getattr(profile.image, "name", "")
-        if image_name:
-            if request is not None:
-                profile_image = build_profile_url_from_request(request, image_name)
+    profile_image = resolve_user_avatar_url_from_request(request, user) if request is not None else None
+    if profile_image is None and request is None:
+        source = resolve_user_avatar_source(user)
+        if source:
+            normalized = source.strip()
+            if normalized.startswith("http://") or normalized.startswith("https://"):
+                profile_image = normalized
             else:
-                try:
-                    profile_image = profile.image.url
-                except (AttributeError, ValueError):
-                    profile_image = None
+                media_url = str(getattr(settings, "MEDIA_URL", "/media/") or "/media/")
+                profile_image = f"{media_url.rstrip('/')}/{normalized.lstrip('/')}"
     return {
         "id": user.pk,
         "publicRef": user_public_ref(user),

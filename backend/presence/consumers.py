@@ -12,13 +12,14 @@ from django.conf import settings
 from django.core.cache import cache
 
 from chat_app_django.ip_utils import get_client_ip_from_scope
-from chat_app_django.media_utils import build_profile_url, serialize_avatar_crop
+from chat_app_django.media_utils import serialize_avatar_crop
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter
 from chat_app_django.security.rate_limit_config import (
     ws_connect_rate_limit_disabled,
     ws_connect_rate_limit_policy,
 )
+from users.avatar_service import resolve_user_avatar_url_from_scope
 from users.identity import user_public_ref, user_public_username
 
 from .constants import (
@@ -247,9 +248,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             data.pop(existing_key, None)
         count = self._coerce_presence_int(current.get("count", 0), default=0) + 1
         profile = getattr(user, "profile", None)
-        image_name = getattr(profile, "image", None)
-        image_name = image_name.name if image_name else ""
-        image_url = build_profile_url(self.scope, image_name) if image_name else None
+        image_url = resolve_user_avatar_url_from_scope(self.scope, user)
         avatar_crop = serialize_avatar_crop(profile)
         data[key] = {
             "count": count,
@@ -417,9 +416,7 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             username=username,
         )
         profile = getattr(user, "profile", None)
-        image_name = getattr(profile, "image", None)
-        image_name = image_name.name if image_name else ""
-        image_url = build_profile_url(self.scope, image_name) if image_name else None
+        image_url = resolve_user_avatar_url_from_scope(self.scope, user)
         avatar_crop = serialize_avatar_crop(profile)
         if not current:
             data[key] = {

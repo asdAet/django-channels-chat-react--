@@ -95,7 +95,7 @@ describe("AppRoutes", () => {
     expect(screen.getByText("DIRECT_BY_REF_PAGE:alice")).toBeInTheDocument();
   });
 
-  it("treats legacy /@username route as invalid and redirects to home", () => {
+  it("treats /@username route as invalid and redirects to home", () => {
     render(
       <MemoryRouter initialEntries={["/@alice"]}>
         <AppRoutes

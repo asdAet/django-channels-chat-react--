@@ -1,4 +1,4 @@
-﻿"""Data models for users/auth/profile subsystem."""
+"""Модели пользователей, идентичностей и профиля."""
 
 from __future__ import annotations
 
@@ -15,10 +15,13 @@ from django.db.models import Q
 from django.utils.html import strip_tags
 from PIL import Image
 
+from .avatar_service import profile_avatar_upload_to
+
 MAX_PROFILE_IMAGE_SIDE = 4096
 MAX_PROFILE_IMAGE_PIXELS = MAX_PROFILE_IMAGE_SIDE * MAX_PROFILE_IMAGE_SIDE
 Image.MAX_IMAGE_PIXELS = MAX_PROFILE_IMAGE_PIXELS
 JPEG_EXTENSIONS = {".jpg", ".jpeg"}
+SVG_EXTENSIONS = {".svg"}
 USER_PUBLIC_ID_VALIDATOR = RegexValidator(
     regex=r"^[1-9]\d{9}$",
     message="public_id must be a positive 10-digit numeric value.",
@@ -28,7 +31,7 @@ USER_PUBLIC_ID_VALIDATOR = RegexValidator(
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=150, blank=True, default="")
-    image = models.ImageField(default="default.jpg", upload_to="profile_pics")
+    image = models.ImageField(default="avatars/Password_defualt.jpg", upload_to=profile_avatar_upload_to)
     avatar_url = models.URLField(max_length=2048, blank=True, default="")
     avatar_crop_x = models.FloatField(null=True, blank=True)
     avatar_crop_y = models.FloatField(null=True, blank=True)
@@ -47,6 +50,7 @@ class Profile(models.Model):
         return f"{self.user.username} profile"
 
     def save(self, *args, **kwargs):
+        """Нормализует профиль и безопасно обрабатывает файл аватара."""
         if isinstance(self.bio, str):
             self.bio = strip_tags(self.bio).strip()
         if isinstance(self.name, str):
@@ -72,6 +76,11 @@ class Profile(models.Model):
             default_storage.delete(old_image_name)
 
         try:
+            ext = Path(self.image.name or "").suffix.lower()
+            if ext in SVG_EXTENSIONS:
+                self._old_image_name = self.image.name
+                return
+
             with warnings.catch_warnings():
                 warnings.simplefilter("error", Image.DecompressionBombWarning)
                 with Image.open(self.image.path) as img:
@@ -85,7 +94,6 @@ class Profile(models.Model):
                         return
                     img.thumbnail((MAX_PROFILE_IMAGE_SIDE, MAX_PROFILE_IMAGE_SIDE))
 
-                    ext = Path(self.image.name or "").suffix.lower()
                     if ext in JPEG_EXTENSIONS and img.mode not in {"RGB", "L", "CMYK", "YCbCr"}:
                         img = img.convert("RGB")
 
@@ -97,6 +105,7 @@ class Profile(models.Model):
             Image.DecompressionBombError,
             Image.DecompressionBombWarning,
         ):
+            self._old_image_name = self.image.name
             return
 
         self._old_image_name = self.image.name
@@ -211,7 +220,7 @@ class PublicHandle(models.Model):
 
 
 class SecurityRateLimitBucket(models.Model):
-    """Persistent rate-limit buckets for security restrictions."""
+    """Хранит состояние ограничений запросов для защитных сценариев."""
 
     scope_key = models.CharField(max_length=191, unique=True, db_index=True)
     count = models.PositiveIntegerField(default=0)

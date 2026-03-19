@@ -7,6 +7,8 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 
+from users.avatar_service import group_avatar_upload_to
+
 GROUP_PUBLIC_ID_VALIDATOR = RegexValidator(
     regex=r"^-[1-9]\d{9}$",
     message="public_id must be a negative 10-digit numeric value.",
@@ -45,7 +47,7 @@ class Room(models.Model):
     created_by_id: Optional[int]
 
     description = models.TextField(blank=True, default="", max_length=2000)
-    avatar = models.ImageField(upload_to="group_avatars/", null=True, blank=True)
+    avatar = models.ImageField(upload_to=group_avatar_upload_to, null=True, blank=True)
     avatar_crop_x = models.FloatField(null=True, blank=True)
     avatar_crop_y = models.FloatField(null=True, blank=True)
     avatar_crop_width = models.FloatField(null=True, blank=True)

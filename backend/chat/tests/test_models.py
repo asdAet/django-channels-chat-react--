@@ -17,7 +17,7 @@ class ChatModelsTests(TestCase):
         user = User.objects.create_user(username="msg_user", password="pass12345")
         room = Room.objects.create(name="Public", slug="public", kind=Room.Kind.PUBLIC)
         message = Message.objects.create(
-            username="legacy",
+            username="sender_name",
             user=user,
             room=room,
             message_content="hello",
@@ -27,11 +27,11 @@ class ChatModelsTests(TestCase):
     def test_message_str_falls_back_to_username_field(self):
         room = Room.objects.create(name="Public", slug="public", kind=Room.Kind.PUBLIC)
         message = Message.objects.create(
-            username="legacy",
+            username="sender_name",
             room=room,
             message_content="hello",
         )
-        self.assertEqual(str(message), "legacy: hello")
+        self.assertEqual(str(message), "sender_name: hello")
 
     def test_room_str_returns_name(self):
         room = Room.objects.create(name="My Room", slug="my-room", kind=Room.Kind.PRIVATE)
