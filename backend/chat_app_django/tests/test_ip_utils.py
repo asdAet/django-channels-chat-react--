@@ -49,7 +49,7 @@ class IpUtilsTests(SimpleTestCase):
 
     @override_settings(TRUSTED_PROXY_RANGES=['127.0.0.1/32'])
     def test_request_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_request_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy`."""
+        """Проверяет сценарий `test_request_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy`."""
         request = self.factory.get(
             '/api/auth/session/',
             REMOTE_ADDR='127.0.0.1',
@@ -57,6 +57,26 @@ class IpUtilsTests(SimpleTestCase):
             HTTP_X_FORWARDED_FOR='198.51.100.44, 127.0.0.1',
         )
         self.assertEqual(ip_utils.get_client_ip_from_request(request), '198.51.100.44')
+
+    @override_settings(TRUSTED_PROXY_RANGES=['127.0.0.1/32', '172.16.0.0/12'])
+    def test_request_extracts_client_ip_when_proxy_ip_is_first_in_chain(self):
+        """Проверяет сценарий `test_request_extracts_client_ip_when_proxy_ip_is_first_in_chain`."""
+        request = self.factory.get(
+            '/api/auth/session/',
+            REMOTE_ADDR='127.0.0.1',
+            HTTP_X_FORWARDED_FOR='172.18.0.1, 198.51.100.60',
+        )
+        self.assertEqual(ip_utils.get_client_ip_from_request(request), '198.51.100.60')
+
+    @override_settings(TRUSTED_PROXY_RANGES=['127.0.0.1/32', '172.16.0.0/12'])
+    def test_request_extracts_client_ip_when_proxy_ip_is_last_in_chain(self):
+        """Проверяет сценарий `test_request_extracts_client_ip_when_proxy_ip_is_last_in_chain`."""
+        request = self.factory.get(
+            '/api/auth/session/',
+            REMOTE_ADDR='127.0.0.1',
+            HTTP_X_FORWARDED_FOR='198.51.100.61, 172.18.0.1',
+        )
+        self.assertEqual(ip_utils.get_client_ip_from_request(request), '198.51.100.61')
 
     @override_settings(TRUSTED_PROXY_RANGES=['127.0.0.1/32'])
     def test_request_falls_back_to_remote_when_forwarded_is_invalid(self):
@@ -81,7 +101,7 @@ class IpUtilsTests(SimpleTestCase):
 
     @override_settings(TRUSTED_PROXY_RANGES=['127.0.0.1/32'])
     def test_scope_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy(self):
-        """РџСЂРѕРІРµСЂСЏРµС‚ СЃС†РµРЅР°СЂРёР№ `test_scope_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy`."""
+        """Проверяет сценарий `test_scope_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy`."""
         scope = {
             'client': ('127.0.0.1', 55000),
             'headers': [
@@ -90,6 +110,17 @@ class IpUtilsTests(SimpleTestCase):
             ],
         }
         self.assertEqual(ip_utils.get_client_ip_from_scope(scope), '198.51.100.77')
+
+    @override_settings(TRUSTED_PROXY_RANGES=['127.0.0.1/32', '172.16.0.0/12'])
+    def test_scope_extracts_client_ip_when_proxy_ip_is_first_in_chain(self):
+        """Проверяет сценарий `test_scope_extracts_client_ip_when_proxy_ip_is_first_in_chain`."""
+        scope = {
+            'client': ('127.0.0.1', 55000),
+            'headers': [
+                (b'x-forwarded-for', b'172.18.0.1, 198.51.100.88'),
+            ],
+        }
+        self.assertEqual(ip_utils.get_client_ip_from_scope(scope), '198.51.100.88')
 
     @override_settings(TRUSTED_PROXY_RANGES=['127.0.0.1/32'])
     def test_scope_falls_back_to_remote_for_invalid_forwarded_header(self):

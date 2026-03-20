@@ -41,6 +41,13 @@ def _first_value(value: str | None) -> str | None:
     return value.split(",")[0].strip()
 
 
+def _split_values(value: str | None) -> list[str]:
+    """Разбивает цепочку IP-адресов заголовка на отдельные значения."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 def _parse_ip(value: str | None) -> str | None:
     """Разбирает ip из входных данных с валидацией формата.
     
@@ -57,6 +64,29 @@ def _parse_ip(value: str | None) -> str | None:
     except ValueError:
         return None
     return value
+
+
+def _pick_ip_from_chain(value: str | None) -> str | None:
+    """Выбирает клиентский IP из цепочки X-Forwarded-For-подобного заголовка.
+
+    Логика:
+    1. Валидируем все IP из цепочки.
+    2. Идем справа налево и пропускаем доверенные proxy.
+    3. Берем первый IP, который не входит в trusted proxy ranges.
+    4. Если все IP доверенные, возвращаем первый валидный.
+    """
+    parsed_ips: list[str] = []
+    for item in _split_values(value):
+        ip_val = _parse_ip(item)
+        if ip_val:
+            parsed_ips.append(ip_val)
+    if not parsed_ips:
+        return None
+
+    for ip_val in reversed(parsed_ips):
+        if not is_trusted_proxy(ip_val):
+            return ip_val
+    return parsed_ips[0]
 
 
 @lru_cache(maxsize=1)
@@ -107,7 +137,7 @@ def _pick_ip(candidates: list[str | None]) -> str | None:
         Объект типа str | None, сформированный в рамках обработки.
     """
     for value in candidates:
-        ip_val = _parse_ip(_first_value(value))
+        ip_val = _pick_ip_from_chain(value)
         if ip_val:
             return ip_val
     return None
