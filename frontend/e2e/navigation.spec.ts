@@ -6,7 +6,9 @@ test("basic navigation between home and public chat", async ({ page }) => {
   if (isNarrowViewport) {
     await expect(page.getByLabel("Поиск")).toBeVisible();
   } else {
-    await expect(page.getByRole("heading", { name: "Devil" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Devil", exact: true }),
+    ).toBeVisible();
   }
 
   await page.goto("/rooms/public");
