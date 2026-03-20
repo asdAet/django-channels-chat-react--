@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import type { UserProfile } from "../entities/user/types";
 import { useGroupList } from "../hooks/useGroupList";
 import { EmptyState, Spinner } from "../shared/ui";
-import styles from "../styles/groups/GroupsPage.module.css";
+import styles from "../styles/groups/GroupsPageView.module.css";
 import { CreateGroupDialog } from "../widgets/groups/CreateGroupDialog";
 import { GroupListItem } from "../widgets/groups/GroupListItem";
 

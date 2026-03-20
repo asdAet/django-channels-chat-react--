@@ -166,4 +166,3 @@ export function DirectChatsList({
 export function DirectChatsPage({ user, onNavigate }: Props) {
   return <DirectChatsList user={user} onNavigate={onNavigate} />;
 }
-

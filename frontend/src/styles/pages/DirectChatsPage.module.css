@@ -11,26 +11,6 @@
   min-height: 0;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: #9ab1d0;
-  font-size: 12px;
-  margin: 0;
-}
-
-.title {
-  margin: 0;
-}
-
 .muted {
   color: var(--color-muted);
 }

@@ -5,7 +5,7 @@ import { useFriends } from "../hooks/useFriends";
 import { buildDirectPath, normalizePublicRef } from "../shared/lib/publicRef";
 import { usePresence } from "../shared/presence";
 import { Avatar, EmptyState, Spinner } from "../shared/ui";
-import styles from "../styles/friends/FriendsPage.module.css";
+import styles from "../styles/friends/FriendsPageView.module.css";
 import { AddFriendDialog } from "../widgets/friends/AddFriendDialog";
 import { FriendListItem } from "../widgets/friends/FriendListItem";
 import { FriendRequestItem } from "../widgets/friends/FriendRequestItem";

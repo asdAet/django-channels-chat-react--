@@ -4,7 +4,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
   useCallback,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -14,11 +13,11 @@ import type {
   ReactionSummary,
   ReplyTo,
 } from "../../entities/message/types";
-import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
+import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
 import { isVideoAttachment } from "../../shared/lib/attachmentMedia";
+import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
-import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
 import type { ContextMenuItem } from "../../shared/ui";
 import {
   AudioAttachmentPlayer,
@@ -83,16 +82,7 @@ type LightboxMediaItem = {
 /**
  * Константа `QUICK_REACTIONS` хранит используемое в модуле значение.
  */
-const QUICK_REACTIONS = [
-  "👍",
-  "❤️",
-  "😂",
-  "😮",
-  "👎",
-  "🔥",
-  "🎉",
-  "😢",
-];
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "👎", "🔥", "🎉", "😢"];
 /**
  * Форматирует размер файла для отображения рядом с вложением.
  * @param bytes Размер файла в байтах.
@@ -115,7 +105,6 @@ const formatMediaDuration = (totalSeconds: number): string => {
   }
   return `${minutes}:${String(remainSeconds).padStart(2, "0")}`;
 };
-
 
 /**
  * Проверяет, относится ли MIME-тип к видео.
@@ -610,8 +599,8 @@ export function MessageBubble({
     attachmentBuckets.visibleImages.length,
   );
   const mediaGridVariantClass = MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
-  const lightboxMediaItems = useMemo<LightboxMediaItem[]>(() => {
-    return attachmentItems.flatMap((item) => {
+  const lightboxMediaItems: LightboxMediaItem[] = attachmentItems.flatMap(
+    (item) => {
       const { attachment } = item;
       if (!attachment.url) {
         return [];
@@ -631,19 +620,16 @@ export function MessageBubble({
           metadata: buildLightboxMetadata(attachment),
         },
       ];
-    });
-  }, [attachmentItems, buildLightboxMetadata]);
-
-  const openLightboxByAttachmentId = useCallback(
-    (attachmentId: number) => {
-      const targetIndex = lightboxMediaItems.findIndex(
-        (item) => item.metadata.attachmentId === attachmentId,
-      );
-      if (targetIndex < 0) return;
-      setLightboxOpenIndex(targetIndex);
     },
-    [lightboxMediaItems],
   );
+
+  const openLightboxByAttachmentId = (attachmentId: number) => {
+    const targetIndex = lightboxMediaItems.findIndex(
+      (item) => item.metadata.attachmentId === attachmentId,
+    );
+    if (targetIndex < 0) return;
+    setLightboxOpenIndex(targetIndex);
+  };
 
   return (
     <>
@@ -780,7 +766,10 @@ export function MessageBubble({
                 {attachmentBuckets.others.length > 0 && (
                   <div className={styles.fileAttachments}>
                     {attachmentBuckets.others.map(({ attachment: att }) => {
-                      if (isVideoType(att.contentType, att.originalFilename) && att.url) {
+                      if (
+                        isVideoType(att.contentType, att.originalFilename) &&
+                        att.url
+                      ) {
                         return (
                           <button
                             key={att.id}
@@ -967,4 +956,3 @@ export function MessageBubble({
     </>
   );
 }
-
