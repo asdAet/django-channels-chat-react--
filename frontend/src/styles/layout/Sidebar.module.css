@@ -45,7 +45,8 @@
   background: var(--bg-input);
   color: var(--text-soft);
   cursor: pointer;
-  transition: background var(--tg-transition-fast, 150ms),
+  transition:
+    background var(--tg-transition-fast, 150ms),
     border-color var(--tg-transition-fast, 150ms),
     color var(--tg-transition-fast, 150ms);
 }
@@ -118,9 +119,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
-  transition: background var(--tg-transition-fast, 150ms), border-radius var(--tg-transition-fast, 150ms), transform var(--tg-transition-fast, 150ms);
+  isolation: isolate;
+  transition:
+    background var(--tg-transition-fast, 150ms),
+    border-radius var(--tg-transition-fast, 150ms),
+    transform var(--tg-transition-fast, 150ms);
 }
 
 .guildButton:hover {
@@ -133,6 +138,7 @@
   /* background: #0f1012; */
   border-radius: 14px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
 }
 
 .guildButtonLogo:hover {
@@ -144,15 +150,19 @@
   height: 140%;
   object-fit: cover;
   filter: none;
+  border-radius: inherit;
 }
 
 .guildIcon {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: inherit;
 }
 
 .guildFallback {
+  position: relative;
+  z-index: 1;
   font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
@@ -175,6 +185,8 @@
   align-items: center;
   justify-content: center;
   padding: 0 5px;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .guildButtonCreate {
@@ -318,7 +330,9 @@
   gap: 10px;
   text-align: left;
   cursor: pointer;
-  transition: background var(--tg-transition-fast, 150ms), color var(--tg-transition-fast, 150ms);
+  transition:
+    background var(--tg-transition-fast, 150ms),
+    color var(--tg-transition-fast, 150ms);
 }
 
 .dmLink:hover {
@@ -352,7 +366,11 @@
 }
 
 .dmIconPublic {
-  background: linear-gradient(135deg, rgba(88, 101, 242, 0.92), rgba(71, 82, 196, 0.92));
+  background: linear-gradient(
+    135deg,
+    rgba(88, 101, 242, 0.92),
+    rgba(71, 82, 196, 0.92)
+  );
   color: #fff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
@@ -463,7 +481,9 @@
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
-  transition: background var(--tg-transition-fast, 150ms), color var(--tg-transition-fast, 150ms);
+  transition:
+    background var(--tg-transition-fast, 150ms),
+    color var(--tg-transition-fast, 150ms);
 }
 
 .controlButton:hover {
@@ -563,4 +583,3 @@
     padding-inline: 8px;
   }
 }
-
