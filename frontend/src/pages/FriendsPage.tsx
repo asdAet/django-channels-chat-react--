@@ -73,6 +73,7 @@ const IconPlus = () => (
 );
 
 const IconFriends = () => (
+  // <img src="/devils_map_icon.svg" alt="Devils" className={styles.guildLogo} />
   <svg
     width="18"
     height="18"
@@ -216,7 +217,13 @@ export function FriendsPage({ user, onNavigate }: Props) {
         totalCount: blocked.length,
       },
     }),
-    [blocked.length, friends.length, incoming.length, onlineFriends.length, outgoing.length],
+    [
+      blocked.length,
+      friends.length,
+      incoming.length,
+      onlineFriends.length,
+      outgoing.length,
+    ],
   );
 
   const activeMeta = tabMeta[tab];
@@ -293,7 +300,9 @@ export function FriendsPage({ user, onNavigate }: Props) {
         <FriendListItem
           key={friend.id}
           friend={friend}
-          isOnline={onlineUsernames.has(normalizeActorRef(resolveFriendRef(friend)))}
+          isOnline={onlineUsernames.has(
+            normalizeActorRef(resolveFriendRef(friend)),
+          )}
           onMessage={handleMessage}
           onRemove={removeFriend}
           onBlock={blockUser}
@@ -407,16 +416,15 @@ export function FriendsPage({ user, onNavigate }: Props) {
             <button
               key={tabKey}
               type="button"
-              className={[
-                styles.tab,
-                tab === tabKey ? styles.tabActive : "",
-              ]
+              className={[styles.tab, tab === tabKey ? styles.tabActive : ""]
                 .filter(Boolean)
                 .join(" ")}
               onClick={() => setTab(tabKey)}
             >
               <span>{tabMeta[tabKey].label}</span>
-              <span className={styles.tabCount}>{tabMeta[tabKey].totalCount}</span>
+              <span className={styles.tabCount}>
+                {tabMeta[tabKey].totalCount}
+              </span>
             </button>
           ))}
           <button

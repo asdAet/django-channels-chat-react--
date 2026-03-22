@@ -2,8 +2,10 @@
 
 import asyncio
 import json
+import logging
 import time
 
+from autobahn.exception import Disconnected
 from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
@@ -38,6 +40,8 @@ from users.identity import (
 
 from .constants import CHAT_CLOSE_IDLE_CODE
 
+logger = logging.getLogger(__name__)
+
 
 def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
     """Выполняет вспомогательную обработку для ws connect rate limited.
@@ -65,6 +69,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         """Устанавливает соединение и выполняет проверки доступа."""
+        self._connection_closed = False
         user = self.scope.get("user")
         if user is None:
             audit_ws_event("ws.connect.denied", self.scope, endpoint="chat", reason="missing_user", code=4401)
@@ -151,6 +156,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         Args:
             code: Код ошибки или состояния.
         """
+        self._connection_closed = True
         idle_task = getattr(self, "_idle_task", None)
         if idle_task:
             idle_task.cancel()
@@ -168,6 +174,36 @@ class ChatConsumer(AsyncWebsocketConsumer):
             code=code,
             room_id=getattr(self, "room_id", None),
         )
+
+    @staticmethod
+    def _is_closed_send_error(exc: Exception) -> bool:
+        """Normalize known send errors for an already-closed websocket."""
+        if isinstance(exc, Disconnected):
+            return True
+        if not isinstance(exc, RuntimeError):
+            return False
+        message = str(exc).lower()
+        return "closed protocol" in message or "websocket.close" in message
+
+    async def _send_json(self, payload: object) -> bool:
+        """Send JSON only while the websocket is still open."""
+        if getattr(self, "_connection_closed", False):
+            return False
+        try:
+            await self.send(text_data=json.dumps(payload))
+            return True
+        except Exception as exc:
+            if not self._is_closed_send_error(exc):
+                raise
+            self._connection_closed = True
+            logger.debug(
+                "Skip websocket send for closed chat connection",
+                extra={
+                    "room_id": getattr(self, "room_id", None),
+                    "channel_name": getattr(self, "channel_name", None),
+                },
+            )
+            return False
 
     async def receive(self, text_data=None, bytes_data=None):
         """Принимает входящее сообщение и маршрутизирует его обработку.
@@ -220,7 +256,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 room_id=self.room.pk,
                 message_length=len(message),
             )
-            await self.send(text_data=json.dumps({"error": "message_too_long"}))
+            await self._send_json({"error": "message_too_long"})
             return
 
         user = self.scope.get("user")
@@ -229,7 +265,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
 
         if self.room.kind == Room.Kind.DIRECT and await self._is_blocked_in_dm(self.room, user):
-            await self.send(text_data=json.dumps({"error": "forbidden"}))
+            await self._send_json({"error": "forbidden"})
             return
 
         if not await self._can_write(self.room, user):
@@ -240,7 +276,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 reason="forbidden",
                 room_id=self.room.pk,
             )
-            await self.send(text_data=json.dumps({"error": "forbidden"}))
+            await self._send_json({"error": "forbidden"})
             return
 
         if await self._rate_limited(user):
@@ -249,11 +285,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             retry_after = await self._rate_limit_retry_after_seconds(user)
             if isinstance(retry_after, int) and retry_after > 0:
                 payload["retry_after"] = retry_after
-            await self.send(text_data=json.dumps(payload))
+            await self._send_json(payload)
             return
 
         if await self._slow_mode_limited(user):
-            await self.send(text_data=json.dumps({"error": "slow_mode"}))
+            await self._send_json({"error": "slow_mode"})
             return
 
         public_ref = (await self._resolve_public_ref(user)).strip()
@@ -334,22 +370,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
             event: Событие для логирования или трансляции.
         """
         self._last_activity = time.monotonic()
-        await self.send(
-            text_data=json.dumps(
-                {
-                    "message": event["message"],
-                    "publicRef": event.get("publicRef") or event.get("username"),
-                    "username": event["username"],
-                    "displayName": event.get("displayName") or event["username"],
-                    "profile_pic": event["profile_pic"],
-                    "avatar_crop": event.get("avatar_crop"),
-                    "roomId": event.get("roomId"),
-                    "id": event.get("id"),
-                    "createdAt": event.get("createdAt") or event.get("date_added"),
-                    "replyTo": event.get("replyTo"),
-                    "attachments": event.get("attachments", []),
-                }
-            )
+        await self._send_json(
+            {
+                "message": event["message"],
+                "publicRef": event.get("publicRef") or event.get("username"),
+                "username": event["username"],
+                "displayName": event.get("displayName") or event["username"],
+                "profile_pic": event["profile_pic"],
+                "avatar_crop": event.get("avatar_crop"),
+                "roomId": event.get("roomId"),
+                "id": event.get("id"),
+                "createdAt": event.get("createdAt") or event.get("date_added"),
+                "replyTo": event.get("replyTo"),
+                "attachments": event.get("attachments", []),
+            }
         )
 
     async def _idle_watchdog(self):
@@ -620,13 +654,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """
         if event.get("sender_channel") == self.channel_name:
             return
-        await self.send(text_data=json.dumps({
+        await self._send_json({
             "type": "typing",
             "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
             "userId": event["userId"],
-        }))
+        })
     # Формирование данных reply-сообщения.
 
     @sync_to_async
@@ -666,14 +700,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             event: Событие для логирования или трансляции.
         """
         self._last_activity = time.monotonic()
-        await self.send(text_data=json.dumps({
+        await self._send_json({
             "type": "message_edit",
             "messageId": event["messageId"],
             "content": event["content"],
             "editedAt": event["editedAt"],
             "editedByRef": event.get("editedByRef") or event.get("editedBy"),
             "editedBy": event["editedBy"],
-        }))
+        })
 
     async def chat_message_delete(self, event):
         """Транслирует удаление сообщения в комнате.
@@ -682,12 +716,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             event: Событие для логирования или трансляции.
         """
         self._last_activity = time.monotonic()
-        await self.send(text_data=json.dumps({
+        await self._send_json({
             "type": "message_delete",
             "messageId": event["messageId"],
             "deletedByRef": event.get("deletedByRef") or event.get("deletedBy"),
             "deletedBy": event["deletedBy"],
-        }))
+        })
 
     async def chat_reaction_add(self, event):
         """Транслирует добавление реакции на сообщение.
@@ -696,7 +730,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             event: Событие для логирования или трансляции.
         """
         self._last_activity = time.monotonic()
-        await self.send(text_data=json.dumps({
+        await self._send_json({
             "type": "reaction_add",
             "messageId": event["messageId"],
             "emoji": event["emoji"],
@@ -704,7 +738,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
-        }))
+        })
 
     async def chat_reaction_remove(self, event):
         """Транслирует удаление реакции с сообщения.
@@ -713,7 +747,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             event: Событие для логирования или трансляции.
         """
         self._last_activity = time.monotonic()
-        await self.send(text_data=json.dumps({
+        await self._send_json({
             "type": "reaction_remove",
             "messageId": event["messageId"],
             "emoji": event["emoji"],
@@ -721,7 +755,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
-        }))
+        })
 
     async def chat_read_receipt(self, event):
         """Транслирует подтверждение чтения сообщения.
@@ -730,7 +764,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             event: Событие для логирования или трансляции.
         """
         self._last_activity = time.monotonic()
-        await self.send(text_data=json.dumps({
+        await self._send_json({
             "type": "read_receipt",
             "userId": event["userId"],
             "publicRef": event.get("publicRef") or event["username"],
@@ -739,7 +773,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "lastReadMessageId": event["lastReadMessageId"],
             "lastReadAt": event.get("lastReadAt"),
             "roomId": event["roomId"],
-        }))
+        })
     # Обработка отметки прочитанного через WebSocket.
 
     async def chat_membership_revoked(self, event):

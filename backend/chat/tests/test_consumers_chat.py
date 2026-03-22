@@ -3,7 +3,9 @@
 
 
 import json
+from unittest.mock import AsyncMock
 
+from autobahn.exception import Disconnected
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from channels.routing import URLRouter
@@ -13,6 +15,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.test import TransactionTestCase, override_settings
 
+from chat.consumers import ChatConsumer
 from messages.models import Message
 from roles.models import Membership, Role
 from rooms.services import ensure_membership
@@ -214,6 +217,32 @@ class ChatConsumerTests(TransactionTestCase):
         self.assertTrue(
             Message.objects.filter(room=self.private_room, message_content='typing-safe').exists()
         )
+
+    def test_read_receipt_ignores_closed_socket_send(self):
+        """Late room events after disconnect must not crash the consumer."""
+        async def run():
+            consumer = ChatConsumer()
+            consumer.scope = {"type": "websocket"}
+            consumer._connection_closed = False
+            consumer._last_activity = 0.0
+            consumer.send = AsyncMock(side_effect=Disconnected())
+
+            await consumer.chat_read_receipt(
+                {
+                    "userId": self.member.pk,
+                    "publicRef": user_public_ref(self.member),
+                    "username": user_public_username(self.member),
+                    "displayName": self.member.username,
+                    "lastReadMessageId": 1,
+                    "lastReadAt": None,
+                    "roomId": self.private_room.pk,
+                }
+            )
+
+            consumer.send.assert_awaited_once()
+            self.assertTrue(consumer._connection_closed)
+
+        async_to_sync(run)()
 
     def test_unauthenticated_public_user_cannot_send_messages(self):
         """Проверяет сценарий `test_unauthenticated_public_user_cannot_send_messages`."""

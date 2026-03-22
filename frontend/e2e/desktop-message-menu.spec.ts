@@ -1,4 +1,4 @@
-﻿import { expect, type Page,test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { registerWithRetry } from "./helpers/auth";
 
@@ -14,22 +14,36 @@ test("desktop opens message action menu with right click", async ({ page }) => {
   await register(page, username, password);
 
   await page.goto("/public");
-  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL("/public");
+  await expect(page.getByTestId("chat-page-root")).toBeVisible({
+    timeout: 15_000,
+  });
 
   const joinCallout = page.getByTestId("group-join-callout");
-  if (await joinCallout.isVisible()) {
-    await joinCallout.getByRole("button", { name: /Присоединиться|Join/i }).click();
+  const input = page.getByTestId("chat-message-input");
+
+  await expect
+    .poll(
+      async () => {
+        if (await input.isVisible().catch(() => false)) return "input";
+        if (await joinCallout.isVisible().catch(() => false)) return "join";
+        return "loading";
+      },
+      { timeout: 15_000 },
+    )
+    .not.toBe("loading");
+
+  if (await joinCallout.isVisible().catch(() => false)) {
+    await joinCallout
+      .getByRole("button", { name: /Присоединиться|Join/i })
+      .click();
   }
 
-  const input = page.getByTestId("chat-message-input");
   await expect(input).toBeVisible({ timeout: 15_000 });
   await input.fill(text);
   await page.getByTestId("chat-send-button").click();
 
-  const ownMessage = page
-    .locator("article")
-    .filter({ has: page.getByText(text) })
-    .last();
+  const ownMessage = page.locator("article").filter({ has: page.getByText(text) }).last();
   await expect(ownMessage).toBeVisible({ timeout: 20_000 });
 
   await ownMessage.click({ button: "right" });
