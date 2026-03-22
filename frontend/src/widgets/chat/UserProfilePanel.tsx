@@ -8,6 +8,7 @@ import type {
   FriendRequest,
 } from "../../entities/friend/types";
 import { useUserProfile } from "../../hooks/useUserProfile";
+import { useInfoPanel } from "../../shared/layout/useInfoPanel";
 import { formatFullName, formatLastSeen } from "../../shared/lib/format";
 import {
   buildDirectPath,
@@ -143,6 +144,7 @@ const resolveRelation = (
  */
 export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
   const navigate = useNavigate();
+  const { close: closeInfoPanel } = useInfoPanel();
   const { online: presenceOnline } = usePresence();
   const { user, loading, error } = useUserProfile(publicRef);
   const [relation, setRelation] = useState<RelationSnapshot>(EMPTY_RELATION);
@@ -348,8 +350,9 @@ export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
 
   const handleStartDirect = useCallback(() => {
     const targetRef = (user?.publicRef ?? publicRef).trim();
+    closeInfoPanel();
     navigate(buildDirectPath(targetRef));
-  }, [navigate, publicRef, user?.publicRef]);
+  }, [closeInfoPanel, navigate, publicRef, user?.publicRef]);
 
   const isUserOnline = useMemo(() => {
     const targetRef = (user?.publicRef ?? publicRef).trim();

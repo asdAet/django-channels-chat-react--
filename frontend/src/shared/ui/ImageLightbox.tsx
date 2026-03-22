@@ -26,6 +26,7 @@ const DOUBLE_TAP_DELAY_MS = 280;
 const DOUBLE_TAP_DISTANCE_PX = 24;
 const DOUBLE_TAP_ZOOM_SCALE = 2.5;
 const IGNORE_SYNTHETIC_DOUBLE_CLICK_AFTER_TOUCH_MS = 500;
+const LIGHTBOX_HISTORY_STATE_KEY = "__imageLightbox";
 
 const EXPAND_LABEL = "Развернуть";
 const CLOSE_LABEL = "Закрыть";
@@ -256,6 +257,8 @@ export function ImageLightbox(props: Props) {
   const lastTapRef = useRef<TapSnapshot | null>(null);
   const lastHandledTouchDoubleTapAtRef = useRef<number | null>(null);
   const pointerMovedRef = useRef(false);
+  const historyEntryActiveRef = useRef(false);
+  const historyBackPendingRef = useRef(false);
 
   const normalizedCurrentIndex = useMemo(
     () => normalizeIndex(currentIndex, mediaItems.length),
@@ -399,13 +402,27 @@ export function ImageLightbox(props: Props) {
     [toggleZoomAtPoint],
   );
 
-  const beginClose = useCallback(() => {
+  const startCloseAnimation = useCallback(() => {
     if (isClosing) return;
     setIsClosing(true);
     closeTimerRef.current = window.setTimeout(() => {
       props.onClose();
     }, EXIT_ANIMATION_MS);
   }, [isClosing, props]);
+
+  /**
+   * Lightbox добавляет отдельную history entry, чтобы системный Back сначала
+   * закрывал viewer, а уже следующий Back менял страницу.
+   */
+  const beginClose = useCallback(() => {
+    if (historyEntryActiveRef.current && !historyBackPendingRef.current) {
+      historyBackPendingRef.current = true;
+      window.history.back();
+      return;
+    }
+
+    startCloseAnimation();
+  }, [startCloseAnimation]);
 
   const goToPrevious = useCallback(() => {
     if (!hasNavigation) return;
@@ -441,6 +458,38 @@ export function ImageLightbox(props: Props) {
       document.body.style.overflow = previousOverflow;
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.history.pushState !== "function") {
+      return;
+    }
+
+    const currentState = window.history.state;
+    const nextState =
+      currentState && typeof currentState === "object"
+        ? { ...currentState, [LIGHTBOX_HISTORY_STATE_KEY]: true }
+        : { [LIGHTBOX_HISTORY_STATE_KEY]: true };
+
+    window.history.pushState(nextState, "", window.location.href);
+    historyEntryActiveRef.current = true;
+
+    const handlePopState = () => {
+      if (!historyEntryActiveRef.current) {
+        return;
+      }
+
+      historyEntryActiveRef.current = false;
+      historyBackPendingRef.current = false;
+      startCloseAnimation();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      historyEntryActiveRef.current = false;
+      historyBackPendingRef.current = false;
+    };
+  }, [startCloseAnimation]);
 
   useEffect(() => {
     const overlayElement = overlayRef.current;

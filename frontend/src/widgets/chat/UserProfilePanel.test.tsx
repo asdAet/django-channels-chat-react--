@@ -2,6 +2,11 @@
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const navigateMock = vi.hoisted(() => vi.fn());
+const infoPanelMock = vi.hoisted(() => ({
+  close: vi.fn(),
+}));
+
 const profileMock = vi.hoisted(() => ({
   user: {
     name: "Алиса",
@@ -97,8 +102,22 @@ const friendsControllerMock = vi.hoisted(() => ({
   }),
 }));
 
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>(
+    "react-router-dom",
+  );
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
+
 vi.mock("../../hooks/useUserProfile", () => ({
   useUserProfile: () => profileMock,
+}));
+
+vi.mock("../../shared/layout/useInfoPanel", () => ({
+  useInfoPanel: () => infoPanelMock,
 }));
 
 vi.mock("../../shared/presence", () => ({
@@ -132,6 +151,8 @@ describe("UserProfilePanel", () => {
     relationState.outgoing = [];
     relationState.blocked = [];
     vi.clearAllMocks();
+    navigateMock.mockReset();
+    infoPanelMock.close.mockReset();
   });
 
   it("shows online status and renders publicRef as primary identifier", async () => {
@@ -243,6 +264,20 @@ describe("UserProfilePanel", () => {
         name: "Добавить в друзья",
       }),
     ).toBeNull();
+  });
+
+  it("closes the profile panel before opening a direct chat", async () => {
+    render(
+      <MemoryRouter>
+        <UserProfilePanel publicRef="1234567890" currentPublicRef="2222222222" />
+      </MemoryRouter>,
+    );
+
+    const actionButtons = await screen.findAllByRole("button");
+    fireEvent.click(actionButtons[1]!);
+
+    expect(infoPanelMock.close).toHaveBeenCalledTimes(1);
+    expect(navigateMock).toHaveBeenCalledWith("/1234567890");
   });
 
   it("hides friend actions for self profile", async () => {

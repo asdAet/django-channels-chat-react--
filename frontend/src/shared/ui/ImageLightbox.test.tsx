@@ -64,6 +64,9 @@ describe("ImageLightbox", () => {
   it("closes after pressing the close button and waiting for the animation", () => {
     vi.useFakeTimers();
     const onClose = vi.fn();
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
 
     render(
       <ImageLightbox
@@ -74,10 +77,12 @@ describe("ImageLightbox", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
+    fireEvent.click(screen.getByText("×").closest("button")!);
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
 
     act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
       vi.advanceTimersByTime(199);
     });
     expect(onClose).not.toHaveBeenCalled();
@@ -181,6 +186,9 @@ describe("ImageLightbox", () => {
   it("closes after a vertical swipe gesture", () => {
     vi.useFakeTimers();
     const onClose = vi.fn();
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
 
     render(
       <ImageLightbox
@@ -204,9 +212,36 @@ describe("ImageLightbox", () => {
     });
 
     act(() => {
+      expect(historyBackSpy).toHaveBeenCalledTimes(1);
+      window.dispatchEvent(new PopStateEvent("popstate"));
       vi.advanceTimersByTime(200);
     });
 
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes on browser back before page navigation", () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={onClose}
+      />,
+    );
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      vi.advanceTimersByTime(199);
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
