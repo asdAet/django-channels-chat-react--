@@ -33,7 +33,7 @@ describe("FriendListItem", () => {
 
     expect(screen.getByRole("button", { name: "Написать" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Удалить" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Блок" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Заблокировать" })).toBeInTheDocument();
   });
 
   it("runs the selected friend action", () => {
@@ -60,7 +60,7 @@ describe("FriendListItem", () => {
     expect(onRemove).toHaveBeenCalledWith(7);
 
     fireEvent.click(screen.getByRole("button", { name: "Действия для Alice" }));
-    fireEvent.click(screen.getByRole("button", { name: "Блок" }));
+    fireEvent.click(screen.getByRole("button", { name: "Заблокировать" }));
     expect(onBlock).toHaveBeenCalledWith("alice");
   });
 });

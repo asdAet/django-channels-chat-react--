@@ -1,6 +1,17 @@
-# Devil frontend
+﻿# Devil Frontend
 
-Одностраничный интерфейс на React + TypeScript для Django-чата. Вся работа с сессиями и профилями идёт через JSON API, а WebSocket-подключения остаются совместимыми с Channels.
+SPA-клиент на `React + TypeScript + Vite` для `Devil Resting`.
+
+## Что важно сейчас
+- Chat routing prefixless: вместо `/direct/*` и `/rooms/*` используется `/:target`
+- Канонические chat routes:
+  - `/public`
+  - `/@username`
+  - `/<userPublicId>`
+  - `/<groupPublicRef>`
+  - `/<groupPublicId>`
+- Внешний target сначала резолвится через `POST /api/chat/resolve/`, затем весь runtime работает по внутреннему `roomId`
+- Direct inbox использует `GET /api/chat/inbox/` и `ws://<host>/ws/inbox/`
 
 ## Локальный запуск
 ```bash
@@ -8,22 +19,53 @@ npm install
 npm run dev
 ```
 
-Vite проксирует `/api` и `/ws` на `http://localhost:8000`, поэтому бэкенд должен быть запущен на этом адресе. Для продакшена соберите статику:
+Vite проксирует:
+- `/api` -> `http://127.0.0.1:8000`
+- `/ws` -> `ws://127.0.0.1:8000`
+
+Для production build:
 ```bash
 npm run build
 ```
 
-## Структура (микроархитектура)
-- `src/shared/api` — низкоуровневый http-клиент и сервисы `auth.ts`, `chat.ts`.
-- `src/entities/*` — типы домена (пользователь, комната, сообщение).
-- `src/shared/lib` — утилиты форматирования/фоллбеков.
-- `src/widgets` — общие виджеты (шапка).
-- `src/pages` — экранные компоненты (home/auth/profile/chat-room).
-- `src/app` — маршрутизация и композиция приложения.
+## Структура
+- `src/adapters` — HTTP API layer
+- `src/app` — shell и routing
+- `src/controllers` — orchestration layer
+- `src/dto` — Zod boundary
+- `src/entities` — доменные типы
+- `src/pages` — route pages
+- `src/shared` — shared libs, ui, auth, ws
+- `src/widgets` — composed UI blocks
 
-## API ожидания
-- CSRF-cookie выдаётся через `GET /api/auth/csrf/`.
-- Сессия: `GET /api/auth/session/`.
-- Вход/регистрация: `POST /api/auth/login/`, `POST /api/auth/register/`.
-- Профиль: `GET/POST /api/profile/`.
-- Чаты: `POST /api/chat/resolve/`, `GET /api/chat/<room>/`, `GET /api/chat/<room>/messages/`, `GET /api/chat/inbox/`.
+## Основные frontend routes
+- `/`
+- `/login`
+- `/register`
+- `/profile`
+- `/settings`
+- `/friends`
+- `/groups`
+- `/invite/:code`
+- `/users/:ref`
+- `/:target`
+
+## Основные chat API, которые использует frontend
+- `POST /api/chat/resolve/`
+- `GET /api/chat/inbox/`
+- `GET /api/chat/unread/`
+- `GET /api/chat/<room_id>/`
+- `GET /api/chat/<room_id>/messages/`
+- `POST /api/chat/<room_id>/attachments/`
+- `POST /api/chat/<room_id>/read/`
+- `GET /api/chat/search/global/`
+
+## Качество
+```bash
+npm run lint
+npm run lint:css
+npm run check:dto-boundary
+npm run test:unit
+npm run build
+npm run test:e2e
+```
