@@ -25,6 +25,7 @@ const MAX_GESTURE_PREVIEW_PX = 160;
 const DOUBLE_TAP_DELAY_MS = 280;
 const DOUBLE_TAP_DISTANCE_PX = 24;
 const DOUBLE_TAP_ZOOM_SCALE = 2.5;
+const IGNORE_SYNTHETIC_DOUBLE_CLICK_AFTER_TOUCH_MS = 500;
 
 const EXPAND_LABEL = "Развернуть";
 const CLOSE_LABEL = "Закрыть";
@@ -253,6 +254,7 @@ export function ImageLightbox(props: Props) {
   const pinchStateRef = useRef<PinchState | null>(null);
   const touchGestureRef = useRef<TouchGestureState | null>(null);
   const lastTapRef = useRef<TapSnapshot | null>(null);
+  const lastHandledTouchDoubleTapAtRef = useRef<number | null>(null);
   const pointerMovedRef = useRef(false);
 
   const normalizedCurrentIndex = useMemo(
@@ -385,6 +387,7 @@ export function ImageLightbox(props: Props) {
           distance <= DOUBLE_TAP_DISTANCE_PX
         ) {
           lastTapRef.current = null;
+          lastHandledTouchDoubleTapAtRef.current = timestamp;
           toggleZoomAtPoint(clientX, clientY);
           return true;
         }
@@ -846,6 +849,15 @@ export function ImageLightbox(props: Props) {
 
   const handleViewportDoubleClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
+      const lastHandledTouchDoubleTapAt =
+        lastHandledTouchDoubleTapAtRef.current;
+      if (
+        lastHandledTouchDoubleTapAt !== null &&
+        event.timeStamp - lastHandledTouchDoubleTapAt <=
+          IGNORE_SYNTHETIC_DOUBLE_CLICK_AFTER_TOUCH_MS
+      ) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
       toggleZoomAtPoint(event.clientX, event.clientY);
