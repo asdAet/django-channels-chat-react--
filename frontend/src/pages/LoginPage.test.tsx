@@ -23,4 +23,19 @@ describe("LoginPage", () => {
     render(<LoginPage onSubmit={vi.fn()} onNavigate={vi.fn()} />);
     expect(screen.queryByTestId("auth-google-button")).not.toBeInTheDocument();
   });
+
+  it("renders disabled google oauth button with explicit reason", () => {
+    render(
+      <LoginPage
+        onSubmit={vi.fn()}
+        onNavigate={vi.fn()}
+        googleAuthDisabledReason="Google OAuth сейчас недоступен."
+      />,
+    );
+
+    expect(screen.getByTestId("auth-google-button")).toBeDisabled();
+    expect(
+      screen.getByText("Google OAuth сейчас недоступен."),
+    ).toBeInTheDocument();
+  });
 });

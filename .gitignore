@@ -195,6 +195,11 @@ db.*
 backend/pytest.out
 
 users/
+!backend/users/
+!backend/users/static/
+!backend/users/static/users/
+!backend/users/static/users/default_avatars/
+!backend/users/static/users/default_avatars/*.jpg
 groups/
 tmp_test_temp
 tmp_test_media

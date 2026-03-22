@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sized
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from django.conf import settings
@@ -19,6 +19,10 @@ _DEFAULT_USER_OAUTH_AVATAR = "avatars/OAuth_defualt.jpg"
 _DEFAULT_GROUP_AVATAR = "avatars/Group_defualt.jpg"
 _DEFAULT_USER_UPLOAD_DIR = "avatars/users"
 _DEFAULT_GROUP_UPLOAD_DIR = "avatars/groups"
+_DEFAULT_AVATAR_ASSET_ROOT = Path(__file__).resolve().parent / "static" / "users" / "default_avatars"
+_DEFAULT_USER_PASSWORD_ASSET = _DEFAULT_AVATAR_ASSET_ROOT / "Password_defualt.jpg"
+_DEFAULT_USER_OAUTH_ASSET = _DEFAULT_AVATAR_ASSET_ROOT / "OAuth_defualt.jpg"
+_DEFAULT_GROUP_ASSET = _DEFAULT_AVATAR_ASSET_ROOT / "Group_defualt.jpg"
 _USER_DEFAULT_IMAGE_ALIASES = (
     "default.jpg",
     "avatars/users/password/default.jpg",
@@ -277,6 +281,27 @@ def _is_default_user_image(path: str) -> bool:
         user_oauth_default_avatar_path(),
     )
     return any(_is_same_media_file(path, candidate) for candidate in defaults)
+
+
+def resolve_bundled_default_avatar_file(path: str | None) -> Path | None:
+    """Возвращает встроенный default avatar asset для известных логических avatar paths.
+
+    Дефолтные аватары относятся к ассетам приложения, а не к пользовательским upload-файлам.
+    Поэтому backend должен уметь отдать их даже если production MEDIA_ROOT пустой.
+    """
+    normalized = _normalized_media_path(path)
+    if not normalized:
+        return None
+
+    candidates = (
+        (user_password_default_avatar_path(), _DEFAULT_USER_PASSWORD_ASSET),
+        (user_oauth_default_avatar_path(), _DEFAULT_USER_OAUTH_ASSET),
+        (group_default_avatar_path(), _DEFAULT_GROUP_ASSET),
+    )
+    for configured_path, bundled_asset in candidates:
+        if _is_same_media_file(normalized, configured_path) and bundled_asset.is_file():
+            return bundled_asset
+    return None
 
 
 def resolve_user_avatar_source(user: Any) -> str | None:

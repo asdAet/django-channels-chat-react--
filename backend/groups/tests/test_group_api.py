@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from rooms.models import Room
 from users.identity import user_public_username
@@ -68,6 +68,19 @@ class TestCreateGroup(APITestCase):
         data = resp.json()
         assert data["isPublic"] is True
         assert data["username"] == "pubgroup"
+
+    @override_settings(GROUP_DEFAULT_AVATAR="avatars/missing_group_default.jpg")
+    def test_create_group_default_avatar_is_served_from_bundled_asset_when_media_file_is_missing(self):
+        resp = self.api_client.post("/api/groups/", {"name": "Bundled Group"}, format="json")
+        assert resp.status_code == 201
+        avatar_url = resp.json()["avatarUrl"]
+        assert avatar_url is not None
+
+        parsed = urlparse(avatar_url)
+        media_response = self.api_client.get(f"{parsed.path}?{parsed.query}")
+        assert media_response.status_code == 200
+        assert media_response.headers.get("Content-Type", "").split(";")[0] == "image/jpeg"
+        media_response.close()
 
     def test_create_group_unauthenticated(self):
         self.api_client.force_authenticate(user=None)
