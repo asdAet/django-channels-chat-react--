@@ -39,7 +39,7 @@ describe("ImageLightbox", () => {
     expect(screen.getByText(/1280x720/i)).toBeInTheDocument();
   });
 
-  it("closes only after overlay click animation timeout", () => {
+  it("does not close when the overlay background is clicked", () => {
     vi.useFakeTimers();
     const onClose = vi.fn();
 
@@ -52,10 +52,29 @@ describe("ImageLightbox", () => {
       />,
     );
 
-    fireEvent.click(screen.getByAltText("preview"));
-    expect(onClose).not.toHaveBeenCalled();
-
     fireEvent.click(screen.getByRole("dialog"));
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes after pressing the close button and waiting for the animation", () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
     expect(onClose).not.toHaveBeenCalled();
 
     act(() => {
@@ -122,6 +141,75 @@ describe("ImageLightbox", () => {
     expect(screen.getByText("one.png")).toBeInTheDocument();
   });
 
+  it("supports horizontal swipe navigation on touch devices", () => {
+    render(
+      <ImageLightbox
+        mediaItems={[
+          {
+            src: "/media/one.png",
+            kind: "image",
+            alt: "one",
+            metadata: { ...baseMetadata, attachmentId: 1, fileName: "one.png" },
+          },
+          {
+            src: "/media/two.png",
+            kind: "image",
+            alt: "two",
+            metadata: { ...baseMetadata, attachmentId: 2, fileName: "two.png" },
+          },
+        ]}
+        initialIndex={0}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 220, clientY: 180 }],
+    });
+    fireEvent.touchMove(viewport, {
+      touches: [{ clientX: 120, clientY: 176 }],
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 120, clientY: 176 }],
+    });
+
+    expect(screen.getByText("two.png")).toBeInTheDocument();
+  });
+
+  it("closes after a vertical swipe gesture", () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={onClose}
+      />,
+    );
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 160, clientY: 140 }],
+    });
+    fireEvent.touchMove(viewport, {
+      touches: [{ clientX: 162, clientY: 280 }],
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 162, clientY: 280 }],
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("zooms media with ctrl + wheel", () => {
     render(
       <ImageLightbox
@@ -136,8 +224,112 @@ describe("ImageLightbox", () => {
     const transform = screen.getByTestId("lightbox-media-transform");
 
     expect(transform.getAttribute("style")).toContain("scale(1)");
-    fireEvent.wheel(viewport, { deltaY: -100, ctrlKey: true });
+    fireEvent.wheel(viewport, {
+      deltaY: -100,
+      ctrlKey: true,
+      clientX: 200,
+      clientY: 200,
+    });
     expect(transform.getAttribute("style")).toContain("scale(1.2)");
+  });
+
+  it("toggles zoom with double click", () => {
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+    const transform = screen.getByTestId("lightbox-media-transform");
+
+    fireEvent.doubleClick(viewport, { clientX: 200, clientY: 180 });
+    expect(transform.getAttribute("style")).toContain("scale(2.5)");
+
+    fireEvent.doubleClick(viewport, { clientX: 200, clientY: 180 });
+    expect(transform.getAttribute("style")).toContain("scale(1)");
+  });
+
+  it("toggles zoom with double tap", () => {
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+    const transform = screen.getByTestId("lightbox-media-transform");
+
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 160, clientY: 180 }],
+      timeStamp: 100,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 160, clientY: 180 }],
+      timeStamp: 120,
+    });
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 164, clientY: 184 }],
+      timeStamp: 240,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 164, clientY: 184 }],
+      timeStamp: 260,
+    });
+    expect(transform.getAttribute("style")).toContain("scale(2.5)");
+
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 162, clientY: 182 }],
+      timeStamp: 420,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 162, clientY: 182 }],
+      timeStamp: 440,
+    });
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 166, clientY: 186 }],
+      timeStamp: 560,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 166, clientY: 186 }],
+      timeStamp: 580,
+    });
+    expect(transform.getAttribute("style")).toContain("scale(1)");
+  });
+
+  it("supports pinch-to-zoom on touch devices", () => {
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+    const transform = screen.getByTestId("lightbox-media-transform");
+
+    fireEvent.touchStart(viewport, {
+      touches: [
+        { clientX: 120, clientY: 120 },
+        { clientX: 220, clientY: 120 },
+      ],
+    });
+    fireEvent.touchMove(viewport, {
+      touches: [
+        { clientX: 90, clientY: 120 },
+        { clientX: 250, clientY: 120 },
+      ],
+    });
+
+    expect(transform.getAttribute("style")).not.toContain("scale(1);");
   });
 
   it("prevents default browser zoom while lightbox handles ctrl + wheel", () => {
@@ -195,4 +387,3 @@ describe("ImageLightbox", () => {
     );
   });
 });
-

@@ -164,7 +164,6 @@ function ShellLayout({
               </svg>
             </button>
             <strong className={styles.mobilePageTitle}>{mobileTitle}</strong>
-
           </header>
         )}
         {(banner || (error && !isAuthRoute)) && (
