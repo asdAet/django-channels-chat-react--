@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ImageLightbox } from "./ImageLightbox";
@@ -300,6 +300,68 @@ describe("ImageLightbox", () => {
       changedTouches: [{ clientX: 166, clientY: 186 }],
       timeStamp: 580,
     });
+    expect(transform.getAttribute("style")).toContain("scale(1)");
+  });
+
+  it("ignores the synthetic double click that can follow a touch double tap", () => {
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+    const transform = screen.getByTestId("lightbox-media-transform");
+
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 160, clientY: 180 }],
+      timeStamp: 100,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 160, clientY: 180 }],
+      timeStamp: 120,
+    });
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 164, clientY: 184 }],
+      timeStamp: 240,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 164, clientY: 184 }],
+      timeStamp: 260,
+    });
+    expect(transform.getAttribute("style")).toContain("scale(2.5)");
+
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 162, clientY: 182 }],
+      timeStamp: 420,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 162, clientY: 182 }],
+      timeStamp: 440,
+    });
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 166, clientY: 186 }],
+      timeStamp: 560,
+    });
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 166, clientY: 186 }],
+      timeStamp: 580,
+    });
+    expect(transform.getAttribute("style")).toContain("scale(1)");
+
+    const syntheticDoubleClick = createEvent.dblClick(viewport, {
+      clientX: 166,
+      clientY: 186,
+    });
+    Object.defineProperty(syntheticDoubleClick, "timeStamp", {
+      configurable: true,
+      value: 620,
+    });
+    fireEvent(viewport, syntheticDoubleClick);
+
     expect(transform.getAttribute("style")).toContain("scale(1)");
   });
 
