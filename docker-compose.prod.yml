@@ -47,6 +47,8 @@ services:
     build:
       context: .
       dockerfile: deploy/nginx.Dockerfile
+      args:
+        VITE_GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-}"
     environment:
       NGINX_CLIENT_MAX_BODY_SIZE: "${NGINX_CLIENT_MAX_BODY_SIZE:-0}"
     ports:

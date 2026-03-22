@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Mapping
 from datetime import timedelta
+from pathlib import Path
 from urllib.parse import quote
 
 from django.conf import settings
@@ -40,7 +41,10 @@ from users.application.media_access_service import (
     resolve_attachment_media_access,
     resolve_media_content_type,
 )
-from users.avatar_service import resolve_user_avatar_url_from_request
+from users.avatar_service import (
+    resolve_bundled_default_avatar_file,
+    resolve_user_avatar_url_from_request,
+)
 from users.forms import ProfileUpdateForm
 from users.identity import (
     ensure_profile,
@@ -63,6 +67,7 @@ def _protected_media_response(
     cache_control: str,
     *,
     preferred_content_type: str | None = None,
+    file_path_override: Path | None = None,
 ) -> FileResponse | HttpResponse:
     """Вспомогательная функция `_protected_media_response` реализует внутренний шаг бизнес-логики.
     
@@ -70,6 +75,7 @@ def _protected_media_response(
         normalized_path: Параметр normalized path, используемый в логике функции.
         cache_control: Параметр cache control, используемый в логике функции.
         preferred_content_type: Параметр preferred content type, используемый в логике функции.
+        file_path_override: Физический файл для fallback-выдачи без зависимости от storage backend.
     
     Returns:
         HTTP-ответ с результатом обработки.
@@ -78,7 +84,12 @@ def _protected_media_response(
         normalized_path,
         preferred_content_type=preferred_content_type,
     )
-    if settings.DEBUG:
+    if file_path_override is not None:
+        response: FileResponse | HttpResponse = FileResponse(
+            file_path_override.open("rb"),
+            content_type=content_type,
+        )
+    elif settings.DEBUG:
         response: FileResponse | HttpResponse = FileResponse(
             default_storage.open(normalized_path, "rb"),
             content_type=content_type,
@@ -472,11 +483,17 @@ def media_view(request, file_path: str):
         audit_http_event("media.signature.invalid", request, path=normalized_path, reason="bad_signature")
         return Response({"error": "Доступ запрещен"}, status=403)
 
-    if not default_storage.exists(normalized_path):
+    # Built-in default avatars must keep working even when MEDIA_ROOT is empty in production.
+    bundled_default_avatar = resolve_bundled_default_avatar_file(normalized_path)
+    if not default_storage.exists(normalized_path) and bundled_default_avatar is None:
         return Response({"error": "Не найдено"}, status=404)
 
     cache_seconds = max(0, expires_at - now)
-    return _protected_media_response(normalized_path, cache_control=f"private, max-age={cache_seconds}")
+    return _protected_media_response(
+        normalized_path,
+        cache_control=f"private, max-age={cache_seconds}",
+        file_path_override=bundled_default_avatar,
+    )
 
 
 @csrf_protect

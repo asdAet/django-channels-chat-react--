@@ -103,6 +103,35 @@ class AuthApiTests(TestCase):
         self.assertIn("errors", payload)
         self.assertIn("email", payload["errors"])
 
+    @override_settings(USER_PASSWORD_DEFAULT_AVATAR="avatars/missing_pwd_default.jpg")
+    def test_register_default_avatar_is_served_from_bundled_asset_when_media_file_is_missing(self):
+        csrf = self._csrf()
+        response = self.client.post(
+            "/api/auth/register/",
+            data=json.dumps(
+                {
+                    "login": "bundledavatarlogin",
+                    "password": "pass12345",
+                    "passwordConfirm": "pass12345",
+                    "name": "Bundled Avatar User",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(response.status_code, 201)
+
+        profile_image = response.json().get("user", {}).get("profileImage")
+        self.assertTrue(profile_image)
+
+        media_response = self.client.get(str(profile_image))
+        self.assertEqual(media_response.status_code, 200)
+        self.assertEqual(
+            media_response.headers.get("Content-Type", "").split(";")[0],
+            "image/jpeg",
+        )
+        media_response.close()
+
     def test_register_duplicate_login_returns_conflict(self):
         self._create_login_user(login="duplogin", password="pass12345")
         csrf = self._csrf()

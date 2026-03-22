@@ -49,4 +49,17 @@ describe("RegisterPage", () => {
 
     expect(screen.queryByTestId("auth-google-button")).not.toBeInTheDocument();
   });
+
+  it("renders active google oauth button when oauth handler is provided", () => {
+    render(
+      <RegisterPage
+        onSubmit={vi.fn()}
+        onNavigate={vi.fn()}
+        passwordRules={[]}
+        onGoogleAuth={vi.fn(async () => {})}
+      />,
+    );
+
+    expect(screen.getByTestId("auth-google-button")).toBeEnabled();
+  });
 });

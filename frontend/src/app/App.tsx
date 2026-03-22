@@ -394,7 +394,9 @@ function AppInner() {
   const isGoogleOAuthConfigured = Boolean(
     runtimeConfig.googleOAuthClientId.trim(),
   );
-  const googleAuthDisabledReason = null;
+  const googleAuthDisabledReason = isGoogleOAuthConfigured
+    ? null
+    : "Google OAuth сейчас недоступен. Проверьте конфигурацию сервера.";
 
   const handleGoogleOAuth = useCallback(async () => {
     if (!runtimeConfig.googleOAuthClientId.trim()) {
