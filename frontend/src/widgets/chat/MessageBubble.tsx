@@ -31,6 +31,7 @@ import {
   buildAttachmentRenderItems,
   resolveImageAspectRatio,
   resolveMediaGridVariant,
+  resolveMediaTilePlacement,
   splitAttachmentRenderItems,
 } from "./lib/attachmentLayout";
 
@@ -630,10 +631,6 @@ export function MessageBubble({
     attachmentItems,
     maxVisibleImageAttachments,
   );
-  const mediaGridVariant = resolveMediaGridVariant(
-    attachmentBuckets.visibleImages.length,
-  );
-  const mediaGridVariantClass = MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
   const showFooterInfo = !isDeleted;
   const lightboxMediaItems: LightboxMediaItem[] = attachmentItems.flatMap(
     (item) => {
@@ -742,43 +739,46 @@ export function MessageBubble({
 
             {!isDeleted && message.attachments.length > 0 && (
               <div className={styles.attachments}>
-                {attachmentBuckets.visibleImages.length > 0 && (
-                  <div
-                    className={[styles.mediaGrid, mediaGridVariantClass]
-                      .filter(Boolean)
-                      .join(" ")}
-                    data-testid="message-media-grid"
-                    data-count={attachmentBuckets.visibleImages.length}
-                  >
-                    {attachmentBuckets.visibleImages.map(
-                      ({ attachment, imageSrc }, index) => {
-                        const isSingleTile =
-                          attachmentBuckets.visibleImages.length === 1;
-                        const isOverflowTile =
-                          attachmentBuckets.hiddenImageCount > 0 &&
-                          index === attachmentBuckets.visibleImages.length - 1;
+                {attachmentBuckets.imageGroups.map((imageGroup, groupIndex) => {
+                  const mediaGridVariant = resolveMediaGridVariant(
+                    imageGroup.length,
+                  );
+                  const mediaGridVariantClass =
+                    MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
+
+                  return (
+                    <div
+                      key={`media-group-${message.id}-${groupIndex}`}
+                      className={[styles.mediaGrid, mediaGridVariantClass]
+                        .filter(Boolean)
+                        .join(" ")}
+                      data-testid="message-media-grid"
+                      data-count={imageGroup.length}
+                    >
+                      {imageGroup.map(({ attachment, imageSrc }, index) => {
+                        const isSingleTile = imageGroup.length === 1;
+                        const tilePlacement = resolveMediaTilePlacement(
+                          imageGroup.length,
+                          index,
+                        );
+                        const tileStyle = isSingleTile
+                          ? ({
+                              aspectRatio:
+                                resolveImageAspectRatio(attachment).toString(),
+                            } satisfies CSSProperties)
+                          : tilePlacement.gridColumn
+                            ? ({
+                                gridColumn: tilePlacement.gridColumn,
+                              } satisfies CSSProperties)
+                            : undefined;
 
                         return (
                           <button
                             key={attachment.id}
                             type="button"
-                            className={[
-                              styles.mediaTile,
-                              isOverflowTile ? styles.mediaTileOverflow : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
+                            className={styles.mediaTile}
                             data-message-menu-ignore="true"
-                            style={
-                              isSingleTile
-                                ? ({
-                                    aspectRatio:
-                                      resolveImageAspectRatio(
-                                        attachment,
-                                      ).toString(),
-                                  } satisfies CSSProperties)
-                                : undefined
-                            }
+                            style={tileStyle}
                             onClick={() =>
                               openLightboxByAttachmentId(attachment.id)
                             }
@@ -795,17 +795,12 @@ export function MessageBubble({
                                 .join(" ")}
                               loading="lazy"
                             />
-                            {isOverflowTile && (
-                              <span className={styles.mediaMoreCount}>
-                                +{attachmentBuckets.hiddenImageCount}
-                              </span>
-                            )}
                           </button>
                         );
-                      },
-                    )}
-                  </div>
-                )}
+                      })}
+                    </div>
+                  );
+                })}
 
                 {attachmentBuckets.others.length > 0 && (
                   <div className={styles.fileAttachments}>

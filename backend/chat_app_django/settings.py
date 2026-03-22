@@ -519,7 +519,7 @@ CHAT_TARGET_REGEX = os.getenv("CHAT_TARGET_REGEX", r"^[A-Za-z0-9_@-]{1,60}$")
 
 # -- Attachments --------------------------------------------------------
 CHAT_ATTACHMENT_MAX_SIZE_MB = env_int("CHAT_ATTACHMENT_MAX_SIZE_MB", 10, minimum=1)
-CHAT_ATTACHMENT_MAX_PER_MESSAGE = env_int("CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5, minimum=1)
+CHAT_ATTACHMENT_MAX_PER_MESSAGE = env_int("CHAT_ATTACHMENT_MAX_PER_MESSAGE", 10, minimum=1)
 CHAT_ATTACHMENT_ALLOW_ANY_TYPE = env_bool("CHAT_ATTACHMENT_ALLOW_ANY_TYPE", True)
 CHAT_ATTACHMENT_ALLOWED_TYPES = env_list("CHAT_ATTACHMENT_ALLOWED_TYPES", [
     "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",

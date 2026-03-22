@@ -450,4 +450,64 @@ describe("ChatController", () => {
       before: 100,
     });
   });
+
+  it("splits oversized attachment uploads into several message batches", async () => {
+    const firstUpload: UploadResult = {
+      id: 10,
+      content: "gallery",
+      attachments: [],
+    };
+    const secondUpload: UploadResult = {
+      id: 11,
+      content: "",
+      attachments: [],
+    };
+
+    apiMocks.uploadAttachments
+      .mockResolvedValueOnce(firstUpload)
+      .mockResolvedValueOnce(secondUpload);
+
+    const chatController = await loadController();
+    const files = Array.from({ length: 12 }, (_value, index) =>
+      new File([String(index + 1)], `${index + 1}.png`, { type: "image/png" }),
+    );
+
+    await expect(
+      chatController.uploadAttachments("room_1", files, {
+        messageContent: "gallery",
+        replyTo: 77,
+      }),
+    ).resolves.toEqual(firstUpload);
+
+    expect(apiMocks.uploadAttachments).toHaveBeenCalledTimes(2);
+    expect(
+      (apiMocks.uploadAttachments.mock.calls[0]?.[1] as File[]).map(
+        (file) => file.name,
+      ),
+    ).toEqual([
+      "1.png",
+      "2.png",
+      "3.png",
+      "4.png",
+      "5.png",
+      "6.png",
+      "7.png",
+      "8.png",
+      "9.png",
+      "10.png",
+    ]);
+    expect(apiMocks.uploadAttachments.mock.calls[0]?.[2]).toMatchObject({
+      messageContent: "gallery",
+      replyTo: 77,
+    });
+    expect(
+      (apiMocks.uploadAttachments.mock.calls[1]?.[1] as File[]).map(
+        (file) => file.name,
+      ),
+    ).toEqual(["11.png", "12.png"]);
+    expect(apiMocks.uploadAttachments.mock.calls[1]?.[2]).toMatchObject({
+      messageContent: undefined,
+      replyTo: undefined,
+    });
+  });
 });

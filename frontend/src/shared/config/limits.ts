@@ -23,6 +23,9 @@ export const getChatAttachmentMaxSizeBytes = () =>
 export const useChatAttachmentMaxSizeMb = () =>
   useRuntimeConfig().config.chatAttachmentMaxSizeMb;
 
+export const getChatAttachmentMaxPerMessage = () =>
+  getRuntimeConfig().chatAttachmentMaxPerMessage;
+
 export const useChatAttachmentMaxPerMessage = () =>
   useRuntimeConfig().config.chatAttachmentMaxPerMessage;
 

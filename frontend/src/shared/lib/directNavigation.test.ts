@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { parseChatTargetFromPathname } from "./chatTarget";
 import {
   DIRECT_HOME_FALLBACK_PATH,
   rememberLastDirectRef,
   resolveRememberedDirectPath,
 } from "./directNavigation";
-import { parseChatTargetFromPathname } from "./chatTarget";
 
 describe("directNavigation", () => {
   beforeEach(() => {

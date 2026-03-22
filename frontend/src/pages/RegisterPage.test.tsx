@@ -38,17 +38,15 @@ describe("RegisterPage", () => {
     });
   });
 
-  it("renders google oauth button disabled when oauth is unavailable", () => {
+  it("does not render google oauth button when oauth is unavailable", () => {
     render(
       <RegisterPage
         onSubmit={vi.fn()}
         onNavigate={vi.fn()}
         passwordRules={[]}
-        googleAuthDisabledReason="Google OAuth не настроен."
       />,
     );
 
-    expect(screen.getByTestId("auth-google-button")).toBeDisabled();
-    expect(screen.getByText("Google OAuth не настроен.")).toBeInTheDocument();
+    expect(screen.queryByTestId("auth-google-button")).not.toBeInTheDocument();
   });
 });

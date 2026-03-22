@@ -6,14 +6,14 @@ import {
   useConversationList,
 } from "../../shared/conversationList/ConversationListProvider";
 import {
+  buildChatTargetPath,
+  buildPublicChatPath,
+} from "../../shared/lib/chatTarget";
+import {
   buildDirectPath,
   buildUserProfilePath,
   formatPublicRef,
 } from "../../shared/lib/publicRef";
-import {
-  buildChatTargetPath,
-  buildPublicChatPath,
-} from "../../shared/lib/chatTarget";
 import {
   resolveIdentityHandle,
   resolveIdentityLabel,

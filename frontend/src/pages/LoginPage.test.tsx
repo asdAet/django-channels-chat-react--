@@ -19,8 +19,8 @@ describe("LoginPage", () => {
     expect(onSubmit).toHaveBeenCalledWith("demo_login", "secret");
   });
 
-  it("renders google oauth button disabled when oauth is not provided", () => {
+  it("does not render google oauth button when oauth is not provided", () => {
     render(<LoginPage onSubmit={vi.fn()} onNavigate={vi.fn()} />);
-    expect(screen.getByTestId("auth-google-button")).toBeDisabled();
+    expect(screen.queryByTestId("auth-google-button")).not.toBeInTheDocument();
   });
 });

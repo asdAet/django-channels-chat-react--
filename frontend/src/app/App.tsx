@@ -4,12 +4,15 @@ import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { usePasswordRules } from "../hooks/usePasswordRules";
 import type { ApiError } from "../shared/api/types";
-import { GoogleOAuthError, signInWithGoogle } from "../shared/auth/googleIdentity";
+import {
+  GoogleOAuthError,
+  signInWithGoogle,
+} from "../shared/auth/googleIdentity";
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
-import { debugLog } from "../shared/lib/debug";
 import { isPrefixlessChatPath } from "../shared/lib/chatTarget";
+import { debugLog } from "../shared/lib/debug";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { PresenceProvider } from "../shared/presence";
 import appStyles from "../styles/app/AppAuthPage.module.css";
@@ -26,7 +29,8 @@ const DEFAULT_SEO: SeoDescriptor = {
   title: "Devils Resting — чат в реальном времени",
   description:
     "Devils Resting — защищенный чат в реальном времени: личные сообщения, группы, обмен файлами и управление доступом.",
-  robots: "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
+  robots:
+    "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
 };
 
 const PRIVATE_ROUTE_SEO: SeoDescriptor = {
@@ -137,7 +141,9 @@ const upsertMetaByProperty = (property: string, content: string) => {
  * Обновляет или создает canonical-ссылку.
  */
 const upsertCanonicalLink = (href: string) => {
-  let node = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  let node = document.head.querySelector<HTMLLinkElement>(
+    'link[rel="canonical"]',
+  );
   if (!node) {
     node = document.createElement("link");
     node.setAttribute("rel", "canonical");
@@ -164,7 +170,8 @@ function AppInner() {
   const navigate = useNavigate();
   const location = useLocation();
   const { config: runtimeConfig } = useRuntimeConfig();
-  const { auth, login, loginWithGoogle, register, logout, updateProfile } = useAuth();
+  const { auth, login, loginWithGoogle, register, logout, updateProfile } =
+    useAuth();
   const { rules: passwordRules } = usePasswordRules(
     location.pathname === "/register",
   );
@@ -173,8 +180,10 @@ function AppInner() {
 
   useEffect(() => {
     const meta = resolveSeoDescriptor(location.pathname);
-    const canonicalUrl = new URL(location.pathname, window.location.origin)
-      .toString();
+    const canonicalUrl = new URL(
+      location.pathname,
+      window.location.origin,
+    ).toString();
 
     document.title = meta.title;
     upsertMetaByName("description", meta.description);
@@ -382,18 +391,20 @@ function AppInner() {
     [onNavigate, register],
   );
 
-  const googleAuthDisabledReason = runtimeConfig.googleOAuthClientId.trim()
-    ? null
-    : "Google OAuth не настроен.";
+  const isGoogleOAuthConfigured = Boolean(
+    runtimeConfig.googleOAuthClientId.trim(),
+  );
+  const googleAuthDisabledReason = null;
 
   const handleGoogleOAuth = useCallback(async () => {
     if (!runtimeConfig.googleOAuthClientId.trim()) {
-      setError("Google OAuth не настроен.");
       return;
     }
     setError(null);
     try {
-      const googleAuth = await signInWithGoogle(runtimeConfig.googleOAuthClientId);
+      const googleAuth = await signInWithGoogle(
+        runtimeConfig.googleOAuthClientId,
+      );
       await loginWithGoogle(googleAuth.token, googleAuth.tokenType);
       setBanner("Вход через Google выполнен успешно.");
       onNavigate("/");
@@ -479,7 +490,7 @@ function AppInner() {
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
       onLogin={handleLogin}
-      onGoogleOAuth={handleGoogleOAuth}
+      onGoogleOAuth={isGoogleOAuthConfigured ? handleGoogleOAuth : undefined}
       onRegister={handleRegister}
       onLogout={handleLogout}
       onProfileSave={handleProfileSave}

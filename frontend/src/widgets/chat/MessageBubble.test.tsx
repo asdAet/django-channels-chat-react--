@@ -222,7 +222,7 @@ describe("MessageBubble", () => {
     expect(image).toHaveAttribute("src", "/media/pizza.svg");
   });
 
-  it("groups image attachments into media grid preserving upload order", () => {
+  it("splits more than ten image attachments into consecutive media grids preserving order", () => {
     const message: Message = {
       ...baseMessage,
       attachments: [
@@ -233,6 +233,11 @@ describe("MessageBubble", () => {
         createImageAttachment(5, "05.png"),
         createImageAttachment(6, "06.png"),
         createImageAttachment(7, "07.png"),
+        createImageAttachment(8, "08.png"),
+        createImageAttachment(9, "09.png"),
+        createImageAttachment(10, "10.png"),
+        createImageAttachment(11, "11.png"),
+        createImageAttachment(12, "12.png"),
       ],
     };
 
@@ -244,15 +249,17 @@ describe("MessageBubble", () => {
       />,
     );
 
-    const grid = screen.getByTestId("message-media-grid");
-    expect(grid).toHaveAttribute(
+    const grids = screen.getAllByTestId("message-media-grid");
+    expect(grids).toHaveLength(2);
+    expect(grids[0]).toHaveAttribute(
       "data-count",
       String(DEFAULT_RUNTIME_CONFIG.chatAttachmentMaxPerMessage),
     );
-    expect(within(grid).getByText("+2")).toBeInTheDocument();
+    expect(grids[1]).toHaveAttribute("data-count", "2");
+    expect(screen.queryByText(/\+\d+/)).not.toBeInTheDocument();
 
-    const renderedAltOrder = within(grid)
-      .getAllByRole("img")
+    const renderedAltOrder = grids
+      .flatMap((grid) => within(grid).getAllByRole("img"))
       .map((image) => image.getAttribute("alt"));
     expect(renderedAltOrder).toEqual([
       "01.png",
@@ -260,6 +267,13 @@ describe("MessageBubble", () => {
       "03.png",
       "04.png",
       "05.png",
+      "06.png",
+      "07.png",
+      "08.png",
+      "09.png",
+      "10.png",
+      "11.png",
+      "12.png",
     ]);
   });
 

@@ -26,7 +26,7 @@ def client_config_view(_request):
                 getattr(settings, "CHAT_TARGET_REGEX", r"^[A-Za-z0-9_@-]{1,60}$")
             ),
             "chatAttachmentMaxSizeMb": int(getattr(settings, "CHAT_ATTACHMENT_MAX_SIZE_MB", 10)),
-            "chatAttachmentMaxPerMessage": int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5)),
+            "chatAttachmentMaxPerMessage": int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 10)),
             "chatAttachmentAllowedTypes": (
                 []
                 if allow_any_type

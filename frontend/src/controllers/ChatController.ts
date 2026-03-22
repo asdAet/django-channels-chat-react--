@@ -12,6 +12,7 @@ import type {
   UploadAttachmentsOptions,
   UploadResult,
 } from "../domain/interfaces/IApiService";
+import { getChatAttachmentMaxPerMessage } from "../shared/config/limits";
 import type {
   DirectChatsResponseDto,
   RoomMessagesDto,
@@ -23,6 +24,17 @@ let directChatsInFlight: Promise<DirectChatsResponseDto> | null = null;
 
 const roomDetailsInFlight = new Map<string, Promise<RoomDetailsDto>>();
 const roomMessagesInFlight = new Map<string, Promise<RoomMessagesDto>>();
+
+const chunkFiles = (files: File[], maxPerChunk: number): File[][] => {
+  const chunkSize = Math.max(1, Math.floor(maxPerChunk));
+  const chunks: File[][] = [];
+
+  for (let index = 0; index < files.length; index += chunkSize) {
+    chunks.push(files.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+};
 
 
 /**
@@ -192,7 +204,43 @@ public async uploadAttachments(
     files: File[],
     options?: UploadAttachmentsOptions,
   ): Promise<UploadResult> {
-    return apiService.uploadAttachments(roomId, files, options);
+    const maxPerMessage = getChatAttachmentMaxPerMessage();
+    const chunks = chunkFiles(files, maxPerMessage);
+
+    if (chunks.length <= 1) {
+      return apiService.uploadAttachments(roomId, files, options);
+    }
+
+    const totalFiles = files.length;
+    let uploadedFiles = 0;
+    let firstResult: UploadResult | null = null;
+
+    for (const [chunkIndex, chunk] of chunks.entries()) {
+      const isFirstChunk = chunkIndex === 0;
+      const chunkStartOffset = uploadedFiles;
+      const result = await apiService.uploadAttachments(roomId, chunk, {
+        ...options,
+        messageContent: isFirstChunk ? options?.messageContent : undefined,
+        replyTo: isFirstChunk ? options?.replyTo : undefined,
+        onProgress: options?.onProgress
+          ? (percent) => {
+              const completedFiles =
+                chunkStartOffset + (chunk.length * percent) / 100;
+              options.onProgress?.(
+                Math.round((completedFiles / totalFiles) * 100),
+              );
+            }
+          : undefined,
+      });
+
+      if (!firstResult) {
+        firstResult = result;
+      }
+      uploadedFiles += chunk.length;
+    }
+
+    options?.onProgress?.(100);
+    return firstResult as UploadResult;
   }
 
     /**

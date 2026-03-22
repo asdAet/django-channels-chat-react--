@@ -1119,7 +1119,7 @@ def upload_attachments(request, room_id: int):
         )
 
     actor_is_superuser = bool(getattr(request.user, "is_superuser", False))
-    max_per_msg = int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5))
+    max_per_msg = int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 10))
     if (not actor_is_superuser) and len(files) > max_per_msg:
         return _error_response(
             f"Максимум {max_per_msg} файлов на сообщение",

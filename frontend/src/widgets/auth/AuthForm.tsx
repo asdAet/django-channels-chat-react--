@@ -109,6 +109,8 @@ export function AuthForm({
   };
 
   const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
+  const shouldRenderGoogleAuth =
+    Boolean(onGoogleAuth) || Boolean(googleAuthDisabledReason);
 
   /**
    * Обрабатывает handle google auth.
@@ -240,22 +242,24 @@ export function AuthForm({
           </Button>
         </form>
 
-        <div className={styles.oauthSection}>
-          <Button
-            variant="outline"
-            type="button"
-            onClick={handleGoogleAuth}
-            disabled={!canUseGoogleAuth || googleAuthPending}
-            data-testid="auth-google-button"
-          >
-            {googleAuthPending
-              ? "Подключение к Google..."
-              : "Продолжить с Google"}
-          </Button>
-          {googleAuthDisabledReason && (
-            <p className={styles.oauthHint}>{googleAuthDisabledReason}</p>
-          )}
-        </div>
+        {shouldRenderGoogleAuth && (
+          <div className={styles.oauthSection}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={handleGoogleAuth}
+              disabled={!canUseGoogleAuth || googleAuthPending}
+              data-testid="auth-google-button"
+            >
+              {googleAuthPending
+                ? "Подключение к Google..."
+                : "Продолжить с Google"}
+            </Button>
+            {googleAuthDisabledReason && (
+              <p className={styles.oauthHint}>{googleAuthDisabledReason}</p>
+            )}
+          </div>
+        )}
 
         <div className={styles.authSwitch}>
           {mode === "login" ? (

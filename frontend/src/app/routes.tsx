@@ -27,7 +27,7 @@ type AppRoutesProps = {
   googleAuthDisabledReason: string | null;
   onNavigate: (path: string) => void;
   onLogin: (identifier: string, password: string) => Promise<void>;
-  onGoogleOAuth: () => Promise<void>;
+  onGoogleOAuth?: () => Promise<void>;
   onRegister: (payload: {
     login: string;
     password: string;

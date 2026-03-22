@@ -5,10 +5,11 @@ import {
   buildAttachmentRenderItems,
   resolveImageAspectRatio,
   resolveMediaGridVariant,
+  resolveMediaTilePlacement,
   splitAttachmentRenderItems,
 } from "./attachmentLayout";
 
-const MAX_VISIBLE_IMAGE_ATTACHMENTS = 6;
+const MAX_VISIBLE_IMAGE_ATTACHMENTS = 10;
 
 const makeAttachment = (overrides: Partial<Attachment>): Attachment => ({
   id: overrides.id ?? 1,
@@ -55,13 +56,13 @@ describe("attachmentLayout", () => {
       MAX_VISIBLE_IMAGE_ATTACHMENTS,
     );
 
-    expect(buckets.visibleImages.map((item) => item.attachment.id)).toEqual([
+    expect(buckets.images.map((item) => item.attachment.id)).toEqual([
       1, 3,
     ]);
     expect(buckets.others.map((item) => item.attachment.id)).toEqual([2, 4]);
   });
 
-  it("caps visible images and reports hidden remainder", () => {
+  it("splits large image sets into consecutive groups without overflow tiles", () => {
     const attachments: Attachment[] = Array.from({
       length: MAX_VISIBLE_IMAGE_ATTACHMENTS + 2,
     }).map((_, index) =>
@@ -78,8 +79,9 @@ describe("attachmentLayout", () => {
       MAX_VISIBLE_IMAGE_ATTACHMENTS,
     );
 
-    expect(buckets.visibleImages).toHaveLength(MAX_VISIBLE_IMAGE_ATTACHMENTS);
-    expect(buckets.hiddenImageCount).toBe(2);
+    expect(buckets.imageGroups).toHaveLength(2);
+    expect(buckets.imageGroups[0]).toHaveLength(MAX_VISIBLE_IMAGE_ATTACHMENTS);
+    expect(buckets.imageGroups[1]).toHaveLength(2);
   });
 
   it("resolves media grid variants by image count", () => {
@@ -97,5 +99,13 @@ describe("attachmentLayout", () => {
     expect(
       resolveImageAspectRatio(makeAttachment({ width: 200, height: 2000 })),
     ).toBeCloseTo(0.62, 5);
+  });
+
+  it("expands the last tile for counts that would otherwise leave the bottom-right corner empty", () => {
+    expect(resolveMediaTilePlacement(5, 4)).toEqual({ gridColumn: "span 2" });
+    expect(resolveMediaTilePlacement(7, 6)).toEqual({ gridColumn: "1 / -1" });
+    expect(resolveMediaTilePlacement(8, 7)).toEqual({ gridColumn: "span 2" });
+    expect(resolveMediaTilePlacement(10, 9)).toEqual({ gridColumn: "1 / -1" });
+    expect(resolveMediaTilePlacement(6, 5)).toEqual({});
   });
 });

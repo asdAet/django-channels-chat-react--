@@ -5,7 +5,7 @@ export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
   chatMessageMaxLength: 1000,
   chatTargetRegex: "^[A-Za-z0-9_@-]{1,80}$",
   chatAttachmentMaxSizeMb: 10,
-  chatAttachmentMaxPerMessage: 5,
+  chatAttachmentMaxPerMessage: 10,
   chatAttachmentAllowedTypes: [
     "image/jpeg",
     "image/png",

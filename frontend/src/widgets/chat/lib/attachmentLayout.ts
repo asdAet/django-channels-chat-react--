@@ -5,7 +5,7 @@ import {
 } from "../../../shared/lib/attachmentMedia";
 
 /**
- * Описывает структуру данных `AttachmentRenderItem`.
+ * Нормализованное вложение для рендера в сообщении.
  */
 export type AttachmentRenderItem = {
   attachment: Attachment;
@@ -14,7 +14,7 @@ export type AttachmentRenderItem = {
 };
 
 /**
- * Описывает структуру данных `ImageAttachmentRenderItem`.
+ * Изображение, которое точно можно отрисовать в медиа-сетке.
  */
 export type ImageAttachmentRenderItem = {
   attachment: Attachment;
@@ -22,37 +22,60 @@ export type ImageAttachmentRenderItem = {
 };
 
 /**
- * Описывает структуру данных `AttachmentBuckets`.
+ * Результат разбиения вложений:
+ * - `images`: все картинки в исходном порядке
+ * - `imageGroups`: картинки, разбитые на независимые группы по лимиту
+ * - `others`: аудио, видео, документы и остальные файлы
  */
 export type AttachmentBuckets = {
   images: ImageAttachmentRenderItem[];
-  visibleImages: ImageAttachmentRenderItem[];
-  hiddenImageCount: number;
+  imageGroups: ImageAttachmentRenderItem[][];
   others: AttachmentRenderItem[];
 };
 
 /**
- * Описывает структуру данных `MediaGridVariant`.
+ * Вариант CSS-сетки для конкретного числа изображений внутри одной группы.
  */
 export type MediaGridVariant = "single" | "two" | "three" | "four" | "many";
 
 /**
- * Нормализует visible image limit.
- * @param value Входное значение для преобразования.
- * @returns Нормализованное значение после обработки входа.
+ * Точечные правки placement для отдельных плиток в grid.
  */
+export type MediaTilePlacement = {
+  gridColumn?: string;
+};
 
+/**
+ * Гарантирует, что лимит отображаемых изображений остаётся валидным числом >= 1.
+ */
 const normalizeVisibleImageLimit = (value: number): number => {
   if (!Number.isFinite(value)) return 1;
   return Math.max(1, Math.floor(value));
 };
 
 /**
- * Формирует attachment render items.
- * @param attachments Список вложений, переданных в текущую операцию.
- * @returns Сформированное значение для дальнейшего использования.
+ * Разбивает длинную последовательность изображений на группы фиксированного размера.
+ * Это позволяет показывать 11+ файлов как несколько отдельных сообщений-сеток,
+ * а не прятать хвост в overflow-плитку.
  */
+const chunkImageItems = (
+  items: ImageAttachmentRenderItem[],
+  maxPerGroup: number,
+): ImageAttachmentRenderItem[][] => {
+  const safeMaxPerGroup = normalizeVisibleImageLimit(maxPerGroup);
+  const groups: ImageAttachmentRenderItem[][] = [];
 
+  for (let index = 0; index < items.length; index += safeMaxPerGroup) {
+    groups.push(items.slice(index, index + safeMaxPerGroup));
+  }
+
+  return groups;
+};
+
+/**
+ * Готовит вложения к рендеру:
+ * определяет, является ли файл изображением, и подбирает preview URL.
+ */
 export const buildAttachmentRenderItems = (
   attachments: Attachment[],
 ): AttachmentRenderItem[] =>
@@ -75,12 +98,10 @@ export const buildAttachmentRenderItems = (
   });
 
 /**
- * Делит вложения на изображения и прочие файлы.
- * @param items Список элементов для обработки.
- * @param maxVisibleImages Список `maxVisibleImages`, который обрабатывается функцией.
-
+ * Делит вложения на медиа-сетки и остальные файлы.
+ * Большие пачки изображений режутся на группы, чтобы UI не оставлял
+ * пустую нижнюю правую ячейку и не рисовал `+N` поверх последней картинки.
  */
-
 export const splitAttachmentRenderItems = (
   items: AttachmentRenderItem[],
   maxVisibleImages: number,
@@ -99,25 +120,16 @@ export const splitAttachmentRenderItems = (
     others.push(item);
   }
 
-  const visibleImages = images.slice(
-    0,
-    normalizeVisibleImageLimit(maxVisibleImages),
-  );
-
   return {
     images,
-    visibleImages,
-    hiddenImageCount: images.length - visibleImages.length,
+    imageGroups: chunkImageItems(images, maxVisibleImages),
     others,
   };
 };
 
 /**
- * Определяет вариант сетки изображений по количеству элементов.
- * @param count Числовой параметр `count`, ограничивающий объем данных.
- * @returns Разрешенное значение с учетом fallback-логики.
+ * Выбирает шаблон сетки по размеру текущей группы изображений.
  */
-
 export const resolveMediaGridVariant = (count: number): MediaGridVariant => {
   if (count <= 1) return "single";
   if (count === 2) return "two";
@@ -127,11 +139,31 @@ export const resolveMediaGridVariant = (count: number): MediaGridVariant => {
 };
 
 /**
- * Вычисляет ограниченное соотношение сторон изображения.
- * @param attachment Аргумент `attachment` текущего вызова.
- * @returns Разрешенное значение с учетом fallback-логики.
+ * Для отдельных размеров группы расширяет последнюю плитку,
+ * чтобы не оставлять пустой угол в правом нижнем углу сетки.
  */
+export const resolveMediaTilePlacement = (
+  count: number,
+  index: number,
+): MediaTilePlacement => {
+  if (index !== count - 1) return {};
 
+  switch (count) {
+    case 5:
+    case 8:
+      return { gridColumn: "span 2" };
+    case 7:
+    case 10:
+      return { gridColumn: "1 / -1" };
+    default:
+      return {};
+  }
+};
+
+/**
+ * Ограничивает aspect ratio одиночного изображения безопасным диапазоном,
+ * чтобы очень узкие или очень широкие файлы не ломали bubble по высоте.
+ */
 export const resolveImageAspectRatio = (attachment: Attachment): number => {
   if (
     attachment.width &&
