@@ -5,17 +5,17 @@ import type { UserProfile } from "../../entities/user/types";
 import { useConversationList } from "../../shared/conversationList/ConversationListProvider";
 import { useDirectInbox } from "../../shared/directInbox";
 import {
-  DIRECT_HOME_FALLBACK_PATH,
-  rememberLastDirectRef,
-  resolveRememberedDirectPath,
-} from "../../shared/lib/directNavigation";
-import {
   buildChatTargetPath,
   buildPublicChatPath,
   normalizeChatTarget,
   parseChatTargetFromPathname,
   PUBLIC_CHAT_TARGET,
 } from "../../shared/lib/chatTarget";
+import {
+  DIRECT_HOME_FALLBACK_PATH,
+  rememberLastDirectRef,
+  resolveRememberedDirectPath,
+} from "../../shared/lib/directNavigation";
 import { formatFullName } from "../../shared/lib/format";
 import {
   buildDirectPath,

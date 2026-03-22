@@ -8,8 +8,8 @@ import { GoogleOAuthError, signInWithGoogle } from "../shared/auth/googleIdentit
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
-import { debugLog } from "../shared/lib/debug";
 import { isPrefixlessChatPath } from "../shared/lib/chatTarget";
+import { debugLog } from "../shared/lib/debug";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { PresenceProvider } from "../shared/presence";
 import appStyles from "../styles/app/AppAuthPage.module.css";
