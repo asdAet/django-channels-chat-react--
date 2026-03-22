@@ -35,7 +35,6 @@ class ChatConsumerTests(TransactionTestCase):
         self.other = User.objects.create_user(username='other', password='pass12345')
 
         self.private_room = Room.objects.create(
-            slug='private123',
             name='private',
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -44,7 +43,6 @@ class ChatConsumerTests(TransactionTestCase):
         ensure_membership(self.private_room, self.member, role_name="Member")
 
         self.direct_room = Room.objects.create(
-            slug='dm_abc123',
             name='dm',
             kind=Room.Kind.DIRECT,
             direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
@@ -53,7 +51,6 @@ class ChatConsumerTests(TransactionTestCase):
         ensure_membership(self.direct_room, self.owner)
         ensure_membership(self.direct_room, self.member)
         self.public_room = Room.objects.create(
-            slug='public',
             name='public',
             kind=Room.Kind.PUBLIC,
             created_by=self.owner,
@@ -334,7 +331,7 @@ class ChatConsumerTests(TransactionTestCase):
 
         async def run():
             """Проверяет сценарий `run`."""
-            inbox_member, connected, _ = await self._connect('/ws/direct/inbox/', user=self.member)
+            inbox_member, connected, _ = await self._connect('/ws/inbox/', user=self.member)
             self.assertTrue(connected)
             initial_payload = json.loads(await inbox_member.receive_from(timeout=2))
             self.assertEqual(initial_payload.get('type'), 'direct_unread_state')
@@ -375,7 +372,7 @@ class ChatConsumerTests(TransactionTestCase):
         """Проверяет сценарий `test_direct_message_does_not_notify_non_participant_inbox_channel`."""
         async def run():
             """Проверяет сценарий `run`."""
-            inbox_outsider, connected, _ = await self._connect('/ws/direct/inbox/', user=self.other)
+            inbox_outsider, connected, _ = await self._connect('/ws/inbox/', user=self.other)
             self.assertTrue(connected)
             initial_payload = json.loads(await inbox_outsider.receive_from(timeout=2))
             self.assertEqual(initial_payload.get('type'), 'direct_unread_state')

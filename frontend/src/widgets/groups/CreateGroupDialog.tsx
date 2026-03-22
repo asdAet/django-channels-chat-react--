@@ -7,7 +7,7 @@ import styles from "../../styles/groups/GroupsPage.module.css";
  * Описывает входные props компонента `Props`.
  */
 type Props = {
-  onCreated: (slug: string) => void;
+  onCreated: (roomTarget: string) => void;
   onClose: () => void;
 };
 
@@ -33,7 +33,7 @@ export function CreateGroupDialog({ onCreated, onClose }: Props) {
         description: description.trim() || undefined,
         isPublic,
       });
-      onCreated(group.slug);
+      onCreated(group.roomTarget);
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err

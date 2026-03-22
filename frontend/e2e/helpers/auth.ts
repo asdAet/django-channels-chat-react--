@@ -2,6 +2,22 @@ import { expect, type Page } from "@playwright/test";
 
 const RETRYABLE_AUTH_STATUSES = new Set([429, 500, 502, 503, 504]);
 
+function getRetryDelayMs(
+  response: { status(): number; headers(): Record<string, string> },
+  attempt: number,
+): number {
+  const retryAfter = Number(response.headers()["retry-after"] || "");
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return retryAfter * 1000;
+  }
+
+  if (response.status() === 429) {
+    return 15_000 * attempt;
+  }
+
+  return 400 * attempt;
+}
+
 async function isSessionAuthenticated(page: Page): Promise<boolean> {
   const response = await page.request.get("/api/auth/session/");
   if (!response.ok()) {
@@ -37,7 +53,7 @@ async function submitAuthWithRetry(
       throw new Error(`${action} failed: ${response.status()} ${body}`);
     }
 
-    await page.waitForTimeout(400 * attempt);
+    await page.waitForTimeout(getRetryDelayMs(response, attempt));
   }
 }
 
@@ -96,12 +112,14 @@ export async function registerWithRetry(
 
     if (response.status() === 201) {
       await expect(page).toHaveURL("/", { timeout: 15_000 });
+      // Rebuild client auth state from the fresh session cookie before protected flows.
+      await page.reload();
       await ensureAuthenticated(page, login, password);
       return;
     }
 
     if (RETRYABLE_AUTH_STATUSES.has(response.status()) && attempt < 4) {
-      await page.waitForTimeout(400 * attempt);
+      await page.waitForTimeout(getRetryDelayMs(response, attempt));
       continue;
     }
 

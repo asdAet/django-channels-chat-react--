@@ -73,8 +73,8 @@ const errorEventSchema = z
  */
 const normalizeUnread = (
   value: z.infer<typeof unreadSchema> | undefined,
-): { dialogs: number; slugs: string[]; counts: Record<string, number> } => {
-  if (!value) return { dialogs: 0, slugs: [], counts: {} };
+): { dialogs: number; roomIds: string[]; counts: Record<string, number> } => {
+  if (!value) return { dialogs: 0, roomIds: [], counts: {} };
 
   const counts: Record<string, number> = {};
   const rawCounts = value.counts ?? {};
@@ -98,13 +98,13 @@ const normalizeUnread = (
     }
   }
 
-  const slugs = Object.keys(counts);
+  const roomIds = Object.keys(counts);
   const dialogs =
     typeof value.dialogs === "number"
       ? Math.max(0, value.dialogs)
-      : slugs.length;
+      : roomIds.length;
 
-  return { dialogs, slugs, counts };
+  return { dialogs, roomIds, counts };
 };
 
 /**
@@ -115,7 +115,7 @@ const normalizeUnread = (
 const normalizeItem = (
   value: z.infer<typeof itemSchema>,
 ): DirectChatListItem => ({
-  slug: String(Math.trunc(value.roomId)),
+  roomId: Math.trunc(value.roomId),
   peer: {
     publicRef: value.peer.publicRef,
     username: value.peer.username,
@@ -135,7 +135,7 @@ export type DirectInboxWsEvent =
       type: "direct_unread_state";
       unread: {
         dialogs: number;
-        slugs: string[];
+        roomIds: string[];
         counts: Record<string, number>;
       };
     }
@@ -144,7 +144,7 @@ export type DirectInboxWsEvent =
       item: DirectChatListItem | null;
       unread: {
         dialogs: number;
-        slugs: string[];
+        roomIds: string[];
         counts: Record<string, number>;
       } | null;
     }
@@ -152,7 +152,7 @@ export type DirectInboxWsEvent =
       type: "direct_mark_read_ack";
       unread: {
         dialogs: number;
-        slugs: string[];
+        roomIds: string[];
         counts: Record<string, number>;
       };
     }

@@ -1,8 +1,8 @@
 # Backend Reference
 
-Generated: 2026-03-19T00:46:47Z
+Generated: 2026-03-22T02:06:48Z
 
-Total modules: 185
+Total modules: 184
 
 ## `backend/auditlog/__init__.py`
 
@@ -29,12 +29,19 @@ Total modules: 185
 ### Functions
 
 - `_parse_int(raw_value, *, field_name: str) -> int | None`
+  - Разбирает int из входных данных с валидацией формата. Args: raw_value: Исходное значение параметра до преобразования и валидации. field_name: Имя поля модели, которое содержит путь к файлу. Returns: Объект типа int | None, сформированный в рамках обработки.
 - `_parse_bool(raw_value, *, field_name: str) -> bool | None`
+  - Разбирает bool из входных данных с валидацией формата. Args: raw_value: Исходное значение параметра до преобразования и валидации. field_name: Имя поля модели, которое содержит путь к файлу. Returns: Объект типа bool | None, сформированный в рамках обработки.
 - `_parse_datetime(raw_value, *, field_name: str) -> datetime | None`
+  - Разбирает datetime из входных данных с валидацией формата. Args: raw_value: Исходное значение параметра до преобразования и валидации. field_name: Имя поля модели, которое содержит путь к файлу. Returns: Объект типа datetime | None, сформированный в рамках обработки.
 - `parse_filters(params) -> AuditQueryFilters`
+  - Разбирает filters из входных данных с валидацией формата. Args: params: Данные params, участвующие в обработке текущей операции. Returns: Объект типа AuditQueryFilters, сформированный в рамках обработки.
 - `list_events(filters: AuditQueryFilters)`
+  - Возвращает список events, доступных в текущем контексте. Args: filters: Набор фильтров, применяемых к выборке событий или данных. Returns: Функция не возвращает значение.
 - `get_event(event_id: int)`
+  - Возвращает event из текущего контекста или хранилища. Args: event_id: Идентификатор event, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `list_action_counts(filters: AuditQueryFilters)`
+  - Возвращает список action counts, доступных в текущем контексте. Args: filters: Набор фильтров, применяемых к выборке событий или данных. Returns: Функция не возвращает значение.
 
 ## `backend/auditlog/application/username_history_service.py`
 
@@ -44,6 +51,7 @@ Total modules: 185
 ### Functions
 
 - `get_username_history(user_id: int, *, limit: int=200)`
+  - Возвращает username history из текущего контекста или хранилища. Args: user_id: Идентификатор user, используемый для выборки данных. limit: Данные limit, участвующие в обработке текущей операции. Returns: Функция не возвращает значение.
 
 ## `backend/auditlog/application/write_service.py`
 
@@ -53,19 +61,33 @@ Total modules: 185
 ### Functions
 
 - `_normalize_int(value)`
+  - Нормализует int к внутреннему формату приложения. Args: value: Входное значение для проверки или преобразования. Returns: Функция не возвращает значение.
 - `_scope_header(scope, name: bytes) -> str | None`
+  - Выполняет вспомогательную обработку для scope header. Args: scope: ASGI-scope с метаданными соединения. name: Человекочитаемое имя объекта или параметра. Returns: Объект типа str | None, полученный при выполнении операции.
 - `_get_or_create_request_id_for_request(request) -> str`
+  - Возвращает or create request id for request из текущего контекста или хранилища. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Строковое значение, сформированное функцией.
 - `_get_or_create_request_id_for_scope(scope) -> str`
+  - Возвращает or create request id for scope из текущего контекста или хранилища. Args: scope: ASGI-scope с метаданными соединения. Returns: Строковое значение, сформированное функцией.
 - `_extract_actor(actor_user=None, actor_user_id=None, actor_username=None, is_authenticated=None)`
+  - Извлекает actor из источника данных. Args: actor_user: Пользователь, от имени которого пишется аудит-событие. actor_user_id: Идентификатор пользователя, от имени которого пишется аудит. actor_username: Публичное имя пользователя для аудита и ответа API. is_authenticated: Булев флаг условия authenticated. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `_safe_metadata(metadata) -> dict`
+  - Вспомогательная функция `_safe_metadata` реализует внутренний шаг бизнес-логики. Args: metadata: Дополнительные поля события, включаемые в аудит-запись. Returns: Словарь типа dict с данными результата.
 - `_default_success(event: str, status_code: int | None) -> bool`
+  - Вспомогательная функция `_default_success` реализует внутренний шаг бизнес-логики. Args: event: Событие для логирования или трансляции. status_code: HTTP-код результата операции. Returns: Логическое значение результата проверки.
 - `_persist_event_row(payload: dict) -> None`
+  - Сохраняет event row в постоянном хранилище. Args: payload: Подготовленные данные для сохранения или отправки.
 - `_persist_event(payload: dict) -> None`
+  - Сохраняет event в постоянном хранилище. Args: payload: Подготовленные данные для сохранения или отправки.
 - `write_event(action: str, *, protocol=None, method=None, path=None, status_code=None, success=None, ip=None, request_id=None, actor_user=None, actor_user_id=None, actor_username=None, is_authenticated=None, metadata=None, **fields)`
+  - Записывает event в хранилище или аудит. Args: action: Код или имя действия, которое фиксируется в аудите. protocol: Транспортный протокол текущего запроса или события. method: HTTP-метод текущего запроса. path: Путь ресурса в storage или URL-маршруте. status_code: HTTP-код результата операции. success: Флаг успешного выполнения операции. ip: IP-адрес клиента. request_id: Идентификатор request. actor_user: Пользователь, от имени которого пишется аудит-событие. actor_user_id: Идентификатор пользователя, от имени которого пишется аудит. actor_username: Публичное имя пользователя для аудита и ответа API. is_authenticated: Булев флаг условия authenticated. metadata: Дополнительные поля события, включаемые в аудит-запись. **fields: Дополнительные поля, переданные в функцию.
 - `audit_security_event(event: str, **fields) -> None`
+  - Фиксирует security event в системе аудита. Args: event: Событие для логирования или трансляции. **fields: Дополнительные поля, переданные в функцию.
 - `audit_http_event(event: str, request, **fields) -> None`
+  - Фиксирует http event в системе аудита. Args: event: Событие для логирования или трансляции. request: HTTP-запрос с контекстом пользователя и входными данными. **fields: Дополнительные поля, переданные в функцию.
 - `audit_ws_event(event: str, scope, **fields) -> None`
+  - Фиксирует ws event в системе аудита. Args: event: Событие для логирования или трансляции. scope: ASGI-контекст соединения с метаданными клиента. **fields: Дополнительные поля, переданные в функцию.
 - `audit_http_request(request, response=None, exception: Exception | None=None) -> None`
+  - Фиксирует http request в системе аудита. Args: request: HTTP-запрос с контекстом пользователя и входными данными. response: HTTP-ответ, который анализируется перед возвратом клиенту. exception: Параметр exception, используемый в логике функции.
 
 ## `backend/auditlog/apps.py`
 
@@ -75,6 +97,7 @@ Total modules: 185
 ### Classes
 
 - `AuditlogConfig` : `AppConfig`
+  - Класс AuditlogConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/auditlog/domain/__init__.py`
@@ -91,6 +114,7 @@ Total modules: 185
 ### Classes
 
 - `AuditAction`
+  - Класс AuditAction инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/auditlog/domain/context.py`
@@ -101,6 +125,7 @@ Total modules: 185
 ### Classes
 
 - `AuditQueryFilters`
+  - Класс AuditQueryFilters инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/auditlog/domain/sanitize.py`
@@ -111,6 +136,7 @@ Total modules: 185
 ### Functions
 
 - `sanitize_value(value)`
+  - Санитизирует значение. Args: value: Значение, которое нужно нормализовать или проверить. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/auditlog/infrastructure/__init__.py`
 
@@ -126,7 +152,9 @@ Total modules: 185
 ### Functions
 
 - `encode_cursor(created_at: datetime, event_id: int) -> str`
+  - Кодирует cursor в формат хранения или передачи. Args: created_at: Дата и время создания записи для курсорной пагинации. event_id: Идентификатор event, используемый для выборки данных. Returns: Строковое значение, сформированное функцией.
 - `decode_cursor(value: str | None) -> tuple[datetime, int] | None`
+  - Декодирует cursor из внешнего представления. Args: value: Входное значение для проверки или преобразования. Returns: Кортеж типа tuple[datetime, int] | None с результатами операции.
 
 ## `backend/auditlog/infrastructure/models.py`
 
@@ -136,8 +164,10 @@ Total modules: 185
 ### Classes
 
 - `AuditEvent` : `models.Model`
+  - Модель AuditEvent описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 
 ## `backend/auditlog/infrastructure/query_builder.py`
 
@@ -147,6 +177,7 @@ Total modules: 185
 ### Functions
 
 - `apply_filters(queryset: QuerySet[AuditEvent], filters: AuditQueryFilters, *, include_action_filters: bool=True) -> QuerySet[AuditEvent]`
+  - Применяет filters к текущему набору данных. Args: queryset: Набор записей, к которому применяются фильтры. filters: Параметр filters, используемый в логике функции. include_action_filters: Параметр include action filters, используемый в логике функции. Returns: Объект типа QuerySet[AuditEvent], сформированный в ходе выполнения.
 
 ## `backend/auditlog/infrastructure/repository.py`
 
@@ -156,9 +187,12 @@ Total modules: 185
 ### Classes
 
 - `AuditEventRepository`
+  - Класс AuditEventRepository инкапсулирует связанную бизнес-логику модуля.
   - Methods: 2
   - `create(**kwargs) -> AuditEvent`
+    - Создает данные. Args: **kwargs: Дополнительные именованные аргументы вызова. Returns: Объект типа AuditEvent, сформированный в ходе выполнения.
   - `all() -> QuerySet[AuditEvent]`
+    - Вспомогательная функция `all` реализует внутренний шаг бизнес-логики. Returns: Объект типа QuerySet[AuditEvent], сформированный в ходе выполнения.
 
 ## `backend/auditlog/interfaces/__init__.py`
 
@@ -174,42 +208,89 @@ Total modules: 185
 ### Classes
 
 - `StatusFamilyFilter` : `admin.SimpleListFilter`
+  - Класс StatusFamilyFilter настраивает поведение сущности в Django Admin.
   - Methods: 2
   - `lookups(self, request: HttpRequest, model_admin: admin.ModelAdmin) -> list[tuple[Any, str]]`
+    - Вспомогательная функция `lookups` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. model_admin: Экземпляр ModelAdmin, для которого строится фильтр. Returns: Список типа list[tuple[Any, str]] с данными результата.
   - `queryset(self, request: HttpRequest, queryset: QuerySet[Any] | None) -> QuerySet[Any] | None`
+    - Вспомогательная функция `queryset` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. queryset: Набор записей, к которому применяются фильтры. Returns: Объект типа QuerySet[Any] | None, сформированный в ходе выполнения.
 - `HasActorFilter` : `admin.SimpleListFilter`
+  - Класс HasActorFilter настраивает поведение сущности в Django Admin.
   - Methods: 2
   - `lookups(self, request: HttpRequest, model_admin: admin.ModelAdmin) -> list[tuple[Any, str]]`
+    - Вспомогательная функция `lookups` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. model_admin: Экземпляр ModelAdmin, для которого строится фильтр. Returns: Список типа list[tuple[Any, str]] с данными результата.
   - `queryset(self, request: HttpRequest, queryset: QuerySet[Any] | None) -> QuerySet[Any] | None`
+    - Вспомогательная функция `queryset` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. queryset: Набор записей, к которому применяются фильтры. Returns: Объект типа QuerySet[Any] | None, сформированный в ходе выполнения.
 - `HasRequestIdFilter` : `admin.SimpleListFilter`
+  - Класс HasRequestIdFilter настраивает поведение сущности в Django Admin.
   - Methods: 2
   - `lookups(self, request: HttpRequest, model_admin: admin.ModelAdmin) -> list[tuple[Any, str]]`
+    - Вспомогательная функция `lookups` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. model_admin: Экземпляр ModelAdmin, для которого строится фильтр. Returns: Список типа list[tuple[Any, str]] с данными результата.
   - `queryset(self, request: HttpRequest, queryset: QuerySet[Any] | None) -> QuerySet[Any] | None`
+    - Вспомогательная функция `queryset` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. queryset: Набор записей, к которому применяются фильтры. Returns: Объект типа QuerySet[Any] | None, сформированный в ходе выполнения.
 - `AuditEventAdmin` : `admin.ModelAdmin`
-  - Methods: 23
+  - Класс AuditEventAdmin настраивает поведение сущности в Django Admin.
+  - Methods: 30
   - `short_path(self, obj)`
+    - Формирует краткое представление path. Args: obj: Параметр obj, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `has_add_permission(self, request)`
+    - Проверяет условие add permission и возвращает логический результат. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
   - `has_change_permission(self, request, obj=None)`
+    - Проверяет условие change permission и возвращает логический результат. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `has_delete_permission(self, request, obj=None)`
+    - Проверяет условие delete permission и возвращает логический результат. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `export_selected_as_csv(self, _request, queryset)`
+    - Экспортирует selected as csv в запрошенный формат. Args: _request: HTTP-запрос, не используемый напрямую в теле функции. queryset: Набор записей, к которому применяются фильтры. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `export_selected_as_json(self, _request, queryset)`
+    - Экспортирует selected as json в запрошенный формат. Args: _request: HTTP-запрос, не используемый напрямую в теле функции. queryset: Набор записей, к которому применяются фильтры. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `export_selected_as_jsonl(self, _request, queryset)`
+    - Экспортирует selected as jsonl в запрошенный формат. Args: _request: HTTP-запрос, не используемый напрямую в теле функции. queryset: Набор записей, к которому применяются фильтры. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `get_urls(self)`
+    - Возвращает urls из текущего контекста или хранилища. Returns: Функция не возвращает значение.
   - `changelist_view(self, request: HttpRequest, extra_context: dict[str, Any] | None=None)`
+    - Обрабатывает API-представление для changelist. Args: request: HTTP-запрос с контекстом пользователя и входными данными. extra_context: Параметр extra context, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+  - `ip_summary_view(self, request: HttpRequest) -> HttpResponse`
+    - Renders a compact audit view grouped by unique IP addresses.
+  - `_get_ip_summary_base_queryset(self) -> QuerySet[AuditEvent]`
+    - Returns audit events with a non-empty IP address.
+  - `_apply_ip_summary_filters(self, queryset: QuerySet[AuditEvent], request: HttpRequest) -> QuerySet[AuditEvent]`
+    - Applies optional filters for IP summary view.
+  - `_resolve_ip_sort(self, request: HttpRequest) -> tuple[str, str, str]`
+    - Normalizes sorting arguments for the IP summary table.
+  - `_build_ip_summary_sort_url(self, request: HttpRequest, target_field: str, current_field: str, current_direction: str) -> str`
+    - Builds a URL that toggles sorting for a specific column.
+  - `_build_query_string(request: HttpRequest, changes: dict[str, str | None]) -> str`
+    - Returns query string with updated parameters.
+  - `_collect_accounts_by_ip(self, queryset: QuerySet[AuditEvent], ips: list[str]) -> dict[str, list[dict[str, str | int | None]]]`
+    - Collects account snapshots for each IP on current page.
   - `export_view(self, request)`
+    - Экспортирует view в запрошенный формат. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `_get_filtered_queryset(self, request)`
+    - Возвращает filtered queryset из текущего контекста или хранилища. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
   - `_parse_iso_date(value: str | None, *, param: str) -> date | None`
+    - Разбирает iso date из входных данных с валидацией формата. Args: value: Входное значение для проверки или преобразования. param: Строковый параметр запроса или фильтра выгрузки. Returns: Объект типа date | None, сформированный в рамках обработки.
   - `_parse_selected_ids(values: list[str]) -> list[int]`
+    - Разбирает selected ids из входных данных с валидацией формата. Args: values: Набор значений, выбранных для фильтрации или экспорта. Returns: Список типа list[int] с результатами операции.
   - `_parse_selected_only(value: str | None) -> bool`
+    - Разбирает selected only из входных данных с валидацией формата. Args: value: Входное значение для проверки или преобразования. Returns: Логическое значение результата проверки.
   - `_apply_export_date_filters(self, queryset, request)`
+    - Применяет export date filters к целевым данным. Args: queryset: Набор записей, к которому применяются фильтры. request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `_apply_export_selected_filters(self, queryset, request)`
+    - Применяет export selected filters к целевым данным. Args: queryset: Набор записей, к которому применяются фильтры. request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `_serialize_event(self, event: AuditEvent) -> dict[str, object]`
+    - Сериализует event в формат, пригодный для передачи клиенту. Args: event: Событие для логирования или последующей обработки. Returns: Словарь типа dict[str, object] с результатами операции.
   - `_build_export_filename(self, export_format: str) -> str`
+    - Формирует export filename для дальнейшего использования в потоке обработки. Args: export_format: Формат выгрузки аудита, например csv или json. Returns: Строковое значение, сформированное функцией.
   - `_build_export_response(self, queryset, *, export_format: str) -> HttpResponse`
+    - Формирует export response для дальнейшего использования в потоке обработки. Args: queryset: Набор записей, к которому применяются фильтры. export_format: Формат выгрузки аудита, например csv или json. Returns: HTTP-ответ с данными результата операции.
   - `_as_csv(self, queryset, *, filename: str) -> HttpResponse`
+    - Преобразует данные в представление csv. Args: queryset: Набор записей, к которому применяются фильтры. filename: Исходное имя файла, переданного в обработку. Returns: HTTP-ответ с данными результата операции.
   - `_as_json(self, queryset, *, filename: str) -> HttpResponse`
+    - Преобразует данные в представление json. Args: queryset: Набор записей, к которому применяются фильтры. filename: Исходное имя файла, переданного в обработку. Returns: HTTP-ответ с данными результата операции.
   - `_as_jsonl(self, queryset, *, filename: str) -> HttpResponse`
+    - Преобразует данные в представление jsonl. Args: queryset: Набор записей, к которому применяются фильтры. filename: Исходное имя файла, переданного в обработку. Returns: HTTP-ответ с данными результата операции.
   - `_json_default(value)`
+    - Выполняет вспомогательную обработку для json default. Args: value: Входное значение для проверки или преобразования. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/auditlog/interfaces/api.py`
 
@@ -219,9 +300,13 @@ Total modules: 185
 ### Functions
 
 - `events_list_view(request)`
+  - Обрабатывает API-представление для events list. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `event_detail_view(_request, event_id: int)`
+  - Обрабатывает API-представление для event detail. Args: _request: HTTP-запрос, не используемый напрямую в теле функции. event_id: Идентификатор event. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `actions_view(request)`
+  - Обрабатывает API-представление для actions. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `username_history_view(request, user_id: int)`
+  - Обрабатывает API-представление для username history. Args: request: HTTP-запрос с контекстом пользователя и входными данными. user_id: Идентификатор user. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/auditlog/interfaces/middleware.py`
 
@@ -231,10 +316,14 @@ Total modules: 185
 ### Classes
 
 - `AuditHttpMiddleware`
+  - Класс AuditHttpMiddleware инкапсулирует связанную бизнес-логику модуля.
   - Methods: 3
   - `__init__(self, get_response)`
+    - Инициализирует экземпляр класса и подготавливает внутреннее состояние. Args: get_response: Следующий middleware-обработчик в цепочке Django.
   - `_should_skip(self, request) -> bool`
+    - Определяет, нужно ли выполнять действие skip. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Логическое значение результата проверки.
   - `__call__(self, request)`
+    - Выполняет объект как вызываемый обработчик. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/auditlog/interfaces/permissions.py`
 
@@ -244,8 +333,10 @@ Total modules: 185
 ### Classes
 
 - `IsStaffAuditReader` : `BasePermission`
+  - Класс IsStaffAuditReader инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `has_permission(self, request: Any, view: Any)`
+    - Проверяет условие permission и возвращает логический результат. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. view: Экземпляр представления, для которого проверяется разрешение. Returns: Функция не возвращает значение.
 
 ## `backend/auditlog/interfaces/serializers.py`
 
@@ -255,9 +346,12 @@ Total modules: 185
 ### Classes
 
 - `AuditEventSerializer` : `serializers.ModelSerializer`
+  - Класс AuditEventSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `get_actor(self, obj)`
+    - Возвращает actor из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
 - `UsernameHistorySerializer` : `serializers.Serializer`
+  - Класс UsernameHistorySerializer сериализует и валидирует данные API.
   - Methods: 0
 
 ## `backend/auditlog/interfaces/urls.py`
@@ -285,9 +379,12 @@ Total modules: 185
 ### Classes
 
 - `Command` : `BaseCommand`
+  - Класс Command реализует management-команду Django.
   - Methods: 2
   - `add_arguments(self, parser)`
+    - Добавляет arguments в целевую коллекцию. Args: parser: Парсер аргументов management-команды.
   - `handle(self, *args, **options)`
+    - Обрабатывает данные. Args: *args: Дополнительные позиционные аргументы вызова. **options: Опции, переданные в management-команду.
 
 ## `backend/auditlog/models.py`
 
@@ -319,6 +416,21 @@ Total modules: 185
   - `test_invalid_date_range_returns_400(self)`
   - `test_invalid_selected_event_id_returns_400(self)`
   - `test_non_staff_cannot_export(self)`
+
+## `backend/auditlog/tests/test_admin_ip_summary.py`
+
+- Functions: 0
+- Classes: 1
+
+### Classes
+
+- `AuditAdminIpSummaryTests` : `TestCase`
+  - Methods: 5
+  - `setUp(self)`
+  - `test_staff_can_view_ip_summary(self)`
+  - `test_ip_rows_are_unique_and_include_related_accounts(self)`
+  - `test_staff_can_sort_and_filter_ip_summary(self)`
+  - `test_non_staff_cannot_view_ip_summary(self)`
 
 ## `backend/auditlog/tests/test_api.py`
 
@@ -400,7 +512,7 @@ Total modules: 185
   - `_csrf(self) -> str`
   - `test_register_profile_and_presence_actions_are_audited(self)`
   - `test_login_failed_and_success_actions_are_audited(self)`
-  - `test_direct_start_action_is_audited_for_actor(self)`
+  - `test_chat_resolve_direct_action_is_audited_for_actor(self)`
 
 ## `backend/auditlog/tests/test_write_service_extra.py`
 
@@ -433,6 +545,90 @@ Total modules: 185
 - Functions: 0
 - Classes: 0
 
+## `backend/chat/api.py`
+
+- Description: API endpoints for the chat subsystem.
+- Functions: 32
+- Classes: 2
+
+### Functions
+
+- `_build_profile_pic_url(request, profile_pic)`
+  - Формирует profile pic url для дальнейшего использования. Args: request: HTTP-запрос с контекстом пользователя и входными данными. profile_pic: Параметр profile pic, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_build_attachment_url(request, attachment_file, room_id: int | None)`
+  - Формирует attachment url для дальнейшего использования. Args: request: HTTP-запрос с контекстом пользователя и входными данными. attachment_file: Параметр attachment file, используемый в логике функции. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_serialize_peer(request, user, *, is_blocked: bool=False)`
+  - Сериализует peer для передачи клиенту. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. user: Пользователь, для которого выполняется операция. is_blocked: Булев флаг условия blocked. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_serialize_reply_to(message: Message | None)`
+  - Сериализует reply to для передачи клиенту. Args: message: Сообщение, участвующее в обработке. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_serialize_attachment_item(request, attachment: MessageAttachment, *, room_id: int | None)`
+  - Сериализует attachment item для ответа API. Args: request: HTTP-запрос с контекстом пользователя и входными данными. attachment: Параметр attachment, используемый в логике функции. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_serialize_group_avatar_for_room(request, room: Room) -> tuple[str | None, dict[str, float] | None]`
+  - Сериализует group avatar for room для передачи клиенту. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room: Комната, в контексте которой выполняется действие. Returns: Кортеж типа tuple[str | None, dict[str, float] | None] с результатами операции.
+- `_public_room()`
+  - Выполняет вспомогательную обработку для public room. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_resolve_chat_target(request, target_ref: str)`
+  - Resolve a prefixless chat target into a readable room.
+- `_serialize_chat_resolve_response(request, target_kind: str, room: Room)`
+  - ????????? ?????? payload resolver-??????.
+- `_parse_positive_int(raw_value: str | None, param_name: str) -> int`
+  - Разбирает и валидирует positive int. Args: raw_value: Параметр raw value, используемый в логике функции. param_name: Параметр param name, используемый в логике функции. Returns: Целочисленный результат вычисления.
+- `_is_transient_db_lock(exc: OperationalError) -> bool`
+  - Проверяет условие transient db lock и возвращает булев результат. Args: exc: Параметр exc, используемый в логике функции. Returns: Логическое значение результата проверки.
+- `_ensure_direct_memberships_with_retry(room: Room, initiator, peer) -> None`
+  - Проверяет обязательные условия для direct memberships with retry. Args: room: Комната, в контексте которой выполняется операция. initiator: Параметр initiator, используемый в логике функции. peer: Параметр peer, используемый в логике функции.
+- `_resolve_room(room_id: int)`
+  - Определяет room на основе доступного контекста. Args: room_id: Идентификатор room. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_serialize_room_details(request, room: Room, created: bool)`
+  - Сериализует room details для передачи клиенту. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room: Комната, в контексте которой выполняется действие. created: Флаг создания новой записи. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `direct_chats(request)`
+  - Возвращает список direct-чатов пользователя. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `room_details(request, room_id: int)`
+  - Возвращает подробные данные комнаты. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `room_messages(request, room_id: int)`
+  - Возвращает сообщения комнаты с учетом пагинации и доступа. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_broadcast_to_room(room: Room, event: dict)`
+  - Выполняет вспомогательную обработку для broadcast to room. Args: room: Комната, в контексте которой выполняется действие. event: Событие для логирования или трансляции.
+- `_ensure_room_read_access(request, room: Room)`
+  - Гарантирует корректность room read access перед выполнением операции. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room: Комната, в контексте которой выполняется действие.
+- `_serialize_reader(request, user, *, read_at)`
+  - Сериализует reader payload для ответа API.
+- `message_detail(request, room_id: int, message_id)`
+  - Обрабатывает операции над конкретным сообщением. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. message_id: Идентификатор сообщения. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `message_readers(request, room_id: int, message_id: int)`
+  - Возвращает readers конкретного сообщения для его автора.
+- `message_reactions(request, room_id: int, message_id)`
+  - Добавляет или возвращает реакции сообщения. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. message_id: Идентификатор сообщения. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `message_reaction_remove(request, room_id: int, message_id, emoji)`
+  - Удаляет реакцию пользователя с сообщения. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. message_id: Идентификатор сообщения. emoji: Эмодзи-реакция, над которой выполняется операция. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `upload_attachments(request, room_id: int)`
+  - Загружает вложения сообщения и возвращает их метаданные. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `search_messages(request, room_id: int)`
+  - Ищет сообщения в рамках доступного контекста. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `_parse_section_limit(request, key: str, default: int, max_value: int) -> int`
+  - Разбирает и валидирует section limit. Args: request: HTTP-запрос с контекстом пользователя и входными данными. key: Параметр key, используемый в логике функции. default: Значение по умолчанию при отсутствии пользовательского ввода. max_value: Параметр max value, используемый в логике функции. Returns: Целочисленный результат вычисления.
+- `_interaction_room_ids(user) -> set[int]`
+  - Выполняет вспомогательную обработку для interaction room ids. Args: user: Пользователь, для которого выполняется операция. Returns: Объект типа set[int], полученный при выполнении операции.
+- `_interaction_user_ids(user, room_ids: set[int]) -> set[int]`
+  - Выполняет вспомогательную обработку для interaction user ids. Args: user: Пользователь, для которого выполняется операция. room_ids: Список идентификаторов room. Returns: Объект типа set[int], полученный при выполнении операции.
+- `global_search(request)`
+  - Выполняет глобальный поиск по поддерживаемым сущностям. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `mark_read_view(request, room_id: int)`
+  - Помечает read view новым состоянием. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+- `unread_counts(request)`
+  - Возвращает счетчики непрочитанных сообщений по комнатам. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
+
+### Classes
+
+- `ChatResolveInputSerializer` : `serializers.Serializer`
+  - ??????????? ??????? ?????? ??? ?????????????? chat resolver.
+  - Methods: 0
+- `ChatResolveApiView` : `GenericAPIView`
+  - Resolve a prefixless chat target into room metadata.
+  - Methods: 2
+  - `get(self, _request)`
+  - `post(self, request)`
+
 ## `backend/chat/apps.py`
 
 - Functions: 0
@@ -441,6 +637,7 @@ Total modules: 185
 ### Classes
 
 - `ChatConfig` : `AppConfig`
+  - Класс ChatConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/chat/constants.py`
@@ -458,47 +655,73 @@ Total modules: 185
 ### Functions
 
 - `_ws_connect_rate_limited(scope, endpoint: str) -> bool`
-  - Проверяет лимит WebSocket-подключений по endpoint и IP.
+  - Выполняет вспомогательную обработку для ws connect rate limited. Args: scope: ASGI-scope с метаданными соединения. endpoint: Идентификатор API/WS endpoint для применения правил. Returns: Логическое значение результата проверки.
 
 ### Classes
 
 - `ChatConsumer` : `AsyncWebsocketConsumer`
-  - WebSocket consumer for chat room messaging.
+  - Класс ChatConsumer обрабатывает WebSocket-события и сообщения.
   - Methods: 30
   - `connect(self)`
+    - Устанавливает соединение и выполняет проверки доступа.
   - `disconnect(self, code)`
+    - Корректно закрывает соединение и освобождает ресурсы. Args: code: Код ошибки или состояния.
   - `receive(self, text_data=None, bytes_data=None)`
+    - Принимает входящее сообщение и маршрутизирует его обработку. Args: text_data: Параметр text data, используемый в логике функции. bytes_data: Параметр bytes data, используемый в логике функции.
   - `chat_message(self, event)`
+    - Транслирует событие нового сообщения в WebSocket-клиенты комнаты. Args: event: Событие для логирования или трансляции.
   - `_idle_watchdog(self)`
+    - Выполняет вспомогательную обработку для idle watchdog.
   - `_load_room(self, room_id: int)`
+    - Загружает room из хранилища с необходимыми проверками. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
   - `_can_read(self, room: Room, user) -> bool`
+    - Проверяет условие read и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
   - `_can_write(self, room: Room, user) -> bool`
+    - Проверяет условие write и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
   - `_resolve_public_username(self, user) -> str`
+    - Определяет public username на основе доступного контекста. Args: user: Пользователь, для которого выполняется операция. Returns: Строковое значение, сформированное функцией.
   - `_resolve_public_ref(self, user) -> str`
+    - Определяет public ref на основе доступного контекста. Args: user: Пользователь, для которого выполняется операция. Returns: Строковое значение, сформированное функцией.
   - `_resolve_display_name(self, user) -> str`
+    - Определяет display name на основе доступного контекста. Args: user: Пользователь, для которого выполняется операция. Returns: Строковое значение, сформированное функцией.
   - `save_message(self, message, user, username, profile_pic, room, reply_to_id=None)`
+    - Сохраняет сообщение и готовит payload для дальнейшей рассылки. Args: message: Сообщение, участвующее в обработке. user: Пользователь, для которого выполняется операция. username: Публичное имя пользователя. profile_pic: Параметр profile pic, используемый в логике функции. room: Комната, в контексте которой выполняется операция. reply_to_id: Идентификатор reply to. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `_get_profile_avatar_state(self, user)`
+    - Возвращает profile avatar state из текущего контекста или хранилища. Args: user: Пользователь, для которого выполняется операция. Returns: Функция не возвращает значение.
   - `_is_blocked_in_dm(self, room: Room, user) -> bool`
-    - Проверяет блокировку между участниками в личном диалоге.
+    - Проверяет условие blocked in dm и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
   - `_rate_limited(self, user) -> bool`
-    - Проверяет лимит отправки сообщений для текущего пользователя.
+    - Выполняет вспомогательную обработку для rate limited. Args: user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
   - `_rate_limit_retry_after_seconds(self, user) -> int | None`
-    - Возвращает оставшееся время ожидания после rate limit.
+    - Выполняет вспомогательную обработку для rate limit retry after seconds. Args: user: Пользователь, для которого выполняется операция. Returns: Объект типа int | None, полученный при выполнении операции.
   - `_chat_message_rate_limit_scope_key(user) -> str`
+    - Выполняет вспомогательную обработку для chat message rate limit scope key. Args: user: Пользователь, для которого выполняется операция. Returns: Строковое значение, сформированное функцией.
   - `_slow_mode_limited(self, user) -> bool`
-    - Проверяет slow mode для группы по текущему пользователю.
+    - Выполняет вспомогательную обработку для slow mode limited. Args: user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
   - `_handle_typing(self)`
+    - Обрабатывает событие typing и выполняет связанную бизнес-логику.
   - `chat_typing(self, event)`
+    - Транслирует статус набора текста в комнате. Args: event: Событие для логирования или трансляции.
   - `_get_reply_data(self, saved_message)`
+    - Возвращает reply data из текущего контекста или хранилища. Args: saved_message: Сообщение, сохраненное в базе и готовое к публикации. Returns: Функция не возвращает значение.
   - `chat_message_edit(self, event)`
+    - Транслирует изменение сообщения в комнате. Args: event: Событие для логирования или трансляции.
   - `chat_message_delete(self, event)`
+    - Транслирует удаление сообщения в комнате. Args: event: Событие для логирования или трансляции.
   - `chat_reaction_add(self, event)`
+    - Транслирует добавление реакции на сообщение. Args: event: Событие для логирования или трансляции.
   - `chat_reaction_remove(self, event)`
+    - Транслирует удаление реакции с сообщения. Args: event: Событие для логирования или трансляции.
   - `chat_read_receipt(self, event)`
+    - Транслирует подтверждение чтения сообщения. Args: event: Событие для логирования или трансляции.
   - `chat_membership_revoked(self, event)`
+    - Уведомляет клиента о потере доступа к комнате. Args: event: Событие для логирования или трансляции.
   - `_handle_mark_read(self, data)`
+    - Обрабатывает событие mark read и выполняет связанную бизнес-логику. Args: data: Словарь входных данных для обработки.
   - `_do_mark_read(self, user, room, last_read_id)`
+    - Выполняет вспомогательную обработку для do mark read. Args: user: Пользователь, для которого выполняется операция. room: Комната, в контексте которой выполняется действие. last_read_id: Идентификатор last read.
   - `_build_direct_inbox_targets(self, room_id: int, sender_id: int, message: str, created_at: str)`
+    - Формирует direct inbox targets для дальнейшего использования в потоке обработки. Args: room_id: Идентификатор room, используемый для выборки данных. sender_id: Идентификатор sender, используемый для выборки данных. message: Экземпляр сообщения для обработки. created_at: Дата и время создания записи для курсорной пагинации. Returns: Функция не возвращает значение.
 
 ## `backend/chat/routing.py`
 
@@ -509,39 +732,53 @@ Total modules: 185
 ## `backend/chat/services.py`
 
 - Description: Business logic for message operations: edit, delete, reactions, read state.
-- Functions: 11
+- Functions: 14
 - Classes: 4
 
 ### Functions
 
+- `_is_missing_read_receipt_table_error(exc: Exception) -> bool`
+  - Определяет, что exact read receipts недоступны из-за непримененной миграции.
 - `_attachment_delete_retry_delay(attempt: int) -> float`
+  - Удаляет вложение с учетом повтор delay. Args: attempt: Параметр attempt, используемый в логике функции. Returns: Объект типа float, сформированный в ходе выполнения.
 - `_load_message_or_raise(room: Room, message_id: int) -> Message`
+  - Загружает message or raise из хранилища с необходимыми проверками. Args: room: Экземпляр комнаты, над которой выполняется действие. message_id: Идентификатор message, используемый для выборки данных. Returns: Объект типа Message, сформированный в рамках обработки.
 - `_can_manage_message(room: Room, user, message: Message) -> bool`
-  - Check if user can edit/delete this message (author or moderator).
+  - Проверяет условие manage message и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. message: Экземпляр сообщения для обработки. Returns: Логическое значение результата проверки.
 - `_within_edit_window(message: Message) -> bool`
+  - Выполняет вспомогательную обработку для within edit window. Args: message: Сообщение, участвующее в обработке. Returns: Логическое значение результата проверки.
 - `_delete_attachment_blob(storage, blob_name: str | None, *, attachment_id: int, field_name: str) -> None`
+  - Удаляет attachment blob и выполняет сопутствующие действия. Args: storage: Объект файлового storage для чтения и удаления blob-файлов. blob_name: Имя объекта в storage, подлежащего удалению или чтению. attachment_id: Идентификатор attachment, используемый для выборки данных. field_name: Имя поля модели, которое содержит путь к файлу.
 - `edit_message(user, room: Room, message_id: int, new_content: str) -> Message`
-  - Edit a message. Returns the updated message.
+  - Редактирует сообщение. Args: user: Пользователь, для которого выполняется операция. room: Комната, в контексте которой выполняется операция. message_id: Идентификатор сообщения. new_content: Параметр new content, используемый в логике функции. Returns: Объект типа Message, сформированный в ходе выполнения.
 - `delete_message(user, room: Room, message_id: int) -> Message`
-  - Soft-delete a message. Returns the deleted message.
+  - Удаляет message и выполняет сопутствующие действия. Args: user: Пользователь, для которого выполняется операция. room: Экземпляр комнаты, над которой выполняется действие. message_id: Идентификатор message, используемый для выборки данных. Returns: Объект типа Message, сформированный в рамках обработки.
 - `add_reaction(user, room: Room, message_id: int, emoji: str) -> Reaction`
-  - Add an emoji reaction to a message. Idempotent.
+  - Добавляет reaction в целевую коллекцию. Args: user: Пользователь, для которого выполняется операция. room: Комната, в контексте которой выполняется операция. message_id: Идентификатор сообщения. emoji: Эмодзи-реакция, над которой выполняется операция. Returns: Объект типа Reaction, сформированный в ходе выполнения.
 - `remove_reaction(user, room: Room, message_id: int, emoji: str) -> None`
-  - Remove an emoji reaction. Idempotent (no error if not found).
+  - Удаляет reaction из целевого набора данных. Args: user: Пользователь, для которого выполняется операция. room: Экземпляр комнаты, над которой выполняется действие. message_id: Идентификатор message, используемый для выборки данных. emoji: Эмодзи-реакция, которую нужно добавить или удалить.
+- `_store_exact_read_receipts(user, room: Room, previous_last_read_message_id: int, next_last_read_message_id: int, *, read_at) -> None`
+  - Создает точные receipts для сообщений, впервые попавших в read-диапазон.
 - `mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState`
-  - Mark messages as read up to the given message ID.
+  - Помечает read новым состоянием. Args: user: Пользователь, для которого выполняется операция. room: Экземпляр комнаты, над которой выполняется действие. last_read_message_id: Идентификатор last read message, используемый для выборки данных. Returns: Объект типа MessageReadState, сформированный в рамках обработки.
+- `get_message_readers(user, room: Room, message_id: int) -> dict`
+  - Возвращает readers конкретного сообщения, если запрос сделал его автор.
 - `get_unread_counts(user) -> list[dict]`
-  - Get unread message counts for all rooms the user is a member of.
+  - Возвращает unread counts из текущего контекста или хранилища. Args: user: Пользователь, для которого выполняется операция. Returns: Список типа list[dict] с результатами операции.
 
 ### Classes
 
 - `MessageError` : `Exception`
+  - Класс MessageError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `MessageNotFoundError` : `MessageError`
+  - Класс MessageNotFoundError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `MessageForbiddenError` : `MessageError`
+  - Класс MessageForbiddenError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `MessageValidationError` : `MessageError`
+  - Класс MessageValidationError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/chat/tests/__init__.py`
@@ -616,23 +853,27 @@ Total modules: 185
   - `test_private_room_messages_allow_member(self)`
   - `test_direct_room_messages_deny_outsider(self)`
   - `test_room_messages_invalid_limit_returns_400(self)`
-- `DirectApiTests` : `TestCase`
-  - Methods: 8
+- `ChatResolveApiTests` : `TestCase`
+  - Methods: 12
   - `setUp(self)`
-  - `_post_start(self, ref: str)`
-  - `test_start_requires_auth(self)`
-  - `test_start_rejects_self(self)`
-  - `test_start_rejects_missing_user(self)`
-  - `test_start_supports_public_handle_with_at(self)`
-  - `test_repeated_start_returns_same_room_id(self)`
-  - `test_direct_chats_include_dialog_after_start(self)`
+  - `_post_resolve(self, target: str)`
+  - `test_direct_resolve_requires_auth(self)`
+  - `test_direct_resolve_rejects_self(self)`
+  - `test_direct_resolve_rejects_missing_user(self)`
+  - `test_resolve_supports_public_room_without_auth(self)`
+  - `test_direct_resolve_supports_public_handle_with_at(self)`
+  - `test_direct_resolve_supports_numeric_user_id(self)`
+  - `test_group_resolve_rejects_removed_legacy_target(self)`
+  - `test_group_resolve_supports_public_ref(self)`
+  - `test_repeated_direct_resolve_returns_same_room_id(self)`
+  - `test_direct_chats_include_dialog_after_resolve(self)`
 - `ChatApiExtraCoverageTests` : `TestCase`
   - Methods: 7
   - `setUp(self)`
-  - `_post_direct_start(self, ref: str)`
-  - `test_direct_start_accepts_form_payload(self)`
-  - `test_direct_start_returns_503_when_room_creation_fails(self)`
-  - `test_direct_start_returns_503_when_role_assignment_fails(self)`
+  - `_post_resolve(self, target: str)`
+  - `test_chat_resolve_accepts_form_payload(self)`
+  - `test_chat_resolve_returns_503_when_room_creation_fails(self)`
+  - `test_chat_resolve_returns_503_when_role_assignment_fails(self)`
   - `test_room_details_returns_fallback_payload_when_db_unavailable(self)`
   - `test_room_messages_returns_404_for_missing_room(self)`
 
@@ -745,8 +986,8 @@ Total modules: 185
     - Проверяет сценарий `setUp`.
   - `_consumer(self, user=None)`
     - Проверяет сценарий `_consumer`.
-  - `test_slug_validation_handles_invalid_regex(self)`
-    - Проверяет сценарий `test_slug_validation_handles_invalid_regex`.
+  - `test_chat_target_validation_handles_invalid_regex(self)`
+    - Проверяет сценарий `test_chat_target_validation_handles_invalid_regex`.
   - `test_get_profile_avatar_state_returns_empty_when_profile_missing(self)`
     - Проверяет сценарий `test_get_profile_avatar_state_returns_empty_when_profile_missing`.
   - `test_rate_limit_counts_and_resets(self)`
@@ -911,7 +1152,7 @@ Total modules: 185
 ### Classes
 
 - `ChatMessageFeatureApiTests` : `TestCase`
-  - Methods: 38
+  - Methods: 42
   - `setUp(self)`
   - `test_reactions_allowed_in_direct_room(self)`
   - `test_global_search_respects_interaction_scope_for_all_sections(self)`
@@ -949,7 +1190,11 @@ Total modules: 185
   - `test_message_detail_delete_removes_attachment_files_when_enabled(self)`
   - `test_message_reactions_handles_forbidden_and_remove_flow(self)`
   - `test_search_messages_handles_validation_and_pagination(self)`
-  - `test_mark_read_validation_public_short_circuit_and_unread_counts(self)`
+  - `test_mark_read_validation_public_room_and_unread_counts(self)`
+  - `test_message_readers_endpoint_returns_direct_read_at_for_author(self)`
+  - `test_message_readers_endpoint_returns_group_readers_for_author_only(self)`
+  - `test_mark_read_endpoint_survives_missing_receipt_table(self)`
+  - `test_message_readers_endpoint_survives_missing_receipt_table(self)`
 
 ## `backend/chat/tests/test_models.py`
 
@@ -1002,7 +1247,7 @@ Total modules: 185
 ### Classes
 
 - `ChatServicesTests` : `TestCase`
-  - Methods: 18
+  - Methods: 24
   - `setUp(self)`
   - `_message(self, *, user=None, content='hello')`
   - `test_edit_message_validates_payload(self)`
@@ -1019,7 +1264,13 @@ Total modules: 185
   - `test_add_reaction_validates_permission_and_missing_message(self)`
   - `test_add_and_remove_reaction_are_idempotent(self)`
   - `test_mark_read_requires_existing_message_and_is_monotonic(self)`
+  - `test_mark_read_stores_exact_receipts_only_for_new_foreign_messages(self)`
   - `test_mark_read_retries_and_raises_operational_error(self)`
+  - `test_mark_read_keeps_room_cursor_when_receipt_table_is_missing(self)`
+  - `test_get_message_readers_requires_author_and_returns_group_receipts(self)`
+  - `test_get_message_readers_returns_direct_read_at_only(self)`
+  - `test_get_message_readers_returns_empty_when_receipt_table_is_missing(self)`
+  - `test_get_direct_message_readers_returns_empty_when_receipt_table_is_missing(self)`
   - `test_get_unread_counts_returns_only_rooms_with_unread(self)`
 
 ## `backend/chat/tests/test_utils.py`
@@ -1108,7 +1359,8 @@ Total modules: 185
 
 ### Functions
 
-- `is_valid_room_slug(value: str) -> bool`
+- `is_valid_chat_target(value: str) -> bool`
+  - Validate a public chat target against the configured runtime regex.
 
 ## `backend/chat_app_django/__init__.py`
 
@@ -1131,9 +1383,9 @@ Total modules: 185
 ### Functions
 
 - `live(_request)`
-  - Returns liveness status.
+  - Вспомогательная функция `live` реализует внутренний шаг бизнес-логики. Args: _request: HTTP-запрос, не используемый напрямую в теле функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `ready(_request)`
-  - Returns readiness status for database and cache dependencies.
+  - Инициализирует интеграции и сигналы при запуске приложения. Args: _request: HTTP-запрос, не используемый напрямую в теле функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/chat_app_django/http_utils.py`
 
@@ -1144,34 +1396,38 @@ Total modules: 185
 ### Functions
 
 - `parse_request_payload(request) -> Mapping[str, object]`
-  - Возвращает словарь payload из JSON или form-data без выбрасывания ошибок наружу.
+  - Разбирает request payload из входных данных с валидацией формата. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Объект типа Mapping[str, object], сформированный в рамках обработки.
 - `error_response(*, status: int, error: str | None=None, detail: str | None=None, errors: Mapping[str, list[str] | str] | None=None) -> Response`
-  - Формирует единый JSON-ответ ошибки в формате error/detail/errors.
+  - Формирует структуру ошибки response для ответа API. Args: status: HTTP-статус ответа, который будет возвращен клиенту. error: Короткий код ошибки для машинной обработки на клиенте. detail: Подробное описание ошибки для отображения и диагностики. errors: Набор ошибок валидации, сгруппированных по полям. Returns: HTTP-ответ с данными результата операции.
 
 ## `backend/chat_app_django/ip_utils.py`
 
-- Description: Содержит логику модуля `ip_utils` подсистемы `chat_app_django`.
-- Functions: 8
+- Description: Модуль ip_utils реализует прикладную логику подсистемы chat_app_django.
+- Functions: 10
 - Classes: 0
 
 ### Functions
 
 - `_decode_header(value: bytes | None) -> str | None`
-  - Выполняет логику `_decode_header` с параметрами из сигнатуры.
+  - Декодирует header из внешнего представления. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_first_value(value: str | None) -> str | None`
-  - Выполняет логику `_first_value` с параметрами из сигнатуры.
+  - Выполняет вспомогательную обработку для first value. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа str | None, полученный при выполнении операции.
+- `_split_values(value: str | None) -> list[str]`
+  - Разбивает цепочку IP-адресов заголовка на отдельные значения.
 - `_parse_ip(value: str | None) -> str | None`
-  - Выполняет логику `_parse_ip` с параметрами из сигнатуры.
+  - Разбирает ip из входных данных с валидацией формата. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа str | None, сформированный в рамках обработки.
+- `_pick_ip_from_chain(value: str | None) -> str | None`
+  - Выбирает клиентский IP из цепочки X-Forwarded-For-подобного заголовка. Логика: 1. Валидируем все IP из цепочки. 2. Идем справа налево и пропускаем доверенные proxy. 3. Берем первый IP, который не входит в trusted proxy ranges. 4. Если все IP доверенные, возвращаем первый валидный.
 - `_trusted_networks() -> list`
-  - Выполняет логику `_trusted_networks` с параметрами из сигнатуры.
+  - Выполняет вспомогательную обработку для trusted networks. Returns: Список типа list с результатами операции.
 - `is_trusted_proxy(ip: str | None) -> bool`
-  - Выполняет логику `is_trusted_proxy` с параметрами из сигнатуры.
+  - Проверяет условие trusted proxy и возвращает логический результат. Args: ip: IP-адрес клиента или узла, выполняющего запрос. Returns: Логическое значение результата проверки.
 - `_pick_ip(candidates: list[str | None]) -> str | None`
-  - Выполняет логику `_pick_ip` с параметрами из сигнатуры.
+  - Выбирает ip из набора кандидатов по заданным правилам. Args: candidates: Набор кандидатных значений для выбора валидного результата. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `get_client_ip_from_request(request) -> str | None`
-  - Выполняет логику `get_client_ip_from_request` с параметрами из сигнатуры.
+  - Возвращает client ip from request из текущего контекста или хранилища. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `get_client_ip_from_scope(scope) -> str | None`
-  - Выполняет логику `get_client_ip_from_scope` с параметрами из сигнатуры.
+  - Возвращает client ip from scope из текущего контекста или хранилища. Args: scope: ASGI-scope с метаданными соединения. Returns: Объект типа str | None, сформированный в рамках обработки.
 
 ## `backend/chat_app_django/media_utils.py`
 
@@ -1182,34 +1438,51 @@ Total modules: 185
 ### Functions
 
 - `serialize_avatar_crop(profile) -> dict[str, float] | None`
-  - Serialize avatar crop metadata into a unified API format.
+  - Сериализует avatar crop в формат, пригодный для передачи клиенту. Args: profile: Профиль пользователя, для которого вычисляется состояние. Returns: Словарь типа dict[str, float] | None с результатами операции.
 - `_decode_header(value: bytes | None) -> str | None`
+  - Декодирует header из внешнего представления. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_get_header(scope, name: bytes) -> str | None`
+  - Возвращает header из текущего контекста или хранилища. Args: scope: ASGI-scope с метаданными соединения. name: Человекочитаемое имя сущности или объекта. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_first_value(value: str | None) -> str | None`
+  - Выполняет вспомогательную обработку для first value. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа str | None, полученный при выполнении операции.
 - `_normalize_scheme(value: str | None) -> str | None`
+  - Нормализует scheme к внутреннему формату приложения. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_normalize_base_url(value: str | None) -> str | None`
+  - Нормализует base url к внутреннему формату приложения. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_base_from_host_and_scheme(host: str | None, scheme: str | None) -> str | None`
+  - Вспомогательная функция `_base_from_host_and_scheme` реализует внутренний шаг бизнес-логики. Args: host: Параметр host, используемый в логике функции. scheme: Параметр scheme, используемый в логике функции. Returns: Объект типа str | None, сформированный в ходе выполнения.
 - `normalize_media_path(image_name: str | None) -> str | None`
-  - Normalize media path and reject traversal/empty values.
+  - Нормализует media path к внутреннему формату приложения. Args: image_name: Имя файла изображения в media-хранилище. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_is_internal_host(hostname: str | None) -> bool`
+  - Проверяет условие internal host и возвращает логический результат. Args: hostname: Имя хоста без схемы и дополнительных частей URL. Returns: Логическое значение результата проверки.
 - `_hostname_from_base(base: str | None) -> str | None`
+  - Вспомогательная функция `_hostname_from_base` реализует внутренний шаг бизнес-логики. Args: base: Параметр base, используемый в логике функции. Returns: Объект типа str | None, сформированный в ходе выполнения.
 - `_should_prefer_origin(candidate_base: str | None, origin_base: str | None) -> bool`
+  - Определяет, нужно ли выполнять действие prefer origin. Args: candidate_base: Кандидат на роль базового URL для валидации и выбора. origin_base: Базовый URL, полученный из заголовка Origin. Returns: Логическое значение результата проверки.
 - `_pick_base_url(configured_base: str | None, forwarded_base: str | None, host_base: str | None, origin_base: str | None) -> str | None`
+  - Выбирает base url из набора кандидатов по заданным правилам. Args: configured_base: Базовый URL, заданный в конфигурации приложения. forwarded_base: Базовый URL, восстановленный из прокси-заголовков. host_base: Базовый URL, собранный из host и схемы запроса. origin_base: Базовый URL, полученный из заголовка Origin. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_coerce_media_source(image_name: str | None, trusted_hosts: set[str] | None=None) -> str | None`
+  - Преобразует media source к допустимому типу или формату. Args: image_name: Имя файла изображения в media-хранилище. trusted_hosts: Список доверенных хостов для проверки безопасности URL. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `_media_signing_key() -> bytes`
+  - Выполняет вспомогательную обработку для media signing key. Returns: Объект типа bytes, полученный при выполнении операции.
 - `_media_signature(path: str, expires_at: int) -> str`
+  - Вспомогательная функция `_media_signature` реализует внутренний шаг бизнес-логики. Args: path: Путь ресурса в storage или URL-маршруте. expires_at: Параметр expires at, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 - `is_valid_media_signature(path: str, expires_at: int, signature: str | None) -> bool`
-  - Validate HMAC signature for a signed media URL.
+  - Проверяет условие valid media signature и возвращает логический результат. Args: path: Путь к ресурсу в storage или media-каталоге. expires_at: Метка времени истечения срока действия ссылки или токена. signature: Криптографическая подпись для валидации целостности ссылки. Returns: Логическое значение результата проверки.
 - `_signed_media_url_path(image_name: str | None, expires_at: int | None=None) -> str | None`
+  - Вспомогательная функция `_signed_media_url_path` реализует внутренний шаг бизнес-логики. Args: image_name: Параметр image name, используемый в логике функции. expires_at: Параметр expires at, используемый в логике функции. Returns: Объект типа str | None, сформированный в ходе выполнения.
 - `is_chat_attachment_media_path(path: str | None) -> bool`
+  - Проверяет условие chat attachment media path и возвращает логический результат. Args: path: Путь к ресурсу в storage или media-каталоге. Returns: Логическое значение результата проверки.
 - `_parse_positive_room_id(room_id: int | str | None) -> int | None`
+  - Разбирает positive room id из входных данных с валидацией формата. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Объект типа int | None, сформированный в рамках обработки.
 - `_room_scoped_media_url_path(image_name: str | None, room_id: int | str | None) -> str | None`
+  - Вспомогательная функция `_room_scoped_media_url_path` реализует внутренний шаг бизнес-логики. Args: image_name: Параметр image name, используемый в логике функции. room_id: Идентификатор комнаты. Returns: Объект типа str | None, сформированный в ходе выполнения.
 - `build_room_media_url_from_request(request, image_name: str | None, room_id: int | str | None) -> str | None`
-  - Build absolute room-scoped URL for chat attachments and thumbnails.
+  - Формирует room media url from request для дальнейшего использования в потоке обработки. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. image_name: Имя файла изображения в media-хранилище. room_id: Идентификатор room, используемый для выборки данных. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `build_profile_url_from_request(request, image_name: str | None) -> str | None`
-  - Build absolute avatar URL using HTTP request headers.
+  - Формирует profile url from request для дальнейшего использования в потоке обработки. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. image_name: Имя файла изображения в media-хранилище. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `build_profile_url(scope, image_name: str | None) -> str | None`
-  - Build absolute avatar URL for WebSocket ASGI scope.
+  - Формирует profile url для дальнейшего использования в потоке обработки. Args: scope: ASGI-scope с метаданными соединения. image_name: Имя файла изображения в media-хранилище. Returns: Объект типа str | None, сформированный в рамках обработки.
 
 ## `backend/chat_app_django/meta_api.py`
 
@@ -1220,7 +1493,7 @@ Total modules: 185
 ### Functions
 
 - `client_config_view(_request)`
-  - Returns client-facing limits and policies from backend settings.
+  - Обрабатывает API-представление для client config. Args: _request: HTTP-запрос, не используемый напрямую в теле функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/chat_app_django/security/__init__.py`
 
@@ -1243,19 +1516,19 @@ Total modules: 185
 ### Classes
 
 - `RateLimitPolicy`
-  - Policy with request limit and window in seconds.
+  - Класс RateLimitPolicy инкапсулирует связанную бизнес-логику модуля.
   - Methods: 2
   - `normalized_limit(self) -> int`
-    - Return a safe limit value (minimum 1).
+    - Вспомогательная функция `normalized_limit` реализует внутренний шаг бизнес-логики. Returns: Целочисленный результат вычисления.
   - `normalized_window(self) -> int`
-    - Return a safe window value (minimum 1 second).
+    - Вспомогательная функция `normalized_window` реализует внутренний шаг бизнес-логики. Returns: Целочисленный результат вычисления.
 - `DbRateLimiter`
-  - Atomic DB-based rate limiter.
+  - Класс DbRateLimiter инкапсулирует связанную бизнес-логику модуля.
   - Methods: 2
   - `is_limited(cls, scope_key: str, policy: RateLimitPolicy) -> bool`
-    - Increment bucket and return whether the scope is currently limited.
+    - Проверяет условие limited и возвращает логический результат. Args: scope_key: Уникальный ключ области действия для счетчика лимитов. policy: Политика rate-limit с лимитом и временным окном. Returns: Логическое значение результата проверки.
   - `retry_after_seconds(cls, scope_key: str) -> int | None`
-    - Return remaining bucket lifetime in seconds for `scope_key`.
+    - Вспомогательная функция `retry_after_seconds` реализует внутренний шаг бизнес-логики. Args: scope_key: Параметр scope key, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
 
 ## `backend/chat_app_django/security/rate_limit_config.py`
 
@@ -1266,17 +1539,21 @@ Total modules: 185
 ### Functions
 
 - `_positive_int(value: Any, fallback: int) -> int`
+  - Вспомогательная функция `_positive_int` реализует внутренний шаг бизнес-логики. Args: value: Значение, которое нужно нормализовать или проверить. fallback: Параметр fallback, используемый в логике функции. Returns: Целочисленный результат вычисления.
 - `_rate_limits_mapping() -> Mapping[str, Any]`
+  - Выполняет вспомогательную обработку для rate limits mapping. Returns: Объект типа Mapping[str, Any], полученный при выполнении операции.
 - `_section(name: str) -> Mapping[str, Any]`
+  - Выполняет вспомогательную обработку для section. Args: name: Человекочитаемое имя объекта или параметра. Returns: Объект типа Mapping[str, Any], полученный при выполнении операции.
 - `_section_policy(*, section_name: str, default_limit: int, default_window: int) -> RateLimitPolicy`
+  - Вспомогательная функция `_section_policy` реализует внутренний шаг бизнес-логики. Args: section_name: Параметр section name, используемый в логике функции. default_limit: Параметр default limit, используемый в логике функции. default_window: Параметр default window, используемый в логике функции. Returns: Объект типа RateLimitPolicy, сформированный в ходе выполнения.
 - `auth_rate_limit_policy() -> RateLimitPolicy`
-  - Policy for auth attempts (login/register), scoped per action and IP.
+  - Вспомогательная функция `auth_rate_limit_policy` реализует внутренний шаг бизнес-логики. Returns: Объект типа RateLimitPolicy, сформированный в ходе выполнения.
 - `chat_message_rate_limit_policy() -> RateLimitPolicy`
-  - Policy for chat message send throttle, scoped per user.
+  - Вспомогательная функция `chat_message_rate_limit_policy` реализует внутренний шаг бизнес-логики. Returns: Объект типа RateLimitPolicy, сформированный в ходе выполнения.
 - `ws_connect_rate_limit_policy(endpoint: str) -> RateLimitPolicy`
-  - Policy for websocket connect throttle, scoped per endpoint and IP.
+  - Вспомогательная функция `ws_connect_rate_limit_policy` реализует внутренний шаг бизнес-логики. Args: endpoint: Параметр endpoint, используемый в логике функции. Returns: Объект типа RateLimitPolicy, сформированный в ходе выполнения.
 - `ws_connect_rate_limit_disabled() -> bool`
-  - Global switch for websocket connect throttling.
+  - Вспомогательная функция `ws_connect_rate_limit_disabled` реализует внутренний шаг бизнес-логики. Returns: Логическое значение результата проверки.
 
 ## `backend/chat_app_django/tests/__init__.py`
 
@@ -1327,7 +1604,7 @@ Total modules: 185
   - `_get_html(self, path: str, expected_status: int=200) -> str`
   - `test_login_endpoint_rejects_get_for_browsable_form(self)`
   - `test_register_endpoint_rejects_get_for_browsable_form(self)`
-  - `test_direct_start_form_shows_ref_for_authenticated_user(self)`
+  - `test_chat_resolve_form_shows_target_for_authenticated_user(self)`
   - `test_profile_form_shows_profile_update_fields_for_authenticated_user(self)`
   - `test_friends_send_request_form_shows_username_for_authenticated_user(self)`
   - `test_friends_block_form_shows_username_for_authenticated_user(self)`
@@ -1378,7 +1655,7 @@ Total modules: 185
 
 - `IpUtilsTests` : `SimpleTestCase`
   - Группирует тестовые сценарии класса `IpUtilsTests`.
-  - Methods: 8
+  - Methods: 13
   - `setUp(self)`
     - Проверяет сценарий `setUp`.
   - `tearDown(self)`
@@ -1389,10 +1666,20 @@ Total modules: 185
     - Проверяет сценарий `test_request_uses_remote_addr_when_proxy_untrusted`.
   - `test_request_uses_cf_connecting_ip_when_proxy_trusted(self)`
     - Проверяет сценарий `test_request_uses_cf_connecting_ip_when_proxy_trusted`.
+  - `test_request_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy(self)`
+    - Проверяет сценарий `test_request_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy`.
+  - `test_request_extracts_client_ip_when_proxy_ip_is_first_in_chain(self)`
+    - Проверяет сценарий `test_request_extracts_client_ip_when_proxy_ip_is_first_in_chain`.
+  - `test_request_extracts_client_ip_when_proxy_ip_is_last_in_chain(self)`
+    - Проверяет сценарий `test_request_extracts_client_ip_when_proxy_ip_is_last_in_chain`.
   - `test_request_falls_back_to_remote_when_forwarded_is_invalid(self)`
     - Проверяет сценарий `test_request_falls_back_to_remote_when_forwarded_is_invalid`.
   - `test_scope_uses_forwarded_when_proxy_trusted(self)`
     - Проверяет сценарий `test_scope_uses_forwarded_when_proxy_trusted`.
+  - `test_scope_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy(self)`
+    - Проверяет сценарий `test_scope_prefers_x_forwarded_for_over_x_real_ip_for_trusted_proxy`.
+  - `test_scope_extracts_client_ip_when_proxy_ip_is_first_in_chain(self)`
+    - Проверяет сценарий `test_scope_extracts_client_ip_when_proxy_ip_is_first_in_chain`.
   - `test_scope_falls_back_to_remote_for_invalid_forwarded_header(self)`
     - Проверяет сценарий `test_scope_falls_back_to_remote_for_invalid_forwarded_header`.
 
@@ -1447,16 +1734,19 @@ Total modules: 185
 ### Functions
 
 - `_absolute(request, raw_path: str) -> str`
+  - Вспомогательная функция `_absolute` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. raw_path: Параметр raw path, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 - `_link(request, name: str, kwargs: dict | None=None) -> str | None`
+  - Выполняет вспомогательную обработку для link. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. name: Человекочитаемое имя объекта или параметра. kwargs: Дополнительные именованные аргументы вызова. Returns: Объект типа str | None, полученный при выполнении операции.
 - `_first_link(request, names: list[str]) -> str | None`
+  - Вспомогательная функция `_first_link` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. names: Параметр names, используемый в логике функции. Returns: Объект типа str | None, сформированный в ходе выполнения.
 - `api_index(request)`
-  - Returns API index with clickable links for manual testing.
+  - Вспомогательная функция `api_index` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `api_root(request)`
-  - Returns project root status and pointer to API index.
+  - Вспомогательная функция `api_root` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/chat_app_django/wsgi.py`
 
-- Description: Содержит логику модуля `wsgi` подсистемы `chat_app_django`.
+- Description: Модуль wsgi реализует прикладную логику подсистемы chat_app_django.
 - Functions: 0
 - Classes: 0
 
@@ -1473,6 +1763,7 @@ Total modules: 185
 ### Classes
 
 - `DirectInboxConfig` : `AppConfig`
+  - Класс DirectInboxConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/direct_inbox/constants.py`
@@ -1490,42 +1781,59 @@ Total modules: 185
 ### Functions
 
 - `_to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]`
+  - Вспомогательная функция `_to_async` реализует внутренний шаг бизнес-логики. Args: func: Параметр func, используемый в логике функции. Returns: Объект типа Callable[..., Awaitable[T]], сформированный в ходе выполнения.
 - `_ws_connect_rate_limited(scope, endpoint: str) -> bool`
-  - Checks websocket connect rate limit per endpoint and IP.
+  - Выполняет вспомогательную обработку для ws connect rate limited. Args: scope: ASGI-scope с метаданными соединения. endpoint: Идентификатор API/WS endpoint для применения правил. Returns: Логическое значение результата проверки.
 
 ### Classes
 
 - `DirectInboxConsumer` : `AsyncWebsocketConsumer`
-  - Manages unread/active state for direct message conversations.
+  - Класс DirectInboxConsumer обрабатывает WebSocket-события и сообщения.
   - Methods: 22
   - `connect(self)`
+    - Устанавливает соединение и выполняет проверки доступа.
   - `disconnect(self, code)`
+    - Корректно закрывает соединение и освобождает ресурсы. Args: code: Код ошибки или состояния.
   - `receive(self, text_data=None, bytes_data=None)`
+    - Принимает входящее сообщение и маршрутизирует его обработку. Args: text_data: Параметр text data, используемый в логике функции. bytes_data: Параметр bytes data, используемый в логике функции.
   - `direct_inbox_event(self, event)`
+    - Обрабатывает WebSocket-событие direct inbox event. Args: event: Событие для логирования или трансляции.
   - `_send_unread_state(self)`
+    - Выполняет вспомогательную обработку для send unread state.
   - `_send_error(self, code: str)`
+    - Выполняет вспомогательную обработку для send error. Args: code: Код ошибки или состояния.
   - `_heartbeat(self)`
+    - Выполняет вспомогательную обработку для heartbeat.
   - `_idle_watchdog(self)`
+    - Выполняет вспомогательную обработку для idle watchdog.
   - `_load_room_sync(self, room_id: int) -> Room | None`
+    - Загружает room sync из хранилища с необходимыми проверками. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Объект типа Room | None, сформированный в рамках обработки.
   - `_load_room(self, room_id: int) -> Room | None`
+    - Загружает room из хранилища с необходимыми проверками. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Объект типа Room | None, сформированный в рамках обработки.
   - `_can_read_sync(self, room: Room) -> bool`
+    - Проверяет условие read sync и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Логическое значение результата проверки.
   - `_can_read(self, room: Room) -> bool`
+    - Проверяет условие read и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Логическое значение результата проверки.
   - `_get_unread_state_sync(self) -> dict[str, Any]`
+    - Возвращает unread state sync из текущего контекста или хранилища. Returns: Словарь типа dict[str, Any] с результатами операции.
   - `_get_unread_state(self) -> dict[str, Any]`
+    - Возвращает unread state из текущего контекста или хранилища. Returns: Словарь типа dict[str, Any] с результатами операции.
   - `_mark_read_sync(self, room_id: int) -> dict[str, Any]`
+    - Помечает read sync новым состоянием. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Словарь типа dict[str, Any] с результатами операции.
   - `_mark_read(self, room_id: int) -> dict[str, Any]`
+    - Помечает read новым состоянием. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Словарь типа dict[str, Any] с результатами операции.
   - `_set_active_room_sync(self, room_id: int) -> None`
+    - Устанавливает active room sync с учетом текущих правил приложения. Args: room_id: Идентификатор room, используемый для выборки данных.
   - `_set_active_room(self, room_id: int) -> None`
+    - Устанавливает active room с учетом текущих правил приложения. Args: room_id: Идентификатор room, используемый для выборки данных.
   - `_clear_active_room_sync(self, conn_only: bool=False) -> None`
+    - Очищает active room sync и сбрасывает связанное состояние. Args: conn_only: Флаг отправки обновления только в текущее соединение.
   - `_clear_active_room(self, conn_only: bool=False) -> None`
+    - Очищает active room и сбрасывает связанное состояние. Args: conn_only: Флаг отправки обновления только в текущее соединение.
   - `_touch_active_room_sync(self) -> None`
+    - Обновляет метку активности для active room sync.
   - `_touch_active_room(self) -> None`
-
-## `backend/direct_inbox/routing.py`
-
-- Description: WebSocket routing for direct inbox consumers.
-- Functions: 0
-- Classes: 0
+    - Обновляет метку активности для active room.
 
 ## `backend/direct_inbox/state.py`
 
@@ -1536,20 +1844,35 @@ Total modules: 185
 ### Functions
 
 - `user_group_name(user_id: int) -> str`
+  - Вспомогательная функция `user_group_name` реализует внутренний шаг бизнес-логики. Args: user_id: Идентификатор user. Returns: Строковое значение, сформированное функцией.
 - `unread_key(user_id: int) -> str`
+  - Вспомогательная функция `unread_key` реализует внутренний шаг бизнес-логики. Args: user_id: Идентификатор user. Returns: Строковое значение, сформированное функцией.
 - `active_key(user_id: int) -> str`
+  - Вспомогательная функция `active_key` реализует внутренний шаг бизнес-логики. Args: user_id: Идентификатор user. Returns: Строковое значение, сформированное функцией.
 - `_normalize_room_ids(value: Any) -> list[int]`
+  - Нормализует room ids к внутреннему формату приложения. Args: value: Входное значение для проверки или преобразования. Returns: Список типа list[int] с результатами операции.
 - `_normalize_counts(value: Any) -> dict[str, int]`
+  - Нормализует counts к внутреннему формату приложения. Args: value: Входное значение для проверки или преобразования. Returns: Словарь типа dict[str, int] с результатами операции.
 - `_counts_to_room_ids(counts: dict[str, int]) -> list[int]`
+  - Вспомогательная функция `_counts_to_room_ids` реализует внутренний шаг бизнес-логики. Args: counts: Параметр counts, используемый в логике функции. Returns: Список типа list[int] с данными результата.
 - `_parse_positive_room_id(value: int | str | None) -> int | None`
+  - Разбирает positive room id из входных данных с валидацией формата. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа int | None, сформированный в рамках обработки.
 - `get_unread_room_ids(user_id: int) -> list[int]`
+  - Возвращает unread room ids из текущего контекста или хранилища. Args: user_id: Идентификатор user, используемый для выборки данных. Returns: Список типа list[int] с результатами операции.
 - `get_unread_state(user_id: int) -> dict[str, Any]`
+  - Возвращает unread state из текущего контекста или хранилища. Args: user_id: Идентификатор user, используемый для выборки данных. Returns: Словарь типа dict[str, Any] с результатами операции.
 - `mark_unread(user_id: int, room_id: int | str | None, ttl_seconds: int) -> dict[str, Any]`
+  - Помечает unread новым состоянием. Args: user_id: Идентификатор user, используемый для выборки данных. room_id: Идентификатор room, используемый для выборки данных. ttl_seconds: Время жизни данных в кеше в секундах. Returns: Словарь типа dict[str, Any] с результатами операции.
 - `mark_read(user_id: int, room_id: int | str | None, ttl_seconds: int) -> dict[str, Any]`
+  - Помечает read новым состоянием. Args: user_id: Идентификатор user, используемый для выборки данных. room_id: Идентификатор room, используемый для выборки данных. ttl_seconds: Время жизни данных в кеше в секундах. Returns: Словарь типа dict[str, Any] с результатами операции.
 - `set_active_room(user_id: int, room_id: int, conn_id: str, ttl_seconds: int) -> None`
+  - Устанавливает active room с учетом текущих правил приложения. Args: user_id: Идентификатор user, используемый для выборки данных. room_id: Идентификатор room, используемый для выборки данных. conn_id: Идентификатор conn, используемый для выборки данных. ttl_seconds: Время жизни данных в кеше в секундах.
 - `touch_active_room(user_id: int, conn_id: str, ttl_seconds: int) -> None`
+  - Обновляет метку активности для active room. Args: user_id: Идентификатор user, используемый для выборки данных. conn_id: Идентификатор conn, используемый для выборки данных. ttl_seconds: Время жизни данных в кеше в секундах.
 - `clear_active_room(user_id: int, conn_id: str | None=None) -> None`
+  - Очищает active room и сбрасывает связанное состояние. Args: user_id: Идентификатор user, используемый для выборки данных. conn_id: Идентификатор conn, используемый для выборки данных.
 - `is_room_active(user_id: int, room_id: int) -> bool`
+  - Проверяет условие room active и возвращает логический результат. Args: user_id: Идентификатор user, используемый для выборки данных. room_id: Идентификатор room, используемый для выборки данных. Returns: Логическое значение результата проверки.
 
 ## `backend/friends/__init__.py`
 
@@ -1564,15 +1887,24 @@ Total modules: 185
 ### Classes
 
 - `FriendshipAdmin` : `admin.ModelAdmin`
+  - Класс FriendshipAdmin настраивает поведение сущности в Django Admin.
   - Methods: 8
   - `from_user_id_value(self, obj: Friendship) -> int | None`
+    - Формирует значение from user id value для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
   - `to_user_id_value(self, obj: Friendship) -> int | None`
+    - Формирует значение to user id value для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
   - `_set_status(self, queryset, status: str) -> int`
+    - Устанавливает status с учетом текущих правил приложения. Args: queryset: Набор записей, к которому применяются фильтры. status: HTTP-статус ответа, который будет возвращен клиенту. Returns: Целочисленное значение результата вычисления.
   - `mark_pending(self, request, queryset)`
+    - Помечает pending новым состоянием. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. queryset: Набор записей, к которому применяются фильтры.
   - `mark_accepted(self, request, queryset)`
+    - Помечает accepted новым состоянием. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. queryset: Набор записей, к которому применяются фильтры.
   - `mark_declined(self, request, queryset)`
+    - Помечает declined новым состоянием. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. queryset: Набор записей, к которому применяются фильтры.
   - `mark_blocked(self, request, queryset)`
+    - Помечает blocked новым состоянием. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. queryset: Набор записей, к которому применяются фильтры.
   - `make_mutual_accepted(self, request, queryset)`
+    - Формирует значение make mutual accepted для отображения в админ-панели. Args: request: HTTP-запрос с контекстом пользователя и входными данными. queryset: Набор записей, к которому применяются фильтры.
 
 ## `backend/friends/application/__init__.py`
 
@@ -1588,13 +1920,18 @@ Total modules: 185
 ### Classes
 
 - `FriendServiceError` : `Exception`
+  - Класс FriendServiceError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `__init__(self, message: str)`
+    - Инициализирует экземпляр класса и подготавливает внутреннее состояние. Args: message: Экземпляр сообщения для обработки.
 - `FriendNotFoundError` : `FriendServiceError`
+  - Класс FriendNotFoundError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `FriendForbiddenError` : `FriendServiceError`
+  - Класс FriendForbiddenError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `FriendConflictError` : `FriendServiceError`
+  - Класс FriendConflictError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/friends/application/friend_service.py`
@@ -1606,22 +1943,37 @@ Total modules: 185
 ### Functions
 
 - `_ensure_authenticated(actor) -> None`
+  - Гарантирует корректность состояния authenticated перед выполнением операции. Args: actor: Пользователь, инициирующий действие в системе.
 - `_normalize_public_ref(raw: str) -> str`
+  - Нормализует public ref к внутреннему формату приложения. Args: raw: Сырое значение из внешнего источника до нормализации. Returns: Строковое значение, сформированное функцией.
 - `_friend_from_user_id(friendship: Friendship) -> int`
+  - Вспомогательная функция `_friend_from_user_id` реализует внутренний шаг бизнес-логики. Args: friendship: Запись дружбы между пользователями. Returns: Целочисленный результат вычисления.
 - `_friend_to_user_id(friendship: Friendship) -> int`
+  - Вспомогательная функция `_friend_to_user_id` реализует внутренний шаг бизнес-логики. Args: friendship: Запись дружбы между пользователями. Returns: Целочисленный результат вычисления.
 - `list_friends(actor) -> list`
+  - Возвращает список friends, доступных в текущем контексте. Args: actor: Пользователь, инициирующий действие в системе. Returns: Список типа list с результатами операции.
 - `list_incoming_requests(actor) -> list`
+  - Возвращает список incoming requests, доступных в текущем контексте. Args: actor: Пользователь, инициирующий действие в системе. Returns: Список типа list с результатами операции.
 - `list_outgoing_requests(actor) -> list`
+  - Возвращает список outgoing requests, доступных в текущем контексте. Args: actor: Пользователь, инициирующий действие в системе. Returns: Список типа list с результатами операции.
 - `list_blocked(actor) -> list`
+  - Возвращает список blocked, доступных в текущем контексте. Args: actor: Пользователь, инициирующий действие в системе. Returns: Список типа list с результатами операции.
 - `is_blocked_between(user_a, user_b) -> bool`
-  - Return True if either user has blocked the other.
+  - Проверяет условие blocked between и возвращает логический результат. Args: user_a: Данные user a, участвующие в обработке текущей операции. user_b: Данные user b, участвующие в обработке текущей операции. Returns: Логическое значение результата проверки.
 - `send_request(actor, target_ref: str) -> Friendship`
+  - Отправляет request целевому получателю. Args: actor: Пользователь, инициирующий действие. target_ref: Публичный референс целевого пользователя. Returns: Объект типа Friendship, сформированный в ходе выполнения.
 - `accept_request(actor, friendship_id: int) -> Friendship`
+  - Вспомогательная функция `accept_request` реализует внутренний шаг бизнес-логики. Args: actor: Пользователь, инициирующий действие. friendship_id: Идентификатор friendship. Returns: Объект типа Friendship, сформированный в ходе выполнения.
 - `decline_request(actor, friendship_id: int) -> Friendship`
+  - Вспомогательная функция `decline_request` реализует внутренний шаг бизнес-логики. Args: actor: Пользователь, инициирующий действие. friendship_id: Идентификатор friendship. Returns: Объект типа Friendship, сформированный в ходе выполнения.
 - `cancel_outgoing_request(actor, friendship_id: int) -> Friendship`
+  - Отменяет исходящий запрос запрос. Args: actor: Пользователь, инициирующий действие. friendship_id: Идентификатор friendship. Returns: Объект типа Friendship, сформированный в ходе выполнения.
 - `remove_friend(actor, target_user_id: int) -> None`
+  - Удаляет friend из целевого набора данных. Args: actor: Пользователь, инициирующий действие в системе. target_user_id: Идентификатор target user, используемый для выборки данных.
 - `block_user(actor, target_ref: str) -> Friendship`
+  - Блокирует пользователь. Args: actor: Пользователь, инициирующий действие. target_ref: Публичный референс целевого пользователя. Returns: Объект типа Friendship, сформированный в ходе выполнения.
 - `unblock_user(actor, target_user_id: int) -> None`
+  - Снимает блокировку с пользователь. Args: actor: Пользователь, инициирующий действие. target_user_id: Идентификатор целевого пользователя.
 
 ## `backend/friends/apps.py`
 
@@ -1631,8 +1983,10 @@ Total modules: 185
 ### Classes
 
 - `FriendsConfig` : `AppConfig`
+  - Класс FriendsConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `ready(self)`
+    - Инициализирует интеграции и сигналы при запуске приложения.
 
 ## `backend/friends/domain/__init__.py`
 
@@ -1648,14 +2002,15 @@ Total modules: 185
 ### Functions
 
 - `is_self_request(actor_id: int, target_id: int) -> bool`
+  - Проверяет условие self request и возвращает логический результат. Args: actor_id: Идентификатор actor, используемый для выборки данных. target_id: Идентификатор target, используемый для выборки данных. Returns: Логическое значение результата проверки.
 - `can_send_request(*, existing_outgoing_status: str | None, existing_incoming_status: str | None) -> tuple[bool, str]`
-  - Check if a friend request can be sent. Returns (allowed, reason).
+  - Проверяет условие send request и возвращает логический результат. Args: existing_outgoing_status: Текущий статус исходящей заявки дружбы. existing_incoming_status: Текущий статус входящей заявки дружбы. Returns: Кортеж типа tuple[bool, str] с результатами операции.
 - `should_auto_accept(existing_incoming_status: str | None) -> bool`
-  - If the target already sent us a pending request, auto-accept both.
+  - Определяет, нужно ли выполнять действие auto accept. Args: existing_incoming_status: Текущий статус входящей заявки дружбы. Returns: Логическое значение результата проверки.
 - `can_accept_request(*, request_to_user_id: int, actor_id: int) -> bool`
-  - Only the recipient can accept a request.
+  - Проверяет условие accept request и возвращает логический результат. Args: request_to_user_id: Идентификатор request to user, используемый для выборки данных. actor_id: Идентификатор actor, используемый для выборки данных. Returns: Логическое значение результата проверки.
 - `can_decline_request(*, request_to_user_id: int, actor_id: int) -> bool`
-  - Only the recipient can decline a request.
+  - Проверяет условие decline request и возвращает логический результат. Args: request_to_user_id: Идентификатор request to user, используемый для выборки данных. actor_id: Идентификатор actor, используемый для выборки данных. Returns: Логическое значение результата проверки.
 
 ## `backend/friends/infrastructure/__init__.py`
 
@@ -1671,16 +2026,23 @@ Total modules: 185
 ### Functions
 
 - `get_user_by_public_ref(public_ref: str)`
+  - Возвращает user by public ref из текущего контекста или хранилища. Args: public_ref: Данные public ref, участвующие в обработке текущей операции. Returns: Функция не возвращает значение.
 - `get_user_by_id(user_id: int)`
+  - Возвращает user by id из текущего контекста или хранилища. Args: user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `get_friendship(from_user, to_user) -> Friendship | None`
+  - Возвращает friendship из текущего контекста или хранилища. Args: from_user: Пользователь-инициатор действия или запроса дружбы. to_user: Целевой пользователь действия или запроса дружбы. Returns: Объект типа Friendship | None, сформированный в рамках обработки.
 - `get_friendship_by_id(friendship_id: int) -> Friendship | None`
+  - Возвращает friendship by id из текущего контекста или хранилища. Args: friendship_id: Идентификатор friendship, используемый для выборки данных. Returns: Объект типа Friendship | None, сформированный в рамках обработки.
 - `list_friends_for_user(user) -> QuerySet`
-  - Return accepted friendships where user is from_user (the paired row).
+  - Возвращает список friends for user, доступных в текущем контексте. Args: user: Пользователь, для которого выполняется операция. Returns: Объект типа QuerySet, сформированный в рамках обработки.
 - `list_pending_incoming(user) -> QuerySet`
+  - Возвращает список pending incoming, доступных в текущем контексте. Args: user: Пользователь, для которого выполняется операция. Returns: Объект типа QuerySet, сформированный в рамках обработки.
 - `list_pending_outgoing(user) -> QuerySet`
+  - Возвращает список pending outgoing, доступных в текущем контексте. Args: user: Пользователь, для которого выполняется операция. Returns: Объект типа QuerySet, сформированный в рамках обработки.
 - `list_blocked_by_user(user) -> QuerySet`
+  - Возвращает список blocked by user, доступных в текущем контексте. Args: user: Пользователь, для которого выполняется операция. Returns: Объект типа QuerySet, сформированный в рамках обработки.
 - `delete_friendship_pair(user_a, user_b, *, status: str | None=None) -> int`
-  - Delete both directions of a friendship with optional status filter.
+  - Удаляет friendship pair и выполняет сопутствующие действия. Args: user_a: Данные user a, участвующие в обработке текущей операции. user_b: Данные user b, участвующие в обработке текущей операции. status: HTTP-статус ответа, который будет возвращен клиенту. Returns: Целочисленное значение результата вычисления.
 
 ## `backend/friends/interfaces/__init__.py`
 
@@ -1696,32 +2058,42 @@ Total modules: 185
 ### Functions
 
 - `_require_from_user_id(obj: Friendship) -> int`
+  - Проверяет обязательное условие from user id перед продолжением операции. Args: obj: Объект доменной модели или ORM-сущность. Returns: Целочисленное значение результата вычисления.
 - `_require_to_user_id(obj: Friendship) -> int`
+  - Проверяет обязательное условие to user id перед продолжением операции. Args: obj: Объект доменной модели или ORM-сущность. Returns: Целочисленное значение результата вычисления.
 - `_serialize_user_brief(user, request) -> dict`
+  - Сериализует user brief в формат, пригодный для передачи клиенту. Args: user: Пользователь, для которого выполняется операция. request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Словарь типа dict с результатами операции.
 
 ### Classes
 
 - `_UserBriefSerializer` : `serializers.Serializer`
+  - Класс _UserBriefSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `FriendOutputSerializer` : `serializers.ModelSerializer`
-  - Serializes an accepted friendship — shows the friend (to_user).
+  - Класс FriendOutputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `get_user(self, obj: Friendship) -> dict`
+    - Возвращает user из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Словарь типа dict с результатами операции.
 - `IncomingRequestOutputSerializer` : `serializers.ModelSerializer`
-  - Serializes incoming pending request — shows who sent it (from_user).
+  - Класс IncomingRequestOutputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `get_user(self, obj: Friendship) -> dict`
+    - Возвращает user из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Словарь типа dict с результатами операции.
 - `OutgoingRequestOutputSerializer` : `serializers.ModelSerializer`
-  - Serializes outgoing pending request — shows target (to_user).
+  - Класс OutgoingRequestOutputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `get_user(self, obj: Friendship) -> dict`
+    - Возвращает user из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Словарь типа dict с результатами операции.
 - `BlockedOutputSerializer` : `serializers.ModelSerializer`
-  - Serializes a blocked user — shows who is blocked (to_user).
+  - Класс BlockedOutputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `get_user(self, obj: Friendship) -> dict`
+    - Возвращает user из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Словарь типа dict с результатами операции.
 - `PublicRefInputSerializer` : `serializers.Serializer`
+  - Класс PublicRefInputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `validate(self, attrs)`
+    - Проверяет входные данные и возвращает нормализованный результат. Args: attrs: Атрибуты после первичной валидации. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/friends/interfaces/urls.py`
 
@@ -1738,44 +2110,69 @@ Total modules: 185
 ### Functions
 
 - `_service_error_response(exc: FriendServiceError) -> Response`
+  - Вспомогательная функция `_service_error_response` реализует внутренний шаг бизнес-логики. Args: exc: Параметр exc, используемый в логике функции. Returns: HTTP-ответ с результатом обработки.
 
 ### Classes
 
 - `FriendListApiView` : `APIView`
+  - Класс FriendListApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `get(self, request)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `IncomingRequestsApiView` : `APIView`
+  - Класс IncomingRequestsApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `get(self, request)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `OutgoingRequestsApiView` : `APIView`
+  - Класс OutgoingRequestsApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `get(self, request)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `SendRequestApiView` : `GenericAPIView`
+  - Класс SendRequestApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 2
   - `get(self, _request)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: _request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
   - `post(self, request)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `AcceptRequestApiView` : `APIView`
+  - Класс AcceptRequestApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `post(self, request, friendship_id: int)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. friendship_id: Идентификатор friendship, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `DeclineRequestApiView` : `APIView`
+  - Класс DeclineRequestApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `post(self, request, friendship_id: int)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. friendship_id: Идентификатор friendship, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `CancelOutgoingRequestApiView` : `APIView`
+  - Класс CancelOutgoingRequestApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `delete(self, request, friendship_id: int)`
+    - Обрабатывает HTTP DELETE запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. friendship_id: Идентификатор friendship, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `RemoveFriendApiView` : `APIView`
+  - Класс RemoveFriendApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `delete(self, request, user_id: int)`
+    - Обрабатывает HTTP DELETE запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `BlockedListApiView` : `APIView`
+  - Класс BlockedListApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `get(self, request)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `BlockUserApiView` : `GenericAPIView`
+  - Класс BlockUserApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 2
   - `get(self, _request)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: _request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
   - `post(self, request)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `UnblockUserApiView` : `APIView`
+  - Класс UnblockUserApiView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `delete(self, request, user_id: int)`
+    - Обрабатывает HTTP DELETE запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 
 ## `backend/friends/models.py`
 
@@ -1786,8 +2183,10 @@ Total modules: 185
 ### Classes
 
 - `Friendship` : `models.Model`
+  - Модель Friendship описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 
 ## `backend/friends/signals.py`
 
@@ -1797,7 +2196,9 @@ Total modules: 185
 ### Functions
 
 - `audit_friendship_save(sender, instance: Friendship, created: bool, **kwargs)`
+  - Фиксирует friendship save в системе аудита. Args: sender: Параметр sender, используемый в логике функции. instance: Экземпляр модели или доменного объекта. created: Флаг создания новой записи. **kwargs: Дополнительные именованные аргументы вызова.
 - `audit_friendship_delete(sender, instance: Friendship, **kwargs)`
+  - Фиксирует friendship delete в системе аудита. Args: sender: Параметр sender, используемый в логике функции. instance: Экземпляр модели или доменного объекта. **kwargs: Дополнительные именованные аргументы вызова.
 
 ## `backend/friends/tests/__init__.py`
 
@@ -1892,7 +2293,9 @@ Total modules: 185
 ### Functions
 
 - `get_from_user_id(obj: Friendship) -> int | None`
+  - Возвращает from user id из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Объект типа int | None, сформированный в рамках обработки.
 - `get_to_user_id(obj: Friendship) -> int | None`
+  - Возвращает to user id из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Объект типа int | None, сформированный в рамках обработки.
 
 ## `backend/groups/__init__.py`
 
@@ -1904,6 +2307,25 @@ Total modules: 185
 - Functions: 0
 - Classes: 0
 
+## `backend/groups/application/invite_service.py`
+
+- Description: Invite link management for groups.
+- Functions: 5
+- Classes: 0
+
+### Functions
+
+- `create_invite(actor, room_id: int, *, name: str='', expires_in_seconds: int | None=None, max_uses: int=0) -> InviteLink`
+  - Создает invite и возвращает созданный объект. Args: actor: Пользователь, инициирующий действие. room_id: Идентификатор комнаты. name: Имя сущности или параметра. expires_in_seconds: Параметр expires in seconds, используемый в логике функции. max_uses: Параметр max uses, используемый в логике функции. Returns: Объект типа InviteLink, сформированный в ходе выполнения.
+- `list_invites(actor, room_id: int) -> list[InviteLink]`
+  - Возвращает список invites, доступных в текущем контексте. Args: actor: Пользователь, инициирующий действие. room_id: Идентификатор room. Returns: Список типа list[InviteLink] с результатами операции.
+- `revoke_invite(actor, room_id: int, invite_code: str) -> None`
+  - Отзывает invite и аннулирует дальнейшее использование. Args: actor: Пользователь, инициирующий действие. room_id: Идентификатор комнаты. invite_code: Код приглашения в группу.
+- `get_invite_info(invite_code: str) -> dict`
+  - Возвращает invite info из текущего контекста или хранилища. Args: invite_code: Код приглашения в группу. Returns: Словарь типа dict с данными результата.
+- `join_via_invite(actor, invite_code: str) -> dict`
+  - Добавляет участника или объект в via invite. Args: actor: Пользователь, инициирующий действие. invite_code: Код приглашения в группу. Returns: Словарь типа dict с данными результата.
+
 ## `backend/groups/apps.py`
 
 - Functions: 0
@@ -1912,6 +2334,7 @@ Total modules: 185
 ### Classes
 
 - `GroupsConfig` : `AppConfig`
+  - Класс GroupsConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/groups/domain/__init__.py`
@@ -1933,18 +2356,22 @@ Total modules: 185
 ### Classes
 
 - `InviteLink` : `models.Model`
-  - A shareable link to join a group.
+  - Модель InviteLink описывает структуру и поведение данных в приложении.
   - Methods: 2
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
   - `is_expired(self) -> bool`
+    - Проверяет условие expired и возвращает логический результат. Returns: Логическое значение результата проверки.
 - `JoinRequest` : `models.Model`
-  - A pending request to join a group that requires admin approval.
+  - Модель JoinRequest описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `PinnedMessage` : `models.Model`
-  - A message pinned in a group.
+  - Модель PinnedMessage описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 
 ## `backend/groups/interfaces/__init__.py`
 
@@ -1960,35 +2387,51 @@ Total modules: 185
 ### Classes
 
 - `GroupCreateInputSerializer` : `serializers.Serializer`
+  - Класс GroupCreateInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `GroupUpdateInputSerializer` : `serializers.Serializer`
+  - Класс GroupUpdateInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `GroupOutputSerializer` : `serializers.Serializer`
+  - Класс GroupOutputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `GroupListItemSerializer` : `serializers.Serializer`
+  - Класс GroupListItemSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `InviteCreateInputSerializer` : `serializers.Serializer`
+  - Класс InviteCreateInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `InviteOutputSerializer` : `serializers.Serializer`
+  - Класс InviteOutputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `get_createdBy(self, obj)`
+    - Возвращает created by из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
 - `InvitePreviewSerializer` : `serializers.Serializer`
+  - Класс InvitePreviewSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `MemberOutputSerializer` : `serializers.Serializer`
+  - Класс MemberOutputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `BannedMemberSerializer` : `serializers.Serializer`
+  - Класс BannedMemberSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `BanInputSerializer` : `serializers.Serializer`
+  - Класс BanInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `MuteInputSerializer` : `serializers.Serializer`
+  - Класс MuteInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `JoinRequestOutputSerializer` : `serializers.Serializer`
+  - Класс JoinRequestOutputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `PinInputSerializer` : `serializers.Serializer`
+  - Класс PinInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `PinOutputSerializer` : `serializers.Serializer`
+  - Класс PinOutputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `TransferOwnershipInputSerializer` : `serializers.Serializer`
+  - Класс TransferOwnershipInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 
 ## `backend/groups/interfaces/views.py`
@@ -2000,64 +2443,110 @@ Total modules: 185
 ### Functions
 
 - `_error(msg: str, code: int=400) -> Response`
+  - Вспомогательная функция `_error` реализует внутренний шаг бизнес-логики. Args: msg: Параметр msg, используемый в логике функции. code: Параметр code, используемый в логике функции. Returns: HTTP-ответ с результатом обработки.
 - `_validated_data(serializer: Any) -> dict[str, Any]`
+  - Выполняет вспомогательную обработку для validated data. Args: serializer: Сериализатор с входными или валидированными данными. Returns: Словарь типа dict[str, Any] с результатами операции.
 - `_parse_positive_int(raw_value: str | None, param_name: str) -> int`
+  - Разбирает positive int из входных данных с валидацией формата. Args: raw_value: Исходное значение параметра до преобразования и валидации. param_name: Имя входного параметра, участвующего в проверке. Returns: Целочисленное значение результата вычисления.
 - `_handle_group_errors(func)`
-  - Decorator to handle common group service errors.
+  - Обрабатывает событие group errors и выполняет связанную бизнес-логику. Args: func: Функция, которую оборачивает текущий декоратор. Returns: Функция не возвращает значение.
 - `create_group(request)`
+  - Создает group и возвращает созданную сущность. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `list_public_groups(request)`
+  - Возвращает список public groups, доступных в текущем контексте. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `list_my_groups(request)`
+  - Возвращает список my groups, доступных в текущем контексте. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `group_detail(request, room_id)`
+  - Вспомогательная функция `group_detail` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `join_group(request, room_id)`
+  - Добавляет участника или объект в group. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `leave_group(request, room_id)`
+  - Удаляет участника или объект из group. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `list_members(request, room_id)`
+  - Возвращает список members, доступных в текущем контексте. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `kick_member(request, room_id, user_id)`
+  - Исключает member с учетом проверок полномочий. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `ban_member(request, room_id, user_id)`
+  - Блокирует member в рамках текущего контекста. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `unban_member(request, room_id, user_id)`
+  - Снимает блокировку с member. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `mute_member(request, room_id, user_id)`
+  - Отключает активность member на заданный период. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `unmute_member(request, room_id, user_id)`
+  - Возвращает активность member после снятия ограничения. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `list_banned(request, room_id)`
+  - Возвращает список banned, доступных в текущем контексте. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `group_invites(request, room_id)`
+  - Вспомогательная функция `group_invites` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `revoke_invite(request, room_id, code)`
+  - Отзывает invite и аннулирует дальнейшее использование. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. code: Код операции, приглашения или ошибки. Returns: Функция не возвращает значение.
 - `invite_preview(request, code)`
+  - Вспомогательная функция `invite_preview` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. code: Параметр code, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `join_via_invite(request, code)`
+  - Добавляет участника или объект в via invite. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. code: Код операции, приглашения или ошибки. Returns: Функция не возвращает значение.
 - `list_join_requests(request, room_id)`
+  - Возвращает список join requests, доступных в текущем контексте. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `approve_join_request(request, room_id, request_id)`
+  - Подтверждает join request и применяет изменения. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. request_id: Идентификатор request, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `reject_join_request(request, room_id, request_id)`
+  - Отклоняет join request без применения изменений. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. request_id: Идентификатор request, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `group_pins(request, room_id)`
+  - Вспомогательная функция `group_pins` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `unpin_message(request, room_id, message_id)`
+  - Снимает закрепление с message. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. message_id: Идентификатор message, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `transfer_ownership(request, room_id)`
+  - Передает владение. Args: request: HTTP-запрос с контекстом пользователя и входными данными. room_id: Идентификатор комнаты. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ### Classes
 
 - `_HandledGroupAPIView` : `GenericAPIView`
+  - Класс _HandledGroupAPIView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `_execute(self, handler)`
+    - Обрабатывает шаг execute в HTTP API. Args: handler: Параметр handler, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `GroupCreateInteractiveView` : `_HandledGroupAPIView`
+  - Класс GroupCreateInteractiveView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `post(self, request)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Функция не возвращает значение.
 - `GroupDetailInteractiveView` : `_HandledGroupAPIView`
+  - Класс GroupDetailInteractiveView реализует HTTP-обработчики для API-слоя.
   - Methods: 3
   - `get(self, request, room_id)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
   - `patch(self, request, room_id)`
+    - Обрабатывает HTTP PATCH запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
   - `delete(self, request, room_id)`
+    - Обрабатывает HTTP DELETE запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `BanMemberInteractiveView` : `_HandledGroupAPIView`
+  - Класс BanMemberInteractiveView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `post(self, request, room_id, user_id)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `MuteMemberInteractiveView` : `_HandledGroupAPIView`
+  - Класс MuteMemberInteractiveView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `post(self, request, room_id, user_id)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `GroupInvitesInteractiveView` : `_HandledGroupAPIView`
+  - Класс GroupInvitesInteractiveView реализует HTTP-обработчики для API-слоя.
   - Methods: 2
   - `get(self, request, room_id)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
   - `post(self, request, room_id)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `GroupPinsInteractiveView` : `_HandledGroupAPIView`
+  - Класс GroupPinsInteractiveView реализует HTTP-обработчики для API-слоя.
   - Methods: 2
   - `get(self, request, room_id)`
+    - Обрабатывает HTTP GET запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
   - `post(self, request, room_id)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 - `TransferOwnershipInteractiveView` : `_HandledGroupAPIView`
+  - Класс TransferOwnershipInteractiveView реализует HTTP-обработчики для API-слоя.
   - Methods: 1
   - `post(self, request, room_id)`
+    - Обрабатывает HTTP POST запрос в рамках текущего представления. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room_id: Идентификатор room, используемый для выборки данных. Returns: Функция не возвращает значение.
 
 ## `backend/groups/tests/__init__.py`
 
@@ -2088,13 +2577,12 @@ Total modules: 185
 ### Classes
 
 - `GroupDomainRulesTests` : `SimpleTestCase`
-  - Methods: 6
+  - Methods: 5
   - `test_generate_invite_code_uses_configured_length(self)`
   - `test_validate_group_name(self)`
   - `test_validate_group_username(self)`
   - `test_validate_description_and_slow_mode(self)`
   - `test_ensure_is_group(self)`
-  - `test_generate_group_slug_handles_short_and_long_names(self)`
 
 ## `backend/groups/tests/test_group_api.py`
 
@@ -2279,14 +2767,14 @@ Total modules: 185
 
 ## `backend/manage.py`
 
-- Description: Содержит логику модуля `manage` подсистемы `manage.py`.
+- Description: Модуль manage реализует прикладную логику подсистемы backend.
 - Functions: 1
 - Classes: 0
 
 ### Functions
 
 - `main()`
-  - Выполняет логику `main` с параметрами из сигнатуры.
+  - Запускает точку входа для выполнения команды.
 
 ## `backend/media/chat_attachments/2026/03/build_defense_deck.py`
 
@@ -2337,8 +2825,10 @@ Total modules: 185
 ### Classes
 
 - `MessageAdmin` : `admin.ModelAdmin`
+  - Класс MessageAdmin настраивает поведение сущности в Django Admin.
   - Methods: 1
   - `short_message(self, obj)`
+    - Формирует краткое представление message. Args: obj: Параметр obj, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/messages/apps.py`
 
@@ -2348,27 +2838,41 @@ Total modules: 185
 ### Classes
 
 - `MessagesConfig` : `AppConfig`
+  - Класс MessagesConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/messages/models.py`
 
 - Functions: 0
-- Classes: 4
+- Classes: 5
 
 ### Classes
 
 - `Message` : `models.Model`
+  - Модель Message описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `Reaction` : `models.Model`
+  - Модель Reaction описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `MessageAttachment` : `models.Model`
+  - Модель MessageAttachment описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `MessageReadState` : `models.Model`
+  - Модель MessageReadState описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
+- `MessageReadReceipt` : `models.Model`
+  - Фиксирует точное время прочтения конкретного сообщения пользователем.
+  - Methods: 1
+  - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 
 ## `backend/messages/serializers.py`
 
@@ -2378,22 +2882,36 @@ Total modules: 185
 ### Classes
 
 - `AttachmentSerializer` : `serializers.ModelSerializer`
+  - Класс AttachmentSerializer сериализует и валидирует данные API.
   - Methods: 3
   - `_build_url(self, field_file, obj)`
+    - Формирует url для дальнейшего использования в потоке обработки. Args: field_file: Объект файлового поля модели или формы. obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `get_url(self, obj)`
+    - Возвращает url из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `get_thumbnailUrl(self, obj)`
+    - Возвращает thumbnail url из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
 - `MessageSerializer` : `serializers.ModelSerializer`
+  - Класс MessageSerializer сериализует и валидирует данные API.
   - Methods: 7
   - `get_profilePic(self, obj)`
+    - Возвращает profile pic из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `get_publicRef(self, obj)`
+    - Возвращает public ref из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `get_displayName(self, obj)`
+    - Возвращает display name из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `get_avatarCrop(self, obj)`
+    - Возвращает avatar crop из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `get_replyTo(self, obj)`
+    - Возвращает reply to из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `get_reactions(self, obj)`
+    - Возвращает reactions из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `to_representation(self, instance)`
+    - Преобразует объект во внешнее представление для API. Args: instance: Экземпляр модели или доменного объекта. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `MessageCreateSerializer` : `serializers.Serializer`
+  - Класс MessageCreateSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `MessagePaginationSerializer` : `serializers.Serializer`
+  - Класс MessagePaginationSerializer сериализует и валидирует данные API.
   - Methods: 0
 
 ## `backend/messages/thumbnail.py`
@@ -2405,7 +2923,7 @@ Total modules: 185
 ### Functions
 
 - `generate_thumbnail(source_field) -> dict | None`
-  - Generate a thumbnail for an image file field. Returns dict with 'path' (ContentFile), 'width', 'height' or None on failure.
+  - Генерирует thumbnail по заданным правилам. Args: source_field: Параметр source field, используемый в логике функции. Returns: Словарь типа dict | None с данными результата.
 
 ## `backend/presence/__init__.py`
 
@@ -2420,6 +2938,7 @@ Total modules: 185
 ### Classes
 
 - `PresenceConfig` : `AppConfig`
+  - Класс PresenceConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/presence/constants.py`
@@ -2437,43 +2956,71 @@ Total modules: 185
 ### Functions
 
 - `_to_async(func: Callable[..., T]) -> Callable[..., Awaitable[T]]`
+  - Вспомогательная функция `_to_async` реализует внутренний шаг бизнес-логики. Args: func: Параметр func, используемый в логике функции. Returns: Объект типа Callable[..., Awaitable[T]], сформированный в ходе выполнения.
 - `_ws_connect_rate_limited(scope, endpoint: str) -> bool`
-  - Checks websocket connect rate limit per endpoint and IP.
+  - Выполняет вспомогательную обработку для ws connect rate limited. Args: scope: ASGI-scope с метаданными соединения. endpoint: Идентификатор API/WS endpoint для применения правил. Returns: Логическое значение результата проверки.
 
 ### Classes
 
 - `PresenceConsumer` : `AsyncWebsocketConsumer`
-  - Tracks user online/offline presence via WebSocket.
+  - Класс PresenceConsumer обрабатывает WebSocket-события и сообщения.
   - Methods: 28
   - `connect(self)`
+    - Устанавливает соединение и выполняет проверки доступа.
   - `disconnect(self, code)`
+    - Корректно закрывает соединение и освобождает ресурсы. Args: code: Код ошибки или состояния.
   - `receive(self, text_data=None, bytes_data=None)`
+    - Принимает входящее сообщение и маршрутизирует его обработку. Args: text_data: Параметр text data, используемый в логике функции. bytes_data: Параметр bytes data, используемый в логике функции.
   - `_broadcast(self)`
+    - Выполняет вспомогательную обработку для broadcast.
   - `presence_update(self, event)`
+    - Обрабатывает WebSocket-событие presence update. Args: event: Событие для логирования или трансляции.
   - `_heartbeat(self)`
+    - Выполняет вспомогательную обработку для heartbeat.
   - `_idle_watchdog(self)`
+    - Выполняет вспомогательную обработку для idle watchdog.
   - `_normalize_presence_value(value: object) -> str`
+    - Нормализует presence value к внутреннему формату приложения. Args: value: Входное значение для проверки или преобразования. Returns: Строковое значение, сформированное функцией.
   - `_coerce_presence_int(value: object, default: int=0) -> int`
+    - Преобразует presence int к допустимому типу или формату. Args: value: Входное значение для проверки или преобразования. default: Значение по умолчанию, применяемое при отсутствии пользовательского ввода. Returns: Целочисленное значение результата вычисления.
   - `_resolve_presence_user_identity(self, user: Any) -> tuple[str, str, str]`
+    - Определяет presence user identity на основе доступного контекста. Args: user: Пользователь, для которого выполняется операция. Returns: Кортеж типа tuple[str, str, str] с результатами операции.
   - `_resolve_presence_entry(data: dict[str, dict[str, object]], *, key: str, username: str) -> tuple[str, dict[str, object] | None]`
+    - Определяет presence entry на основе доступного контекста. Args: data: Словарь входных данных для обработки. key: Ключ в хранилище состояния или словаре промежуточных данных. username: Публичное имя пользователя, используемое в событиях и ответах. Returns: Кортеж типа tuple[str, dict[str, object] | None] с результатами операции.
   - `_add_user_sync(self, user: Any) -> None`
+    - Выполняет вспомогательную обработку для add user sync. Args: user: Пользователь, для которого выполняется операция.
   - `_add_user(self, user: Any) -> None`
+    - Выполняет вспомогательную обработку для add user. Args: user: Пользователь, для которого выполняется операция.
   - `_remove_user_sync(self, user: Any, graceful: bool=False) -> None`
+    - Удаляет user sync из целевого набора данных. Args: user: Пользователь, для которого выполняется операция. graceful: Флаг штатного завершения соединения без ошибки.
   - `_remove_user(self, user: Any, graceful: bool=False) -> None`
+    - Удаляет user из целевого набора данных. Args: user: Пользователь, для которого выполняется операция. graceful: Флаг штатного завершения соединения без ошибки.
   - `_get_online_sync(self) -> list[dict[str, object]]`
+    - Возвращает online sync из текущего контекста или хранилища. Returns: Список типа list[dict[str, object]] с результатами операции.
   - `_get_online(self) -> list[dict[str, object]]`
+    - Возвращает online из текущего контекста или хранилища. Returns: Список типа list[dict[str, object]] с результатами операции.
   - `_add_guest_sync(self, ip: str | None) -> None`
+    - Добавляет guest sync в целевую коллекцию. Args: ip: IP-адрес клиента.
   - `_add_guest(self, ip: str | None) -> None`
+    - Добавляет guest в целевую коллекцию. Args: ip: IP-адрес клиента.
   - `_remove_guest_sync(self, ip: str | None, graceful: bool=False) -> None`
+    - Удаляет guest sync из целевого набора данных. Args: ip: IP-адрес клиента или узла, выполняющего запрос. graceful: Флаг штатного завершения соединения без ошибки.
   - `_remove_guest(self, ip: str | None, graceful: bool=False) -> None`
+    - Удаляет guest из целевого набора данных. Args: ip: IP-адрес клиента или узла, выполняющего запрос. graceful: Флаг штатного завершения соединения без ошибки.
   - `_get_guest_count_sync(self) -> int`
+    - Возвращает guest count sync из текущего контекста или хранилища. Returns: Целочисленное значение результата вычисления.
   - `_get_guest_count(self) -> int`
+    - Возвращает guest count из текущего контекста или хранилища. Returns: Целочисленное значение результата вычисления.
   - `_touch_user_sync(self, user: Any) -> None`
+    - Обновляет метку активности для user sync. Args: user: Пользователь, для которого выполняется операция.
   - `_touch_user(self, user: Any) -> None`
+    - Обновляет метку активности для user. Args: user: Пользователь, для которого выполняется операция.
   - `_touch_guest_sync(self, ip: str | None) -> None`
+    - Обновляет метку активности для guest sync. Args: ip: IP-адрес клиента или узла, выполняющего запрос.
   - `_touch_guest(self, ip: str | None) -> None`
+    - Обновляет метку активности для guest. Args: ip: IP-адрес клиента или узла, выполняющего запрос.
   - `_get_guest_session_key(self) -> str | None`
-    - Returns guest session key from scope when session is initialized.
+    - Возвращает guest session key из текущего контекста или хранилища. Returns: Объект типа str | None, сформированный в рамках обработки.
 
 ## `backend/presence/routing.py`
 
@@ -2500,19 +3047,27 @@ Total modules: 185
 ### Functions
 
 - `_permission_flags(mask: int) -> str`
+  - Вспомогательная функция `_permission_flags` реализует внутренний шаг бизнес-логики. Args: mask: Параметр mask, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 
 ### Classes
 
 - `RoleAdmin` : `admin.ModelAdmin`
+  - Класс RoleAdmin настраивает поведение сущности в Django Admin.
   - Methods: 1
   - `permission_flags(self, obj: Role) -> str`
+    - Формирует значение permission flags для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 - `MembershipAdmin` : `admin.ModelAdmin`
+  - Класс MembershipAdmin настраивает поведение сущности в Django Admin.
   - Methods: 1
   - `role_names(self, obj: Membership) -> str`
+    - Формирует значение role names для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 - `PermissionOverrideAdmin` : `admin.ModelAdmin`
+  - Класс PermissionOverrideAdmin настраивает поведение сущности в Django Admin.
   - Methods: 2
   - `allow_flags(self, obj: PermissionOverride) -> str`
+    - Формирует значение allow flags для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
   - `deny_flags(self, obj: PermissionOverride) -> str`
+    - Формирует значение deny flags для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 
 ## `backend/roles/application/__init__.py`
 
@@ -2529,13 +3084,18 @@ Total modules: 185
 ### Classes
 
 - `RoleServiceError` : `Exception`
+  - Класс RoleServiceError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `__init__(self, message: str)`
+    - Инициализирует экземпляр класса и подготавливает внутреннее состояние. Args: message: Экземпляр сообщения для обработки.
 - `RoleNotFoundError` : `RoleServiceError`
+  - Класс RoleNotFoundError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `RoleForbiddenError` : `RoleServiceError`
+  - Класс RoleForbiddenError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `RoleConflictError` : `RoleServiceError`
+  - Класс RoleConflictError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/roles/application/management_service.py`
@@ -2547,36 +3107,64 @@ Total modules: 185
 ### Functions
 
 - `_audit_role_denied(room: Room | None, actor, reason: str) -> None`
+  - Фиксирует role denied в системе аудита. Args: room: Комната, в контексте которой выполняется операция. actor: Пользователь, инициирующий действие. reason: Причина административного действия.
 - `_load_room_or_raise(room_id: int) -> Room`
+  - Загружает room or raise из хранилища с необходимыми проверками. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Объект типа Room, сформированный в рамках обработки.
 - `_ensure_authenticated(actor) -> None`
+  - Гарантирует корректность состояния authenticated перед выполнением операции. Args: actor: Пользователь, инициирующий действие в системе.
 - `_ensure_manage_roles(room: Room, actor) -> ActorContext`
+  - Гарантирует корректность состояния manage roles перед выполнением операции. Args: room: Экземпляр комнаты, над которой выполняется действие. actor: Пользователь, инициирующий действие в системе. Returns: Объект типа ActorContext, сформированный в рамках обработки.
 - `_ensure_not_direct(room: Room) -> None`
+  - Гарантирует корректность состояния not direct перед выполнением операции. Args: room: Экземпляр комнаты, над которой выполняется действие.
 - `_ensure_manage_target_position(actor_context: ActorContext, *, target_position: int) -> None`
+  - Гарантирует корректность состояния manage target position перед выполнением операции. Args: actor_context: Контекст полномочий пользователя, выполняющего изменение. target_position: Позиция роли целевого пользователя или объекта.
 - `_ensure_permissions_subset(actor_context: ActorContext, *, candidate_permissions: int) -> None`
+  - Гарантирует корректность состояния permissions subset перед выполнением операции. Args: actor_context: Контекст полномочий пользователя, выполняющего изменение. candidate_permissions: Данные candidate permissions, участвующие в обработке текущей операции.
 - `_membership_top_position(membership: Membership | None) -> int`
+  - Вспомогательная функция `_membership_top_position` реализует внутренний шаг бизнес-логики. Args: membership: Запись участия пользователя в комнате. Returns: Целочисленный результат вычисления.
 - `_obj_pk(value: object, *, field_name: str='object') -> int`
+  - Вспомогательная функция `_obj_pk` реализует внутренний шаг бизнес-логики. Args: value: Значение, которое нужно нормализовать или проверить. field_name: Параметр field name, используемый в логике функции. Returns: Целочисленный результат вычисления.
 - `_membership_user_id(membership: Membership) -> int`
+  - Вспомогательная функция `_membership_user_id` реализует внутренний шаг бизнес-логики. Args: membership: Запись участия пользователя в комнате. Returns: Целочисленный результат вычисления.
 - `_override_target_role_id(override: PermissionOverride) -> int | None`
+  - Вспомогательная функция `_override_target_role_id` реализует внутренний шаг бизнес-логики. Args: override: Параметр override, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
 - `_override_target_user_id(override: PermissionOverride) -> int | None`
+  - Вспомогательная функция `_override_target_user_id` реализует внутренний шаг бизнес-логики. Args: override: Параметр override, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
 - `_ensure_manage_member(actor_context: ActorContext, membership: Membership) -> None`
+  - Гарантирует корректность состояния manage member перед выполнением операции. Args: actor_context: Контекст полномочий пользователя, выполняющего изменение. membership: Данные membership, участвующие в обработке текущей операции.
 - `actor_can_manage_roles(room_id: int, actor) -> bool`
+  - Вспомогательная функция `actor_can_manage_roles` реализует внутренний шаг бизнес-логики. Args: room_id: Идентификатор комнаты. actor: Пользователь, инициирующий действие. Returns: Логическое значение результата проверки.
 - `_room_actor_context_or_raise(room_id: int, actor) -> RoomActorContext`
+  - Выполняет вспомогательную обработку для room actor context or raise. Args: room_id: Идентификатор room. actor: Пользователь, инициирующий действие. Returns: Объект типа RoomActorContext, полученный при выполнении операции.
 - `list_room_roles(room_id: int, actor)`
+  - Возвращает список room roles, доступных в текущем контексте. Args: room_id: Идентификатор room, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. Returns: Функция не возвращает значение.
 - `create_room_role(room_id: int, actor, *, name: str, color: str, position: int, permissions: int) -> Role`
+  - Создает room role и возвращает созданную сущность. Args: room_id: Идентификатор room, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. name: Человекочитаемое имя сущности или объекта. color: Цвет роли, отображаемый в интерфейсе клиента. position: Позиция роли в иерархии комнаты. permissions: Набор прав доступа, применяемых к роли или участнику. Returns: Объект типа Role, сформированный в рамках обработки.
 - `update_room_role(room_id: int, role_id: int, actor, *, name: str | None=None, color: str | None=None, position: int | None=None, permissions: int | None=None) -> Role`
+  - Обновляет room role и фиксирует изменения в хранилище. Args: room_id: Идентификатор room, используемый для выборки данных. role_id: Идентификатор role, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. name: Человекочитаемое имя сущности или объекта. color: Цвет роли, отображаемый в интерфейсе клиента. position: Позиция роли в иерархии комнаты. permissions: Набор прав доступа, применяемых к роли или участнику. Returns: Объект типа Role, сформированный в рамках обработки.
 - `delete_room_role(room_id: int, role_id: int, actor) -> None`
+  - Удаляет room role и выполняет сопутствующие действия. Args: room_id: Идентификатор room, используемый для выборки данных. role_id: Идентификатор role, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе.
 - `get_member_roles(room_id: int, user_id: int, actor) -> Membership`
+  - Возвращает member roles из текущего контекста или хранилища. Args: room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. Returns: Объект типа Membership, сформированный в рамках обработки.
 - `set_member_roles(room_id: int, user_id: int, actor, role_ids: list[int]) -> Membership`
+  - Устанавливает member roles с учетом текущих правил приложения. Args: room_id: Идентификатор room, используемый для выборки данных. user_id: Идентификатор user, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. role_ids: Список идентификаторов role для пакетной обработки. Returns: Объект типа Membership, сформированный в рамках обработки.
 - `list_room_overrides(room_id: int, actor)`
+  - Возвращает список room overrides, доступных в текущем контексте. Args: room_id: Идентификатор room, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. Returns: Функция не возвращает значение.
 - `_resolve_override_target(*, room: Room, actor_context: ActorContext, target_role_id: int | None, target_user_id: int | None) -> tuple[Role | None, Membership | None]`
+  - Определяет override target на основе доступного контекста. Args: room: Экземпляр комнаты, над которой выполняется действие. actor_context: Контекст полномочий пользователя, выполняющего изменение. target_role_id: Идентификатор target role, используемый для выборки данных. target_user_id: Идентификатор target user, используемый для выборки данных. Returns: Кортеж типа tuple[Role | None, Membership | None] с результатами операции.
 - `create_room_override(room_id: int, actor, *, target_role_id: int | None, target_user_id: int | None, allow: int, deny: int) -> PermissionOverride`
+  - Создает room override и возвращает созданную сущность. Args: room_id: Идентификатор room, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. target_role_id: Идентификатор target role, используемый для выборки данных. target_user_id: Идентификатор target user, используемый для выборки данных. allow: Битовая маска явно разрешенных действий. deny: Битовая маска явно запрещенных действий. Returns: Объект типа PermissionOverride, сформированный в рамках обработки.
 - `update_room_override(room_id: int, override_id: int, actor, *, allow: int | None=None, deny: int | None=None) -> PermissionOverride`
+  - Обновляет room override и фиксирует изменения в хранилище. Args: room_id: Идентификатор room, используемый для выборки данных. override_id: Идентификатор override, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе. allow: Битовая маска явно разрешенных действий. deny: Битовая маска явно запрещенных действий. Returns: Объект типа PermissionOverride, сформированный в рамках обработки.
 - `delete_room_override(room_id: int, override_id: int, actor) -> None`
+  - Удаляет room override и выполняет сопутствующие действия. Args: room_id: Идентификатор room, используемый для выборки данных. override_id: Идентификатор override, используемый для выборки данных. actor: Пользователь, инициирующий действие в системе.
 - `permissions_for_me(room_id: int, actor) -> dict[str, object]`
+  - Вспомогательная функция `permissions_for_me` реализует внутренний шаг бизнес-логики. Args: room_id: Идентификатор комнаты. actor: Пользователь, инициирующий действие. Returns: Словарь типа dict[str, object] с данными результата.
 
 ### Classes
 
 - `RoomActorContext`
+  - Класс RoomActorContext инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/roles/application/permission_service.py`
@@ -2588,28 +3176,44 @@ Total modules: 185
 ### Functions
 
 - `_is_superuser(user) -> bool`
+  - Проверяет условие superuser и возвращает логический результат. Args: user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
 - `_role_pk(role) -> int | None`
+  - Вспомогательная функция `_role_pk` реализует внутренний шаг бизнес-логики. Args: role: Параметр role, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
 - `_membership_user_id(membership) -> int | None`
+  - Вспомогательная функция `_membership_user_id` реализует внутренний шаг бизнес-логики. Args: membership: Запись участия пользователя в комнате. Returns: Объект типа int | None, сформированный в ходе выполнения.
 - `_override_target_role_id(override) -> int | None`
+  - Вспомогательная функция `_override_target_role_id` реализует внутренний шаг бизнес-логики. Args: override: Параметр override, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
 - `_override_target_user_id(override) -> int | None`
+  - Вспомогательная функция `_override_target_user_id` реализует внутренний шаг бизнес-логики. Args: override: Параметр override, используемый в логике функции. Returns: Объект типа int | None, сформированный в ходе выполнения.
 - `_top_role_position_for_membership(membership) -> int`
+  - Вспомогательная функция `_top_role_position_for_membership` реализует внутренний шаг бизнес-логики. Args: membership: Запись участия пользователя в комнате. Returns: Целочисленный результат вычисления.
 - `_compute_direct_permissions(room: Room, user) -> Perm`
+  - Выполняет вспомогательную обработку для compute direct permissions. Args: room: Комната, в контексте которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Объект типа Perm, полученный при выполнении операции.
 - `_get_default_everyone_permissions(room: Room) -> int`
-  - Determine fallback @everyone permissions when no default role exists.
+  - Возвращает default everyone permissions из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Целочисленное значение результата вычисления.
 - `compute_permissions(room: Room, user) -> Perm`
-  - Computes effective permissions for a user in a room.
+  - Вычисляет permissions на основе входных данных. Args: room: Комната, в контексте которой выполняется операция. user: Пользователь, для которого выполняется операция. Returns: Объект типа Perm, сформированный в ходе выполнения.
 - `has_permission(room: Room, user, perm: Perm) -> bool`
+  - Проверяет условие permission и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. perm: Имя отдельного разрешения, проверяемого в наборе прав. Returns: Логическое значение результата проверки.
 - `can_read(room: Room, user) -> bool`
+  - Проверяет условие read и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
 - `can_write(room: Room, user) -> bool`
+  - Проверяет условие write и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
 - `ensure_can_read_or_404(room: Room, user) -> None`
+  - Гарантирует корректность состояния can read or 404 перед выполнением операции. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция.
 - `ensure_can_write(room: Room, user) -> bool`
+  - Гарантирует корректность состояния can write перед выполнением операции. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
 - `get_user_role(room: Room, user) -> str | None`
+  - Возвращает user role из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `get_actor_context(room: Room, actor) -> ActorContext`
+  - Возвращает actor context из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. actor: Пользователь, инициирующий действие в системе. Returns: Объект типа ActorContext, сформированный в рамках обработки.
 - `can_manage_roles(room: Room, actor) -> bool`
+  - Проверяет условие manage roles и возвращает логический результат. Args: room: Экземпляр комнаты, над которой выполняется действие. actor: Пользователь, инициирующий действие в системе. Returns: Логическое значение результата проверки.
 
 ### Classes
 
 - `ActorContext`
+  - Класс ActorContext инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/roles/apps.py`
@@ -2620,8 +3224,10 @@ Total modules: 185
 ### Classes
 
 - `RolesConfig` : `AppConfig`
+  - Класс RolesConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `ready(self)`
+    - Инициализирует интеграции и сигналы при запуске приложения.
 
 ## `backend/roles/domain/__init__.py`
 
@@ -2638,23 +3244,23 @@ Total modules: 185
 ### Functions
 
 - `parse_direct_pair_key(pair_key: str | None) -> tuple[int, int] | None`
-  - Parses `direct_pair_key` into two user ids.
+  - Разбирает direct pair key из входных данных с валидацией формата. Args: pair_key: Ключ пары разрешений allow/deny. Returns: Кортеж типа tuple[int, int] | None с результатами операции.
 - `direct_access_allowed(*, user_id: int | None, pair: tuple[int, int] | None, membership_user_ids: set[int], banned_user_ids: set[int]) -> bool`
-  - Checks strict DM access invariant: pair_key + membership + not banned.
+  - Вспомогательная функция `direct_access_allowed` реализует внутренний шаг бизнес-логики. Args: user_id: Идентификатор user. pair: Параметр pair, используемый в логике функции. membership_user_ids: Список идентификаторов membership user. banned_user_ids: Список идентификаторов banned user. Returns: Логическое значение результата проверки.
 - `resolve_permissions(*, everyone_permissions: int, role_permissions: Iterable[int], role_overrides: Iterable[tuple[int, int]], user_overrides: Iterable[tuple[int, int]]) -> Perm`
-  - Resolves effective permissions using Discord-style precedence.
+  - Определяет permissions на основе доступного контекста. Args: everyone_permissions: Права роли everyone, действующие для всех участников. role_permissions: Права, назначенные ролями участника комнаты. role_overrides: Переопределения прав, примененные к ролям. user_overrides: Пользовательские переопределения прав на уровне участника. Returns: Объект типа Perm, сформированный в рамках обработки.
 - `is_permission_subset(*, candidate: int, holder: int) -> bool`
-  - True when all candidate bits are included in holder bits.
+  - Проверяет условие permission subset и возвращает логический результат. Args: candidate: Кандидатный объект для сравнения с текущим контекстом. holder: Сущность, в которой хранится сравниваемое значение. Returns: Логическое значение результата проверки.
 - `can_manage_target(*, actor_top_position: int, target_position: int) -> bool`
-  - Hierarchy rule: actor can only manage roles strictly below self.
+  - Проверяет условие manage target и возвращает логический результат. Args: actor_top_position: Максимальная позиция роли текущего пользователя. target_position: Позиция роли целевого пользователя или объекта. Returns: Логическое значение результата проверки.
 - `normalize_role_ids(raw_role_ids: Iterable[int | str]) -> list[int]`
-  - Normalizes list of positive role ids while preserving input order.
+  - Нормализует role ids к внутреннему формату приложения. Args: raw_role_ids: Список идентификаторов raw role для пакетной обработки. Returns: Список типа list[int] с результатами операции.
 - `validate_override_target_ids(target_role_id: int | None, target_user_id: int | None) -> bool`
-  - True when exactly one override target is provided.
+  - Проверяет значение поля override target ids и возвращает нормализованный результат. Args: target_role_id: Идентификатор target role, используемый для выборки данных. target_user_id: Идентификатор target user, используемый для выборки данных. Returns: Логическое значение результата проверки.
 - `has_manage_roles(permissions: int) -> bool`
-  - Checks MANAGE_ROLES bit in effective permissions.
+  - Проверяет условие manage roles и возвращает логический результат. Args: permissions: Набор прав доступа, применяемых к роли или участнику. Returns: Логическое значение результата проверки.
 - `role_is_protected(*, is_default: bool, name: str) -> bool`
-  - Returns True for system roles that cannot be removed/broken.
+  - Проверяет роль с учетом защищенный ответ. Args: is_default: Булев флаг условия default. name: Имя сущности или параметра. Returns: Логическое значение результата проверки.
 
 ## `backend/roles/infrastructure/__init__.py`
 
@@ -2671,15 +3277,25 @@ Total modules: 185
 ### Functions
 
 - `get_room_by_id(room_id: int) -> Room | None`
+  - Возвращает room by id из текущего контекста или хранилища. Args: room_id: Идентификатор room, используемый для выборки данных. Returns: Объект типа Room | None, сформированный в рамках обработки.
 - `get_default_role_permissions(room: Room) -> int | None`
+  - Возвращает default role permissions из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Объект типа int | None, сформированный в рамках обработки.
 - `get_membership(room: Room, user) -> Membership | None`
+  - Возвращает membership из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. user: Пользователь, для которого выполняется операция. Returns: Объект типа Membership | None, сформированный в рамках обработки.
 - `get_membership_by_user_id(room: Room, user_id: int) -> Membership | None`
+  - Возвращает membership by user id из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. user_id: Идентификатор user, используемый для выборки данных. Returns: Объект типа Membership | None, сформированный в рамках обработки.
 - `list_memberships(room: Room) -> QuerySet[Membership]`
+  - Возвращает список memberships, доступных в текущем контексте. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Объект типа QuerySet[Membership], сформированный в рамках обработки.
 - `list_roles(room: Room) -> QuerySet[Role]`
+  - Возвращает список roles, доступных в текущем контексте. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Объект типа QuerySet[Role], сформированный в рамках обработки.
 - `get_role(room: Room, role_id: int) -> Role | None`
+  - Возвращает role из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. role_id: Идентификатор role, используемый для выборки данных. Returns: Объект типа Role | None, сформированный в рамках обработки.
 - `list_overrides(room: Room) -> QuerySet[PermissionOverride]`
+  - Возвращает список overrides, доступных в текущем контексте. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Объект типа QuerySet[PermissionOverride], сформированный в рамках обработки.
 - `get_override(room: Room, override_id: int) -> PermissionOverride | None`
+  - Возвращает override из текущего контекста или хранилища. Args: room: Экземпляр комнаты, над которой выполняется действие. override_id: Идентификатор override, используемый для выборки данных. Returns: Объект типа PermissionOverride | None, сформированный в рамках обработки.
 - `get_user_by_id(user_id: int)`
+  - Возвращает user by id из текущего контекста или хранилища. Args: user_id: Идентификатор user, используемый для выборки данных. Returns: Функция не возвращает значение.
 
 ## `backend/roles/interfaces/__init__.py`
 
@@ -2696,9 +3312,10 @@ Total modules: 185
 ### Classes
 
 - `CanManageRoomRoles` : `BasePermission`
-  - Allows access only to users with MANAGE_ROLES in the room.
+  - Класс CanManageRoomRoles инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `has_permission(self, request: Any, view: Any)`
+    - Проверяет условие permission и возвращает логический результат. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. view: Экземпляр представления, для которого проверяется разрешение. Returns: Функция не возвращает значение.
 
 ## `backend/roles/interfaces/serializers.py`
 
@@ -2709,26 +3326,39 @@ Total modules: 185
 ### Classes
 
 - `RoleOutputSerializer` : `serializers.ModelSerializer`
+  - Класс RoleOutputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `RoleCreateInputSerializer` : `serializers.Serializer`
+  - Класс RoleCreateInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `RoleUpdateInputSerializer` : `serializers.Serializer`
+  - Класс RoleUpdateInputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `validate(self, attrs)`
+    - Проверяет входные данные и возвращает нормализованный результат. Args: attrs: Атрибуты после первичной валидации. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `MemberRolesOutputSerializer` : `serializers.ModelSerializer`
+  - Класс MemberRolesOutputSerializer сериализует и валидирует данные API.
   - Methods: 2
   - `get_roleIds(self, obj: Membership) -> list[int]`
+    - Возвращает role ids из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Список типа list[int] с результатами операции.
   - `get_username(self, obj: Membership) -> str`
+    - Возвращает username из текущего контекста или хранилища. Args: obj: Объект доменной модели или ORM-сущность. Returns: Строковое значение, сформированное функцией.
 - `MemberRolesUpdateInputSerializer` : `serializers.Serializer`
+  - Класс MemberRolesUpdateInputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `OverrideOutputSerializer` : `serializers.ModelSerializer`
+  - Класс OverrideOutputSerializer сериализует и валидирует данные API.
   - Methods: 0
 - `OverrideCreateInputSerializer` : `serializers.Serializer`
+  - Класс OverrideCreateInputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `validate(self, attrs)`
+    - Проверяет входные данные и возвращает нормализованный результат. Args: attrs: Атрибуты после первичной валидации. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `OverrideUpdateInputSerializer` : `serializers.Serializer`
+  - Класс OverrideUpdateInputSerializer сериализует и валидирует данные API.
   - Methods: 1
   - `validate(self, attrs)`
+    - Проверяет входные данные и возвращает нормализованный результат. Args: attrs: Атрибуты после первичной валидации. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/roles/interfaces/urls.py`
 
@@ -2745,22 +3375,26 @@ Total modules: 185
 ### Classes
 
 - `Role` : `models.Model`
-  - A named role with a permission bitmask, scoped to a room.
+  - Модель Role описывает структуру и поведение данных в приложении.
   - Methods: 2
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
   - `create_defaults_for_room(cls, room: Room) -> dict[str, 'Role']`
-    - Create the standard role set for a non-DM room. Returns a dict keyed by canonical name: {"@everyone": ..., "Viewer": ..., "Member": ..., "Moderator": ..., "Admin": ..., "Owner": ...}
+    - Создает defaults for room и возвращает созданную сущность. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Словарь типа dict[str, 'Role'] с результатами операции.
 - `Membership` : `models.Model`
-  - Links a user to a room with optional roles and ban state. For direct chats, membership is created with no roles — access is purely based on Room.direct_pair_key.
+  - Модель Membership описывает структуру и поведение данных в приложении.
   - Methods: 3
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
   - `display_name(self) -> str`
-    - Returns nickname if set, otherwise username.
+    - Вспомогательная функция `display_name` реализует внутренний шаг бизнес-логики. Returns: Строковое значение, сформированное функцией.
   - `is_muted(self) -> bool`
+    - Проверяет условие muted и возвращает логический результат. Returns: Логическое значение результата проверки.
 - `PermissionOverride` : `models.Model`
-  - Per-role or per-user permission override within a room. Works like Discord channel permission overrides: - `allow` bits are added on top of computed permissions. - `deny` bits are removed from computed permissions. - User-level overrides take precedence over role-level.
+  - Модель PermissionOverride описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 
 ## `backend/roles/permissions.py`
 
@@ -2771,12 +3405,12 @@ Total modules: 185
 ### Functions
 
 - `has_perm(permissions: int, perm: Perm) -> bool`
-  - Check if a permission bitmask includes the given permission.
+  - Проверяет условие perm и возвращает логический результат. Args: permissions: Набор прав доступа, применяемых к роли или участнику. perm: Имя отдельного разрешения, проверяемого в наборе прав. Returns: Логическое значение результата проверки.
 
 ### Classes
 
 - `Perm` : `IntFlag`
-  - Granular permission flags (Discord-inspired).
+  - Класс Perm инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/roles/signals.py`
@@ -2787,9 +3421,13 @@ Total modules: 185
 ### Functions
 
 - `audit_membership_save(sender, instance: Membership, created: bool, **kwargs)`
+  - Фиксирует membership save в системе аудита. Args: sender: Параметр sender, используемый в логике функции. instance: Экземпляр модели или доменного объекта. created: Флаг создания новой записи. **kwargs: Дополнительные именованные аргументы вызова.
 - `audit_membership_delete(sender, instance: Membership, **kwargs)`
+  - Фиксирует membership delete в системе аудита. Args: sender: Параметр sender, используемый в логике функции. instance: Экземпляр модели или доменного объекта. **kwargs: Дополнительные именованные аргументы вызова.
 - `audit_role_save(sender, instance: Role, created: bool, **kwargs)`
+  - Фиксирует role save в системе аудита. Args: sender: Параметр sender, используемый в логике функции. instance: Экземпляр модели или доменного объекта. created: Флаг создания новой записи. **kwargs: Дополнительные именованные аргументы вызова.
 - `audit_role_delete(sender, instance: Role, **kwargs)`
+  - Фиксирует role delete в системе аудита. Args: sender: Параметр sender, используемый в логике функции. instance: Экземпляр модели или доменного объекта. **kwargs: Дополнительные именованные аргументы вызова.
 
 ## `backend/roles/tests/__init__.py`
 
@@ -2909,20 +3547,6 @@ Total modules: 185
 - Functions: 0
 - Classes: 0
 
-## `backend/rooms/admin.py`
-
-- Functions: 0
-- Classes: 3
-
-### Classes
-
-- `RoleInline` : `admin.TabularInline`
-  - Methods: 0
-- `PermissionOverrideInline` : `admin.TabularInline`
-  - Methods: 0
-- `RoomAdmin` : `admin.ModelAdmin`
-  - Methods: 0
-
 ## `backend/rooms/apps.py`
 
 - Functions: 0
@@ -2931,45 +3555,10 @@ Total modules: 185
 ### Classes
 
 - `RoomsConfig` : `AppConfig`
+  - Класс RoomsConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `ready(self)`
-
-## `backend/rooms/serializers.py`
-
-- Functions: 0
-- Classes: 3
-
-### Classes
-
-- `RoomSerializer` : `serializers.ModelSerializer`
-  - Methods: 1
-  - `get_created_by(self, obj: Room)`
-- `RoomDetailSerializer` : `serializers.Serializer`
-  - Methods: 0
-- `RoomPublicSerializer` : `serializers.Serializer`
-  - Methods: 0
-
-## `backend/rooms/services.py`
-
-- Description: Business logic for room creation and direct messaging.
-- Functions: 9
-- Classes: 0
-
-### Functions
-
-- `direct_pair_key(user_a_id: int, user_b_id: int) -> str`
-- `direct_room_slug(pair_key: str) -> str`
-- `parse_pair_key_users(pair_key: str | None) -> tuple[int, int] | None`
-- `ensure_membership(room: Room, user, role_name: str | None=None) -> Membership`
-  - Get or create a Membership, optionally assigning a role by name. If the room has no roles yet, creates the default role set first.
-- `ensure_room_owner(room: Room) -> None`
-  - Ensure the room creator has Owner membership.
-- `ensure_direct_memberships(room: Room, initiator, peer) -> None`
-  - Create and normalize memberships for both DM participants. Direct rooms are strict: - `kind=direct`; - exactly two members from `direct_pair_key`; - no extra participants.
-- `_create_or_get_direct_room(initiator, target, pair_key: str, slug: str)`
-- `ensure_direct_room_with_retry(initiator, target, pair_key: str, slug: str)`
-- `direct_peer_for_user(room: Room, user)`
-  - Get the other participant in a direct room.
+    - Инициализирует интеграции и сигналы при запуске приложения.
 
 ## `backend/rooms/signals.py`
 
@@ -2980,6 +3569,7 @@ Total modules: 185
 ### Functions
 
 - `ensure_group_public_id_on_create(sender, instance: Room, **kwargs)`
+  - Гарантирует корректность состояния group public id on create перед выполнением операции. Args: sender: Модель-источник сигнала Django. instance: Экземпляр модели или объекта домена. **kwargs: Дополнительные именованные аргументы вызова.
 
 ## `backend/users/__init__.py`
 
@@ -2989,41 +3579,41 @@ Total modules: 185
 
 ## `backend/users/admin.py`
 
-- Description: Содержит логику модуля `admin` подсистемы `users`.
+- Description: Модуль admin реализует прикладную логику подсистемы users.
 - Functions: 0
 - Classes: 5
 
 ### Classes
 
 - `ProfileInlineForm` : `forms.ModelForm`
-  - Инкапсулирует логику класса `ProfileInlineForm`.
+  - Форма ProfileInlineForm валидирует и подготавливает входные данные.
   - Methods: 2
   - `__init__(self, *args, **kwargs)`
-    - Инициализирует экземпляр `ProfileInlineForm`.
+    - Инициализирует экземпляр класса и подготавливает внутреннее состояние. Args: *args: Дополнительные позиционные аргументы вызова. **kwargs: Дополнительные именованные аргументы вызова.
   - `save(self, commit=True)`
-    - Выполняет логику `save` с параметрами из сигнатуры.
+    - Сохраняет изменения объекта в хранилище. Args: commit: Параметр commit, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `ProfileInline` : `admin.StackedInline`
-  - Инкапсулирует логику класса `ProfileInline`.
+  - Класс ProfileInline настраивает поведение сущности в Django Admin.
   - Methods: 2
   - `username_display(self, obj)`
-    - Выполняет логику `username_display` с параметрами из сигнатуры.
+    - Вспомогательная функция `username_display` реализует внутренний шаг бизнес-логики. Args: obj: Параметр obj, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
   - `avatar_preview(self, obj)`
-    - Выполняет логику `avatar_preview` с параметрами из сигнатуры.
+    - Вспомогательная функция `avatar_preview` реализует внутренний шаг бизнес-логики. Args: obj: Параметр obj, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `UserAdmin` : `BaseUserAdmin`
-  - Инкапсулирует логику класса `UserAdmin`.
+  - Класс UserAdmin настраивает поведение сущности в Django Admin.
   - Methods: 1
   - `profile_last_seen(self, obj)`
-    - Выполняет логику `profile_last_seen` с параметрами из сигнатуры.
+    - Формирует значение profile last seen для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `ProfileAdminForm` : `ProfileInlineForm`
-  - Инкапсулирует логику класса `ProfileAdminForm`.
+  - Класс ProfileAdminForm инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `ProfileAdmin` : `admin.ModelAdmin`
-  - Инкапсулирует логику класса `ProfileAdmin`.
+  - Класс ProfileAdmin настраивает поведение сущности в Django Admin.
   - Methods: 2
   - `is_staff(self, obj)`
-    - Выполняет логику `is_staff` с параметрами из сигнатуры.
+    - Проверяет условие staff и возвращает логический результат. Args: obj: Объект доменной модели или ORM-сущность. Returns: Функция не возвращает значение.
   - `avatar_preview(self, obj)`
-    - Выполняет логику `avatar_preview` с параметрами из сигнатуры.
+    - Формирует значение avatar preview для отображения в админ-панели. Args: obj: Параметр obj, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/users/application/__init__.py`
 
@@ -3039,34 +3629,34 @@ Total modules: 185
 ### Functions
 
 - `_parse_positive_room_id(value: int | str | None) -> int | None`
-  - Преобразует room_id в положительное целое или возвращает None.
+  - Разбирает positive room id из входных данных с валидацией формата. Args: value: Входное значение для проверки или преобразования. Returns: Объект типа int | None, сформированный в рамках обработки.
 - `resolve_media_content_type(normalized_path: str, *, preferred_content_type: str | None=None) -> str`
-  - Определяет итоговый content type по метаданным и расширению файла.
+  - Определяет media content type на основе доступного контекста. Args: normalized_path: Нормализованный путь к файлу или media-объекту. preferred_content_type: Предпочтительный MIME-тип ответа. Returns: Строковое значение, сформированное функцией.
 - `resolve_attachment_media_access(*, normalized_path: str, room_id_raw: int | str | None, user: Any) -> AttachmentMediaAccessResult`
-  - Проверяет доступ к вложению в комнате и возвращает метаданные выдачи.
+  - Определяет attachment media access на основе доступного контекста. Args: normalized_path: Нормализованный путь к файлу или media-объекту. room_id_raw: Сырой идентификатор комнаты из query-параметров. user: Пользователь, для которого выполняется операция. Returns: Объект типа AttachmentMediaAccessResult, сформированный в рамках обработки.
 
 ### Classes
 
 - `MediaAccessNotFoundError` : `Exception`
-  - Файл недоступен в текущем контексте доступа.
+  - Класс MediaAccessNotFoundError инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 - `AttachmentMediaAccessResult`
-  - Результат проверки room-scoped доступа для chat-вложений.
+  - Класс AttachmentMediaAccessResult инкапсулирует связанную бизнес-логику модуля.
   - Methods: 0
 
 ## `backend/users/apps.py`
 
-- Description: Содержит логику модуля `apps` подсистемы `users`.
+- Description: Модуль apps реализует прикладную логику подсистемы users.
 - Functions: 0
 - Classes: 1
 
 ### Classes
 
 - `UsersConfig` : `AppConfig`
-  - Инкапсулирует логику класса `UsersConfig`.
+  - Класс UsersConfig инкапсулирует связанную бизнес-логику модуля.
   - Methods: 1
   - `ready(self)`
-    - Выполняет логику `ready` с параметрами из сигнатуры.
+    - Инициализирует интеграции и сигналы при запуске приложения.
 
 ## `backend/users/avatar_service.py`
 
@@ -3077,42 +3667,55 @@ Total modules: 185
 ### Functions
 
 - `_trimmed(value: Any) -> str`
-  - Приводит значение к строке и обрезает пробелы.
+  - Выполняет вспомогательную обработку для trimmed. Args: value: Входное значение для проверки или преобразования. Returns: Строковое значение, сформированное функцией.
 - `_normalized_media_path(value: str | None) -> str`
-  - Нормализует путь к media и гарантирует строковый результат.
+  - Выполняет вспомогательную обработку для normalized media path. Args: value: Входное значение для проверки или преобразования. Returns: Строковое значение, сформированное функцией.
 - `_setting_media_path(name: str, default: str) -> str`
-  - Читает путь из настроек и возвращает безопасное значение.
+  - Выполняет вспомогательную обработку для setting media path. Args: name: Человекочитаемое имя объекта или параметра. default: Значение по умолчанию при отсутствии входных данных. Returns: Строковое значение, сформированное функцией.
 - `_setting_media_dir(name: str, default: str) -> str`
-  - Читает директорию из настроек и убирает ведущие слеши.
+  - Выполняет вспомогательную обработку для setting media dir. Args: name: Человекочитаемое имя объекта или параметра. default: Значение по умолчанию при отсутствии входных данных. Returns: Строковое значение, сформированное функцией.
 - `user_password_default_avatar_path() -> str`
+  - Вспомогательная функция `user_password_default_avatar_path` реализует внутренний шаг бизнес-логики. Returns: Строковое значение, сформированное функцией.
 - `user_oauth_default_avatar_path() -> str`
+  - Вспомогательная функция `user_oauth_default_avatar_path` реализует внутренний шаг бизнес-логики. Returns: Строковое значение, сформированное функцией.
 - `group_default_avatar_path() -> str`
+  - Вспомогательная функция `group_default_avatar_path` реализует внутренний шаг бизнес-логики. Returns: Строковое значение, сформированное функцией.
 - `user_avatar_upload_dir() -> str`
+  - Вспомогательная функция `user_avatar_upload_dir` реализует внутренний шаг бизнес-логики. Returns: Строковое значение, сформированное функцией.
 - `group_avatar_upload_dir() -> str`
+  - Вспомогательная функция `group_avatar_upload_dir` реализует внутренний шаг бизнес-логики. Returns: Строковое значение, сформированное функцией.
 - `_safe_upload_filename(filename: str | None) -> str`
+  - Выполняет вспомогательную обработку для safe upload filename. Args: filename: Имя файла, переданного в обработку. Returns: Строковое значение, сформированное функцией.
 - `user_has_oauth_identity(user: Any) -> bool`
-  - Проверяет наличие OAuth-идентичности у пользователя.
+  - Проверяет наличие пользователь с учетом OAuth identity-данные. Args: user: Пользователь, для которого выполняется операция. Returns: Логическое значение результата проверки.
 - `profile_avatar_upload_to(profile, filename: str) -> str`
-  - Формирует путь сохранения пользовательской аватарки.
+  - Вспомогательная функция `profile_avatar_upload_to` реализует внутренний шаг бизнес-логики. Args: profile: Параметр profile, используемый в логике функции. filename: Параметр filename, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 - `group_avatar_upload_to(_room, filename: str) -> str`
-  - Формирует путь сохранения групповой аватарки.
+  - Вспомогательная функция `group_avatar_upload_to` реализует внутренний шаг бизнес-логики. Args: _room: Комната, переданная в upload_to-хук. filename: Параметр filename, используемый в логике функции. Returns: Строковое значение, сформированное функцией.
 - `_safe_profile(user: Any)`
-  - Безопасно получает профиль пользователя без падений в рантайме.
+  - Выполняет вспомогательную обработку для safe profile. Args: user: Пользователь, для которого выполняется операция. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `_is_http_url(value: str) -> bool`
+  - Проверяет условие http url и возвращает логический результат. Args: value: Входное значение для проверки или преобразования. Returns: Логическое значение результата проверки.
 - `_is_same_media_file(path: str, candidate: str) -> bool`
+  - Проверяет условие same media file и возвращает логический результат. Args: path: Путь к ресурсу в storage или media-каталоге. candidate: Кандидатный объект для сравнения с текущим контекстом. Returns: Логическое значение результата проверки.
 - `_is_default_user_image(path: str) -> bool`
+  - Проверяет условие default user image и возвращает логический результат. Args: path: Путь к ресурсу в storage или media-каталоге. Returns: Логическое значение результата проверки.
 - `resolve_user_avatar_source(user: Any) -> str | None`
-  - Возвращает источник аватара пользователя с учетом fallback-логики.
+  - Определяет user avatar source на основе доступного контекста. Args: user: Пользователь, для которого выполняется операция. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `resolve_group_avatar_source(room: Any) -> str | None`
-  - Возвращает источник аватара группы или дефолтную картинку.
+  - Определяет group avatar source на основе доступного контекста. Args: room: Экземпляр комнаты, над которой выполняется действие. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `resolve_avatar_url_from_request(request, source: str | None) -> str | None`
-  - Собирает абсолютный URL аватара из HTTP-запроса.
+  - Определяет avatar url from request на основе доступного контекста. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. source: Источник данных или медиа-путь, который нужно обработать. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `resolve_avatar_url_from_scope(scope, source: str | None) -> str | None`
-  - Собирает абсолютный URL аватара из ASGI scope.
+  - Определяет avatar url from scope на основе доступного контекста. Args: scope: ASGI-scope с метаданными соединения. source: Источник данных или медиа-путь, который нужно обработать. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `resolve_user_avatar_url_from_request(request, user: Any) -> str | None`
+  - Определяет user avatar url from request на основе доступного контекста. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. user: Пользователь, для которого выполняется операция. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `resolve_user_avatar_url_from_scope(scope, user: Any) -> str | None`
+  - Определяет user avatar url from scope на основе доступного контекста. Args: scope: ASGI-scope с метаданными соединения. user: Пользователь, для которого выполняется операция. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `resolve_group_avatar_url_from_request(request, room: Any) -> str | None`
+  - Определяет group avatar url from request на основе доступного контекста. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. room: Экземпляр комнаты, над которой выполняется действие. Returns: Объект типа str | None, сформированный в рамках обработки.
 - `resolve_group_avatar_url_from_scope(scope, room: Any) -> str | None`
+  - Определяет group avatar url from scope на основе доступного контекста. Args: scope: ASGI-scope с метаданными соединения. room: Экземпляр комнаты, над которой выполняется действие. Returns: Объект типа str | None, сформированный в рамках обработки.
 
 ## `backend/users/forms.py`
 
@@ -3123,52 +3726,68 @@ Total modules: 185
 ### Functions
 
 - `_validate_username_symbols(username: str) -> None`
-  - Проверяет допустимые символы и формат публичного имени.
+  - Проверяет значение поля username symbols и возвращает нормализованный результат. Args: username: Публичное имя пользователя, используемое в событиях и ответах.
 - `_is_svg_upload(uploaded_file) -> bool`
-  - Определяет SVG по расширению или content_type.
+  - Проверяет условие svg upload и возвращает логический результат. Args: uploaded_file: Файл, загруженный пользователем через форму или API. Returns: Логическое значение результата проверки.
 - `_read_uploaded_bytes(uploaded_file) -> bytes`
-  - Читает файл и возвращает исходные байты с восстановлением указателя.
+  - Читает uploaded байты. Args: uploaded_file: Файл, полученный из multipart-запроса. Returns: Объект типа bytes, сформированный в ходе выполнения.
 - `_validate_svg_avatar(uploaded_file) -> None`
-  - Проверяет SVG на базовую безопасность и корректный XML-контейнер.
+  - Проверяет значение поля svg avatar и возвращает нормализованный результат. Args: uploaded_file: Файл, загруженный пользователем через форму или API.
 
 ### Classes
 
 - `EmailRegisterForm` : `forms.Form`
+  - Форма EmailRegisterForm валидирует и подготавливает входные данные.
   - Methods: 2
   - `clean_email(self)`
+    - Проверяет и нормализует значение поля email. Returns: Функция не возвращает значение.
   - `clean(self)`
+    - Проверяет согласованность и валидность данных формы. Returns: Функция не возвращает значение.
 - `UserUpdateForm` : `forms.ModelForm`
+  - Форма UserUpdateForm валидирует и подготавливает входные данные.
   - Methods: 2
   - `clean_username(self)`
+    - Проверяет и нормализует значение поля username. Returns: Функция не возвращает значение.
   - `clean_email(self)`
+    - Проверяет и нормализует значение поля email. Returns: Функция не возвращает значение.
 - `ProfileIdentityUpdateForm` : `forms.Form`
+  - Форма ProfileIdentityUpdateForm валидирует и подготавливает входные данные.
   - Methods: 4
   - `__init__(self, *args, user=None, **kwargs)`
+    - Инициализирует экземпляр класса и подготавливает внутреннее состояние. Args: *args: Дополнительные позиционные аргументы вызова. user: Пользователь, для которого выполняется операция. **kwargs: Дополнительные именованные аргументы вызова.
   - `clean_name(self)`
+    - Проверяет и нормализует значение поля name. Returns: Функция не возвращает значение.
   - `clean_username(self)`
+    - Проверяет и нормализует значение поля username. Returns: Функция не возвращает значение.
   - `save(self, profile: Profile) -> Profile`
+    - Сохраняет изменения объекта в хранилище. Args: profile: Параметр profile, используемый в логике функции. Returns: Объект типа Profile, сформированный в ходе выполнения.
 - `ProfileUpdateForm` : `forms.ModelForm`
+  - Форма ProfileUpdateForm валидирует и подготавливает входные данные.
   - Methods: 4
   - `clean_bio(self)`
+    - Проверяет и нормализует значение поля bio. Returns: Функция не возвращает значение.
   - `clean(self)`
+    - Проверяет согласованность и валидность данных формы. Returns: Функция не возвращает значение.
   - `clean_image(self)`
+    - Проверяет и нормализует значение поля image. Returns: Функция не возвращает значение.
   - `save(self, commit=True)`
+    - Сохраняет изменения объекта в хранилище. Args: commit: Параметр commit, используемый в логике функции. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/users/middleware.py`
 
-- Description: Содержит логику модуля `middleware` подсистемы `users`.
+- Description: Модуль middleware реализует прикладную логику подсистемы users.
 - Functions: 0
 - Classes: 1
 
 ### Classes
 
 - `UpdateLastSeenMiddleware`
-  - Инкапсулирует логику класса `UpdateLastSeenMiddleware`.
+  - Класс UpdateLastSeenMiddleware инкапсулирует связанную бизнес-логику модуля.
   - Methods: 2
   - `__init__(self, get_response)`
-    - Инициализирует экземпляр `UpdateLastSeenMiddleware`.
+    - Инициализирует экземпляр класса и подготавливает внутреннее состояние. Args: get_response: Следующий middleware-обработчик в цепочке Django.
   - `__call__(self, request)`
-    - Выполняет логику `__call__` с параметрами из сигнатуры.
+    - Выполняет объект как вызываемый обработчик. Args: request: HTTP-запрос с контекстом пользователя и параметрами вызова. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 
 ## `backend/users/models.py`
 
@@ -3179,31 +3798,46 @@ Total modules: 185
 ### Classes
 
 - `Profile` : `models.Model`
+  - Модель Profile описывает структуру и поведение данных в приложении.
   - Methods: 3
   - `__init__(self, *args, **kwargs)`
+    - Инициализирует экземпляр класса и подготавливает внутреннее состояние. Args: *args: Дополнительные позиционные аргументы вызова. **kwargs: Дополнительные именованные аргументы вызова.
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
   - `save(self, *args, **kwargs)`
-    - Нормализует профиль и безопасно обрабатывает файл аватара.
+    - Сохраняет изменения объекта в хранилище. Args: *args: Дополнительные позиционные аргументы вызова. **kwargs: Дополнительные именованные аргументы вызова.
 - `UserIdentityCore` : `models.Model`
+  - Модель UserIdentityCore описывает структуру и поведение данных в приложении.
   - Methods: 2
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
   - `save(self, *args, **kwargs)`
+    - Сохраняет изменения объекта в хранилище. Args: *args: Дополнительные позиционные аргументы вызова. **kwargs: Дополнительные именованные аргументы вызова.
 - `LoginIdentity` : `models.Model`
+  - Модель LoginIdentity описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `EmailIdentity` : `models.Model`
+  - Модель EmailIdentity описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `OAuthIdentity` : `models.Model`
+  - Модель OAuthIdentity описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `PublicHandle` : `models.Model`
+  - Модель PublicHandle описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 - `SecurityRateLimitBucket` : `models.Model`
-  - Хранит состояние ограничений запросов для защитных сценариев.
+  - Модель SecurityRateLimitBucket описывает структуру и поведение данных в приложении.
   - Methods: 1
   - `__str__(self)`
+    - Возвращает человекочитаемое строковое представление объекта. Returns: Функция не возвращает значение.
 
 ## `backend/users/tests/__init__.py`
 
@@ -3398,4 +4032,6 @@ Total modules: 185
 ### Functions
 
 - `register(request)`
+  - Регистрирует данные. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.
 - `profile(request)`
+  - Вспомогательная функция `profile` реализует внутренний шаг бизнес-логики. Args: request: HTTP-запрос с контекстом пользователя и входными данными. Returns: Результат вычислений, сформированный в ходе выполнения функции.

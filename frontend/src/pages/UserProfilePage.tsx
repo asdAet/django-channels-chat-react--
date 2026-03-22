@@ -21,6 +21,7 @@ import {
   formatPublicRef,
   normalizePublicRef,
 } from "../shared/lib/publicRef";
+import { resolveIdentityLabel } from "../shared/lib/userIdentity";
 import { usePresence } from "../shared/presence";
 import { AvatarMedia, Button, Card, Panel } from "../shared/ui";
 import styles from "../styles/pages/UserProfilePage.module.css";
@@ -359,11 +360,9 @@ export function UserProfilePage({
     formatFullName(
       profileUser.name,
       (profileUser as { last_name?: string | null }).last_name,
-    ) || "Без имени";
-  const publicHandle = (profileUser.username || "").trim();
+    ) || resolveIdentityLabel(profileUser, "Без имени");
   const publicRef = (profileUser.publicRef || routePublicRef).trim();
-  const avatarIdentity =
-    profileUser.name || publicHandle || publicRef || "user";
+  const avatarIdentity = resolveIdentityLabel(profileUser, "user");
   const normalizedTargetRef = normalizeActorRef(publicRef);
   const isUserOnline =
     presenceStatus === "online" &&

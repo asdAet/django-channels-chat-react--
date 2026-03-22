@@ -1,4 +1,4 @@
-﻿"""API endpoints for the chat subsystem."""
+"""API endpoints for the chat subsystem."""
 
 import mimetypes
 import time
@@ -23,7 +23,6 @@ from roles.access import ensure_can_read_or_404, has_permission
 from roles.models import Membership
 from roles.permissions import Perm
 from rooms.models import Room
-from rooms.serializers import RoomPublicSerializer
 
 from .services import (
     MessageForbiddenError,
@@ -32,6 +31,7 @@ from .services import (
     add_reaction,
     delete_message,
     edit_message,
+    get_message_readers,
     get_unread_counts,
     mark_read as service_mark_read,
     remove_reaction,
@@ -39,7 +39,6 @@ from .services import (
 from rooms.services import (
     direct_pair_key,
     direct_peer_for_user,
-    direct_room_slug,
     ensure_direct_memberships,
     ensure_direct_room_with_retry,
     ensure_membership,
@@ -59,7 +58,7 @@ from users.avatar_service import (
 )
 from users.models import PublicHandle
 
-from .constants import PUBLIC_ROOM_NAME, PUBLIC_ROOM_SLUG
+from .constants import PUBLIC_ROOM_NAME, PUBLIC_ROOM_TARGET
 from chat_app_django.media_utils import (
     build_profile_url_from_request,
     build_room_media_url_from_request,
@@ -69,9 +68,10 @@ from chat_app_django.media_utils import (
 User = get_user_model()
 
 
-class DirectStartInputSerializer(serializers.Serializer):
-    """Сериализатор DirectStartInputSerializer преобразует данные между API и внутренними объектами."""
-    ref = serializers.CharField()
+class ChatResolveInputSerializer(serializers.Serializer):
+    """Валидирует входные данные для chat resolver."""
+
+    target = serializers.CharField()
 
 
 def _build_profile_pic_url(request, profile_pic):
@@ -228,21 +228,113 @@ def _public_room():
     """
     try:
         room, _created = Room.objects.get_or_create(
-            slug=PUBLIC_ROOM_SLUG,
+            kind=Room.Kind.PUBLIC,
             defaults={"name": PUBLIC_ROOM_NAME, "kind": Room.Kind.PUBLIC},
         )
         changed_fields = []
-        if room.kind != Room.Kind.PUBLIC:
-            room.kind = Room.Kind.PUBLIC
-            changed_fields.append("kind")
         if room.direct_pair_key:
             room.direct_pair_key = None
             changed_fields.append("direct_pair_key")
+        if not room.name:
+            room.name = PUBLIC_ROOM_NAME
+            changed_fields.append("name")
         if changed_fields:
             room.save(update_fields=changed_fields)
         return room
     except (OperationalError, ProgrammingError, IntegrityError):
-        return Room(slug=PUBLIC_ROOM_SLUG, name=PUBLIC_ROOM_NAME, kind=Room.Kind.PUBLIC)
+        return Room(name=PUBLIC_ROOM_NAME, kind=Room.Kind.PUBLIC)
+
+
+def _resolve_chat_target(request, target_ref: str):
+    """Resolve a prefixless chat target into a readable room."""
+
+    normalized = str(target_ref or "").strip()
+    if not normalized:
+        return None, None, Response(
+            {"error": "Требуется target"},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+
+    if normalized.lower() == PUBLIC_ROOM_TARGET:
+        return "public", _public_room(), None
+
+    owner_type, resolved = resolve_public_ref(normalized)
+    if owner_type == "user" and resolved is not None:
+        if not request.user or not request.user.is_authenticated:
+            return None, None, Response(
+                {"error": "Требуется авторизация"},
+                status=http_status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if resolved.pk == request.user.pk:
+            return None, None, Response(
+                {"error": "Нельзя открыть чат с самим собой"},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        pair_key = direct_pair_key(request.user.pk, resolved.pk)
+        try:
+            room, _created = ensure_direct_room_with_retry(
+                request.user,
+                resolved,
+                pair_key,
+            )
+            _ensure_direct_memberships_with_retry(room, request.user, resolved)
+        except OperationalError:
+            return None, None, Response(
+                {"error": "Сервис временно недоступен"},
+                status=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return "direct", room, None
+
+    if owner_type != "group" or not isinstance(resolved, Room):
+        return None, None, Response(
+            {"error": "Не найдено"},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+    room = resolved
+
+    if room.kind == Room.Kind.GROUP:
+        try:
+            if not room.is_public:
+                ensure_can_read_or_404(room, request.user)
+        except Http404:
+            return None, None, Response(
+                {"error": "Не найдено"},
+                status=http_status.HTTP_404_NOT_FOUND,
+            )
+        return "group", room, None
+
+    return None, None, Response(
+        {"error": "Не найдено"},
+        status=http_status.HTTP_404_NOT_FOUND,
+    )
+
+
+def _serialize_chat_resolve_response(request, target_kind: str, room: Room):
+    """Сериализует payload resolver-ответа."""
+
+    payload = {
+        "targetKind": target_kind,
+        "roomId": room.pk,
+        "roomKind": room.kind,
+    }
+
+    if room.kind == Room.Kind.PUBLIC:
+        payload["resolvedTarget"] = PUBLIC_ROOM_TARGET
+    elif room.kind == Room.Kind.DIRECT and request.user and request.user.is_authenticated:
+        peer = direct_peer_for_user(room, request.user)
+        if peer is not None:
+            payload["resolvedTarget"] = user_public_ref(peer)
+            payload["peer"] = _serialize_peer(request, peer)
+        else:
+            payload["resolvedTarget"] = str(room.pk)
+    else:
+        payload["resolvedTarget"] = room_public_ref(room)
+        payload["room"] = _serialize_room_details(request, room, created=False)
+
+    return payload
 
 
 def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
@@ -376,82 +468,35 @@ def _serialize_room_details(request, room: Room, created: bool):
     return payload
 
 
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def public_room(request):
-    """Возвращает или создает публичную комнату для текущего пользователя.
-    
-    Args:
-        request: HTTP-запрос с контекстом пользователя и входными данными.
-    
-    Returns:
-        Результат вычислений, сформированный в ходе выполнения функции.
-    """
-    room = _public_room()
-    serializer = RoomPublicSerializer({"roomId": room.pk, "name": room.name, "kind": room.kind})
-    return Response(serializer.data)
+class ChatResolveApiView(GenericAPIView):
+    """Resolve a prefixless chat target into room metadata."""
 
-
-class DirectStartApiView(GenericAPIView):
-    """Класс DirectStartApiView реализует HTTP-обработчики для API."""
-    permission_classes = [IsAuthenticated]
-    serializer_class = DirectStartInputSerializer
+    permission_classes = [AllowAny]
+    serializer_class = ChatResolveInputSerializer
 
     def get(self, _request):
-        """Обрабатывает HTTP GET запрос.
-        
-        Args:
-            _request: HTTP-запрос, который не используется напрямую в теле функции.
-        
-        Returns:
-            Результат вычислений, сформированный в ходе выполнения функции.
-        """
-        return Response({"detail": "Используйте POST с публичным ref пользователя"})
+        return Response({"detail": "Используйте POST с target"})
 
     def post(self, request):
-        """Обрабатывает HTTP POST запрос.
-        
-        Args:
-            request: HTTP-запрос с контекстом пользователя и параметрами вызова.
-        
-        Returns:
-            Результат вычислений, сформированный в ходе выполнения функции.
-        """
-        target_ref = str(request.data.get("ref") or "").strip()
-        if not target_ref:
-            return Response({"error": "Требуется ref"}, status=http_status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        owner_type, resolved = resolve_public_ref(target_ref)
-        if owner_type != "user" or resolved is None:
-            return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
-        target = resolved
-
-        if target.pk == request.user.pk:
-            return Response({"error": "Нельзя начать личный чат с самим собой"}, status=http_status.HTTP_400_BAD_REQUEST)
-
-        pair_key = direct_pair_key(request.user.pk, target.pk)
-        slug = direct_room_slug(pair_key)
-
-        try:
-            room, _created = ensure_direct_room_with_retry(request.user, target, pair_key, slug)
-        except OperationalError:
-            return Response({"error": "Сервис временно недоступен"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        try:
-            _ensure_direct_memberships_with_retry(room, request.user, target)
-        except OperationalError:
-            return Response({"error": "Сервис временно недоступен"}, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
-
-        return Response(
-            {
-                "roomId": room.pk,
-                "kind": room.kind,
-                "peer": _serialize_peer(request, target),
-            }
+        target_kind, room, error_response = _resolve_chat_target(
+            request,
+            serializer.validated_data["target"],
         )
+        if error_response is not None:
+            return error_response
+        if room is None or target_kind is None:
+            return Response(
+                {"error": "Не найдено"},
+                status=http_status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response(_serialize_chat_resolve_response(request, target_kind, room))
 
 
-direct_start = DirectStartApiView.as_view()
+chat_resolve = ChatResolveApiView.as_view()
 
 
 @api_view(["GET"])
@@ -697,6 +742,21 @@ def _ensure_room_read_access(request, room: Room):
         ensure_can_read_or_404(room, request.user)
 
 
+def _serialize_reader(request, user, *, read_at):
+    """Сериализует reader payload для ответа API."""
+
+    profile = getattr(user, "profile", None)
+    return {
+        "userId": user.pk,
+        "publicRef": user_public_ref(user),
+        "username": user_public_username(user),
+        "displayName": user_display_name(user),
+        "profileImage": resolve_user_avatar_url_from_request(request, user),
+        "avatarCrop": serialize_avatar_crop(profile),
+        "readAt": read_at.isoformat() if read_at else None,
+    }
+
+
 # ── Message Edit / Delete ─────────────────────────────────────────────
 
 @api_view(["PATCH", "DELETE"])
@@ -759,6 +819,50 @@ def message_detail(request, room_id: int, message_id):
         return Response({"error": str(exc)}, status=http_status.HTTP_403_FORBIDDEN)
     except MessageValidationError as exc:
         return Response({"error": str(exc)}, status=http_status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def message_readers(request, room_id: int, message_id: int):
+    """Возвращает readers конкретного сообщения для его автора."""
+
+    room, error_response = _resolve_room(room_id)
+    if error_response:
+        return error_response
+    if room is None:
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+
+    try:
+        _ensure_room_read_access(request, room)
+    except Http404:
+        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+
+    try:
+        readers_state = get_message_readers(request.user, room, message_id)
+    except MessageNotFoundError:
+        return Response({"error": "Сообщение не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+    except MessageForbiddenError as exc:
+        return Response({"error": str(exc)}, status=http_status.HTTP_403_FORBIDDEN)
+
+    payload = {
+        "roomKind": room.kind,
+        "messageId": message_id,
+        "readAt": None,
+        "readers": [],
+    }
+    if room.kind == Room.Kind.DIRECT:
+        payload["readAt"] = (
+            readers_state["read_at"].isoformat()
+            if readers_state["read_at"]
+            else None
+        )
+        return Response(payload)
+
+    payload["readers"] = [
+        _serialize_reader(request, receipt.user, read_at=receipt.read_at)
+        for receipt in readers_state["receipts"]
+    ]
+    return Response(payload)
 
 
 # ── Reactions ─────────────────────────────────────────────────────────
@@ -1472,6 +1576,7 @@ def global_search(request):
                 "name": room.name,
                 "description": room.description[:200],
                 "publicRef": room_public_ref(room),
+                "roomTarget": room_public_ref(room),
                 "memberCount": room.member_count,
                 "isPublic": room.is_public,
             }
@@ -1499,20 +1604,34 @@ def global_search(request):
     else:
         messages_qs = Message.objects.none()
 
-    messages = [
-        {
-            "id": msg.pk,
-            "publicRef": user_public_ref(msg.user) if msg.user else msg.username,
-            "username": user_public_username(msg.user) if msg.user else msg.username,
-            "displayName": user_display_name(msg.user) if msg.user else (msg.username or ""),
-            "content": msg.message_content,
-            "createdAt": msg.date_added.isoformat(),
-            "roomId": msg.room_id,
-            "roomName": msg.room.name if msg.room else "",
-            "roomKind": msg.room.kind if msg.room else "",
-        }
-        for msg in messages_qs
-    ]
+    messages = []
+    for msg in messages_qs:
+        room = msg.room
+        room_target = None
+        if room is not None:
+            if room.kind == Room.Kind.PUBLIC:
+                room_target = PUBLIC_ROOM_TARGET
+            elif room.kind == Room.Kind.GROUP:
+                room_target = room_public_ref(room)
+            elif room.kind == Room.Kind.DIRECT and request.user and request.user.is_authenticated:
+                peer = direct_peer_for_user(room, request.user)
+                if peer is not None:
+                    room_target = user_public_ref(peer)
+
+        messages.append(
+            {
+                "id": msg.pk,
+                "publicRef": user_public_ref(msg.user) if msg.user else msg.username,
+                "username": user_public_username(msg.user) if msg.user else msg.username,
+                "displayName": user_display_name(msg.user) if msg.user else (msg.username or ""),
+                "content": msg.message_content,
+                "createdAt": msg.date_added.isoformat(),
+                "roomId": msg.room_id,
+                "roomName": room.name if room else "",
+                "roomKind": room.kind if room else "",
+                "roomTarget": room_target,
+            }
+        )
 
     return Response(
         {
@@ -1540,9 +1659,6 @@ def mark_read_view(request, room_id: int):
         return error_response
     if room is None:
         return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
-
-    if room.kind == Room.Kind.PUBLIC:
-        return Response({"roomId": room.pk, "lastReadMessageId": None})
 
     try:
         _ensure_room_read_access(request, room)
@@ -1579,12 +1695,14 @@ def mark_read_view(request, room_id: int):
         "username": user_public_username(request.user),
         "displayName": user_display_name(request.user),
         "lastReadMessageId": state.last_read_message_id,
+        "lastReadAt": state.last_read_at.isoformat() if state.last_read_at else None,
         "roomId": room.pk,
     })
 
     return Response({
         "roomId": room.pk,
         "lastReadMessageId": state.last_read_message_id,
+        "lastReadAt": state.last_read_at.isoformat() if state.last_read_at else None,
     })
 
 
@@ -1601,4 +1719,3 @@ def unread_counts(request):
     """
     items = get_unread_counts(request.user)
     return Response({"items": items})
-

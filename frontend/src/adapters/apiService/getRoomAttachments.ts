@@ -5,21 +5,20 @@ import { decodeRoomAttachmentsResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Асинхронно возвращает комнаты вложения.
+ * Loads attachments for the selected room.
  *
- * @param apiClient HTTP-клиент для выполнения API-запросов.
- * @param roomId Идентификатор комнаты.
- * @param params Параметры запроса.
- *
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @param params Query parameters.
+ * @returns Room attachments payload.
  */
 export async function getRoomAttachments(
   apiClient: AxiosInstance,
   roomId: string,
   params?: { limit?: number; before?: number },
 ): Promise<RoomAttachmentsResult> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomId);
-  const encodedRoomRef = encodeURIComponent(apiRoomRef);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
   const searchParams = new URLSearchParams();
   if (typeof params?.limit === "number")
     searchParams.set("limit", String(params.limit));
@@ -27,7 +26,8 @@ export async function getRoomAttachments(
     searchParams.set("before", String(params.before));
   const query = searchParams.toString();
   const response = await apiClient.get<unknown>(
-    `/chat/rooms/${encodedRoomRef}/attachments/${query ? `?${query}` : ""}`,
+    `/chat/${encodedRoomId}/attachments/${query ? `?${query}` : ""}`,
   );
   return decodeRoomAttachmentsResponse(response.data);
 }
+

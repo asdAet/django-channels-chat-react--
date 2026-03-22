@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 
 import type { UserProfile } from "../entities/user/types";
 import { useGroupList } from "../hooks/useGroupList";
+import { buildChatTargetPath } from "../shared/lib/chatTarget";
 import { EmptyState, Spinner } from "../shared/ui";
 import styles from "../styles/groups/GroupsPageView.module.css";
 import { CreateGroupDialog } from "../widgets/groups/CreateGroupDialog";
@@ -41,15 +42,15 @@ export function GroupsPage({ user, onNavigate }: Props) {
   const [showCreate, setShowCreate] = useState(false);
 
   const handleGroupClick = useCallback(
-    (slug: string) => onNavigate(`/rooms/${slug}`),
+    (roomTarget: string) => onNavigate(buildChatTargetPath(roomTarget)),
     [onNavigate],
   );
 
   const handleCreated = useCallback(
-    (slug: string) => {
+    (roomTarget: string) => {
       setShowCreate(false);
       reload();
-      onNavigate(`/rooms/${slug}`);
+      onNavigate(buildChatTargetPath(roomTarget));
     },
     [reload, onNavigate],
   );
@@ -109,7 +110,7 @@ export function GroupsPage({ user, onNavigate }: Props) {
         {!loading &&
           !error &&
           groups.map((g) => (
-            <GroupListItem key={g.slug} group={g} onClick={handleGroupClick} />
+            <GroupListItem key={g.roomId} group={g} onClick={handleGroupClick} />
           ))}
       </div>
 

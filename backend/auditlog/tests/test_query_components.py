@@ -51,10 +51,10 @@ class AuditQueryComponentsTests(TestCase):
             status_code=200,
             success=True,
             ip="127.0.0.1",
-            path="/api/chat/rooms/abc/",
+            path="/api/chat/abc/",
             actor_user_id_snapshot=1,
             actor_username_snapshot="alice",
-            metadata={"room_slug": "abc"},
+            metadata={"room_id": 123},
         )
         self.second = AuditEvent.objects.create(
             action="room.write",
@@ -63,10 +63,10 @@ class AuditQueryComponentsTests(TestCase):
             status_code=403,
             success=False,
             ip="10.0.0.1",
-            path="/api/chat/rooms/xyz/",
+            path="/api/chat/xyz/",
             actor_user_id_snapshot=2,
             actor_username_snapshot="bob",
-            metadata={"room_slug": "xyz"},
+            metadata={"room_id": 456},
         )
         AuditEvent.objects.filter(pk=self.first.pk).update(created_at=now - timedelta(minutes=2))
         AuditEvent.objects.filter(pk=self.second.pk).update(created_at=now - timedelta(minutes=1))
@@ -86,10 +86,10 @@ class AuditQueryComponentsTests(TestCase):
                 "status_code": "200",
                 "success": "true",
                 "ip": "127.0.0.1",
-                "path_contains": "/chat/rooms",
+                "path_contains": "/chat/",
                 "date_from": self.first.created_at.isoformat(),
                 "date_to": self.second.created_at.isoformat(),
-                "room_slug": "abc",
+                "room_id": 123,
                 "limit": "999",
                 "cursor": "cursor-token",
             }
@@ -124,10 +124,10 @@ class AuditQueryComponentsTests(TestCase):
             status_code=200,
             success=True,
             ip="127.0.0.1",
-            path_contains="/chat/rooms",
+            path_contains="/chat/",
             date_from=self.first.created_at - timedelta(seconds=1),
             date_to=self.second.created_at,
-            room_slug="abc",
+            room_id=123,
             cursor=cursor,
         )
         filtered = apply_filters(AuditEvent.objects.all(), filters)

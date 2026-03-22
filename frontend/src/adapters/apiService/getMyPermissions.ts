@@ -5,18 +5,19 @@ import type { MyPermissions } from "../../entities/role/types";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Возвращает my permissions.
- * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
- * @param roomId Идентификатор комнаты.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Loads the current user's permissions for a room.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @returns Permissions payload.
  */
 export async function getMyPermissions(
   apiClient: AxiosInstance,
   roomId: string,
 ): Promise<MyPermissions> {
-  const roomRef = await resolveRoomId(apiClient, roomId);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
   const response = await apiClient.get<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomRef)}/permissions/me/`,
+    `/chat/${encodeURIComponent(apiRoomId)}/permissions/me/`,
   );
   return decodeMyPermissionsResponse(response.data);
 }
+

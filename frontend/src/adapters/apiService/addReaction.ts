@@ -5,12 +5,12 @@ import { decodeReactionResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Добавляет reaction.
- * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
- * @param roomId Идентификатор комнаты.
- * @param messageId Идентификатор сообщения.
- * @param emoji Эмодзи реакции.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Adds a reaction to a message.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @param messageId Message identifier.
+ * @param emoji Reaction emoji.
+ * @returns Updated reaction state.
  */
 export async function addReaction(
   apiClient: AxiosInstance,
@@ -18,11 +18,12 @@ export async function addReaction(
   messageId: number,
   emoji: string,
 ): Promise<ReactionResult> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomId);
-  const encodedRoomRef = encodeURIComponent(apiRoomRef);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
   const response = await apiClient.post<unknown>(
-    `/chat/rooms/${encodedRoomRef}/messages/${messageId}/reactions/`,
+    `/chat/${encodedRoomId}/messages/${messageId}/reactions/`,
     { emoji },
   );
   return decodeReactionResponse(response.data);
 }
+

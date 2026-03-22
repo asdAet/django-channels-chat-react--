@@ -32,7 +32,6 @@ class DirectInboxConsumerTests(TransactionTestCase):
         self.other = User.objects.create_user(username='other_di', password='pass12345')
 
         self.direct_room = Room.objects.create(
-            slug='dm_direct_inbox',
             name='dm',
             kind=Room.Kind.DIRECT,
             direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
@@ -42,7 +41,6 @@ class DirectInboxConsumerTests(TransactionTestCase):
         ensure_membership(self.direct_room, self.member, role_name='Member')
 
         self.unrelated_room = Room.objects.create(
-            slug='dm_unrelated_inbox',
             name='dm2',
             kind=Room.Kind.DIRECT,
             direct_pair_key=f'{self.member.pk}:{self.other.pk}',
@@ -55,7 +53,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
         """Проверяет сценарий `_connect_inbox`."""
         communicator = WebsocketCommunicator(
             application,
-            '/ws/direct/inbox/',
+            '/ws/inbox/',
             headers=[(b'host', b'localhost')],
         )
         communicator.scope['user'] = user if user is not None else AnonymousUser()

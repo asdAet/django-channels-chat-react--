@@ -14,7 +14,7 @@ export async function getRoomOverrides(
   roomId: string,
 ): Promise<PermissionOverride[]> {
   const response = await apiClient.get<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomId)}/overrides/`,
+    `/chat/${encodeURIComponent(roomId)}/overrides/`,
   );
   return decodeOverridesResponse(response.data);
 }

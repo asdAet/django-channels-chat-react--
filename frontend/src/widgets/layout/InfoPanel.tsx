@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 import { useInfoPanel } from "../../shared/layout/useInfoPanel";
+import { buildChatTargetPath } from "../../shared/lib/chatTarget";
 import styles from "../../styles/layout/InfoPanel.module.css";
 import { ChatSearch } from "../chat/ChatSearch";
 import { DirectInfoPanel } from "../chat/DirectInfoPanel";
@@ -28,23 +29,23 @@ function PanelContent({
   content: string;
   targetId: string | null;
   currentPublicRef: string | null;
-  onJumpToMessage: (slug: string, messageId: number) => void;
+  onJumpToMessage: (roomTarget: string, messageId: number) => void;
 }) {
   if (content === "search" && targetId) {
     return (
       <ChatSearch
-        slug={targetId}
+        roomId={targetId}
         onResultClick={(messageId) => onJumpToMessage(targetId, messageId)}
       />
     );
   }
 
   if (content === "group" && targetId) {
-    return <GroupInfoPanel slug={targetId} />;
+    return <GroupInfoPanel roomId={targetId} />;
   }
 
   if (content === "direct" && targetId) {
-    return <DirectInfoPanel slug={targetId} />;
+    return <DirectInfoPanel roomId={targetId} />;
   }
 
   if (content === "profile" && targetId) {
@@ -78,11 +79,11 @@ export function InfoPanel({
 
   /**
    * Обрабатывает on jump to message.
-   * @param slug Человекочитаемый идентификатор сущности.
+   * @param roomTarget External room target used to build the chat route.
    * @param messageId Идентификатор сообщения.
    */
-  const onJumpToMessage = (slug: string, messageId: number) => {
-    navigate(`/rooms/${encodeURIComponent(slug)}?message=${messageId}`);
+  const onJumpToMessage = (roomTarget: string, messageId: number) => {
+    navigate(`${buildChatTargetPath(roomTarget)}?message=${messageId}`);
   };
 
   if (!content) return null;

@@ -1,6 +1,6 @@
 import { type KeyboardEvent, useCallback, useState } from "react";
 
-import styles from "../../styles/friends/FriendsPage.module.css";
+import styles from "../../styles/friends/AddFriendDialog.module.css";
 
 const HANDLE_PUBLIC_REF_RE = /^@[a-z][a-z0-9_]{2,29}$/i;
 const USER_PUBLIC_ID_RE = /^[1-9]\d{9}$/;
@@ -49,12 +49,12 @@ export function AddFriendDialog({ onSubmit, onClose }: Props) {
   }, [publicRef, onSubmit, onClose]);
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
         void handleSubmit();
       }
-      if (e.key === "Escape") {
+      if (event.key === "Escape") {
         onClose();
       }
     },
@@ -69,9 +69,9 @@ export function AddFriendDialog({ onSubmit, onClose }: Props) {
         <input
           className={styles.dialogInput}
           value={publicRef}
-          onChange={(e) => setPublicRef(e.target.value)}
+          onChange={(event) => setPublicRef(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Введи @username"
+          placeholder="Введите @username"
           autoFocus
           disabled={sending}
         />

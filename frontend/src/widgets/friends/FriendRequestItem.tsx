@@ -1,6 +1,7 @@
 import type { FriendRequest } from "../../entities/friend/types";
+import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { Avatar } from "../../shared/ui";
-import styles from "../../styles/friends/FriendsPage.module.css";
+import styles from "../../styles/friends/FriendRequestItem.module.css";
 
 /**
  * Описывает входные props компонента `Incoming`.
@@ -32,7 +33,7 @@ type Props = IncomingProps | OutgoingProps;
  */
 export function FriendRequestItem(props: Props) {
   const { request, direction } = props;
-  const displayName = request.displayName ?? request.username;
+  const displayName = resolveIdentityLabel(request);
 
   return (
     <div className={styles.item}>
@@ -42,6 +43,7 @@ export function FriendRequestItem(props: Props) {
         avatarCrop={request.avatarCrop ?? undefined}
         size="small"
         online={false}
+        loading="eager"
       />
       <div className={styles.itemInfo}>
         <div className={styles.itemName}>{displayName}</div>

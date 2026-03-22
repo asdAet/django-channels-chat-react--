@@ -98,20 +98,3 @@ def ensure_is_group(room: Room) -> None:
     if room.kind != Room.Kind.GROUP:
         raise ValueError("Эта операция доступна только для групп")
 
-
-def generate_group_slug(name: str) -> str:
-    """Генерирует group slug по заданным правилам.
-    
-    Args:
-        name: Имя сущности или параметра.
-    
-    Returns:
-        Строковое значение, сформированное функцией.
-    """
-    slug = re.sub(r"[^a-zA-Z0-9]", "-", name.strip()).strip("-").lower()
-    slug = re.sub(r"-+", "-", slug)
-    if len(slug) < 3:
-        slug = slug + "-" + secrets.token_hex(4)
-    suffix = secrets.token_hex(4)
-    slug = f"g-{slug[:36]}-{suffix}"
-    return slug

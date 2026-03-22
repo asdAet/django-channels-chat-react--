@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { groupController } from "../controllers/GroupController";
 import type { InvitePreview } from "../entities/group/types";
+import { buildChatTargetPath } from "../shared/lib/chatTarget";
 import { Spinner } from "../shared/ui";
 import styles from "../styles/groups/GroupsPage.module.css";
 
@@ -43,7 +44,11 @@ export function InvitePreviewPage({ code, onNavigate }: Props) {
     setError(null);
     try {
       const result = await groupController.joinViaInvite(code);
-      onNavigate(`/rooms/${result.roomId}`);
+      onNavigate(
+        result.groupPublicRef
+          ? buildChatTargetPath(result.groupPublicRef)
+          : "/groups",
+      );
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err

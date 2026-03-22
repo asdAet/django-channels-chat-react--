@@ -34,14 +34,16 @@ import {
   isImageAttachment,
   resolveImagePreviewUrl,
 } from "../../shared/lib/attachmentMedia";
+import { buildChatTargetPath } from "../../shared/lib/chatTarget";
 import { formatPublicRef, isHandleRef } from "../../shared/lib/publicRef";
+import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { Avatar, AvatarCropModal, Modal, Spinner } from "../../shared/ui";
 import styles from "../../styles/groups/GroupInfoPanel.module.css";
 
 /**
  * Описывает входные props компонента `Props`.
  */
-type Props = { slug: string };
+type Props = { roomId: string };
 /**
  * Описывает структуру состояния `View`.
  */
@@ -189,7 +191,7 @@ const revokeBlobUrl = (value: string | null) => {
 /**
  * React-компонент GroupInfoPanel отвечает за отрисовку и обработку UI-сценария.
  */
-export function GroupInfoPanel({ slug }: Props) {
+export function GroupInfoPanel({ roomId }: Props) {
   const [view, setView] = useState<ViewState>("info");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
   const [group, setGroup] = useState<Group | null>(null);
@@ -257,7 +259,7 @@ export function GroupInfoPanel({ slug }: Props) {
   const latestAvatarPreviewUrlRef = useRef<string | null>(null);
   const latestPendingAvatarUrlRef = useRef<string | null>(null);
   const { open: openInfoPanel } = useInfoPanel();
-  const perms = useRoomPermissions(slug);
+  const perms = useRoomPermissions(roomId);
 
   const selectedRole = useMemo(
     () =>
@@ -279,7 +281,16 @@ export function GroupInfoPanel({ slug }: Props) {
       new Map(
         members.map((member) => [
           member.userId,
-          (member.displayName || member.nickname || member.username).trim(),
+          resolveIdentityLabel(
+            {
+              displayName: member.displayName,
+              name: member.nickname,
+              username: member.username,
+              publicRef: member.publicRef,
+              userId: member.userId,
+            },
+            String(member.userId),
+          ),
         ]),
       ),
     [members],
@@ -291,13 +302,16 @@ export function GroupInfoPanel({ slug }: Props) {
 
   const resolveMemberDisplayName = useCallback(
     (member: GroupMember): string => {
-      const trimmedDisplayName = member.displayName?.trim();
-      if (trimmedDisplayName) return trimmedDisplayName;
-
-      const trimmedNickname = member.nickname?.trim();
-      if (trimmedNickname) return trimmedNickname;
-
-      return member.username;
+      return resolveIdentityLabel(
+        {
+          displayName: member.displayName,
+          name: member.nickname,
+          username: member.username,
+          publicRef: member.publicRef,
+          userId: member.userId,
+        },
+        String(member.userId),
+      );
     },
     [],
   );
@@ -356,12 +370,12 @@ export function GroupInfoPanel({ slug }: Props) {
       return;
     }
     const [rolesResult, overridesResult] = await Promise.all([
-      rolesController.getRoomRoles(slug).catch(() => []),
-      rolesController.getRoomOverrides(slug).catch(() => []),
+      rolesController.getRoomRoles(roomId).catch(() => []),
+      rolesController.getRoomOverrides(roomId).catch(() => []),
     ]);
     setRoles(rolesResult);
     setOverrides(overridesResult);
-  }, [perms.canManageRoles, slug]);
+  }, [perms.canManageRoles, roomId]);
 
   const clearPendingAvatar = useCallback((revoke = true) => {
     if (revoke) {
@@ -379,9 +393,9 @@ export function GroupInfoPanel({ slug }: Props) {
     setError(null);
     try {
       const [groupResult, membersResult] = await Promise.all([
-        groupController.getGroupDetails(slug),
+        groupController.getGroupDetails(roomId),
         groupController
-          .getGroupMembers(slug, { limit: 200 })
+          .getGroupMembers(roomId, { limit: 200 })
           .catch(() => ({ items: [] as GroupMember[], total: 0 })),
       ]);
       setGroup(groupResult);
@@ -407,38 +421,38 @@ export function GroupInfoPanel({ slug }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [clearPendingAvatar, loadRolesData, slug]);
+  }, [clearPendingAvatar, loadRolesData, roomId]);
 
   const loadInvites = useCallback(async () => {
     try {
-      const result = await groupController.getInvites(slug);
+      const result = await groupController.getInvites(roomId);
       setInvites(result.filter((item) => !item.isRevoked));
     } catch {
       setInvites([]);
     }
-  }, [slug]);
+  }, [roomId]);
 
   const loadJoinRequests = useCallback(async () => {
     try {
-      setJoinRequests(await groupController.getJoinRequests(slug));
+      setJoinRequests(await groupController.getJoinRequests(roomId));
     } catch {
       setJoinRequests([]);
     }
-  }, [slug]);
+  }, [roomId]);
 
   const loadBanned = useCallback(async () => {
     try {
-      const result = await groupController.getBannedMembers(slug);
+      const result = await groupController.getBannedMembers(roomId);
       setBannedMembers(result.items);
     } catch {
       setBannedMembers([]);
     }
-  }, [slug]);
+  }, [roomId]);
 
   const loadMedia = useCallback(async () => {
     setMediaLoading(true);
     try {
-      const result = await chatController.getRoomAttachments(slug, {
+      const result = await chatController.getRoomAttachments(roomId, {
         limit: 120,
       });
       setMediaItems(result.items);
@@ -447,7 +461,7 @@ export function GroupInfoPanel({ slug }: Props) {
     } finally {
       setMediaLoading(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   const loadLinks = useCallback(async () => {
     setLinksLoading(true);
@@ -457,7 +471,7 @@ export function GroupInfoPanel({ slug }: Props) {
       let beforeId: number | undefined;
 
       for (let page = 0; page < 4 && collected.length < 120; page += 1) {
-        const result = await chatController.getRoomMessages(slug, {
+        const result = await chatController.getRoomMessages(roomId, {
           limit: 100,
           beforeId,
         });
@@ -491,7 +505,7 @@ export function GroupInfoPanel({ slug }: Props) {
     } finally {
       setLinksLoading(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   useEffect(() => {
     void loadBase();
@@ -536,10 +550,10 @@ export function GroupInfoPanel({ slug }: Props) {
       return;
     }
     rolesController
-      .getMemberRoles(slug, Number(selectedMemberRoleUserId))
+      .getMemberRoles(roomId, Number(selectedMemberRoleUserId))
       .then((result) => setMemberRoleIds(result.roleIds))
       .catch(() => setMemberRoleIds([]));
-  }, [selectedMemberRoleUserId, slug]);
+  }, [selectedMemberRoleUserId, roomId]);
 
   const hasGeneralChanges = useMemo(() => {
     if (!group) return false;
@@ -588,7 +602,7 @@ export function GroupInfoPanel({ slug }: Props) {
       };
       if (editAvatarFile) payload.avatar = editAvatarFile;
       if (editAvatarCrop) payload.avatarCrop = editAvatarCrop;
-      const updated = await groupController.updateGroup(slug, payload);
+      const updated = await groupController.updateGroup(roomId, payload);
       setGroup(updated);
       setView("info");
       await loadBase();
@@ -610,14 +624,14 @@ export function GroupInfoPanel({ slug }: Props) {
     editUsername,
     group,
     loadBase,
-    slug,
+    roomId,
   ]);
 
   const removeAvatar = useCallback(async () => {
     setBusyAction("remove-avatar");
     setError(null);
     try {
-      const updated = await groupController.updateGroup(slug, {
+      const updated = await groupController.updateGroup(roomId, {
         avatarAction: "remove",
       });
       setEditAvatarFile(null);
@@ -634,7 +648,7 @@ export function GroupInfoPanel({ slug }: Props) {
     } finally {
       setBusyAction(null);
     }
-  }, [clearPendingAvatar, loadBase, slug]);
+  }, [clearPendingAvatar, loadBase, roomId]);
 
   const handleAvatarInputChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -683,7 +697,7 @@ export function GroupInfoPanel({ slug }: Props) {
     setBusyAction("leave");
     setError(null);
     try {
-      await groupController.leaveGroup(slug);
+      await groupController.leaveGroup(roomId);
       window.location.href = "/groups";
     } catch (err) {
       setError(extractErrorMessage(err, "Не удалось покинуть группу"));
@@ -691,13 +705,13 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(null);
       setConfirmLeave(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   const handleDeleteGroup = useCallback(async () => {
     setBusyAction("delete");
     setError(null);
     try {
-      await groupController.deleteGroup(slug);
+      await groupController.deleteGroup(roomId);
       window.location.href = "/groups";
     } catch (err) {
       setError(extractErrorMessage(err, "Не удалось удалить группу"));
@@ -705,7 +719,7 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(null);
       setConfirmDelete(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   const activeViewTitle = useMemo(() => {
     if (view === "info") return "Group Info";
@@ -721,7 +735,7 @@ export function GroupInfoPanel({ slug }: Props) {
     setBusyAction("create-invite");
     setError(null);
     try {
-      await groupController.createInvite(slug, {
+      await groupController.createInvite(roomId, {
         expiresInHours:
           (Number(inviteHours) || 0) > 0 ? Number(inviteHours) : undefined,
         maxUses:
@@ -733,14 +747,14 @@ export function GroupInfoPanel({ slug }: Props) {
     } finally {
       setBusyAction(null);
     }
-  }, [inviteHours, inviteMaxUses, loadInvites, slug]);
+  }, [inviteHours, inviteMaxUses, loadInvites, roomId]);
 
   const revokeInvite = useCallback(
     async (code: string) => {
       setBusyAction(`revoke-${code}`);
       setError(null);
       try {
-        await groupController.revokeInvite(slug, code);
+        await groupController.revokeInvite(roomId, code);
         await loadInvites();
       } catch (err) {
         setError(extractErrorMessage(err, "Не удалось отозвать ссылку"));
@@ -748,7 +762,7 @@ export function GroupInfoPanel({ slug }: Props) {
         setBusyAction(null);
       }
     },
-    [loadInvites, slug],
+    [loadInvites, roomId],
   );
 
   const createRole = useCallback(async () => {
@@ -756,7 +770,7 @@ export function GroupInfoPanel({ slug }: Props) {
     setBusyAction("create-role");
     setError(null);
     try {
-      await rolesController.createRoomRole(slug, {
+      await rolesController.createRoomRole(roomId, {
         name: newRoleName.trim(),
         color: newRoleColor,
         permissions: combinePermissionFlags(newRoleBits),
@@ -770,14 +784,14 @@ export function GroupInfoPanel({ slug }: Props) {
     } finally {
       setBusyAction(null);
     }
-  }, [loadRolesData, newRoleBits, newRoleColor, newRoleName, slug]);
+  }, [loadRolesData, newRoleBits, newRoleColor, newRoleName, roomId]);
 
   const updateRole = useCallback(async () => {
     if (selectedRoleId === "") return;
     setBusyAction(`update-role-${selectedRoleId}`);
     setError(null);
     try {
-      await rolesController.updateRoomRole(slug, Number(selectedRoleId), {
+      await rolesController.updateRoomRole(roomId, Number(selectedRoleId), {
         name: roleEditName.trim(),
         color: roleEditColor,
         permissions: combinePermissionFlags(roleEditBits),
@@ -796,7 +810,7 @@ export function GroupInfoPanel({ slug }: Props) {
     roleEditColor,
     roleEditName,
     selectedRoleId,
-    slug,
+    roomId,
   ]);
 
   const deleteRole = useCallback(
@@ -804,7 +818,7 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(`delete-role-${roleId}`);
       setError(null);
       try {
-        await rolesController.deleteRoomRole(slug, roleId);
+        await rolesController.deleteRoomRole(roomId, roleId);
         await loadRolesData();
         await loadBase();
       } catch (err) {
@@ -813,7 +827,7 @@ export function GroupInfoPanel({ slug }: Props) {
         setBusyAction(null);
       }
     },
-    [loadBase, loadRolesData, slug],
+    [loadBase, loadRolesData, roomId],
   );
 
   const saveMemberRoles = useCallback(async () => {
@@ -822,7 +836,7 @@ export function GroupInfoPanel({ slug }: Props) {
     setError(null);
     try {
       await rolesController.setMemberRoles(
-        slug,
+        roomId,
         Number(selectedMemberRoleUserId),
         memberRoleIds,
       );
@@ -832,7 +846,7 @@ export function GroupInfoPanel({ slug }: Props) {
     } finally {
       setBusyAction(null);
     }
-  }, [loadBase, memberRoleIds, selectedMemberRoleUserId, slug]);
+  }, [loadBase, memberRoleIds, selectedMemberRoleUserId, roomId]);
 
   const resetOverrideForm = useCallback(() => {
     setOverrideMode("create");
@@ -864,14 +878,14 @@ export function GroupInfoPanel({ slug }: Props) {
       const allow = combinePermissionFlags(overrideAllowBits);
       const deny = combinePermissionFlags(overrideDenyBits);
       if (overrideMode === "edit" && editingOverrideId !== null) {
-        await rolesController.updateRoomOverride(slug, editingOverrideId, {
+        await rolesController.updateRoomOverride(roomId, editingOverrideId, {
           allow,
           deny,
         });
       } else {
         if (overrideTargetId === "")
           throw new Error("Выберите цель для override");
-        await rolesController.createRoomOverride(slug, {
+        await rolesController.createRoomOverride(roomId, {
           targetRoleId:
             overrideTargetType === "role"
               ? Number(overrideTargetId)
@@ -900,7 +914,7 @@ export function GroupInfoPanel({ slug }: Props) {
     overrideTargetId,
     overrideTargetType,
     resetOverrideForm,
-    slug,
+    roomId,
   ]);
 
   const deleteOverride = useCallback(
@@ -908,7 +922,7 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(`delete-override-${overrideId}`);
       setError(null);
       try {
-        await rolesController.deleteRoomOverride(slug, overrideId);
+        await rolesController.deleteRoomOverride(roomId, overrideId);
         await loadRolesData();
       } catch (err) {
         setError(extractErrorMessage(err, "Не удалось удалить override"));
@@ -916,7 +930,7 @@ export function GroupInfoPanel({ slug }: Props) {
         setBusyAction(null);
       }
     },
-    [loadRolesData, slug],
+    [loadRolesData, roomId],
   );
 
   const handleMemberAction = useCallback(
@@ -929,12 +943,12 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(`${action}-${userId}`);
       setError(null);
       try {
-        if (action === "kick") await groupController.kickMember(slug, userId);
-        if (action === "ban") await groupController.banMember(slug, userId);
+        if (action === "kick") await groupController.kickMember(roomId, userId);
+        if (action === "ban") await groupController.banMember(roomId, userId);
         if (action === "mute")
-          await groupController.muteMember(slug, userId, 3600);
+          await groupController.muteMember(roomId, userId, 3600);
         if (action === "unmute")
-          await groupController.unmuteMember(slug, userId);
+          await groupController.unmuteMember(roomId, userId);
         await loadBase();
         if (action === "ban" || action === "kick") await loadBanned();
       } catch (err) {
@@ -948,7 +962,7 @@ export function GroupInfoPanel({ slug }: Props) {
         setBusyAction(null);
       }
     },
-    [isSelfMember, loadBanned, loadBase, members, slug],
+    [isSelfMember, loadBanned, loadBase, members, roomId],
   );
 
   const approveRequest = useCallback(
@@ -956,7 +970,7 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(`approve-${requestId}`);
       setError(null);
       try {
-        await groupController.approveJoinRequest(slug, requestId);
+        await groupController.approveJoinRequest(roomId, requestId);
         await loadJoinRequests();
         await loadBase();
       } catch (err) {
@@ -965,7 +979,7 @@ export function GroupInfoPanel({ slug }: Props) {
         setBusyAction(null);
       }
     },
-    [loadBase, loadJoinRequests, slug],
+    [loadBase, loadJoinRequests, roomId],
   );
 
   const rejectRequest = useCallback(
@@ -973,7 +987,7 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(`reject-${requestId}`);
       setError(null);
       try {
-        await groupController.rejectJoinRequest(slug, requestId);
+        await groupController.rejectJoinRequest(roomId, requestId);
         await loadJoinRequests();
       } catch (err) {
         setError(extractErrorMessage(err, "Не удалось отклонить заявку"));
@@ -981,7 +995,7 @@ export function GroupInfoPanel({ slug }: Props) {
         setBusyAction(null);
       }
     },
-    [loadJoinRequests, slug],
+    [loadJoinRequests, roomId],
   );
 
   const availableBanTargets = useMemo(
@@ -1007,7 +1021,7 @@ export function GroupInfoPanel({ slug }: Props) {
     setError(null);
     try {
       await groupController.banMember(
-        slug,
+        roomId,
         Number(banTargetUserId),
         banReason.trim() || undefined,
       );
@@ -1027,7 +1041,7 @@ export function GroupInfoPanel({ slug }: Props) {
     loadBanned,
     loadBase,
     members,
-    slug,
+    roomId,
   ]);
 
   const unbanMember = useCallback(
@@ -1035,7 +1049,7 @@ export function GroupInfoPanel({ slug }: Props) {
       setBusyAction(`unban-${userId}`);
       setError(null);
       try {
-        await groupController.unbanMember(slug, userId);
+        await groupController.unbanMember(roomId, userId);
         await loadBanned();
         await loadBase();
       } catch (err) {
@@ -1046,7 +1060,7 @@ export function GroupInfoPanel({ slug }: Props) {
         setBusyAction(null);
       }
     },
-    [loadBanned, loadBase, slug],
+    [loadBanned, loadBase, roomId],
   );
 
   const effectiveAvatarUrl = editAvatarPreviewUrl ?? group?.avatarUrl ?? null;
@@ -1351,7 +1365,7 @@ export function GroupInfoPanel({ slug }: Props) {
               <a
                 key={`${item.messageId}-${item.url}`}
                 className={styles.fileRow}
-                href={`/rooms/${encodeURIComponent(slug)}?message=${item.messageId}`}
+                href={`${buildChatTargetPath(group?.roomTarget ?? String(group?.roomId ?? roomId))}?message=${item.messageId}`}
               >
                 <div className={styles.mediaMeta}>
                   <span className={styles.mediaName}>{item.url}</span>
@@ -1886,7 +1900,7 @@ export function GroupInfoPanel({ slug }: Props) {
           {joinRequests.map((request) => (
             <div key={request.id} className={styles.requestRow}>
               <div className={styles.requestMeta}>
-                <strong>{request.username}</strong>
+                <strong>{resolveIdentityLabel(request, String(request.userId))}</strong>
                 <span>{request.message || "Без комментария"}</span>
               </div>
               <div className={styles.requestActions}>
@@ -2048,7 +2062,7 @@ export function GroupInfoPanel({ slug }: Props) {
           {bannedMembers.map((member) => (
             <div key={member.userId} className={styles.requestRow}>
               <div className={styles.requestMeta}>
-                <strong>{member.displayName || member.username}</strong>
+                <strong>{resolveIdentityLabel(member, String(member.userId))}</strong>
                 {member.publicRef && member.publicRef.startsWith("@") && (
                   <span>{member.publicRef}</span>
                 )}

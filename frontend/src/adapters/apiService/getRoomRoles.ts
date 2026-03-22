@@ -14,7 +14,7 @@ export async function getRoomRoles(
   roomId: string,
 ): Promise<Role[]> {
   const response = await apiClient.get<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomId)}/roles/`,
+    `/chat/${encodeURIComponent(roomId)}/roles/`,
   );
   return decodeRolesListResponse(response.data);
 }

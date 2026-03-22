@@ -69,7 +69,7 @@ class UserSignalsTests(TestCase):
     def test_username_rename_updates_messages_and_writes_audit_event(self):
         """Проверяет сценарий `test_username_rename_updates_messages_and_writes_audit_event`."""
         user = User.objects.create_user(username='old_name', password='pass12345')
-        room = Room.objects.create(name='Private', slug='private123', kind=Room.Kind.PRIVATE, created_by=user)
+        room = Room.objects.create(name='Private', kind=Room.Kind.PRIVATE, created_by=user)
         Message.objects.create(
             username='old_name',
             user=user,

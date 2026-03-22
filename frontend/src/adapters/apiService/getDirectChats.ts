@@ -1,4 +1,4 @@
-﻿import type { AxiosInstance } from "axios";
+import type { AxiosInstance } from "axios";
 
 import type { DirectChatsResponse } from "../../domain/interfaces/IApiService";
 import { decodeDirectChatsResponse } from "../../dto";
@@ -12,6 +12,6 @@ import { decodeDirectChatsResponse } from "../../dto";
 export const getDirectChats = async (
   apiClient: AxiosInstance,
 ): Promise<DirectChatsResponse> => {
-  const response = await apiClient.get<unknown>("/chat/direct/chats/");
+  const response = await apiClient.get<unknown>("/chat/inbox/");
   return decodeDirectChatsResponse(response.data);
 };

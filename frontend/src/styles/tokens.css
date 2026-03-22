@@ -7,7 +7,7 @@
   --tg-primary-light: rgba(47, 179, 163, 0.15);
 
   /* Backgrounds */
-  --tg-bg-primary: #212121;
+  --tg-bg-primary: #2b2d31;
   --tg-bg-secondary: #181818;
   --tg-bg-surface: #2b2b2b;
   --tg-bg-sidebar: #181818;
@@ -59,7 +59,7 @@
   --tg-font: "Manrope", "Segoe UI", sans-serif;
 
   /* Layout */
-  --tg-sidebar-w: 308px;
+  --tg-sidebar-w: 360px;
   --tg-info-w: 360px;
   --bp-compact: 480px;
   --bp-phone: 768px;

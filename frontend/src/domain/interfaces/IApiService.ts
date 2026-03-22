@@ -77,13 +77,15 @@ export type RoomMessagesResponse = {
   };
 };
 
-/**
- * Описывает структуру ответа API `DirectStartResponse`.
- */
-export type DirectStartResponse = {
+export type ChatResolveTargetKind = "direct" | "group" | "public";
+
+export type ChatResolveResult = {
+  targetKind: ChatResolveTargetKind;
   roomId: number;
-  kind: RoomKind;
-  peer: RoomPeer;
+  roomKind: RoomKind;
+  resolvedTarget: string;
+  peer?: RoomPeer;
+  room?: RoomDetails;
 };
 
 /**
@@ -99,7 +101,7 @@ export type DirectChatsResponse = {
 export type ClientRuntimeConfig = {
   usernameMaxLength: number;
   chatMessageMaxLength: number;
-  chatRoomSlugRegex: string;
+  chatTargetRegex: string;
   chatAttachmentMaxSizeMb: number;
   chatAttachmentMaxPerMessage: number;
   chatAttachmentAllowedTypes: string[];
@@ -196,10 +198,11 @@ logout(): Promise<{ ok: boolean }>;
 updateProfile(fields: UpdateProfileInput): Promise<{ user: UserProfile }>;
 
     /**
-     * Возвращает public room.
-     * @returns Промис с данными, возвращаемыми этой функцией.
+     * Разрешает prefixless chat target в конкретную комнату.
+     * @param target Внешний адрес чата: public, @username, public id или group publicRef.
+     * @returns Промис с данными разрешения target.
      */
-getPublicRoom(): Promise<RoomDetails>;
+resolveChatTarget(target: string): Promise<ChatResolveResult>;
 
     /**
      * Возвращает room details.
@@ -222,13 +225,6 @@ getRoomMessages(
   ): Promise<RoomMessagesResponse>;
 
     /**
-     * Обрабатывает start direct chat.
-     * @param publicRef Публичный идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-startDirectChat(publicRef: string): Promise<DirectStartResponse>;
-
-    /**
      * Возвращает direct chats.
      * @returns Промис с данными, возвращаемыми этой функцией.
      */
@@ -247,6 +243,17 @@ getUserProfile(publicRef: string): Promise<{ user: UserProfile }>;
      * @returns Промис с данными, возвращаемыми этой функцией.
      */
 getUnreadCounts(): Promise<UnreadCountItem[]>;
+
+    /**
+     * Возвращает exact readers конкретного сообщения.
+     * @param roomId Идентификатор комнаты.
+     * @param messageId Идентификатор сообщения.
+     * @returns Промис с данными, возвращаемыми этой функцией.
+     */
+getMessageReaders(
+    roomId: string,
+    messageId: number,
+  ): Promise<MessageReadersResult>;
 
     /**
      * Обрабатывает edit message.
@@ -586,7 +593,9 @@ getInvitePreview(code: string): Promise<InvitePreview>;
      * @param code Код приглашения.
      * @returns Промис с данными, возвращаемыми этой функцией.
      */
-joinViaInvite(code: string): Promise<{ roomId: number }>;
+joinViaInvite(
+    code: string,
+  ): Promise<{ roomId: number; groupPublicRef?: string | null }>;
     /**
      * Возвращает join requests.
      * @param roomId Идентификатор комнаты.
@@ -832,11 +841,35 @@ export type UploadResult = {
 export type ReadStateResult = {
   roomId: number;
   lastReadMessageId: number | null;
+  lastReadAt?: string | null;
 };
 /**
  * Описывает структуру данных `UnreadCountItem`.
  */
 export type UnreadCountItem = { roomId: number; unreadCount: number };
+
+/**
+ * Описывает одного reader для конкретного сообщения.
+ */
+export type MessageReaderItem = {
+  userId: number;
+  publicRef: string;
+  username: string;
+  displayName?: string;
+  profileImage: string | null;
+  avatarCrop?: AvatarCrop | null;
+  readAt: string;
+};
+
+/**
+ * Описывает результат загрузки readers конкретного сообщения.
+ */
+export type MessageReadersResult = {
+  roomKind: RoomKind;
+  messageId: number;
+  readAt: string | null;
+  readers: MessageReaderItem[];
+};
 
 /**
  * Описывает настраиваемые опции `UploadAttachments`.
@@ -891,6 +924,7 @@ export type GlobalSearchGroup = {
   name: string;
   description: string;
   publicRef: string;
+  roomTarget: string;
   memberCount: number;
   isPublic: boolean;
 };
@@ -908,6 +942,7 @@ export type GlobalSearchMessage = {
   roomId: number;
   roomName: string;
   roomKind: RoomKind;
+  roomTarget: string | null;
 };
 
 /**

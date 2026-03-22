@@ -132,7 +132,7 @@ class UserActionsAuditCoverageTests(TestCase):
             2,
         )
 
-    def test_direct_start_action_is_audited_for_actor(self):
+    def test_chat_resolve_direct_action_is_audited_for_actor(self):
         actor = auth_service.register_user(
             login="audit_direct_actor",
             password="pass12345",
@@ -156,8 +156,8 @@ class UserActionsAuditCoverageTests(TestCase):
         self.client.force_login(actor)
         csrf = self._csrf()
         response = self.client.post(
-            "/api/chat/direct/start/",
-            data=json.dumps({"ref": "@auditdirectpeer"}),
+            "/api/chat/resolve/",
+            data=json.dumps({"target": "@auditdirectpeer"}),
             content_type="application/json",
             HTTP_X_CSRFTOKEN=csrf,
         )
@@ -166,7 +166,7 @@ class UserActionsAuditCoverageTests(TestCase):
         self.assertTrue(
             AuditEvent.objects.filter(
                 action="http.request",
-                path="/api/chat/direct/start/",
+                path="/api/chat/resolve/",
                 actor_user_id_snapshot=actor.pk,
                 status_code=200,
             ).exists()

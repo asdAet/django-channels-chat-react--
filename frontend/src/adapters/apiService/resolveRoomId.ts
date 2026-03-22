@@ -1,47 +1,20 @@
-import type { AxiosInstance } from "axios";
+﻿import type { AxiosInstance } from "axios";
 
-/**
- * Выполняет API-запрос для операции to positive room id string.
- * @param value Входное значение для преобразования.
- * @returns Строковое значение результата.
- */
-const toPositiveRoomIdString = (value: unknown): string | null => {
-  const parsed =
-    typeof value === "number"
-      ? value
-      : typeof value === "string"
-        ? Number.parseInt(value, 10)
-        : Number.NaN;
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return null;
-  }
-  return String(Math.trunc(parsed));
-};
+import { resolveChatTarget } from "./resolveChatTarget";
 
-/**
- * Определяет room id.
- * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
- * @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
- * @returns Промис с данными, возвращаемыми этой функцией.
- */
+const POSITIVE_ROOM_ID_RE = /^\d+$/;
+
 export async function resolveRoomId(
   apiClient: AxiosInstance,
-  roomRef: string,
+  roomTarget: string,
 ): Promise<string> {
-  if (roomRef !== "public") {
-    return roomRef;
+  // Normalize an external chat target to the numeric room id required by
+  // room-scoped API endpoints.
+  const normalized = roomTarget.trim();
+  if (POSITIVE_ROOM_ID_RE.test(normalized)) {
+    return String(Number.parseInt(normalized, 10));
   }
 
-  const publicRoomResponse = await apiClient.get<unknown>("/chat/public-room/");
-  const publicPayload =
-    typeof publicRoomResponse.data === "object" &&
-    publicRoomResponse.data !== null
-      ? (publicRoomResponse.data as Record<string, unknown>)
-      : {};
-
-  const resolved = toPositiveRoomIdString(publicPayload.roomId);
-  if (!resolved) {
-    throw new Error("Failed to resolve public room id");
-  }
-  return resolved;
+  const resolved = await resolveChatTarget(apiClient, normalized);
+  return String(resolved.roomId);
 }

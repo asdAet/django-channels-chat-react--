@@ -18,7 +18,7 @@ export async function setMemberRoles(
   roleIds: number[],
 ): Promise<MemberRoles> {
   const response = await apiClient.patch<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomId)}/members/${userId}/roles/`,
+    `/chat/${encodeURIComponent(roomId)}/members/${userId}/roles/`,
     { roleIds },
   );
   return decodeMemberRolesResponse(response.data);

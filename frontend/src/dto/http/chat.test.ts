@@ -2,7 +2,7 @@
 
 import {
   decodeDirectChatsResponse,
-  decodeDirectStartResponse,
+  decodeMessageReadersResponse,
   decodeRoomMessagesResponse,
 } from "./chat";
 
@@ -33,30 +33,6 @@ describe("chat HTTP DTO decoders", () => {
     expect(decoded.pagination?.limit).toBe(50);
   });
 
-  it("decodes direct start response", () => {
-    const decoded = decodeDirectStartResponse({
-      roomId: 123,
-      kind: "direct",
-      peer: {
-        publicRef: "bob",
-        username: "bob",
-        profileImage: null,
-        avatarCrop: { x: 0.11, y: 0.22, width: 0.33, height: 0.44 },
-        lastSeen: null,
-      },
-    });
-
-    expect(decoded.peer.username).toBe("bob");
-    expect(decoded.peer.publicRef).toBe("bob");
-    expect(decoded.peer.avatarCrop).toEqual({
-      x: 0.11,
-      y: 0.22,
-      width: 0.33,
-      height: 0.44,
-    });
-    expect(decoded.roomId).toBe(123);
-  });
-
   it("decodes direct chats response", () => {
     const decoded = decodeDirectChatsResponse({
       items: [
@@ -69,7 +45,35 @@ describe("chat HTTP DTO decoders", () => {
       ],
     });
 
-    expect(decoded.items[0]?.slug).toBe("123");
+    expect(decoded.items[0]?.roomId).toBe(123);
     expect(decoded.items[0]?.peer.publicRef).toBe("bob");
+  });
+
+  it("decodes message readers response with avatar fields", () => {
+    const decoded = decodeMessageReadersResponse({
+      roomKind: "group",
+      messageId: 7,
+      readers: [
+        {
+          userId: 2,
+          publicRef: "alice",
+          username: "alice",
+          displayName: "Alice",
+          profileImage: "https://cdn.example.com/alice.jpg",
+          avatarCrop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+          readAt: "2026-02-18T00:00:00Z",
+        },
+      ],
+    });
+
+    expect(decoded.readers[0]?.profileImage).toBe(
+      "https://cdn.example.com/alice.jpg",
+    );
+    expect(decoded.readers[0]?.avatarCrop).toEqual({
+      x: 0.1,
+      y: 0.2,
+      width: 0.3,
+      height: 0.4,
+    });
   });
 });

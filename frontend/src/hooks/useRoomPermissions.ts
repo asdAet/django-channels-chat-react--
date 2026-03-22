@@ -31,31 +31,31 @@ type UseRoomPermissionsResult = {
 
 /**
  * Хук useRoomPermissions управляет состоянием и побочными эффектами текущего сценария.
- * @param slug Человекочитаемый идентификатор сущности.
+ * @param roomId Идентификатор комнаты.
  * @returns Публичное состояние хука и его обработчики.
  */
 export function useRoomPermissions(
-  slug: string | null,
+  roomId: string | null,
 ): UseRoomPermissionsResult {
   const [raw, setRaw] = useState<MyPermissions | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!slug) {
+    if (!roomId) {
       setRaw(null);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const result = await apiService.getMyPermissions(slug);
+      const result = await apiService.getMyPermissions(roomId);
       setRaw(result);
     } catch {
       setRaw(null);
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   useEffect(() => {
     void load();

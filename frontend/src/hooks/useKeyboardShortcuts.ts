@@ -6,13 +6,13 @@ import { useInfoPanel } from "../shared/layout/useInfoPanel";
  * Описывает настраиваемые опции `Options`.
  */
 type Options = {
-  slug?: string | null;
+  roomId?: string | null;
 };
 
 /**
  * Хук useKeyboardShortcuts управляет состоянием и побочными эффектами текущего сценария.
  */
-export function useKeyboardShortcuts({ slug }: Options = {}) {
+export function useKeyboardShortcuts({ roomId }: Options = {}) {
   const { toggle, close, isOpen } = useInfoPanel();
 
   useEffect(() => {
@@ -24,8 +24,8 @@ export function useKeyboardShortcuts({ slug }: Options = {}) {
       // Ctrl+K → toggle search panel
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        if (slug) {
-          toggle("search", slug);
+        if (roomId) {
+          toggle("search", roomId);
         }
       }
 
@@ -37,5 +37,5 @@ export function useKeyboardShortcuts({ slug }: Options = {}) {
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [slug, toggle, close, isOpen]);
+  }, [roomId, toggle, close, isOpen]);
 }

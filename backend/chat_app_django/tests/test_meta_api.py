@@ -9,7 +9,7 @@ class ClientConfigApiTests(TestCase):
     @override_settings(
         USERNAME_MAX_LENGTH=40,
         CHAT_MESSAGE_MAX_LENGTH=2048,
-        CHAT_ROOM_SLUG_REGEX=r"^[a-z0-9-]{3,20}$",
+        CHAT_TARGET_REGEX=r"^[a-z0-9_@-]{1,20}$",
         CHAT_ATTACHMENT_MAX_SIZE_MB=25,
         CHAT_ATTACHMENT_MAX_PER_MESSAGE=17,
         CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
@@ -23,7 +23,7 @@ class ClientConfigApiTests(TestCase):
         payload = response.json()
         self.assertEqual(payload["usernameMaxLength"], 40)
         self.assertEqual(payload["chatMessageMaxLength"], 2048)
-        self.assertEqual(payload["chatRoomSlugRegex"], r"^[a-z0-9-]{3,20}$")
+        self.assertEqual(payload["chatTargetRegex"], r"^[a-z0-9_@-]{1,20}$")
         self.assertEqual(payload["chatAttachmentMaxSizeMb"], 25)
         self.assertEqual(payload["chatAttachmentMaxPerMessage"], 17)
         self.assertEqual(payload["chatAttachmentAllowedTypes"], ["audio/mpeg", "audio/webm"])

@@ -30,7 +30,7 @@ class AuditApiTests(TestCase):
             path="/api/auth/login/",
             status_code=200,
             success=True,
-            metadata={"room_slug": "public"},
+            metadata={"room_id": 1},
         )
         AuditEvent.objects.create(
             action="auth.logout",
@@ -43,7 +43,7 @@ class AuditApiTests(TestCase):
             path="/api/auth/logout/",
             status_code=200,
             success=True,
-            metadata={"room_slug": "private123"},
+            metadata={"room_id": 2},
         )
 
         self.client.force_login(self.staff)

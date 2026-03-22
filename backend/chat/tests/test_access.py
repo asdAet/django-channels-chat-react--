@@ -24,7 +24,6 @@ class ChatAccessTests(TestCase):
         self.other = User.objects.create_user(username='other', password='pass12345')
 
         self.private_room = Room.objects.create(
-            slug='private123',
             name='private',
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -34,7 +33,7 @@ class ChatAccessTests(TestCase):
 
     def test_public_room_permissions(self):
         """Проверяет сценарий `test_public_room_permissions`."""
-        public_room = Room.objects.create(slug='public', name='public', kind=Room.Kind.PUBLIC)
+        public_room = Room.objects.create(name='public', kind=Room.Kind.PUBLIC)
 
         self.assertTrue(can_read(public_room, AnonymousUser()))
         self.assertFalse(can_write(public_room, AnonymousUser()))
@@ -53,7 +52,6 @@ class ChatAccessTests(TestCase):
 
     def test_public_group_non_member_is_read_only_until_join(self):
         group = Room.objects.create(
-            slug='g_access_public_01',
             name='Public Group',
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -71,7 +69,6 @@ class ChatAccessTests(TestCase):
     def test_direct_room_without_pair_key_denied(self):
         """Проверяет сценарий `test_direct_room_without_pair_key_denied`."""
         direct = Room.objects.create(
-            slug='dm_empty',
             name='dm',
             kind=Room.Kind.DIRECT,
             direct_pair_key=None,
@@ -85,7 +82,6 @@ class ChatAccessTests(TestCase):
     def test_direct_room_pair_key_is_strict(self):
         """Проверяет сценарий `test_direct_room_pair_key_is_strict`."""
         direct = Room.objects.create(
-            slug='dm_abc123',
             name='dm',
             kind=Room.Kind.DIRECT,
             direct_pair_key='not-valid',
@@ -99,7 +95,6 @@ class ChatAccessTests(TestCase):
     def test_direct_room_denies_third_user_even_with_role(self):
         """Проверяет сценарий `test_direct_room_denies_third_user_even_with_role`."""
         direct = Room.objects.create(
-            slug='dm_abc124',
             name='dm',
             kind=Room.Kind.DIRECT,
             direct_pair_key=f'{self.owner.pk}:{self.member.pk}',

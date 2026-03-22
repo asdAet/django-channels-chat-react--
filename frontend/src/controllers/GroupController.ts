@@ -256,7 +256,9 @@ public async getInvitePreview(code: string): Promise<InvitePreview> {
      * @param code Код приглашения.
      * @returns Промис с данными, возвращаемыми этой функцией.
      */
-public async joinViaInvite(code: string): Promise<{ roomId: number }> {
+public async joinViaInvite(
+    code: string,
+  ): Promise<{ roomId: number; groupPublicRef?: string | null }> {
     const result = await apiService.joinViaInvite(code);
     emitConversationListRefresh();
     return result;

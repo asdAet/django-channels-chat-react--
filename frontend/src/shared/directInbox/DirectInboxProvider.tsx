@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { chatController } from "../../controllers/ChatController";
@@ -9,33 +9,22 @@ import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import { invalidateDirectChats } from "../cache/cacheManager";
 import { debugLog } from "../lib/debug";
 import { getWebSocketBase } from "../lib/ws";
-import {
-  clearUnreadOverride,
-  useUnreadOverrides,
-} from "../unreadOverrides/store";
+import { clearUnreadOverride, useUnreadOverrides } from "../unreadOverrides/store";
 import { DirectInboxContext } from "./context";
 
 const DIRECT_INBOX_PING_MS = 15_000;
 
-/**
- * Описывает входные props компонента `Provider`.
- */
 type ProviderProps = {
   user: UserProfile | null;
   ready?: boolean;
   children: ReactNode;
 };
 
-/**
- * Обрабатывает merge item.
- * @param prev Предыдущее состояние перед обновлением.
- * @param incoming Новые данные, пришедшие из внешнего источника.
- */
 const mergeItem = (
   prev: DirectChatListItemDto[],
   incoming: DirectChatListItemDto,
 ) => {
-  const filtered = prev.filter((item) => item.slug !== incoming.slug);
+  const filtered = prev.filter((item) => item.roomId !== incoming.roomId);
   const next = [incoming, ...filtered];
 
   next.sort((a, b) => {
@@ -50,11 +39,6 @@ const mergeItem = (
   return next;
 };
 
-/**
- * Разбирает room id ref.
- * @param value Входное значение для преобразования.
- * @returns Числовое значение результата.
- */
 const parseRoomIdRef = (
   value: string | number | null | undefined,
 ): number | null => {
@@ -70,11 +54,6 @@ const parseRoomIdRef = (
   return Math.trunc(parsed);
 };
 
-/**
- * Компонент DirectInboxProvider рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- *
- * @param props Свойства компонента.
- */
 export function DirectInboxProvider({
   user,
   ready = true,
@@ -83,7 +62,7 @@ export function DirectInboxProvider({
   const [items, setItems] = useState<DirectChatListItemDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [, setUnreadSlugs] = useState<string[]>([]);
+  const [, setUnreadRoomIds] = useState<string[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const unreadOverrides = useUnreadOverrides();
 
@@ -91,16 +70,16 @@ export function DirectInboxProvider({
 
   const wsUrl = useMemo(() => {
     if (!ready || !user) return null;
-    return `${getWebSocketBase()}/ws/direct/inbox/`;
+    return `${getWebSocketBase()}/ws/inbox/`;
   }, [ready, user]);
 
   const applyUnreadState = useCallback(
     (next: {
       dialogs: number;
-      slugs: string[];
+      roomIds: string[];
       counts: Record<string, number>;
     }) => {
-      setUnreadSlugs(next.slugs);
+      setUnreadRoomIds(next.roomIds);
       setUnreadCounts(next.counts);
     },
     [],
@@ -117,7 +96,7 @@ export function DirectInboxProvider({
       setItems(response.items || []);
     } catch (err) {
       debugLog("Direct inbox initial load failed", err);
-      setError("Не удалось загрузить список чатов");
+      setError("Не удалось загрузить список чатов.");
     } finally {
       setLoading(false);
     }
@@ -131,9 +110,9 @@ export function DirectInboxProvider({
         case "direct_unread_state":
           applyUnreadState(decoded.unread);
           break;
-        case "direct_inbox_item":
-          if (decoded.item) {
-            const incomingItem = decoded.item;
+        case "direct_inbox_item": {
+          const incomingItem = decoded.item;
+          if (incomingItem) {
             setItems((prev) => mergeItem(prev, incomingItem));
           }
           invalidateDirectChats();
@@ -141,12 +120,13 @@ export function DirectInboxProvider({
             applyUnreadState(decoded.unread);
           }
           break;
+        }
         case "direct_mark_read_ack":
           applyUnreadState(decoded.unread);
           break;
         case "error":
           if (decoded.code === "forbidden") {
-            setError("Недостаточно прав для этого чата");
+            setError("Недостаточно прав для этой комнаты.");
           }
           break;
         default:
@@ -168,12 +148,7 @@ export function DirectInboxProvider({
       activeRoomRef.current = roomRef;
       if (status !== "online") return;
       const roomId = parseRoomIdRef(roomRef);
-      send(
-        JSON.stringify({
-          type: "set_active_room",
-          roomId,
-        }),
-      );
+      send(JSON.stringify({ type: "set_active_room", roomId }));
     },
     [send, status],
   );
@@ -185,11 +160,7 @@ export function DirectInboxProvider({
       const roomKey = String(roomId);
       clearUnreadOverride(roomKey);
 
-      setUnreadSlugs((prev) => {
-        if (!prev.includes(roomKey)) return prev;
-        return prev.filter((item) => item !== roomKey);
-      });
-
+      setUnreadRoomIds((prev) => prev.filter((item) => item !== roomKey));
       setUnreadCounts((prev) => {
         if (!(roomKey in prev)) return prev;
         const next = { ...prev };
@@ -198,41 +169,36 @@ export function DirectInboxProvider({
       });
 
       if (status !== "online") return;
-      send(
-        JSON.stringify({
-          type: "mark_read",
-          roomId,
-        }),
-      );
+      send(JSON.stringify({ type: "mark_read", roomId }));
     },
     [send, status],
   );
 
   const unreadCountsWithOverrides = useMemo(() => {
-    const knownDirectSlugs = new Set(items.map((item) => item.slug));
+    const knownDirectRoomIds = new Set(items.map((item) => String(item.roomId)));
     const nextCounts = { ...unreadCounts };
 
-    for (const [slug, overrideCount] of Object.entries(unreadOverrides)) {
-      if (!knownDirectSlugs.has(slug) && !(slug in nextCounts)) continue;
+    for (const [roomId, overrideCount] of Object.entries(unreadOverrides)) {
+      if (!knownDirectRoomIds.has(roomId) && !(roomId in nextCounts)) continue;
       if (overrideCount > 0) {
-        nextCounts[slug] = overrideCount;
+        nextCounts[roomId] = overrideCount;
       } else {
-        delete nextCounts[slug];
+        delete nextCounts[roomId];
       }
     }
 
     return nextCounts;
   }, [items, unreadCounts, unreadOverrides]);
 
-  const unreadSlugsWithOverrides = useMemo(
+  const unreadRoomIdsWithOverrides = useMemo(
     () =>
       Object.keys(unreadCountsWithOverrides).filter(
-        (slug) => unreadCountsWithOverrides[slug] > 0,
+        (roomId) => unreadCountsWithOverrides[roomId] > 0,
       ),
     [unreadCountsWithOverrides],
   );
 
-  const unreadDialogsCountWithOverrides = unreadSlugsWithOverrides.length;
+  const unreadDialogsCountWithOverrides = unreadRoomIdsWithOverrides.length;
 
   useEffect(() => {
     let active = true;
@@ -241,7 +207,7 @@ export function DirectInboxProvider({
       queueMicrotask(() => {
         if (!active) return;
         setItems([]);
-        setUnreadSlugs([]);
+        setUnreadRoomIds([]);
         setUnreadCounts({});
         setLoading(false);
         setError(null);
@@ -280,7 +246,7 @@ export function DirectInboxProvider({
 
   useEffect(() => {
     if (!lastError || status !== "error") return;
-    queueMicrotask(() => setError("Проблема с подключением личных чатов"));
+    queueMicrotask(() => setError("Ошибка подключения списка чатов."));
   }, [lastError, status]);
 
   const value = useMemo(
@@ -289,7 +255,7 @@ export function DirectInboxProvider({
       loading,
       error,
       status,
-      unreadSlugs: unreadSlugsWithOverrides,
+      unreadRoomIds: unreadRoomIdsWithOverrides,
       unreadCounts: unreadCountsWithOverrides,
       unreadDialogsCount: unreadDialogsCountWithOverrides,
       setActiveRoom,
@@ -306,7 +272,7 @@ export function DirectInboxProvider({
       status,
       unreadCountsWithOverrides,
       unreadDialogsCountWithOverrides,
-      unreadSlugsWithOverrides,
+      unreadRoomIdsWithOverrides,
     ],
   );
 

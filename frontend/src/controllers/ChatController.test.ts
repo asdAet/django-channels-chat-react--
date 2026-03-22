@@ -1,6 +1,7 @@
 ﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
+  ChatResolveResult,
   GlobalSearchResult,
   ReadStateResult,
   RoomAttachmentsResult,
@@ -10,37 +11,34 @@ import type {
 } from "../domain/interfaces/IApiService";
 import type {
   DirectChatsResponseDto,
-  DirectStartResponseDto,
   RoomMessagesDto,
 } from "../dto";
 import type { RoomDetails as RoomDetailsDto } from "../entities/room/types";
 
 const apiMocks = vi.hoisted(() => ({
-  getPublicRoom: vi.fn<() => Promise<RoomDetailsDto>>(),
-  getRoomDetails: vi.fn<(slug: string) => Promise<RoomDetailsDto>>(),
+  resolveChatTarget: vi.fn<(target: string) => Promise<ChatResolveResult>>(),
+  getRoomDetails: vi.fn<(roomId: string) => Promise<RoomDetailsDto>>(),
   getRoomMessages:
     vi.fn<
       (
-        slug: string,
+        roomId: string,
         params?: { limit?: number; beforeId?: number },
       ) => Promise<RoomMessagesDto>
     >(),
-  startDirectChat:
-    vi.fn<(username: string) => Promise<DirectStartResponseDto>>(),
   getDirectChats: vi.fn<() => Promise<DirectChatsResponseDto>>(),
   getUnreadCounts: vi.fn<() => Promise<UnreadCountItem[]>>(),
   editMessage:
     vi.fn<
       (
-        slug: string,
+        roomId: string,
         messageId: number,
         content: string,
       ) => Promise<{ id: number; content: string; editedAt: string }>
     >(),
-  deleteMessage: vi.fn<(slug: string, messageId: number) => Promise<void>>(),
+  deleteMessage: vi.fn<(roomId: string, messageId: number) => Promise<void>>(),
   addReaction: vi.fn<
     (
-      slug: string,
+      roomId: string,
       messageId: number,
       emoji: string,
     ) => Promise<{
@@ -51,12 +49,12 @@ const apiMocks = vi.hoisted(() => ({
     }>
   >(),
   removeReaction:
-    vi.fn<(slug: string, messageId: number, emoji: string) => Promise<void>>(),
+    vi.fn<(roomId: string, messageId: number, emoji: string) => Promise<void>>(),
   searchMessages:
-    vi.fn<(slug: string, query: string) => Promise<SearchResult>>(),
+    vi.fn<(roomId: string, query: string) => Promise<SearchResult>>(),
   uploadAttachments: vi.fn<
     (
-      slug: string,
+      roomId: string,
       files: File[],
       options?: {
         onProgress?: (percent: number) => void;
@@ -67,7 +65,7 @@ const apiMocks = vi.hoisted(() => ({
     ) => Promise<UploadResult>
   >(),
   markRead:
-    vi.fn<(slug: string, messageId?: number) => Promise<ReadStateResult>>(),
+    vi.fn<(roomId: string, messageId?: number) => Promise<ReadStateResult>>(),
   globalSearch: vi.fn<
     (
       query: string,
@@ -81,7 +79,7 @@ const apiMocks = vi.hoisted(() => ({
   getRoomAttachments:
     vi.fn<
       (
-        slug: string,
+        roomId: string,
         params?: { limit?: number; before?: number },
       ) => Promise<RoomAttachmentsResult>
     >(),
@@ -114,55 +112,7 @@ describe("ChatController", () => {
     resetApiMocks();
   });
 
-  it("deduplicates in-flight public room request", async () => {
-    /**
-     * Хранит значение settle.
-     */
-    let settle: (value: RoomDetailsDto) => void = () => undefined;
-    const pending = new Promise<RoomDetailsDto>((res) => {
-      settle = res;
-    });
-    apiMocks.getPublicRoom.mockReturnValue(pending);
-
-    const chatController = await loadController();
-
-    const firstPromise = chatController.getPublicRoom();
-    const secondPromise = chatController.getPublicRoom();
-
-    expect(apiMocks.getPublicRoom).toHaveBeenCalledTimes(1);
-
-    settle({
-      slug: "public",
-      name: "Public",
-      kind: "public",
-      created: false,
-      createdBy: null,
-    });
-    const [first, second] = await Promise.all([firstPromise, secondPromise]);
-
-    expect(first.slug).toBe("public");
-    expect(second.slug).toBe("public");
-  });
-
-  it("does not cache public room after request completes", async () => {
-    const room: RoomDetailsDto = {
-      slug: "public",
-      name: "Public",
-      kind: "public",
-      created: false,
-      createdBy: null,
-    };
-    apiMocks.getPublicRoom.mockResolvedValue(room);
-
-    const chatController = await loadController();
-
-    await chatController.getPublicRoom();
-    await chatController.getPublicRoom();
-
-    expect(apiMocks.getPublicRoom).toHaveBeenCalledTimes(2);
-  });
-
-  it("deduplicates in-flight room details by slug", async () => {
+  it("deduplicates in-flight room details by room id", async () => {
     /**
      * Хранит значение settle.
      */
@@ -180,7 +130,7 @@ describe("ChatController", () => {
     expect(apiMocks.getRoomDetails).toHaveBeenCalledTimes(1);
 
     settle({
-      slug: "abc",
+      roomId: 123,
       name: "Room",
       kind: "private",
       created: false,
@@ -188,13 +138,13 @@ describe("ChatController", () => {
     });
     const [first, second] = await Promise.all([firstPromise, secondPromise]);
 
-    expect(first.slug).toBe("abc");
-    expect(second.slug).toBe("abc");
+    expect(first.roomId).toBe(123);
+    expect(second.roomId).toBe(123);
   });
 
   it("does not cache room details after request completes", async () => {
     apiMocks.getRoomDetails.mockResolvedValue({
-      slug: "abc",
+      roomId: 123,
       name: "Room",
       kind: "private",
       created: false,
@@ -274,7 +224,7 @@ describe("ChatController", () => {
     settle({
       items: [
         {
-          slug: "dm_123",
+          roomId: 123,
           peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-01-01T00:00:00.000Z",
@@ -289,7 +239,7 @@ describe("ChatController", () => {
     apiMocks.getDirectChats.mockResolvedValue({
       items: [
         {
-          slug: "dm_123",
+          roomId: 123,
           peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-01-01T00:00:00.000Z",
@@ -306,16 +256,21 @@ describe("ChatController", () => {
   });
 
   it("delegates pass-through methods to apiService with original args", async () => {
-    const directStartResponse: DirectStartResponseDto = {
+    const resolvedChatTarget: ChatResolveResult = {
+      targetKind: "direct",
       roomId: 1,
-      kind: "direct",
+      roomKind: "direct",
+      resolvedTarget: "@alice",
       peer: {
-        publicRef: "alice",
+        userId: 2,
+        publicRef: "@alice",
         username: "alice",
+        displayName: "Alice",
         profileImage: null,
         avatarCrop: null,
         lastSeen: null,
-        bio: null,
+        bio: "",
+        blocked: false,
       },
     };
     const unreadCounts: UnreadCountItem[] = [{ roomId: 101, unreadCount: 3 }];
@@ -380,6 +335,7 @@ describe("ChatController", () => {
           name: "Group 1",
           description: "",
           publicRef: "@group1",
+          roomTarget: "@group1",
           memberCount: 2,
           isPublic: true,
         },
@@ -394,6 +350,7 @@ describe("ChatController", () => {
           roomId: 101,
           roomName: "Room 1",
           roomKind: "group",
+          roomTarget: "@group1",
         },
       ],
     };
@@ -417,7 +374,7 @@ describe("ChatController", () => {
       pagination: { limit: 20, hasMore: false, nextBefore: null },
     };
 
-    apiMocks.startDirectChat.mockResolvedValue(directStartResponse);
+    apiMocks.resolveChatTarget.mockResolvedValue(resolvedChatTarget);
     apiMocks.getUnreadCounts.mockResolvedValue(unreadCounts);
     apiMocks.editMessage.mockResolvedValue(editedMessage);
     apiMocks.deleteMessage.mockResolvedValue(undefined);
@@ -432,8 +389,8 @@ describe("ChatController", () => {
     const chatController = await loadController();
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
 
-    await expect(chatController.startDirectChat("alice")).resolves.toEqual(
-      directStartResponse,
+    await expect(chatController.resolveChatTarget("@alice")).resolves.toEqual(
+      resolvedChatTarget,
     );
     await expect(chatController.getUnreadCounts()).resolves.toEqual(
       unreadCounts,
@@ -472,7 +429,7 @@ describe("ChatController", () => {
       chatController.getRoomAttachments("room_1", { limit: 20, before: 100 }),
     ).resolves.toEqual(attachments);
 
-    expect(apiMocks.startDirectChat).toHaveBeenCalledWith("alice");
+    expect(apiMocks.resolveChatTarget).toHaveBeenCalledWith("@alice");
     expect(apiMocks.getUnreadCounts).toHaveBeenCalledTimes(1);
     expect(apiMocks.editMessage).toHaveBeenCalledWith("room_1", 7, "edited");
     expect(apiMocks.deleteMessage).toHaveBeenCalledWith("room_1", 7);

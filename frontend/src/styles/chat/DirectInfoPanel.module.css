@@ -88,11 +88,6 @@
   word-break: break-word;
 }
 
-.bioEmpty {
-  color: var(--tg-text-secondary, #aaa);
-  font-style: italic;
-}
-
 .profileActions {
   width: 100%;
   display: flex;

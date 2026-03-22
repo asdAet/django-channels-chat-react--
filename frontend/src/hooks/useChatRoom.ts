@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { chatController } from "../controllers/ChatController";
 import type { RoomMessagesDto } from "../dto";
 import type { Message } from "../entities/message/types";
-import type { RoomDetails as RoomDetailsDto } from "../entities/room/types";
+import type { RoomDetails as RoomDetailsDto, RoomKind } from "../entities/room/types";
 import type { UserProfile as UserProfileDto } from "../entities/user/types";
 import { useChatMessageMaxLength } from "../shared/config/limits";
 import { debugLog } from "../shared/lib/debug";
@@ -11,30 +11,24 @@ import { sanitizeText } from "../shared/lib/sanitize";
 
 const PAGE_SIZE = 50;
 
-/**
- * Очищает message.
- * @param message Сообщение, которое нужно обработать.
- * @param maxMessageLength Числовой параметр `maxMessageLength`, ограничивающий объем данных.
- * @returns Нормализованное значение после обработки входа.
- */
-const sanitizeMessage = (
-  message: Message,
-  maxMessageLength: number,
-): Message => ({
+type ChatRoomState = {
+  roomId: string;
+  details: RoomDetailsDto | null;
+  messages: Message[];
+  loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  nextBefore: number | null;
+  error: string | null;
+};
+
+const sanitizeMessage = (message: Message, maxMessageLength: number): Message => ({
   ...message,
   content: sanitizeText(message.content, maxMessageLength),
 });
 
-/**
- * Обрабатывает message key.
- * @param message Сообщение, которое нужно обработать.
- */
 const messageKey = (message: Message) => `${message.id}-${message.createdAt}`;
 
-/**
- * Обрабатывает dedupe messages.
- * @param messages Список сообщений для дальнейшей обработки.
- */
 const dedupeMessages = (messages: Message[]) => {
   const seen = new Set<string>();
   const unique: Message[] = [];
@@ -47,11 +41,6 @@ const dedupeMessages = (messages: Message[]) => {
   return unique;
 };
 
-/**
- * Определяет has more.
- * @param payload Полезная нагрузка запроса.
- * @param fetched Порция данных, полученная с сервера.
- */
 const resolveHasMore = (payload: RoomMessagesDto, fetched: Message[]) => {
   if (typeof payload.pagination?.hasMore === "boolean") {
     return payload.pagination.hasMore;
@@ -59,11 +48,6 @@ const resolveHasMore = (payload: RoomMessagesDto, fetched: Message[]) => {
   return fetched.length >= PAGE_SIZE;
 };
 
-/**
- * Определяет next before.
- * @param payload Полезная нагрузка запроса.
- * @param fetched Порция данных, полученная с сервера.
- */
 const resolveNextBefore = (payload: RoomMessagesDto, fetched: Message[]) => {
   const nextBefore = payload.pagination?.nextBefore;
   if (typeof nextBefore === "number") return nextBefore;
@@ -71,27 +55,8 @@ const resolveNextBefore = (payload: RoomMessagesDto, fetched: Message[]) => {
   return fetched.length > 0 ? fetched[0].id : null;
 };
 
-/**
- * Описывает структуру состояния `ChatRoom`.
- */
-export type ChatRoomState = {
-  roomSlug: string;
-  details: RoomDetailsDto | null;
-  messages: Message[];
-  loading: boolean;
-  loadingMore: boolean;
-  hasMore: boolean;
-  nextBefore: number | null;
-  error: string | null;
-};
-
-/**
- * Создает initial room state.
- * @param roomSlug Слаг комнаты чата.
- * @returns Сформированное значение для дальнейшего использования.
- */
-const createInitialRoomState = (roomSlug: string): ChatRoomState => ({
-  roomSlug,
+const createInitialRoomState = (roomId: string): ChatRoomState => ({
+  roomId,
   details: null,
   messages: [],
   loading: true,
@@ -101,22 +66,19 @@ const createInitialRoomState = (roomSlug: string): ChatRoomState => ({
   error: null,
 });
 
-/**
- * Хук useChatRoom управляет состоянием и побочными эффектами текущего сценария.
- * @param slug Человекочитаемый идентификатор сущности.
- * @param user Текущий пользователь.
- */
-
-export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
+export const useChatRoom = (
+  roomId: string,
+  user: UserProfileDto | null,
+  initialRoomKind: RoomKind | null = null,
+) => {
   const messageMaxLength = useChatMessageMaxLength();
-  const isPublicRoom = slug === "public";
+  const isPublicRoom = initialRoomKind === "public";
   const canView = Boolean(user) || isPublicRoom;
 
   const [state, setState] = useState<ChatRoomState>(() =>
-    createInitialRoomState(slug),
+    createInitialRoomState(roomId),
   );
   const stateRef = useRef<ChatRoomState>(state);
-
   const requestIdRef = useRef(0);
 
   const setStateSynced = useCallback(
@@ -137,20 +99,20 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
     if (!canView) return;
 
     const requestId = ++requestIdRef.current;
-    setStateSynced(createInitialRoomState(slug));
+    setStateSynced(createInitialRoomState(roomId));
 
     Promise.all([
-      chatController.getRoomDetails(slug),
-      chatController.getRoomMessages(slug, { limit: PAGE_SIZE }),
+      chatController.getRoomDetails(roomId),
+      chatController.getRoomMessages(roomId, { limit: PAGE_SIZE }),
     ])
       .then(([info, payload]) => {
-        if (requestId !== requestIdRef.current) return;
+        if (requestId != requestIdRef.current) return;
         const sanitized = payload.messages.map((message) =>
           sanitizeMessage(message, messageMaxLength),
         );
         const unique = dedupeMessages(sanitized);
         setStateSynced({
-          roomSlug: slug,
+          roomId,
           details: info,
           messages: unique,
           loading: false,
@@ -161,16 +123,16 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
         });
       })
       .catch((err) => {
-        if (requestId !== requestIdRef.current) return;
+        if (requestId != requestIdRef.current) return;
         debugLog("Room load failed", err);
         setStateSynced((prev) => ({
           ...prev,
-          roomSlug: slug,
+          roomId,
           loading: false,
           error: "load_failed",
         }));
       });
-  }, [canView, messageMaxLength, setStateSynced, slug]);
+  }, [canView, messageMaxLength, roomId, setStateSynced]);
 
   useEffect(() => {
     const taskId = window.setTimeout(() => {
@@ -195,34 +157,34 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
     setStateSynced((prev) => ({ ...prev, loadingMore: true }));
 
     try {
-      const payload = await chatController.getRoomMessages(slug, {
+      const payload = await chatController.getRoomMessages(roomId, {
         limit: PAGE_SIZE,
         beforeId: cursor,
       });
 
-      if (requestId !== requestIdRef.current) return;
+      if (requestId != requestIdRef.current) return;
 
       const sanitized = payload.messages.map((message) =>
         sanitizeMessage(message, messageMaxLength),
       );
       setStateSynced((prev) => ({
         ...prev,
-        roomSlug: slug,
+        roomId,
         messages: dedupeMessages([...sanitized, ...prev.messages]),
         loadingMore: false,
         hasMore: resolveHasMore(payload, sanitized),
         nextBefore: resolveNextBefore(payload, sanitized),
       }));
     } catch (err) {
-      if (requestId !== requestIdRef.current) return;
+      if (requestId != requestIdRef.current) return;
       debugLog("Room load more failed", err);
       setStateSynced((prev) => ({
         ...prev,
-        roomSlug: slug,
+        roomId,
         loadingMore: false,
       }));
     }
-  }, [canView, messageMaxLength, setStateSynced, slug]);
+  }, [canView, messageMaxLength, roomId, setStateSynced]);
 
   const setMessages = useCallback(
     (updater: Message[] | ((prev: Message[]) => Message[])) => {
@@ -238,12 +200,15 @@ export const useChatRoom = (slug: string, user: UserProfileDto | null) => {
     [messageMaxLength, setStateSynced],
   );
 
-  const setError = useCallback((error: string | null) => {
-    setStateSynced((prev) => ({ ...prev, error }));
-  }, [setStateSynced]);
+  const setError = useCallback(
+    (error: string | null) => {
+      setStateSynced((prev) => ({ ...prev, error }));
+    },
+    [setStateSynced],
+  );
 
   const visibleState =
-    state.roomSlug === slug ? state : createInitialRoomState(slug);
+    state.roomId === roomId ? state : createInitialRoomState(roomId);
 
   return {
     details: visibleState.details,

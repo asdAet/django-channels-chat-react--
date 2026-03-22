@@ -5,21 +5,20 @@ import { decodeRoomMessagesResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Асинхронно возвращает комнаты сообщений.
+ * Loads messages for the selected room.
  *
- * @param apiClient HTTP-клиент для выполнения API-запросов.
- * @param roomId Идентификатор комнаты.
- * @param params Параметры запроса.
- *
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @param params Query parameters.
+ * @returns Room messages payload.
  */
 export async function getRoomMessages(
   apiClient: AxiosInstance,
   roomId: string,
   params?: { limit?: number; beforeId?: number },
 ): Promise<RoomMessagesResponse> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomId);
-  const encodedRoomRef = encodeURIComponent(apiRoomRef);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
   const query = new URLSearchParams();
   if (params?.limit) {
     query.set("limit", String(params.limit));
@@ -29,7 +28,8 @@ export async function getRoomMessages(
   }
 
   const suffix = query.toString();
-  const url = `/chat/rooms/${encodedRoomRef}/messages/${suffix ? `?${suffix}` : ""}`;
+  const url = `/chat/${encodedRoomId}/messages/${suffix ? `?${suffix}` : ""}`;
   const response = await apiClient.get<unknown>(url);
   return decodeRoomMessagesResponse(response.data);
 }
+

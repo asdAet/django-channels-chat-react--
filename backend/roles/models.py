@@ -59,6 +59,8 @@ class Role(models.Model):
         help_text="If True, this is the @everyone role (auto-applied to all members).",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    # Django adds <fk>_id attributes dynamically; annotate them for static analyzers.
+    room_id: int
 
     class Meta:
         """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
@@ -80,7 +82,7 @@ class Role(models.Model):
         Returns:
             Функция не возвращает значение.
         """
-        return f"{self.room.slug}:{self.name}"
+        return f"{self.room_id}:{self.name}"
 
     # ── Convenience helpers for creating standard roles ──────────────
 
@@ -198,7 +200,7 @@ class Membership(models.Model):
         Returns:
             Функция не возвращает значение.
         """
-        return f"{self.room.slug}:{self.user.username}"
+        return f"{self.room_id}:{self.user.username}"
 
     @property
     def display_name(self) -> str:
@@ -246,6 +248,10 @@ class PermissionOverride(models.Model):
     )
     allow = models.BigIntegerField(default=0)
     deny = models.BigIntegerField(default=0)
+    # Django adds these concrete foreign-key ids dynamically at runtime.
+    room_id: int
+    target_role_id: Optional[int]
+    target_user_id: Optional[int]
 
     class Meta:
         """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
@@ -267,4 +273,4 @@ class PermissionOverride(models.Model):
             Функция не возвращает значение.
         """
         target = self.target_role or self.target_user
-        return f"{self.room.slug}:override:{target}"
+        return f"{self.room_id}:override:{target}"

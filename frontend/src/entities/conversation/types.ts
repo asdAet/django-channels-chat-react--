@@ -1,16 +1,11 @@
 import type { AvatarCrop } from "../../shared/api/users";
 
-/**
- * Описывает структуру данных `ConversationType`.
- */
 export type ConversationType = "direct" | "group" | "room";
 
-/**
- * Описывает структуру данных `ConversationItem`.
- */
 export type ConversationItem = {
   type: ConversationType;
-  slug: string;
+  roomId: number | null;
+  roomTarget: string;
   name: string;
   directRef?: string;
   avatarUrl: string | null;

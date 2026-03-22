@@ -298,7 +298,6 @@ class AttachmentMediaAccessTests(TestCase):
             email="mediaoutsider@example.com",
         )
         self.direct_room = Room.objects.create(
-            slug="media_room_direct_01",
             name="media direct",
             kind=Room.Kind.DIRECT,
             direct_pair_key=f"{self.owner.pk}:{self.peer.pk}",
@@ -465,7 +464,6 @@ class AttachmentMediaAccessTests(TestCase):
         self.client.force_login(self.owner)
 
         other_room = Room.objects.create(
-            slug="media_room_private_02",
             name="media private",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -487,7 +485,6 @@ class AttachmentMediaAccessTests(TestCase):
 
     def test_public_room_attachment_access_allows_authenticated_reader_without_membership(self):
         public_room = Room.objects.create(
-            slug="media_room_public_03",
             name="media public",
             kind=Room.Kind.PUBLIC,
             created_by=self.owner,

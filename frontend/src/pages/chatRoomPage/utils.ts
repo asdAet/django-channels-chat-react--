@@ -21,6 +21,7 @@ export type ReadReceipt = {
   username: string;
   displayName?: string;
   lastReadMessageId: number;
+  lastReadAt?: string | null;
 };
 
 /**
@@ -180,24 +181,24 @@ export const isFileDragPayload = (
 
 /**
  * Обрабатывает pending read storage key.
- * @param roomSlug Слаг комнаты чата.
+ * @param roomId Идентификатор комнаты чата.
  */
-const pendingReadStorageKey = (roomSlug: string) =>
-  `${PENDING_READ_STORAGE_PREFIX}${roomSlug}`;
+const pendingReadStorageKey = (roomId: string) =>
+  `${PENDING_READ_STORAGE_PREFIX}${roomId}`;
 
 /**
  * Выполняет pending read from storage.
  *
- * @param roomSlug Slug комнаты.
+ * @param roomId Идентификатор комнаты.
  *
  * @returns Прочитанные данные из источника.
  */
 
-export const readPendingReadFromStorage = (roomSlug: string): number => {
+export const readPendingReadFromStorage = (roomId: string): number => {
   if (typeof window === "undefined") return 0;
   try {
     return normalizeReadMessageId(
-      window.sessionStorage.getItem(pendingReadStorageKey(roomSlug)),
+      window.sessionStorage.getItem(pendingReadStorageKey(roomId)),
     );
   } catch {
     return 0;
@@ -211,18 +212,18 @@ export const readPendingReadFromStorage = (roomSlug: string): number => {
  */
 
 export const writePendingReadToStorage = (
-  roomSlug: string,
+  roomId: string,
   lastReadMessageId: number,
 ): void => {
   if (typeof window === "undefined") return;
   try {
     const normalized = normalizeReadMessageId(lastReadMessageId);
     if (normalized < 1) {
-      window.sessionStorage.removeItem(pendingReadStorageKey(roomSlug));
+      window.sessionStorage.removeItem(pendingReadStorageKey(roomId));
       return;
     }
     window.sessionStorage.setItem(
-      pendingReadStorageKey(roomSlug),
+      pendingReadStorageKey(roomId),
       String(normalized),
     );
   } catch {
@@ -233,15 +234,15 @@ export const writePendingReadToStorage = (
 /**
  * Выполняет pending read from storage.
  *
- * @param roomSlug Slug комнаты.
+ * @param roomId Идентификатор комнаты.
  *
  * @returns Ничего не возвращает.
  */
 
-export const clearPendingReadFromStorage = (roomSlug: string): void => {
+export const clearPendingReadFromStorage = (roomId: string): void => {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.removeItem(pendingReadStorageKey(roomSlug));
+    window.sessionStorage.removeItem(pendingReadStorageKey(roomId));
   } catch {
     // noop
   }

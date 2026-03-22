@@ -35,8 +35,10 @@ export const formatDayLabel = (date: Date, now: Date = new Date()) => {
  */
 
 
-export const avatarFallback = (username: string) =>
-  username ? username[0].toUpperCase() : "?";
+export const avatarFallback = (username: string) => {
+  const normalized = username.trim().replace(/^@+/, "");
+  return normalized ? normalized[0]!.toUpperCase() : "?";
+};
 
 /**
  * Форматирует full name.

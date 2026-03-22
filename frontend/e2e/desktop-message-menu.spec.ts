@@ -13,7 +13,7 @@ test("desktop opens message action menu with right click", async ({ page }) => {
 
   await register(page, username, password);
 
-  await page.goto("/rooms/public");
+  await page.goto("/public");
   await page.waitForLoadState("networkidle");
 
   const joinCallout = page.getByTestId("group-join-callout");
@@ -36,5 +36,5 @@ test("desktop opens message action menu with right click", async ({ page }) => {
 
   const menu = page.getByRole("menu");
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole("menuitem")).toHaveCount(5);
+  await expect(menu.getByRole("menuitem")).toHaveCount(6);
 });

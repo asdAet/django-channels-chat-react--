@@ -8,12 +8,12 @@ import { decodeUploadResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Выполняет API-запрос для операции upload attachments.
- * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
- * @param roomId Идентификатор комнаты.
- * @param files Список файлов для загрузки.
- * @param options Опциональные параметры поведения.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Uploads message attachments for the selected room.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @param files Files to upload.
+ * @param options Optional upload settings.
+ * @returns Upload result payload.
  */
 export async function uploadAttachments(
   apiClient: AxiosInstance,
@@ -21,8 +21,8 @@ export async function uploadAttachments(
   files: File[],
   options?: UploadAttachmentsOptions,
 ): Promise<UploadResult> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomId);
-  const encodedRoomRef = encodeURIComponent(apiRoomRef);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
   const formData = new FormData();
   for (const file of files) {
     formData.append("files", file);
@@ -34,7 +34,7 @@ export async function uploadAttachments(
     formData.append("replyTo", String(options.replyTo));
   }
   const response = await apiClient.post<unknown>(
-    `/chat/rooms/${encodedRoomRef}/attachments/`,
+    `/chat/${encodedRoomId}/attachments/`,
     formData,
     options?.onProgress
       ? {
@@ -51,3 +51,4 @@ export async function uploadAttachments(
   );
   return decodeUploadResponse(response.data);
 }
+

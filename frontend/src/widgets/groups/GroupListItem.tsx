@@ -7,7 +7,7 @@ import styles from "../../styles/groups/GroupsPage.module.css";
  */
 type Props = {
   group: GroupListItemType;
-  onClick: (slug: string) => void;
+  onClick: (roomTarget: string) => void;
 };
 
 /**
@@ -17,7 +17,7 @@ export function GroupListItem({ group, onClick }: Props) {
   return (
     <div
       className={styles.item}
-      onClick={() => onClick(group.slug)}
+      onClick={() => onClick(group.roomTarget)}
       role="button"
       tabIndex={0}
     >

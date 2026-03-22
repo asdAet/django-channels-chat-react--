@@ -1,8 +1,10 @@
-﻿.message {
+.message {
+  --message-avatar-size: 45px;
+  --message-gap: 8px;
   display: flex;
-  gap: 8px;
-  padding: 2px 48px 2px 12px;
-  align-items: flex-end;
+  gap: var(--message-gap);
+  padding: 1px 48px 1px 12px;
+  align-items: flex-start;
   position: relative;
   transition: background var(--tg-transition-fast, 150ms ease);
   animation: msgAppear 150ms ease;
@@ -24,12 +26,17 @@
 }
 
 .highlighted {
-  background: var(--tg-msg-replay-bg, #212121);
+  background: var(--tg-msg-replay-bg, rgba(88, 101, 242, 0.14));
 }
 
 .messageOwn {
   flex-direction: row-reverse;
-  padding: 2px 12px 2px 48px;
+  padding: 1px 12px 1px 48px;
+}
+
+.messageGrouped {
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .avatarBtn {
@@ -44,7 +51,7 @@
   cursor: pointer;
   line-height: 1;
   flex-shrink: 0;
-  align-self: flex-end;
+  align-self: flex-start;
 }
 
 .body {
@@ -53,10 +60,20 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  position: relative;
 }
 
 .messageOwn .body {
   align-items: flex-end;
+}
+
+.messageGrouped .body {
+  margin-left: calc(var(--message-avatar-size) + var(--message-gap));
+}
+
+.messageOwn.messageGrouped .body {
+  margin-left: 0;
+  margin-right: calc(var(--message-avatar-size) + var(--message-gap));
 }
 
 /* ---- bubble ---- */
@@ -65,12 +82,11 @@
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 6px 10px 4px;
+  padding: 8px 12px 6px;
   width: fit-content;
   max-width: 100%;
   align-self: flex-start;
-  border-radius: var(--tg-radius-bubble, 12px) var(--tg-radius-bubble, 12px)
-    var(--tg-radius-bubble, 12px) 4px;
+  border-radius: 18px 18px 18px 6px;
   background: var(--tg-msg-in-bg, #212121);
   position: relative;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
@@ -78,9 +94,7 @@
 
 .messageOwn .bubble {
   align-self: flex-end;
-  border-radius: var(--tg-radius-bubble, 12px) var(--tg-radius-bubble, 12px) 4px
-    var(--tg-radius-bubble, 12px);
-  /* background: var(--tg-msg-out-bg, #364368); */
+  border-radius: 18px 18px 6px 18px;
   background: #364368;
 }
 
@@ -98,7 +112,7 @@
   width: 100%;
   border-left: 2px solid var(--tg-primary, #2fb3a3);
   border-radius: 0 4px 4px 0;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
   font-size: 12px;
   transition: background var(--tg-transition-fast, 150ms ease);
 }
@@ -143,16 +157,12 @@
   gap: 6px;
   align-items: center;
   font-size: 13px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .username {
   font-weight: 600;
-  color: var(--tg-primary, #2fb3a3);
-}
-
-.messageOwn .username {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgb(76, 173, 208);
 }
 
 /* ---- content ---- */
@@ -407,7 +417,7 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--tg-text-primary, #fff);
   text-decoration: none;
   font-size: 13px;
@@ -481,8 +491,8 @@
 }
 
 .reactionMine {
-  border-color: rgba(47, 179, 163, 0.4);
-  background: rgba(47, 179, 163, 0.15);
+  border-color: rgba(88, 101, 242, 0.4);
+  background: rgba(88, 101, 242, 0.16);
 }
 
 .reactionCount {
@@ -571,6 +581,7 @@
     max-width: 86%;
   }
 
+
   .mediaGrid {
     width: clamp(210px, 76vw, 340px);
     max-width: min(82vw, 340px);
@@ -658,3 +669,7 @@
     padding-inline: 6px;
   }
 }
+
+
+
+

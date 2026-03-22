@@ -1,6 +1,6 @@
 """Chat subsystem constants and backward-compatible re-exports."""
 
-PUBLIC_ROOM_SLUG = "public"
+PUBLIC_ROOM_TARGET = "public"
 PUBLIC_ROOM_NAME = "Public Chat"
 
 CHAT_CLOSE_IDLE_CODE = 4001

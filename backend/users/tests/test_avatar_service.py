@@ -77,7 +77,6 @@ class AvatarServiceTests(TestCase):
         owner = User.objects.create_user(username="group_avatar_owner", password="pass12345")
         room = Room.objects.create(
             name="Avatar Group",
-            slug="avatar-group",
             kind=Room.Kind.GROUP,
             created_by=owner,
         )
@@ -87,7 +86,6 @@ class AvatarServiceTests(TestCase):
         owner = User.objects.create_user(username="group_custom_owner", password="pass12345")
         room = Room.objects.create(
             name="Avatar Group 2",
-            slug="avatar-group-2",
             kind=Room.Kind.GROUP,
             created_by=owner,
         )
@@ -132,7 +130,6 @@ class AvatarServiceTests(TestCase):
         owner = User.objects.create_user(username="group_url_owner", password="pass12345")
         room = Room.objects.create(
             name="Group Avatar Url",
-            slug="group-avatar-url",
             kind=Room.Kind.GROUP,
             created_by=owner,
         )
@@ -163,7 +160,6 @@ class AvatarServiceTests(TestCase):
         owner = User.objects.create_user(username="upload_group_owner", password="pass12345")
         room = Room.objects.create(
             name="Upload Group",
-            slug="upload-group",
             kind=Room.Kind.GROUP,
             created_by=owner,
         )

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { useLocation } from "react-router-dom";
+import { useCallback, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import type { UserProfile } from "../../entities/user/types";
 import { ConversationListProvider } from "../../shared/conversationList/ConversationListProvider";
@@ -7,6 +8,11 @@ import {
   InfoPanelProvider,
   useInfoPanel,
 } from "../../shared/layout/useInfoPanel";
+import {
+  MobileShellProvider,
+  useMobileShell,
+} from "../../shared/layout/useMobileShell";
+import { isPrefixlessChatPath } from "../../shared/lib/chatTarget";
 import { Toast } from "../../shared/ui";
 import styles from "../../styles/layout/AppShell.module.css";
 import { InfoPanel } from "./InfoPanel";
@@ -25,6 +31,20 @@ type Props = {
   children: ReactNode;
 };
 
+const resolveMobileTitle = (pathname: string): string => {
+  if (pathname === "/") return "Главная";
+  if (pathname.startsWith("/friends")) return "Друзья";
+  if (pathname.startsWith("/groups")) return "Группы";
+  if (pathname === "/profile" || pathname.startsWith("/users/")) {
+    return "Профиль";
+  }
+  if (pathname.startsWith("/settings")) return "Настройки";
+  if (pathname.startsWith("/invite/")) return "Приглашение";
+  if (pathname === "/public") return "Публичный чат";
+  if (isPrefixlessChatPath(pathname)) return "Чат";
+  return "Devils Resting";
+};
+
 /**
  * Компонент ShellLayout рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
  *
@@ -40,27 +60,113 @@ function ShellLayout({
   children,
 }: Props) {
   const { isOpen } = useInfoPanel();
+  const { closeDrawer, isDrawerOpen, isMobileViewport, openDrawer } =
+    useMobileShell();
   const location = useLocation();
-  const isMainActive = location.pathname !== "/";
-  const isChatRoute =
-    location.pathname.startsWith("/rooms/") ||
-    location.pathname === "/direct" ||
-    location.pathname.startsWith("/direct/");
+  const navigate = useNavigate();
+  const isChatRoute = isPrefixlessChatPath(location.pathname);
+  const showMobilePageHeader = isMobileViewport && !isChatRoute;
+  const mobileTitle = resolveMobileTitle(location.pathname);
+
+  useEffect(() => {
+    closeDrawer();
+  }, [closeDrawer, location.pathname]);
+
+  const handleNavigate = useCallback(
+    (path: string) => {
+      closeDrawer();
+      onNavigate(path);
+    },
+    [closeDrawer, onNavigate],
+  );
+
+  const handleMobileBack = useCallback(() => {
+    if (
+      location.pathname === "/" ||
+      location.pathname.startsWith("/friends") ||
+      location.pathname.startsWith("/groups")
+    ) {
+      // Mobile top-level sections use the header button as a drawer opener.
+      openDrawer();
+      return;
+    }
+
+    closeDrawer();
+    if (window.history.length > 1 && location.pathname !== "/") {
+      navigate(-1);
+      return;
+    }
+    onNavigate("/");
+  }, [closeDrawer, location.pathname, navigate, onNavigate, openDrawer]);
 
   return (
     <div
       className={[
         styles.shell,
         isOpen ? styles.withInfoPanel : "",
-        isMainActive ? styles.chatActive : "",
+        showMobilePageHeader ? styles.mobilePageHeaderVisible : "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <div className={styles.sidebarPane}>
-        <Sidebar user={user} onNavigate={onNavigate} onLogout={onLogout} />
+      {isMobileViewport && (
+        <button
+          type="button"
+          className={[
+            styles.sidebarBackdrop,
+            isDrawerOpen ? styles.sidebarBackdropOpen : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          onClick={closeDrawer}
+          aria-label="Закрыть меню"
+        />
+      )}
+
+      <div
+        className={[
+          styles.sidebarPane,
+          isMobileViewport && isDrawerOpen ? styles.sidebarPaneMobileOpen : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        aria-hidden={isMobileViewport && !isDrawerOpen}
+      >
+        <Sidebar
+          user={user}
+          onNavigate={handleNavigate}
+          onLogout={onLogout}
+          onCloseMobileDrawer={closeDrawer}
+          showMobileDrawerControls={isMobileViewport}
+        />
       </div>
       <div className={styles.main}>
+        {showMobilePageHeader && (
+          <header className={styles.mobilePageHeader}>
+            <button
+              type="button"
+              className={styles.mobilePageAction}
+              onClick={handleMobileBack}
+              aria-label="Назад"
+              data-testid="app-shell-mobile-back"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <strong className={styles.mobilePageTitle}>{mobileTitle}</strong>
+
+          </header>
+        )}
         {(banner || (error && !isAuthRoute)) && (
           <div className={styles.banners}>
             {banner && (
@@ -96,7 +202,9 @@ export function AppShell(props: Props) {
   return (
     <ConversationListProvider user={props.user} ready={true}>
       <InfoPanelProvider>
-        <ShellLayout {...props} />
+        <MobileShellProvider>
+          <ShellLayout {...props} />
+        </MobileShellProvider>
       </InfoPanelProvider>
     </ConversationListProvider>
   );

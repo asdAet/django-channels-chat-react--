@@ -1,6 +1,6 @@
-import { expect, type Page,test } from "@playwright/test";
+﻿import { expect, test } from "@playwright/test";
 
-import { registerWithRetry } from "./helpers/auth";
+import { registerAndSetUsername } from "./helpers/profile";
 
 function randomLetters(length: number): string {
   const alphabet = "abcdefghijklmnopqrstuvwxyz";
@@ -9,45 +9,6 @@ function randomLetters(length: number): string {
     result += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
   return result;
-}
-
-async function registerAndSetUsername(
-  page: Page,
-  username: string,
-  password: string,
-) {
-  await registerWithRetry(page, username, password);
-
-  await page.goto("/profile");
-  await expect(page.getByTestId("profile-username-input")).toBeVisible({
-    timeout: 15_000,
-  });
-  await page.getByTestId("profile-username-input").fill(username);
-  const profileUpdateResponsePromise = page.waitForResponse(
-    (response) =>
-      (response.url().includes("/api/profile/handle/") ||
-        response.url().includes("/api/profile/")) &&
-      response.request().method() === "PATCH",
-  );
-  await page.getByTestId("profile-save-button").click();
-  const profileUpdateResponse = await profileUpdateResponsePromise;
-  if (!profileUpdateResponse.ok()) {
-    const body = await profileUpdateResponse.text().catch(() => "");
-    throw new Error(
-      `profile update failed: ${profileUpdateResponse.status()} ${body}`,
-    );
-  }
-  const sessionResponse = await page.request.get("/api/auth/session/");
-  const sessionPayload = (await sessionResponse
-    .json()
-    .catch(() => null)) as { user?: { publicRef?: string; publicId?: string } } | null;
-  const profileId = String(sessionPayload?.user?.publicId || "").trim();
-  const profileRef = String(sessionPayload?.user?.publicRef || "")
-    .trim()
-    .replace(/^@+/, "");
-  const routeRef = profileId || profileRef;
-  expect(routeRef.length).toBeGreaterThan(0);
-  await expect(page).toHaveURL(`/users/${encodeURIComponent(routeRef)}`);
 }
 
 test("direct chat by username opens and delivers messages between users", async ({
@@ -65,8 +26,8 @@ test("direct chat by username opens and delivers messages between users", async 
   const bobPage = await bobContext.newPage();
   await registerAndSetUsername(bobPage, bob, password);
 
-  await bobPage.goto(`/direct/${encodeURIComponent(alice)}`);
-  await expect(bobPage).toHaveURL(`/direct/${encodeURIComponent(alice)}`);
+  await bobPage.goto(`/@${encodeURIComponent(alice)}`);
+  await expect(bobPage).toHaveURL(`/@${encodeURIComponent(alice)}`);
 
   const input = bobPage.getByTestId("chat-message-input");
   await expect(input).toBeVisible({ timeout: 30_000 });
@@ -76,7 +37,7 @@ test("direct chat by username opens and delivers messages between users", async 
     bobPage.getByRole("article").filter({ hasText: text }).first(),
   ).toBeVisible({ timeout: 15_000 });
 
-  await page.goto(`/direct/${encodeURIComponent(bob)}`);
+  await page.goto(`/@${encodeURIComponent(bob)}`);
   await expect(page.getByTestId("chat-message-input")).toBeVisible({
     timeout: 30_000,
   });
@@ -85,11 +46,8 @@ test("direct chat by username opens and delivers messages between users", async 
   ).toBeVisible({ timeout: 15_000 });
 
   await bobPage.goto("/direct");
-  await expect(
-    bobPage
-      .getByRole("region", { name: /Список личных чатов/i })
-      .getByRole("button", { name: new RegExp(`\\b${alice}\\b`, "i") }),
-  ).toBeVisible({ timeout: 15_000 });
+  await expect(bobPage).toHaveURL("/direct");
+  await expect(bobPage.getByTestId("not-found-page")).toBeVisible();
 
   await bobContext.close();
 });

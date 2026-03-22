@@ -12,7 +12,13 @@ from messages.models import Message
 from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
-from users.identity import ensure_user_identity_core, set_user_public_handle, user_public_ref
+from users.identity import (
+    ensure_user_identity_core,
+    room_public_ref,
+    set_room_public_handle,
+    set_user_public_handle,
+    user_public_ref,
+)
 
 User = get_user_model()
 
@@ -31,11 +37,11 @@ class ChatApiHelpersTests(SimpleTestCase):
         self.factory = RequestFactory()
 
     def test_build_profile_pic_url_returns_none_for_empty(self):
-        request = self.factory.get("/api/chat/public-room/")
+        request = self.factory.get("/api/chat/resolve/")
         self.assertIsNone(api._build_profile_pic_url(request, None))
 
     def test_build_profile_pic_url_falls_back_to_string_value(self):
-        request = self.factory.get("/api/chat/public-room/")
+        request = self.factory.get("/api/chat/resolve/")
         url = api._build_profile_pic_url(request, _BrokenProfileValue())
         self.assertIsNotNone(url)
         assert url is not None
@@ -48,7 +54,6 @@ class ChatApiHelpersTests(SimpleTestCase):
     def test_public_room_returns_fallback_when_db_unavailable(self):
         with patch("chat.api.Room.objects.get_or_create", side_effect=OperationalError):
             room = api._public_room()
-        self.assertEqual(room.slug, "public")
         self.assertEqual(room.kind, Room.Kind.PUBLIC)
 
 
@@ -61,7 +66,6 @@ class RoomDetailsApiTests(TestCase):
 
     def _create_private_room(self):
         room = Room.objects.create(
-            slug="private123",
             name="private room",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -71,7 +75,7 @@ class RoomDetailsApiTests(TestCase):
 
     def test_public_room_details_by_room_id(self):
         room = api._public_room()
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/")
+        response = self.client.get(f"/api/chat/{room.pk}/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["roomId"], room.pk)
@@ -79,7 +83,6 @@ class RoomDetailsApiTests(TestCase):
 
     def test_group_room_details_returns_public_ref_and_avatar_fields(self):
         room = Room.objects.create(
-            slug="g_room_1",
             name="Avatar Group",
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -88,7 +91,7 @@ class RoomDetailsApiTests(TestCase):
         ensure_membership(room, self.owner, role_name="Owner")
 
         self.client.force_login(self.owner)
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/")
+        response = self.client.get(f"/api/chat/{room.pk}/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["kind"], Room.Kind.GROUP)
@@ -100,7 +103,7 @@ class RoomDetailsApiTests(TestCase):
     def test_existing_private_room_denies_non_member(self):
         room = self._create_private_room()
         self.client.force_login(self.other)
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/")
+        response = self.client.get(f"/api/chat/{room.pk}/")
         self.assertEqual(response.status_code, 404)
 
     def test_existing_private_room_allows_member(self):
@@ -108,7 +111,7 @@ class RoomDetailsApiTests(TestCase):
         ensure_membership(room, self.member, role_name="Member")
         self.client.force_login(self.member)
 
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/")
+        response = self.client.get(f"/api/chat/{room.pk}/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertFalse(payload["created"])
@@ -123,7 +126,6 @@ class RoomMessagesApiTests(TestCase):
 
     def _create_private_room(self):
         room = Room.objects.create(
-            slug="private123",
             name="private room",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -133,7 +135,6 @@ class RoomMessagesApiTests(TestCase):
 
     def _create_direct_room(self):
         room = Room.objects.create(
-            slug="dm_abc123",
             name="dm",
             kind=Room.Kind.DIRECT,
             direct_pair_key=f"{self.owner.pk}:{self.member.pk}",
@@ -157,7 +158,7 @@ class RoomMessagesApiTests(TestCase):
 
     def test_room_messages_default_pagination(self):
         room = self._create_public_messages(60)
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/messages/")
+        response = self.client.get(f"/api/chat/{room.pk}/messages/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(len(payload["messages"]), 50)
@@ -166,7 +167,7 @@ class RoomMessagesApiTests(TestCase):
     def test_private_room_messages_require_membership(self):
         room = self._create_private_room()
         Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content="hello")
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/messages/")
+        response = self.client.get(f"/api/chat/{room.pk}/messages/")
         self.assertEqual(response.status_code, 404)
 
     def test_private_room_messages_allow_member(self):
@@ -174,7 +175,7 @@ class RoomMessagesApiTests(TestCase):
         ensure_membership(room, self.member, role_name="Member")
         Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content="hello")
         self.client.force_login(self.member)
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/messages/")
+        response = self.client.get(f"/api/chat/{room.pk}/messages/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.json()["messages"]), 1)
 
@@ -182,72 +183,109 @@ class RoomMessagesApiTests(TestCase):
         room = self._create_direct_room()
         Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content="hello")
         self.client.force_login(self.other)
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/messages/")
+        response = self.client.get(f"/api/chat/{room.pk}/messages/")
         self.assertEqual(response.status_code, 404)
 
     def test_room_messages_invalid_limit_returns_400(self):
         room = self._create_public_messages(1)
-        response = self.client.get(f"/api/chat/rooms/{room.pk}/messages/?limit=bad")
+        response = self.client.get(f"/api/chat/{room.pk}/messages/?limit=bad")
         self.assertEqual(response.status_code, 400)
 
 
-class DirectApiTests(TestCase):
+class ChatResolveApiTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.owner = User.objects.create_user(username="owner", password="pass12345")
         self.peer = User.objects.create_user(username="peer", password="pass12345")
         self.other = User.objects.create_user(username="other", password="pass12345")
+        self.group = Room.objects.create(
+            name="Crew Room",
+            kind=Room.Kind.GROUP,
+            is_public=True,
+            created_by=self.owner,
+        )
         set_user_public_handle(self.peer, "peer")
+        set_room_public_handle(self.group, "crew")
         ensure_user_identity_core(self.owner)
         ensure_user_identity_core(self.peer)
         ensure_user_identity_core(self.other)
+        ensure_membership(self.group, self.owner, role_name="Owner")
 
-    def _post_start(self, ref: str):
+    def _post_resolve(self, target: str):
         return self.client.post(
-            "/api/chat/direct/start/",
-            data=json.dumps({"ref": ref}),
+            "/api/chat/resolve/",
+            data=json.dumps({"target": target}),
             content_type="application/json",
         )
 
-    def test_start_requires_auth(self):
-        response = self._post_start("@peer")
+    def test_direct_resolve_requires_auth(self):
+        response = self._post_resolve("@peer")
         self.assertIn(response.status_code, (401, 403))
 
-    def test_start_rejects_self(self):
+    def test_direct_resolve_rejects_self(self):
         self.client.force_login(self.owner)
         owner_ref = ensure_user_identity_core(self.owner).public_id
-        response = self._post_start(str(owner_ref))
+        response = self._post_resolve(str(owner_ref))
         self.assertEqual(response.status_code, 400)
 
-    def test_start_rejects_missing_user(self):
+    def test_direct_resolve_rejects_missing_user(self):
         self.client.force_login(self.owner)
-        response = self._post_start("@missing")
+        response = self._post_resolve("@missing")
         self.assertEqual(response.status_code, 404)
 
-    def test_start_supports_public_handle_with_at(self):
+    def test_resolve_supports_public_room_without_auth(self):
+        response = self._post_resolve("public")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["targetKind"], "public")
+        self.assertEqual(payload["roomKind"], Room.Kind.PUBLIC)
+        self.assertEqual(payload["resolvedTarget"], "public")
+
+    def test_direct_resolve_supports_public_handle_with_at(self):
         self.client.force_login(self.owner)
-        response = self._post_start("@peer")
+        response = self._post_resolve("@peer")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertIn("roomId", payload)
+        self.assertEqual(payload["targetKind"], "direct")
         self.assertEqual(payload["peer"]["username"], "peer")
         self.assertEqual(payload["peer"]["publicRef"], user_public_ref(self.peer))
 
-    def test_repeated_start_returns_same_room_id(self):
+    def test_direct_resolve_supports_numeric_user_id(self):
         self.client.force_login(self.owner)
-        first = self._post_start("@peer")
-        second = self._post_start("@peer")
+        peer_ref = ensure_user_identity_core(self.peer).public_id
+        response = self._post_resolve(str(peer_ref))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["targetKind"], "direct")
+        self.assertEqual(payload["peer"]["publicRef"], user_public_ref(self.peer))
+
+    def test_group_resolve_rejects_removed_legacy_target(self):
+        response = self._post_resolve("crew-room")
+        self.assertEqual(response.status_code, 404)
+
+    def test_group_resolve_supports_public_ref(self):
+        response = self._post_resolve(room_public_ref(self.group))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["targetKind"], "group")
+        self.assertEqual(payload["room"]["roomId"], self.group.pk)
+
+    def test_repeated_direct_resolve_returns_same_room_id(self):
+        self.client.force_login(self.owner)
+        first = self._post_resolve("@peer")
+        second = self._post_resolve("@peer")
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 200)
         self.assertEqual(first.json()["roomId"], second.json()["roomId"])
 
-    def test_direct_chats_include_dialog_after_start(self):
+    def test_direct_chats_include_dialog_after_resolve(self):
         self.client.force_login(self.owner)
-        start_response = self._post_start("@peer")
+        start_response = self._post_resolve("@peer")
         self.assertEqual(start_response.status_code, 200)
         room_id = start_response.json()["roomId"]
 
-        response = self.client.get("/api/chat/direct/chats/")
+        response = self.client.get("/api/chat/inbox/")
         self.assertEqual(response.status_code, 200)
         items = response.json()["items"]
         self.assertEqual(len(items), 1)
@@ -263,28 +301,27 @@ class ChatApiExtraCoverageTests(TestCase):
         ensure_user_identity_core(self.owner)
         ensure_user_identity_core(self.peer)
 
-    def _post_direct_start(self, ref: str):
+    def _post_resolve(self, target: str):
         return self.client.post(
-            "/api/chat/direct/start/",
-            data=json.dumps({"ref": ref}),
+            "/api/chat/resolve/",
+            data=json.dumps({"target": target}),
             content_type="application/json",
         )
 
-    def test_direct_start_accepts_form_payload(self):
+    def test_chat_resolve_accepts_form_payload(self):
         self.client.force_login(self.owner)
-        response = self.client.post("/api/chat/direct/start/", data={"ref": "@peer_extra"})
+        response = self.client.post("/api/chat/resolve/", data={"target": "@peer_extra"})
         self.assertEqual(response.status_code, 200)
 
-    def test_direct_start_returns_503_when_room_creation_fails(self):
+    def test_chat_resolve_returns_503_when_room_creation_fails(self):
         self.client.force_login(self.owner)
         with patch("chat.api.ensure_direct_room_with_retry", side_effect=OperationalError):
-            response = self._post_direct_start("@peer_extra")
+            response = self._post_resolve("@peer_extra")
         self.assertEqual(response.status_code, 503)
 
-    def test_direct_start_returns_503_when_role_assignment_fails(self):
+    def test_chat_resolve_returns_503_when_role_assignment_fails(self):
         self.client.force_login(self.owner)
         room = Room.objects.create(
-            slug="dm_stub_01",
             name="stub",
             kind=Room.Kind.DIRECT,
             direct_pair_key=f"{self.owner.pk}:{self.peer.pk}",
@@ -295,17 +332,17 @@ class ChatApiExtraCoverageTests(TestCase):
             "chat.api._ensure_direct_memberships_with_retry",
             side_effect=OperationalError,
         ):
-            response = self._post_direct_start("@peer_extra")
+            response = self._post_resolve("@peer_extra")
         self.assertEqual(response.status_code, 503)
 
     def test_room_details_returns_fallback_payload_when_db_unavailable(self):
         with patch("chat.api._resolve_room", side_effect=OperationalError):
-            response = self.client.get("/api/chat/rooms/999999/")
+            response = self.client.get("/api/chat/999999/")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertEqual(payload["roomId"], 999999)
         self.assertFalse(payload["created"])
 
     def test_room_messages_returns_404_for_missing_room(self):
-        response = self.client.get("/api/chat/rooms/999999/messages/")
+        response = self.client.get("/api/chat/999999/messages/")
         self.assertEqual(response.status_code, 404)

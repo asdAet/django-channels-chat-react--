@@ -18,6 +18,7 @@ import { isVideoAttachment } from "../../shared/lib/attachmentMedia";
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
+import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import type { ContextMenuItem } from "../../shared/ui";
 import {
   AudioAttachmentPlayer,
@@ -39,7 +40,11 @@ import {
 type Props = {
   message: Message;
   isOwn: boolean;
+  showAvatar?: boolean;
+  showHeader?: boolean;
+  grouped?: boolean;
   canModerate?: boolean;
+  canViewReaders?: boolean;
   isRead?: boolean;
   highlighted?: boolean;
   onlineUsernames: Set<string>;
@@ -47,6 +52,7 @@ type Props = {
   onEdit?: (msg: Message) => void;
   onDelete?: (msg: Message) => void;
   onReact?: (msgId: number, emoji: string) => void;
+  onViewReaders?: (msg: Message, anchor: { x: number; y: number }) => void;
   onReplyQuoteClick?: (replyToId: number) => void;
   onAvatarClick?: (actorRef: string) => void;
 };
@@ -179,7 +185,7 @@ function ReplyQuote({
         onClick={onClick}
       >
         <span className={styles.replyUser}>
-          {replyTo.displayName ?? replyTo.username ?? "?"}
+          {resolveIdentityLabel(replyTo, "?")}
         </span>
         <span className={styles.replyText}>{replyTo.content}</span>
       </button>
@@ -188,7 +194,7 @@ function ReplyQuote({
   return (
     <div className={styles.replyQuote}>
       <span className={styles.replyUser}>
-        {replyTo.displayName ?? replyTo.username ?? "?"}
+        {resolveIdentityLabel(replyTo, "?")}
       </span>
       <span className={styles.replyText}>{replyTo.content}</span>
     </div>
@@ -295,7 +301,11 @@ function EmojiPicker({
 export function MessageBubble({
   message,
   isOwn,
+  showAvatar = true,
+  showHeader = true,
+  grouped = false,
   canModerate = false,
+  canViewReaders = false,
   isRead = false,
   highlighted = false,
   onlineUsernames,
@@ -303,6 +313,7 @@ export function MessageBubble({
   onEdit,
   onDelete,
   onReact,
+  onViewReaders,
   onReplyQuoteClick,
   onAvatarClick,
 }: Props) {
@@ -523,6 +534,29 @@ export function MessageBubble({
       },
     });
 
+    if (canViewReaders) {
+      contextMenuItems.push({
+        label: "Кто прочитал",
+        icon: (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        ),
+        disabled: !onViewReaders,
+        onClick: () => onViewReaders?.(message, contextMenu ?? { x: 12, y: 12 }),
+      });
+    }
+
     if (!isOwn) {
       contextMenuItems.push({
         label: "Профиль",
@@ -589,6 +623,7 @@ export function MessageBubble({
     }
   }
   const isDeleted = message.isDeleted;
+  const authorLabel = resolveIdentityLabel(message);
   const maxVisibleImageAttachments = useChatAttachmentMaxPerMessage();
   const attachmentItems = buildAttachmentRenderItems(message.attachments);
   const attachmentBuckets = splitAttachmentRenderItems(
@@ -599,6 +634,7 @@ export function MessageBubble({
     attachmentBuckets.visibleImages.length,
   );
   const mediaGridVariantClass = MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
+  const showFooterInfo = !isDeleted;
   const lightboxMediaItems: LightboxMediaItem[] = attachmentItems.flatMap(
     (item) => {
       const { attachment } = item;
@@ -637,6 +673,7 @@ export function MessageBubble({
         className={[
           styles.message,
           isOwn ? styles.messageOwn : "",
+          grouped ? styles.messageGrouped : "",
           isDeleted ? styles.deleted : "",
           highlighted ? styles.highlighted : "",
         ]
@@ -644,28 +681,33 @@ export function MessageBubble({
           .join(" ")}
         data-message-id={message.id}
         data-own-message={isOwn ? "true" : "false"}
+        data-message-grouped={grouped ? "true" : "false"}
+        data-message-avatar={showAvatar ? "true" : "false"}
+        data-message-header={showHeader ? "true" : "false"}
         onContextMenu={handleContextMenu}
         onMouseDown={handleMouseDown}
         onClick={handleMobileTap}
         onPointerUp={handleMobilePointerUp}
         onTouchEnd={handleMobileTouchEnd}
       >
-        <button
-          type="button"
-          className={styles.avatarBtn}
-          onClick={() => onAvatarClick?.(message.publicRef)}
-          aria-label={`Профиль ${message.displayName ?? message.username}`}
-        >
-          <Avatar
-            username={message.displayName ?? message.username}
-            profileImage={message.profilePic}
-            avatarCrop={message.avatarCrop}
-            size="small"
-            online={onlineUsernames.has(
-              normalizeActorRef(message.publicRef || ""),
-            )}
-          />
-        </button>
+        {showAvatar && (
+          <button
+            type="button"
+            className={styles.avatarBtn}
+            onClick={() => onAvatarClick?.(message.publicRef)}
+            aria-label={`Профиль ${authorLabel}`}
+          >
+            <Avatar
+              username={authorLabel}
+              profileImage={message.profilePic}
+              avatarCrop={message.avatarCrop}
+              size="small"
+              online={onlineUsernames.has(
+                normalizeActorRef(message.publicRef || ""),
+              )}
+            />
+          </button>
+        )}
 
         <div className={styles.body}>
           {message.replyTo && (
@@ -680,11 +722,13 @@ export function MessageBubble({
           )}
 
           <div className={styles.bubble}>
-            <div className={styles.meta}>
-              <span className={styles.username}>
-                {message.displayName ?? message.username}
-              </span>
-            </div>
+            {showHeader && (
+              <div className={styles.meta}>
+                <span className={styles.username}>
+                  {authorLabel}
+                </span>
+              </div>
+            )}
 
             {isDeleted ? (
               <p className={styles.deletedContent}>Сообщение удалено</p>
@@ -905,7 +949,7 @@ export function MessageBubble({
               </div>
             )}
 
-            {!isDeleted && (
+            {showFooterInfo && (
               <div className={styles.footerInfo}>
                 {message.editedAt && (
                   <span className={styles.editedTag}>ред.</span>
@@ -956,3 +1000,9 @@ export function MessageBubble({
     </>
   );
 }
+
+
+
+
+
+

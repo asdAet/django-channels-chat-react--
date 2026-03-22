@@ -11,8 +11,8 @@ test("basic navigation between home and public chat", async ({ page }) => {
     ).toBeVisible();
   }
 
-  await page.goto("/rooms/public");
-  await expect(page).toHaveURL("/rooms/public");
+  await page.goto("/public");
+  await expect(page).toHaveURL("/public");
 
   await page.goto("/");
   await expect(page).toHaveURL("/");

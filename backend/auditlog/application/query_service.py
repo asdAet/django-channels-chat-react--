@@ -104,7 +104,7 @@ def parse_filters(params) -> AuditQueryFilters:
         path_contains=(params.get("path_contains") or "").strip() or None,
         date_from=_parse_datetime(params.get("date_from"), field_name="date_from"),
         date_to=_parse_datetime(params.get("date_to"), field_name="date_to"),
-        room_slug=(params.get("room_slug") or "").strip() or None,
+        room_id=_parse_int(params.get("room_id"), field_name="room_id"),
         limit=min(parsed_limit, max_limit),
         cursor=(params.get("cursor") or "").strip() or None,
     )

@@ -7,6 +7,7 @@ import type {
   RoomKind,
   RoomPeer,
 } from "../../entities/room/types";
+import type { AvatarCrop } from "../../shared/api/users";
 import { decodeOrThrow } from "../core/codec";
 
 const roomKindSchema = z.enum(["public", "private", "direct", "group"]);
@@ -33,7 +34,6 @@ const roomPeerSchema = z
 
 const roomDetailsSchema = z
   .object({
-    roomRef: z.string().optional(),
     name: z.string(),
     kind: roomKindSchema,
     avatarUrl: z.string().nullable().optional(),
@@ -108,11 +108,14 @@ const roomMessagesSchema = z
   })
   .passthrough();
 
-const directStartSchema = z
+const chatResolveSchema = z
   .object({
+    targetKind: z.enum(["direct", "group", "public"]),
     roomId: z.union([z.number(), z.string()]),
-    kind: roomKindSchema,
-    peer: roomPeerSchema,
+    roomKind: roomKindSchema,
+    resolvedTarget: z.string().min(1),
+    peer: roomPeerSchema.optional(),
+    room: roomDetailsSchema.optional(),
   })
   .passthrough();
 
@@ -163,12 +166,8 @@ const mapRoomDetails = (
     typeof raw.roomId === "number"
       ? raw.roomId
       : Number(raw.roomId ?? Number.NaN);
-  const roomRef =
-    (typeof dto.roomRef === "string" ? dto.roomRef : "").trim() ||
-    (Number.isFinite(rawRoomId) ? String(Math.trunc(rawRoomId)) : "");
   return {
     roomId: Number.isFinite(rawRoomId) ? Math.trunc(rawRoomId) : undefined,
-    slug: roomRef,
     name: dto.name,
     kind: dto.kind,
     avatarUrl: dto.avatarUrl ?? null,
@@ -248,13 +247,13 @@ export type RoomMessagesParams = {
   beforeId?: number;
 };
 
-/**
- * Описывает структуру ответа API `DirectStartResponseDto`.
- */
-export type DirectStartResponseDto = {
+export type ChatResolveResponseDto = {
+  targetKind: "direct" | "group" | "public";
   roomId: number;
-  kind: RoomDetails["kind"];
-  peer: RoomPeer;
+  roomKind: RoomDetails["kind"];
+  resolvedTarget: string;
+  peer?: RoomPeer;
+  room?: RoomDetails;
 };
 
 /**
@@ -262,17 +261,6 @@ export type DirectStartResponseDto = {
  */
 export type DirectChatsResponseDto = {
   items: DirectChatListItem[];
-};
-
-/**
- * Преобразует HTTP-данные для операции decode public room response.
- * @param input Входной объект с параметрами операции.
- * @returns Нормализованные данные после декодирования.
- */
-
-export const decodePublicRoomResponse = (input: unknown): RoomDetails => {
-  const parsed = decodeOrThrow(roomDetailsSchema, input, "chat/public-room");
-  return mapRoomDetails(parsed);
 };
 
 /**
@@ -300,20 +288,17 @@ export const decodeRoomMessagesResponse = (input: unknown): RoomMessagesDto => {
   };
 };
 
-/**
- * Преобразует HTTP-данные для операции decode direct start response.
- * @param input Входной объект с параметрами операции.
- * @returns Нормализованные данные после декодирования.
- */
-
-export const decodeDirectStartResponse = (
+export const decodeChatResolveResponse = (
   input: unknown,
-): DirectStartResponseDto => {
-  const parsed = decodeOrThrow(directStartSchema, input, "chat/direct-start");
+): ChatResolveResponseDto => {
+  const parsed = decodeOrThrow(chatResolveSchema, input, "chat/resolve");
   return {
+    targetKind: parsed.targetKind,
     roomId: toRoomId(parsed.roomId),
-    kind: parsed.kind,
-    peer: mapPeer(parsed.peer),
+    roomKind: parsed.roomKind,
+    resolvedTarget: parsed.resolvedTarget,
+    peer: parsed.peer ? mapPeer(parsed.peer) : undefined,
+    room: parsed.room ? mapRoomDetails(parsed.room) : undefined,
   };
 };
 
@@ -329,7 +314,7 @@ export const decodeDirectChatsResponse = (
   const parsed = decodeOrThrow(directChatsSchema, input, "chat/direct-chats");
   return {
     items: parsed.items.map((item) => ({
-      slug: String(toRoomId(item.roomId)),
+      roomId: toRoomId(item.roomId),
       peer: mapPeer(item.peer),
       lastMessage: item.lastMessage,
       lastMessageAt: item.lastMessageAt ?? "",
@@ -402,6 +387,28 @@ const readStateResponseSchema = z
   .object({
     roomId: z.union([z.number(), z.string()]),
     lastReadMessageId: z.number().nullable(),
+    lastReadAt: z.string().nullable().optional(),
+  })
+  .passthrough();
+
+const messageReaderItemSchema = z
+  .object({
+    userId: z.number(),
+    publicRef: z.string().min(1),
+    username: z.string().min(1),
+    displayName: z.string().optional(),
+    profileImage: z.string().nullable().optional(),
+    avatarCrop: avatarCropSchema.nullable().optional(),
+    readAt: z.string(),
+  })
+  .passthrough();
+
+const messageReadersResponseSchema = z
+  .object({
+    roomKind: roomKindSchema,
+    messageId: z.number(),
+    readAt: z.string().nullable().optional(),
+    readers: z.array(messageReaderItemSchema).optional(),
   })
   .passthrough();
 
@@ -423,6 +430,7 @@ const globalSearchGroupSchema = z
     name: z.string(),
     description: z.string().optional(),
     publicRef: z.string().min(1),
+    roomTarget: z.string().min(1).optional(),
     memberCount: z.number().optional(),
     isPublic: z.boolean().optional(),
   })
@@ -439,6 +447,7 @@ const globalSearchMessageSchema = z
     roomId: z.union([z.number(), z.string()]),
     roomName: z.string().optional(),
     roomKind: roomKindSchema.optional(),
+    roomTarget: z.string().nullable().optional(),
   })
   .passthrough();
 
@@ -513,11 +522,35 @@ export type UploadResponse = {
 export type ReadStateResponse = {
   roomId: number;
   lastReadMessageId: number | null;
+  lastReadAt?: string | null;
 };
 /**
  * Описывает структуру данных `UnreadCountItem`.
  */
 export type UnreadCountItem = { roomId: number; unreadCount: number };
+
+/**
+ * Описывает exact reader конкретного сообщения.
+ */
+export type MessageReaderItem = {
+  userId: number;
+  publicRef: string;
+  username: string;
+  displayName?: string;
+  profileImage: string | null;
+  avatarCrop?: AvatarCrop | null;
+  readAt: string;
+};
+
+/**
+ * Описывает ответ API `MessageReadersResponse`.
+ */
+export type MessageReadersResponse = {
+  roomKind: RoomKind;
+  messageId: number;
+  readAt: string | null;
+  readers: MessageReaderItem[];
+};
 /**
  * Описывает структуру данных `RoomAttachmentItem`.
  */
@@ -547,6 +580,7 @@ export type GlobalSearchResponse = {
     name: string;
     description: string;
     publicRef: string;
+    roomTarget: string;
     memberCount: number;
     isPublic: boolean;
   }[];
@@ -560,6 +594,7 @@ export type GlobalSearchResponse = {
     roomId: number;
     roomName: string;
     roomKind: RoomKind;
+    roomTarget: string | null;
   }[];
 };
 
@@ -642,6 +677,36 @@ export const decodeReadStateResponse = (input: unknown): ReadStateResponse => {
   return {
     roomId: toRoomId(parsed.roomId),
     lastReadMessageId: parsed.lastReadMessageId,
+    lastReadAt: parsed.lastReadAt ?? null,
+  };
+};
+
+/**
+ * Преобразует HTTP-данные для операции decode message readers response.
+ * @param input Входной объект с параметрами операции.
+ * @returns Нормализованные данные после декодирования.
+ */
+export const decodeMessageReadersResponse = (
+  input: unknown,
+): MessageReadersResponse => {
+  const parsed = decodeOrThrow(
+    messageReadersResponseSchema,
+    input,
+    "chat/message-readers",
+  );
+  return {
+    roomKind: parsed.roomKind,
+    messageId: parsed.messageId,
+    readAt: parsed.readAt ?? null,
+    readers: (parsed.readers ?? []).map((reader) => ({
+      userId: reader.userId,
+      publicRef: reader.publicRef,
+      username: reader.username,
+      displayName: reader.displayName ?? reader.username,
+      profileImage: reader.profileImage ?? null,
+      avatarCrop: reader.avatarCrop ?? null,
+      readAt: reader.readAt,
+    })),
   };
 };
 
@@ -727,6 +792,7 @@ export const decodeGlobalSearchResponse = (
       name: g.name,
       description: g.description ?? "",
       publicRef: g.publicRef,
+      roomTarget: g.roomTarget ?? g.publicRef,
       memberCount: g.memberCount ?? 0,
       isPublic: g.isPublic ?? false,
     })),
@@ -740,6 +806,7 @@ export const decodeGlobalSearchResponse = (
       roomId: toRoomId(m.roomId),
       roomName: m.roomName ?? "",
       roomKind: m.roomKind ?? "public",
+      roomTarget: m.roomTarget ?? null,
     })),
   };
 };

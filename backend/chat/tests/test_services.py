@@ -1,7 +1,6 @@
 """Unit tests for chat.services business logic."""
 
 from datetime import timedelta
-import tempfile
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -13,7 +12,14 @@ from django.utils import timezone
 
 from chat import services
 from chat.services import MessageForbiddenError, MessageNotFoundError, MessageValidationError
-from messages.models import Message, MessageAttachment, MessageReadState, Reaction
+from chat.tests.media_utils import workspace_media_root
+from messages.models import (
+    Message,
+    MessageAttachment,
+    MessageReadReceipt,
+    MessageReadState,
+    Reaction,
+)
 from rooms.models import Room
 from rooms.services import ensure_membership
 
@@ -26,7 +32,6 @@ class ChatServicesTests(TestCase):
         self.peer = User.objects.create_user(username="svc_peer", password="pass12345")
         self.other = User.objects.create_user(username="svc_other", password="pass12345")
         self.room = Room.objects.create(
-            slug="svc-room-1",
             name="Service room",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -97,7 +102,7 @@ class ChatServicesTests(TestCase):
 
     @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True)
     def test_delete_message_deletes_attachment_files_when_enabled(self):
-        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+        with workspace_media_root():
             msg = self._message(user=self.owner)
             attachment = MessageAttachment.objects.create(
                 message=msg,
@@ -127,7 +132,7 @@ class ChatServicesTests(TestCase):
 
     @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=False)
     def test_delete_message_keeps_attachment_files_when_delete_disabled(self):
-        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+        with workspace_media_root():
             msg = self._message(user=self.owner)
             attachment = MessageAttachment.objects.create(
                 message=msg,
@@ -153,7 +158,7 @@ class ChatServicesTests(TestCase):
 
     @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True)
     def test_delete_message_logs_storage_errors_and_continues(self):
-        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+        with workspace_media_root():
             msg = self._message(user=self.owner)
             attachment = MessageAttachment.objects.create(
                 message=msg,
@@ -179,7 +184,7 @@ class ChatServicesTests(TestCase):
         CHAT_ATTACHMENT_DELETE_RETRIES=3,
     )
     def test_delete_message_retries_locked_file_delete_on_windows(self):
-        with tempfile.TemporaryDirectory() as media_root, override_settings(MEDIA_ROOT=media_root):
+        with workspace_media_root():
             msg = self._message(user=self.owner)
             attachment = MessageAttachment.objects.create(
                 message=msg,
@@ -236,6 +241,10 @@ class ChatServicesTests(TestCase):
 
         state = services.mark_read(self.owner, self.room, second.pk)
         self.assertEqual(state.last_read_message_id, second.pk)
+        self.assertEqual(
+            MessageReadReceipt.objects.filter(user=self.owner, message__room=self.room).count(),
+            2,
+        )
 
         state = services.mark_read(self.owner, self.room, first.pk)
         self.assertEqual(state.last_read_message_id, second.pk)
@@ -250,6 +259,42 @@ class ChatServicesTests(TestCase):
         # cover branch where existing state increases and is saved
         state = services.mark_read(self.owner, self.room, second.pk)
         self.assertEqual(state.last_read_message_id, second.pk)
+        self.assertEqual(
+            MessageReadReceipt.objects.filter(user=self.owner, message__room=self.room).count(),
+            2,
+        )
+
+    def test_mark_read_stores_exact_receipts_only_for_new_foreign_messages(self):
+        first = self._message(user=self.peer, content="peer one")
+        own = self._message(user=self.owner, content="own")
+        second = self._message(user=self.other, content="other two")
+
+        services.mark_read(self.owner, self.room, second.pk)
+        self.assertEqual(
+            list(
+                MessageReadReceipt.objects.filter(user=self.owner)
+                .order_by("message_id")
+                .values_list("message_id", flat=True)
+            ),
+            [first.pk, second.pk],
+        )
+
+        services.mark_read(self.owner, self.room, second.pk)
+        self.assertEqual(
+            MessageReadReceipt.objects.filter(user=self.owner, message__room=self.room).count(),
+            2,
+        )
+
+        third = self._message(user=self.peer, content="peer three")
+        services.mark_read(self.owner, self.room, third.pk)
+        self.assertEqual(
+            list(
+                MessageReadReceipt.objects.filter(user=self.owner)
+                .order_by("message_id")
+                .values_list("message_id", flat=True)
+            ),
+            [first.pk, second.pk, third.pk],
+        )
 
     def test_mark_read_retries_and_raises_operational_error(self):
         msg = self._message(user=self.peer, content="op error")
@@ -262,9 +307,106 @@ class ChatServicesTests(TestCase):
             with self.assertRaises(OperationalError):
                 services.mark_read(self.owner, self.room, msg.pk)
 
+    def test_mark_read_keeps_room_cursor_when_receipt_table_is_missing(self):
+        message = self._message(user=self.peer, content="safe fallback")
+
+        with patch(
+            "chat.services.MessageReadReceipt.objects.bulk_create",
+            side_effect=OperationalError("no such table: messages_read_receipt"),
+        ):
+            state = services.mark_read(self.owner, self.room, message.pk)
+
+        self.assertEqual(state.last_read_message_id, message.pk)
+        self.assertTrue(
+            MessageReadState.objects.filter(
+                user=self.owner,
+                room=self.room,
+                last_read_message_id=message.pk,
+            ).exists()
+        )
+
+    def test_get_message_readers_requires_author_and_returns_group_receipts(self):
+        message = self._message(user=self.owner, content="owned")
+        services.mark_read(self.peer, self.room, message.pk)
+        services.mark_read(self.other, self.room, message.pk)
+
+        older = timezone.now() - timedelta(minutes=2)
+        newer = timezone.now() - timedelta(minutes=1)
+        MessageReadReceipt.objects.filter(message=message, user=self.peer).update(read_at=older)
+        MessageReadReceipt.objects.filter(message=message, user=self.other).update(read_at=newer)
+
+        result = services.get_message_readers(self.owner, self.room, message.pk)
+
+        self.assertIsNone(result["read_at"])
+        self.assertEqual(
+            [receipt.user_id for receipt in result["receipts"]],
+            [self.other.pk, self.peer.pk],
+        )
+
+        with self.assertRaises(MessageForbiddenError):
+            services.get_message_readers(self.peer, self.room, message.pk)
+
+    def test_get_message_readers_returns_direct_read_at_only(self):
+        direct_room = Room.objects.create(
+            name="Service direct",
+            kind=Room.Kind.DIRECT,
+            direct_pair_key=f"{self.owner.pk}:{self.peer.pk}",
+            created_by=self.owner,
+        )
+        ensure_membership(direct_room, self.owner)
+        ensure_membership(direct_room, self.peer)
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=direct_room,
+            message_content="direct owned",
+        )
+
+        services.mark_read(self.peer, direct_room, message.pk)
+        result = services.get_message_readers(self.owner, direct_room, message.pk)
+
+        self.assertIsNotNone(result["read_at"])
+        self.assertEqual(result["receipts"], [])
+
+    def test_get_message_readers_returns_empty_when_receipt_table_is_missing(self):
+        message = self._message(user=self.owner, content="owned")
+
+        with patch(
+            "chat.services.MessageReadReceipt.objects.filter",
+            side_effect=OperationalError("no such table: messages_read_receipt"),
+        ):
+            result = services.get_message_readers(self.owner, self.room, message.pk)
+
+        self.assertIsNone(result["read_at"])
+        self.assertEqual(result["receipts"], [])
+
+    def test_get_direct_message_readers_returns_empty_when_receipt_table_is_missing(self):
+        direct_room = Room.objects.create(
+            name="Service direct missing",
+            kind=Room.Kind.DIRECT,
+            direct_pair_key=f"{self.owner.pk}:{self.peer.pk}",
+            created_by=self.owner,
+        )
+        ensure_membership(direct_room, self.owner)
+        ensure_membership(direct_room, self.peer)
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=direct_room,
+            message_content="direct fallback",
+        )
+
+        with patch(
+            "chat.services.MessageReadReceipt.objects.filter",
+            side_effect=OperationalError("no such table: messages_read_receipt"),
+        ):
+            result = services.get_message_readers(self.owner, direct_room, message.pk)
+
+        self.assertIsNone(result["read_at"])
+        self.assertEqual(result["receipts"], [])
+
     def test_get_unread_counts_returns_only_rooms_with_unread(self):
         second_room = Room.objects.create(
-            slug="svc-room-2",
             name="Second room",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,

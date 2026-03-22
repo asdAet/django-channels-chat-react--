@@ -43,7 +43,6 @@ class MediaAccessServiceTests(TestCase):
             email="svcmoutsider@example.com",
         )
         self.direct_room = Room.objects.create(
-            slug="service_media_direct_01",
             name="service media direct",
             kind=Room.Kind.DIRECT,
             direct_pair_key=f"{self.owner.pk}:{self.peer.pk}",
@@ -130,7 +129,6 @@ class MediaAccessServiceTests(TestCase):
 
     def test_resolve_attachment_media_access_allows_authenticated_reader_in_public_room(self):
         public_room = Room.objects.create(
-            slug="service_media_public_01",
             name="service media public",
             kind=Room.Kind.PUBLIC,
             created_by=self.owner,

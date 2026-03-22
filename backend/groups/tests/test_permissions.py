@@ -25,7 +25,6 @@ class TestGroupPermissions(TestCase):
 
         self.room = Room.objects.create(
             name="Test Group",
-            slug="g-test-permissions-abc12345",
             kind=Room.Kind.GROUP,
             is_public=False,
             created_by=self.owner,
@@ -91,7 +90,6 @@ class TestPublicGroupPermissions(TestCase):
 
         self.room = Room.objects.create(
             name="Public Group",
-            slug="g-public-perm-test-abc12345",
             kind=Room.Kind.GROUP,
             is_public=True,
             created_by=self.owner,

@@ -26,4 +26,4 @@ npm run build
 - Сессия: `GET /api/auth/session/`.
 - Вход/регистрация: `POST /api/auth/login/`, `POST /api/auth/register/`.
 - Профиль: `GET/POST /api/profile/`.
-- Чаты: `GET /api/chat/public-room/`, `GET /api/chat/rooms/<room>/`, `GET /api/chat/rooms/<room>/messages/`.
+- Чаты: `POST /api/chat/resolve/`, `GET /api/chat/<room>/`, `GET /api/chat/<room>/messages/`, `GET /api/chat/inbox/`.

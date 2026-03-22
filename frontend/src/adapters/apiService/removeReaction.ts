@@ -3,12 +3,11 @@ import type { AxiosInstance } from "axios";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Удаляет reaction.
- * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
- * @param roomId Идентификатор комнаты.
- * @param messageId Идентификатор сообщения.
- * @param emoji Эмодзи реакции.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Removes the current user's reaction from a message.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @param messageId Message identifier.
+ * @param emoji Reaction emoji.
  */
 export async function removeReaction(
   apiClient: AxiosInstance,
@@ -16,9 +15,10 @@ export async function removeReaction(
   messageId: number,
   emoji: string,
 ): Promise<void> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomId);
-  const encodedRoomRef = encodeURIComponent(apiRoomRef);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
   await apiClient.delete(
-    `/chat/rooms/${encodedRoomRef}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/`,
+    `/chat/${encodedRoomId}/messages/${messageId}/reactions/${encodeURIComponent(emoji)}/`,
   );
 }
+

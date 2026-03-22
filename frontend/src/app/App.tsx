@@ -9,6 +9,7 @@ import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
 import { debugLog } from "../shared/lib/debug";
+import { isPrefixlessChatPath } from "../shared/lib/chatTarget";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { PresenceProvider } from "../shared/presence";
 import appStyles from "../styles/app/AppAuthPage.module.css";
@@ -69,18 +70,10 @@ const MATCHED_ROUTE_SEO: Array<{
     },
   },
   {
-    match: (pathname) => pathname.startsWith("/direct"),
-    meta: {
-      title: "Личные чаты — Devils Resting",
-      description: "Личные диалоги и переписка в Devils Resting.",
-      robots: "noindex,nofollow",
-    },
-  },
-  {
-    match: (pathname) => pathname.startsWith("/rooms/"),
+    match: (pathname) => isPrefixlessChatPath(pathname),
     meta: {
       title: "Чат — Devils Resting",
-      description: "Комната чата Devils Resting.",
+      description: "Личные и групповые чаты Devils Resting.",
       robots: "noindex,nofollow",
     },
   },
@@ -531,4 +524,3 @@ export function App() {
 }
 
 export default App;
-

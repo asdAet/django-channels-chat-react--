@@ -2,18 +2,21 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import json
-import tempfile
 from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import OperationalError
 from django.test import Client, TestCase, override_settings
+from django.utils import timezone
 
 from chat import api
 from chat.services import MessageForbiddenError
-from messages.models import Message, MessageAttachment, Reaction
+from chat.tests.media_utils import workspace_media_root
+from messages.models import Message, MessageAttachment, MessageReadReceipt, MessageReadState, Reaction
 from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
@@ -36,7 +39,6 @@ class ChatMessageFeatureApiTests(TestCase):
         ensure_user_identity_core(self.outsider)
 
         self.direct_room = Room.objects.create(
-            slug="dm_features_01",
             name="dm features",
             kind=Room.Kind.DIRECT,
             direct_pair_key=f"{self.owner.pk}:{self.peer.pk}",
@@ -55,7 +57,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
 
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
             data=json.dumps({"emoji": "\U0001F44D"}),
             content_type="application/json",
         )
@@ -71,7 +73,6 @@ class ChatMessageFeatureApiTests(TestCase):
 
     def test_global_search_respects_interaction_scope_for_all_sections(self):
         visible_group = Room.objects.create(
-            slug="group_features_01",
             name="scope visible group",
             kind=Room.Kind.GROUP,
             is_public=False,
@@ -85,7 +86,6 @@ class ChatMessageFeatureApiTests(TestCase):
         ensure_membership(visible_group, scope_friend, role_name="Member")
 
         hidden_group = Room.objects.create(
-            slug="group_features_hidden",
             name="scope hidden group",
             kind=Room.Kind.GROUP,
             is_public=False,
@@ -135,7 +135,6 @@ class ChatMessageFeatureApiTests(TestCase):
 
     def test_global_search_for_superuser_is_not_limited_by_interaction_scope(self):
         hidden_group = Room.objects.create(
-            slug="group_super_scope_hidden",
             name="super scope hidden group",
             kind=Room.Kind.GROUP,
             is_public=False,
@@ -183,7 +182,6 @@ class ChatMessageFeatureApiTests(TestCase):
 
     def test_global_search_plain_text_includes_matching_handle_groups(self):
         visible_group = Room.objects.create(
-            slug="group_plain_text_scope",
             name="plain text scope group",
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -211,7 +209,6 @@ class ChatMessageFeatureApiTests(TestCase):
 
     def test_global_search_includes_any_matching_public_groups_without_interaction(self):
         public_group_one = Room.objects.create(
-            slug="group_public_visible_one",
             name="Catalog Group One",
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -221,7 +218,6 @@ class ChatMessageFeatureApiTests(TestCase):
         ensure_membership(public_group_one, self.outsider, role_name="Owner")
 
         public_group_two = Room.objects.create(
-            slug="group_public_visible_two",
             name="Catalog Group Two",
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -231,7 +227,6 @@ class ChatMessageFeatureApiTests(TestCase):
         ensure_membership(public_group_two, self.peer, role_name="Owner")
 
         private_group = Room.objects.create(
-            slug="group_private_catalog",
             name="Catalog Private Group",
             kind=Room.Kind.GROUP,
             is_public=False,
@@ -252,7 +247,6 @@ class ChatMessageFeatureApiTests(TestCase):
 
     def test_global_search_handle_excludes_public_group_without_username(self):
         public_group = Room.objects.create(
-            slug="group_public_without_username",
             name="Catalog Group No Handle",
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -270,7 +264,6 @@ class ChatMessageFeatureApiTests(TestCase):
     def test_global_search_supports_handle_query_for_group_username(self):
         group_username = "public_handle_group"
         public_group = Room.objects.create(
-            slug="group_public_handle",
             name="Another public group",
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -321,7 +314,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         post_response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={
                 "files": [upload_file],
                 "messageContent": "file message",
@@ -333,14 +326,13 @@ class ChatMessageFeatureApiTests(TestCase):
         created_message = Message.objects.get(pk=created_id)
         self.assertEqual(created_message.reply_to_id, reply_target.pk)
 
-        get_response = self.client.get(f"/api/chat/rooms/{self.direct_room.pk}/attachments/")
+        get_response = self.client.get(f"/api/chat/{self.direct_room.pk}/attachments/")
         self.assertEqual(get_response.status_code, 200)
         items = get_response.json()["items"]
         self.assertTrue(any(item["messageId"] == created_id for item in items))
 
     def test_attachment_upload_in_public_room_creates_membership_and_media_is_readable(self):
         public_room = Room.objects.create(
-            slug="public_features_attachments_01",
             name="public features attachments",
             kind=Room.Kind.PUBLIC,
             created_by=self.owner,
@@ -356,7 +348,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         post_response = self.client.post(
-            f"/api/chat/rooms/{public_room.pk}/attachments/",
+            f"/api/chat/{public_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
         self.assertEqual(post_response.status_code, 201)
@@ -379,7 +371,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         post_response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
         self.assertEqual(post_response.status_code, 201)
@@ -393,7 +385,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertNotIn("exp", query_upload)
         self.assertNotIn("sig", query_upload)
 
-        list_response = self.client.get(f"/api/chat/rooms/{self.direct_room.pk}/attachments/")
+        list_response = self.client.get(f"/api/chat/{self.direct_room.pk}/attachments/")
         self.assertEqual(list_response.status_code, 200)
         item = next(
             current
@@ -418,7 +410,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="application/x-custom-binary",
         )
         post_response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
 
@@ -435,7 +427,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"file": upload_file},
         )
         self.assertEqual(response.status_code, 201)
@@ -449,7 +441,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"attachments[]": [upload_file]},
         )
         self.assertEqual(response.status_code, 201)
@@ -463,7 +455,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"attachments": [upload_file]},
         )
         self.assertEqual(response.status_code, 201)
@@ -472,7 +464,7 @@ class ChatMessageFeatureApiTests(TestCase):
     def test_attachment_upload_returns_code_when_files_missing(self):
         self.client.force_login(self.owner)
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={},
         )
         self.assertEqual(response.status_code, 400)
@@ -484,7 +476,7 @@ class ChatMessageFeatureApiTests(TestCase):
         file_one = SimpleUploadedFile("one.txt", b"1", content_type="text/plain")
         file_two = SimpleUploadedFile("two.txt", b"2", content_type="text/plain")
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [file_one, file_two]},
         )
         self.assertEqual(response.status_code, 400)
@@ -504,7 +496,7 @@ class ChatMessageFeatureApiTests(TestCase):
         file_one = SimpleUploadedFile("one.txt", b"1", content_type="text/plain")
         file_two = SimpleUploadedFile("two.txt", b"2", content_type="text/plain")
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [file_one, file_two]},
         )
         self.assertEqual(response.status_code, 201)
@@ -515,7 +507,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
         upload_file = SimpleUploadedFile("reply.txt", b"file", content_type="text/plain")
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file], "replyTo": "999999"},
         )
         self.assertEqual(response.status_code, 400)
@@ -531,7 +523,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
         self.assertEqual(response.status_code, 400)
@@ -555,7 +547,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="text/plain",
         )
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
         self.assertEqual(response.status_code, 201)
@@ -575,7 +567,7 @@ class ChatMessageFeatureApiTests(TestCase):
             content_type="audio/mp3",
         )
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
         self.assertEqual(response.status_code, 201)
@@ -595,7 +587,7 @@ class ChatMessageFeatureApiTests(TestCase):
         )
 
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
 
@@ -616,7 +608,7 @@ class ChatMessageFeatureApiTests(TestCase):
         )
 
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
 
@@ -637,7 +629,7 @@ class ChatMessageFeatureApiTests(TestCase):
         )
 
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
 
@@ -658,7 +650,7 @@ class ChatMessageFeatureApiTests(TestCase):
         )
 
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/attachments/",
+            f"/api/chat/{self.direct_room.pk}/attachments/",
             data={"files": [upload_file]},
         )
 
@@ -685,22 +677,23 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
 
         first_read_response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/read/",
+            f"/api/chat/{self.direct_room.pk}/read/",
             data=json.dumps({"lastReadMessageId": second_message.pk}),
             content_type="application/json",
         )
         self.assertEqual(first_read_response.status_code, 200)
         self.assertEqual(first_read_response.json()["lastReadMessageId"], second_message.pk)
+        self.assertIsNotNone(first_read_response.json()["lastReadAt"])
 
         backward_response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/read/",
+            f"/api/chat/{self.direct_room.pk}/read/",
             data=json.dumps({"lastReadMessageId": first_message.pk}),
             content_type="application/json",
         )
         self.assertEqual(backward_response.status_code, 200)
         self.assertEqual(backward_response.json()["lastReadMessageId"], second_message.pk)
 
-        details_response = self.client.get(f"/api/chat/rooms/{self.direct_room.pk}/")
+        details_response = self.client.get(f"/api/chat/{self.direct_room.pk}/")
         self.assertEqual(details_response.status_code, 200)
         self.assertEqual(details_response.json()["lastReadMessageId"], second_message.pk)
 
@@ -714,11 +707,12 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
 
         response = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/read/",
+            f"/api/chat/{self.direct_room.pk}/read/",
             data={"lastReadMessageId": str(message.pk)},
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["lastReadMessageId"], message.pk)
+        self.assertIsNotNone(response.json()["lastReadAt"])
 
     def test_message_detail_patch_validates_content_type_and_empty_value(self):
         message = Message.objects.create(
@@ -730,14 +724,14 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
 
         not_string = self.client.patch(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/",
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/",
             data=json.dumps({"content": 123}),
             content_type="application/json",
         )
         self.assertEqual(not_string.status_code, 400)
 
         empty = self.client.patch(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/",
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/",
             data=json.dumps({"content": "   "}),
             content_type="application/json",
         )
@@ -753,7 +747,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
 
         patch_response = self.client.patch(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/",
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/",
             data=json.dumps({"content": "updated"}),
             content_type="application/json",
         )
@@ -761,14 +755,14 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(patch_response.json()["content"], "updated")
 
         not_found = self.client.patch(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/999999/",
+            f"/api/chat/{self.direct_room.pk}/messages/999999/",
             data=json.dumps({"content": "x"}),
             content_type="application/json",
         )
         self.assertEqual(not_found.status_code, 404)
 
         delete_response = self.client.delete(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/"
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/"
         )
         self.assertEqual(delete_response.status_code, 204)
         message.refresh_from_db()
@@ -784,13 +778,12 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.peer)
 
         response = self.client.delete(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/"
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/"
         )
         self.assertEqual(response.status_code, 403)
 
     def test_message_detail_allows_superuser_edit_and_delete_outside_membership(self):
         private_room = Room.objects.create(
-            slug="private_superuser_access_01",
             name="private superuser access",
             kind=Room.Kind.PRIVATE,
             created_by=self.outsider,
@@ -812,7 +805,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(superuser)
 
         patch_response = self.client.patch(
-            f"/api/chat/rooms/{private_room.pk}/messages/{message.pk}/",
+            f"/api/chat/{private_room.pk}/messages/{message.pk}/",
             data=json.dumps({"content": "edited by superuser"}),
             content_type="application/json",
         )
@@ -820,7 +813,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(patch_response.json()["content"], "edited by superuser")
 
         delete_response = self.client.delete(
-            f"/api/chat/rooms/{private_room.pk}/messages/{message.pk}/"
+            f"/api/chat/{private_room.pk}/messages/{message.pk}/"
         )
         self.assertEqual(delete_response.status_code, 204)
         message.refresh_from_db()
@@ -828,8 +821,7 @@ class ChatMessageFeatureApiTests(TestCase):
 
     def test_message_detail_delete_removes_attachment_files_when_enabled(self):
         self.client.force_login(self.owner)
-        with tempfile.TemporaryDirectory() as media_root, override_settings(
-            MEDIA_ROOT=media_root,
+        with workspace_media_root(), override_settings(
             CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True,
         ):
             message = Message.objects.create(
@@ -855,7 +847,7 @@ class ChatMessageFeatureApiTests(TestCase):
             self.assertTrue(thumb_storage.exists(thumb_name))
 
             response = self.client.delete(
-                f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/"
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/"
             )
 
             self.assertEqual(response.status_code, 204)
@@ -877,14 +869,14 @@ class ChatMessageFeatureApiTests(TestCase):
 
         with patch("chat.api.add_reaction", side_effect=MessageForbiddenError("forbidden")):
             forbidden = self.client.post(
-                f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
                 data=json.dumps({"emoji": "👍"}),
                 content_type="application/json",
             )
         self.assertEqual(forbidden.status_code, 403)
 
         added = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
             data=json.dumps({"emoji": "👍"}),
             content_type="application/json",
         )
@@ -894,7 +886,7 @@ class ChatMessageFeatureApiTests(TestCase):
         )
 
         removed = self.client.delete(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
         )
         self.assertEqual(removed.status_code, 204)
         self.assertFalse(
@@ -922,11 +914,11 @@ class ChatMessageFeatureApiTests(TestCase):
         )
 
         self.client.force_login(self.owner)
-        short = self.client.get(f"/api/chat/rooms/{self.direct_room.pk}/messages/search/?q=x")
+        short = self.client.get(f"/api/chat/{self.direct_room.pk}/messages/search/?q=x")
         self.assertEqual(short.status_code, 400)
 
         page = self.client.get(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/search/?q=needle&limit=1&before=bad"
+            f"/api/chat/{self.direct_room.pk}/messages/search/?q=needle&limit=1&before=bad"
         )
         self.assertEqual(page.status_code, 200)
         payload = page.json()
@@ -935,14 +927,14 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(len(payload["results"]), 1)
 
         before_filtered = self.client.get(
-            f"/api/chat/rooms/{self.direct_room.pk}/messages/search/?q=needle&before={second.pk}"
+            f"/api/chat/{self.direct_room.pk}/messages/search/?q=needle&before={second.pk}"
         )
         self.assertEqual(before_filtered.status_code, 200)
         ids = {item["id"] for item in before_filtered.json()["results"]}
         self.assertIn(first.pk, ids)
         self.assertNotIn(second.pk, ids)
 
-    def test_mark_read_validation_public_short_circuit_and_unread_counts(self):
+    def test_mark_read_validation_public_room_and_unread_counts(self):
         message = Message.objects.create(
             username=self.peer.username,
             user=self.peer,
@@ -952,40 +944,197 @@ class ChatMessageFeatureApiTests(TestCase):
         self.client.force_login(self.owner)
 
         bool_payload = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/read/",
+            f"/api/chat/{self.direct_room.pk}/read/",
             data=json.dumps({"lastReadMessageId": True}),
             content_type="application/json",
         )
         self.assertEqual(bool_payload.status_code, 400)
 
         negative_payload = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/read/",
+            f"/api/chat/{self.direct_room.pk}/read/",
             data=json.dumps({"lastReadMessageId": -1}),
             content_type="application/json",
         )
         self.assertEqual(negative_payload.status_code, 400)
 
-        unread_before = self.client.get("/api/chat/rooms/unread/")
+        unread_before = self.client.get("/api/chat/unread/")
         self.assertEqual(unread_before.status_code, 200)
         self.assertTrue(any(item["roomId"] == self.direct_room.pk for item in unread_before.json()["items"]))
 
         read_ok = self.client.post(
-            f"/api/chat/rooms/{self.direct_room.pk}/read/",
+            f"/api/chat/{self.direct_room.pk}/read/",
             data=json.dumps({"lastReadMessageId": message.pk}),
             content_type="application/json",
         )
         self.assertEqual(read_ok.status_code, 200)
 
-        unread_after = self.client.get("/api/chat/rooms/unread/")
+        unread_after = self.client.get("/api/chat/unread/")
         self.assertEqual(unread_after.status_code, 200)
         self.assertFalse(any(item["roomId"] == self.direct_room.pk for item in unread_after.json()["items"]))
 
         public_room = api._public_room()
+        public_message = Message.objects.create(
+            username=self.peer.username,
+            user=self.peer,
+            room=public_room,
+            message_content="public unread",
+        )
+        unread_public_before = self.client.get("/api/chat/unread/")
+        self.assertEqual(unread_public_before.status_code, 200)
+        self.assertTrue(
+            any(item["roomId"] == public_room.pk for item in unread_public_before.json()["items"])
+        )
         public_short = self.client.post(
-            f"/api/chat/rooms/{public_room.pk}/read/",
-            data=json.dumps({"lastReadMessageId": 1}),
+            f"/api/chat/{public_room.pk}/read/",
+            data=json.dumps({"lastReadMessageId": public_message.pk}),
             content_type="application/json",
         )
         self.assertEqual(public_short.status_code, 200)
-        self.assertIsNone(public_short.json()["lastReadMessageId"])
+        self.assertEqual(public_short.json()["lastReadMessageId"], public_message.pk)
+        self.assertIsNotNone(public_short.json()["lastReadAt"])
+        self.assertTrue(
+            MessageReadState.objects.filter(
+                user=self.owner,
+                room=public_room,
+                last_read_message_id=public_message.pk,
+            ).exists()
+        )
+
+        unread_public_after = self.client.get("/api/chat/unread/")
+        self.assertEqual(unread_public_after.status_code, 200)
+        self.assertFalse(
+            any(item["roomId"] == public_room.pk for item in unread_public_after.json()["items"])
+        )
+
+    def test_message_readers_endpoint_returns_direct_read_at_for_author(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="direct own message",
+        )
+        self.client.force_login(self.peer)
+        mark_read_response = self.client.post(
+            f"/api/chat/{self.direct_room.pk}/read/",
+            data=json.dumps({"lastReadMessageId": message.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(mark_read_response.status_code, 200)
+
+        self.client.force_login(self.owner)
+        response = self.client.get(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/readers/"
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["roomKind"], "direct")
+        self.assertEqual(payload["messageId"], message.pk)
+        self.assertEqual(payload["readers"], [])
+        self.assertIsNotNone(payload["readAt"])
+
+    def test_message_readers_endpoint_returns_group_readers_for_author_only(self):
+        group_room = Room.objects.create(
+            name="Readers group",
+            kind=Room.Kind.GROUP,
+            is_public=False,
+            created_by=self.owner,
+        )
+        ensure_membership(group_room, self.owner, role_name="Owner")
+        ensure_membership(group_room, self.peer, role_name="Member")
+        ensure_membership(group_room, self.outsider, role_name="Member")
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=group_room,
+            message_content="group own message",
+        )
+
+        self.client.force_login(self.peer)
+        self.assertEqual(
+            self.client.post(
+                f"/api/chat/{group_room.pk}/read/",
+                data=json.dumps({"lastReadMessageId": message.pk}),
+                content_type="application/json",
+            ).status_code,
+            200,
+        )
+
+        self.client.force_login(self.outsider)
+        self.assertEqual(
+            self.client.post(
+                f"/api/chat/{group_room.pk}/read/",
+                data=json.dumps({"lastReadMessageId": message.pk}),
+                content_type="application/json",
+            ).status_code,
+            200,
+        )
+
+        older = timezone.now() - timedelta(minutes=2)
+        newer = timezone.now() - timedelta(minutes=1)
+        MessageReadReceipt.objects.filter(message=message, user=self.peer).update(read_at=older)
+        MessageReadReceipt.objects.filter(message=message, user=self.outsider).update(read_at=newer)
+
+        self.client.force_login(self.owner)
+        response = self.client.get(
+            f"/api/chat/{group_room.pk}/messages/{message.pk}/readers/"
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["roomKind"], "group")
+        self.assertEqual(payload["messageId"], message.pk)
+        self.assertEqual([item["userId"] for item in payload["readers"]], [self.outsider.pk, self.peer.pk])
+        self.assertIn("profileImage", payload["readers"][0])
+        self.assertIn("avatarCrop", payload["readers"][0])
+        self.assertIsNone(payload["readAt"])
+
+        self.client.force_login(self.peer)
+        forbidden = self.client.get(
+            f"/api/chat/{group_room.pk}/messages/{message.pk}/readers/"
+        )
+        self.assertEqual(forbidden.status_code, 403)
+
+    def test_mark_read_endpoint_survives_missing_receipt_table(self):
+        message = Message.objects.create(
+            username=self.peer.username,
+            user=self.peer,
+            room=self.direct_room,
+            message_content="survive missing receipts",
+        )
+        self.client.force_login(self.owner)
+
+        with patch(
+            "chat.services.MessageReadReceipt.objects.bulk_create",
+            side_effect=OperationalError("no such table: messages_read_receipt"),
+        ):
+            response = self.client.post(
+                f"/api/chat/{self.direct_room.pk}/read/",
+                data=json.dumps({"lastReadMessageId": message.pk}),
+                content_type="application/json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["lastReadMessageId"], message.pk)
+
+    def test_message_readers_endpoint_survives_missing_receipt_table(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="reader fallback",
+        )
+        self.client.force_login(self.owner)
+
+        with patch(
+            "chat.services.MessageReadReceipt.objects.filter",
+            side_effect=OperationalError("no such table: messages_read_receipt"),
+        ):
+            response = self.client.get(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/readers/"
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["roomKind"], "direct")
+        self.assertEqual(response.json()["messageId"], message.pk)
+        self.assertEqual(response.json()["readAt"], None)
+        self.assertEqual(response.json()["readers"], [])
 

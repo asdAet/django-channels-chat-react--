@@ -1,0 +1,145 @@
+﻿.item {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 4px 8px;
+  padding: 14px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.itemMenuOpen {
+  /* Raise the active row so its menu can cover neighboring action buttons. */
+  z-index: 6;
+}
+
+.item:hover {
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--friends-text, #f2f3f5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemMeta {
+  margin-top: 4px;
+  color: var(--friends-soft, #949ba4);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.actionMenuWrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.actionMenuTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: var(--friends-panel-soft, #1e1f22);
+  color: var(--friends-text, #f2f3f5);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.actionMenuTrigger:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.actionMenu {
+  z-index: 8;
+  min-width: 180px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #2b2d31, #232428);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.36);
+}
+
+.actionMenuItem {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--friends-text, #f2f3f5);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.actionMenuItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.actionMenuItemDanger {
+  color: #ffb5b7;
+}
+
+.actionMenuItemDanger:hover {
+  background: rgba(242, 63, 67, 0.12);
+}
+
+@media (max-width: 768px) {
+  .item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .itemActions {
+    margin-left: auto;
+  }
+
+  .actionMenuTrigger {
+    width: var(--touch-target-min, 44px);
+    height: var(--touch-target-min, 44px);
+  }
+
+  .actionMenu {
+    min-width: 220px;
+  }
+
+  .actionMenuItem {
+    min-height: var(--touch-target-min, 44px);
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .item {
+    margin-inline: 0;
+    padding: 12px;
+  }
+}

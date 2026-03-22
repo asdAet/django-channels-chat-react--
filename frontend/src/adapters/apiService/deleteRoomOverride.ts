@@ -13,6 +13,6 @@ export async function deleteRoomOverride(
   overrideId: number,
 ): Promise<void> {
   await apiClient.delete(
-    `/chat/rooms/${encodeURIComponent(roomId)}/overrides/${overrideId}/`,
+    `/chat/${encodeURIComponent(roomId)}/overrides/${overrideId}/`,
   );
 }

@@ -1,4 +1,4 @@
-﻿/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   type ReactNode,
@@ -17,22 +17,35 @@ import type { ConversationItem } from "../../entities/conversation/types";
 import type { GroupListItem } from "../../entities/group/types";
 import type { UserProfile } from "../../entities/user/types";
 import { useDirectInbox } from "../directInbox";
+import {
+  buildChatTargetPath,
+  buildPublicChatPath,
+  PUBLIC_CHAT_TARGET,
+} from "../lib/chatTarget";
 import { debugLog } from "../lib/debug";
 import { normalizePublicRef } from "../lib/publicRef";
+import { resolveIdentityLabel } from "../lib/userIdentity";
 import { usePresence } from "../presence";
 import { useUnreadOverrides } from "../unreadOverrides/store";
 import { CONVERSATION_LIST_REFRESH_EVENT } from "./events";
 
-/**
- * Описывает структуру данных `FilterTab`.
- */
 type FilterTab = "all" | "personal" | "groups";
 
-/**
- * Описывает структуру состояния `ConversationList`.
- */
+type ServerRailItem = {
+  key: string;
+  roomId: number | null;
+  roomTarget: string;
+  name: string;
+  path: string;
+  avatarUrl: string | null;
+  avatarCrop: GroupListItem["avatarCrop"] | null;
+  unreadCount: number;
+  isPublic: boolean;
+};
+
 type ConversationListState = {
   items: ConversationItem[];
+  serverItems: ServerRailItem[];
   loading: boolean;
   error: string | null;
   filter: FilterTab;
@@ -53,6 +66,7 @@ const EMPTY_GLOBAL_RESULTS: GlobalSearchResult = {
 
 const fallback: ConversationListState = {
   items: [],
+  serverItems: [],
   loading: false,
   error: null,
   filter: "all",
@@ -67,19 +81,12 @@ const fallback: ConversationListState = {
 
 const ConversationListCtx = createContext<ConversationListState>(fallback);
 
-/**
- * Описывает входные props компонента `Props`.
- */
 type Props = {
   user: UserProfile | null;
   ready: boolean;
   children: ReactNode;
 };
 
-/**
- * Проверяет условие can run global search query.
- * @param query Поисковый запрос.
- */
 const canRunGlobalSearchQuery = (query: string) => {
   const normalized = query.trim();
   if (normalized.length < 2) return false;
@@ -87,17 +94,14 @@ const canRunGlobalSearchQuery = (query: string) => {
   return normalized.slice(1).trim().length >= 2;
 };
 
-/**
- * Нормализует actor ref.
- * @param value Входное значение для преобразования.
- * @returns Нормализованное значение после обработки входа.
- */
 const normalizeActorRef = (value: string): string =>
   normalizePublicRef(value).toLowerCase();
 
-/**
- * React-компонент ConversationListProvider отвечает за отрисовку и обработку UI-сценария.
- */
+const toRoomKey = (roomId: number | null | undefined): string =>
+  typeof roomId === "number" && Number.isFinite(roomId) && roomId > 0
+    ? String(Math.trunc(roomId))
+    : "";
+
 export function ConversationListProvider({ user, ready, children }: Props) {
   const { items: directItems, unreadCounts } = useDirectInbox();
   const unreadOverrides = useUnreadOverrides();
@@ -106,6 +110,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [roomUnreads, setRoomUnreads] = useState<Record<string, number>>({});
   const [groupItems, setGroupItems] = useState<GroupListItem[]>([]);
+  const [publicRoomId, setPublicRoomId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [globalResults, setGlobalResults] =
@@ -136,11 +141,12 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     if (!user) return;
     try {
       setLoading(true);
-      const [counts, groups] = await Promise.all([
+      const [counts, groups, publicRoom] = await Promise.all([
         chatController.getUnreadCounts(),
         groupController
           .getMyGroups()
           .catch(() => ({ items: [] as GroupListItem[], total: 0 })),
+        chatController.resolveChatTarget(PUBLIC_CHAT_TARGET).catch(() => null),
       ]);
       if (!mountedRef.current) return;
       const map: Record<string, number> = {};
@@ -149,10 +155,11 @@ export function ConversationListProvider({ user, ready, children }: Props) {
       }
       setRoomUnreads(map);
       setGroupItems(groups.items);
+      setPublicRoomId(publicRoom?.roomId ?? null);
       setError(null);
     } catch (err) {
       debugLog("Failed to fetch conversation data", err);
-      if (mountedRef.current) setError("Не удалось загрузить данные");
+      if (mountedRef.current) setError("Не удалось загрузить список чатов.");
     } finally {
       if (mountedRef.current) setLoading(false);
     }
@@ -166,9 +173,6 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
   useEffect(() => {
     if (!ready || !user) return;
-    /**
-     * Обрабатывает on refresh.
-     */
     const onRefresh = () => {
       void fetchData();
     };
@@ -180,6 +184,20 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
   const isGlobalMode = searchQuery.trim().length >= 2;
   const canRunGlobalSearch = canRunGlobalSearchQuery(searchQuery);
+
+  const resolveUnreadCount = useCallback(
+    (roomId: number | null, wsUnreadCount?: number) => {
+      const roomKey = toRoomKey(roomId);
+      if (!roomKey) {
+        return typeof wsUnreadCount === "number" ? wsUnreadCount : 0;
+      }
+      const overrideUnread = unreadOverrides[roomKey];
+      if (typeof overrideUnread === "number") return overrideUnread;
+      if (typeof wsUnreadCount === "number") return wsUnreadCount;
+      return roomUnreads[roomKey] ?? 0;
+    },
+    [roomUnreads, unreadOverrides],
+  );
 
   useEffect(() => {
     if (!user || !isGlobalMode || !canRunGlobalSearch) {
@@ -218,30 +236,19 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   }, [canRunGlobalSearch, isGlobalMode, searchQuery, user]);
 
   const items = useMemo<ConversationItem[]>(() => {
-    /**
-     * Определяет unread count.
-     * @param slug Человекочитаемый идентификатор сущности.
-     * @param wsUnreadCount Числовой параметр `wsUnreadCount`, ограничивающий объем данных.
-     */
-    const resolveUnreadCount = (slug: string, wsUnreadCount?: number) => {
-      const overrideUnread = unreadOverrides[slug];
-      if (typeof overrideUnread === "number") return overrideUnread;
-      if (typeof wsUnreadCount === "number") return wsUnreadCount;
-      return roomUnreads[slug] ?? 0;
-    };
-
     const conversations: ConversationItem[] = [];
 
     if (filter === "all") {
       conversations.push({
         type: "room",
-        slug: "public",
+        roomId: publicRoomId,
+        roomTarget: PUBLIC_CHAT_TARGET,
         name: "Публичный чат",
         avatarUrl: null,
         avatarCrop: null,
-        lastMessage: "Общий чат сообщества",
+        lastMessage: "Чат для всех участников",
         lastMessageAt: null,
-        unreadCount: resolveUnreadCount("public"),
+        unreadCount: resolveUnreadCount(publicRoomId),
         isOnline: false,
         isMuted: false,
         isPinned: true,
@@ -250,12 +257,13 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
     if (filter !== "groups") {
       for (const dm of directItems) {
-        const dmUnread = resolveUnreadCount(dm.slug, unreadCounts[dm.slug]);
+        const dmUnread = resolveUnreadCount(dm.roomId, unreadCounts[String(dm.roomId)]);
         const peerRef = dm.peer.publicRef;
         conversations.push({
           type: "direct",
-          slug: dm.slug,
-          name: dm.peer.displayName ?? dm.peer.username,
+          roomId: dm.roomId,
+          roomTarget: peerRef,
+          name: resolveIdentityLabel(dm.peer),
           directRef: peerRef,
           avatarUrl: dm.peer.profileImage ?? null,
           avatarCrop: dm.peer.avatarCrop ?? null,
@@ -270,16 +278,17 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
     if (filter !== "personal") {
       for (const group of groupItems) {
-        if (conversations.some((c) => c.slug === group.slug)) continue;
+        if (conversations.some((item) => item.roomId === group.roomId)) continue;
         conversations.push({
           type: "group",
-          slug: group.slug,
+          roomId: group.roomId,
+          roomTarget: group.roomTarget,
           name: group.name,
           avatarUrl: group.avatarUrl ?? null,
           avatarCrop: group.avatarCrop ?? null,
           lastMessage: group.description || "",
           lastMessageAt: null,
-          unreadCount: resolveUnreadCount(group.slug),
+          unreadCount: resolveUnreadCount(group.roomId),
           isOnline: false,
           isMuted: false,
         });
@@ -299,21 +308,54 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     }
 
     const q = searchQuery.toLowerCase().trim();
-    return conversations.filter((c) => c.name.toLowerCase().includes(q));
+    return conversations.filter((item) => item.name.toLowerCase().includes(q));
   }, [
     directItems,
     filter,
     groupItems,
     isGlobalMode,
     onlineUsernames,
-    unreadOverrides,
-    roomUnreads,
+    publicRoomId,
+    resolveUnreadCount,
     searchQuery,
     unreadCounts,
   ]);
 
+  const serverItems = useMemo<ServerRailItem[]>(() => {
+    const next: ServerRailItem[] = [
+      {
+        key: "public",
+        roomId: publicRoomId,
+        roomTarget: PUBLIC_CHAT_TARGET,
+        name: "Публичный чат",
+        path: buildPublicChatPath(),
+        avatarUrl: null,
+        avatarCrop: null,
+        unreadCount: resolveUnreadCount(publicRoomId),
+        isPublic: true,
+      },
+    ];
+
+    for (const group of groupItems) {
+      next.push({
+        key: `group-${group.roomId}`,
+        roomId: group.roomId,
+        roomTarget: group.roomTarget,
+        name: group.name,
+        path: buildChatTargetPath(group.roomTarget),
+        avatarUrl: group.avatarUrl ?? null,
+        avatarCrop: group.avatarCrop ?? null,
+        unreadCount: resolveUnreadCount(group.roomId),
+        isPublic: false,
+      });
+    }
+
+    return next;
+  }, [groupItems, publicRoomId, resolveUnreadCount]);
+
   const value: ConversationListState = {
     items,
+    serverItems,
     loading,
     error,
     filter,
@@ -333,12 +375,8 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   );
 }
 
-/**
- * Хук useConversationList управляет состоянием и побочными эффектами текущего сценария.
- */
 export function useConversationList() {
   return useContext(ConversationListCtx);
 }
 
-export type { FilterTab };
-
+export type { FilterTab, ServerRailItem };

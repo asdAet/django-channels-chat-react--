@@ -6,11 +6,11 @@ import type { Message } from "../entities/message/types";
 import type { RoomDetails as RoomDetailsDto } from "../entities/room/types";
 
 const controllerMocks = vi.hoisted(() => ({
-  getRoomDetails: vi.fn<(slug: string) => Promise<RoomDetailsDto>>(),
+  getRoomDetails: vi.fn<(roomId: string) => Promise<RoomDetailsDto>>(),
   getRoomMessages:
     vi.fn<
       (
-        slug: string,
+        roomId: string,
         params?: { limit?: number; beforeId?: number },
       ) => Promise<RoomMessagesDto>
     >(),
@@ -63,7 +63,7 @@ describe("useChatRoom", () => {
 
   it("loads initial room details and deduplicates messages", async () => {
     controllerMocks.getRoomDetails.mockResolvedValue({
-      slug: "public",
+      roomId: 1,
       name: "Public",
       kind: "public",
       created: false,
@@ -87,17 +87,17 @@ describe("useChatRoom", () => {
       pagination: { limit: 50, hasMore: false, nextBefore: null },
     });
 
-    const { result } = renderHook(() => useChatRoom("public", authUser));
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.details?.slug).toBe("public");
+    expect(result.current.details?.roomId).toBe(1);
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.hasMore).toBe(false);
   });
 
   it("loads older messages by nextBefore cursor", async () => {
     controllerMocks.getRoomDetails.mockResolvedValue({
-      slug: "public",
+      roomId: 1,
       name: "Public",
       kind: "public",
       created: false,
@@ -127,7 +127,7 @@ describe("useChatRoom", () => {
         pagination: { limit: 50, hasMore: false, nextBefore: null },
       });
 
-    const { result } = renderHook(() => useChatRoom("public", authUser));
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -137,7 +137,7 @@ describe("useChatRoom", () => {
 
     expect(controllerMocks.getRoomMessages).toHaveBeenNthCalledWith(
       2,
-      "public",
+      "1",
       {
         limit: 50,
         beforeId: 2,
@@ -149,7 +149,7 @@ describe("useChatRoom", () => {
 
   it("uses latest pagination cursor even with previously captured loadMore callback", async () => {
     controllerMocks.getRoomDetails.mockResolvedValue({
-      slug: "public",
+      roomId: 1,
       name: "Public",
       kind: "public",
       created: false,
@@ -190,7 +190,7 @@ describe("useChatRoom", () => {
         pagination: { limit: 50, hasMore: false, nextBefore: null },
       });
 
-    const { result } = renderHook(() => useChatRoom("public", authUser));
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const staleLoadMore = result.current.loadMore;
@@ -203,12 +203,12 @@ describe("useChatRoom", () => {
 
     expect(controllerMocks.getRoomMessages).toHaveBeenNthCalledWith(
       2,
-      "public",
+      "1",
       { limit: 50, beforeId: 100 },
     );
     expect(controllerMocks.getRoomMessages).toHaveBeenNthCalledWith(
       3,
-      "public",
+      "1",
       { limit: 50, beforeId: 99 },
     );
     expect(result.current.messages.map((item) => item.id)).toEqual([
@@ -223,7 +223,7 @@ describe("useChatRoom", () => {
       pagination: { limit: 50, hasMore: false, nextBefore: null },
     });
 
-    const { result } = renderHook(() => useChatRoom("public", authUser));
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe("load_failed");
@@ -231,7 +231,7 @@ describe("useChatRoom", () => {
 
   it("derives pagination when backend omits pagination payload", async () => {
     controllerMocks.getRoomDetails.mockResolvedValue({
-      slug: "public",
+      roomId: 1,
       name: "Public",
       kind: "public",
       created: false,
@@ -247,7 +247,7 @@ describe("useChatRoom", () => {
     );
     controllerMocks.getRoomMessages.mockResolvedValue({ messages });
 
-    const { result } = renderHook(() => useChatRoom("public", authUser));
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.hasMore).toBe(true);
@@ -259,7 +259,7 @@ describe("useChatRoom", () => {
 
     expect(controllerMocks.getRoomMessages).toHaveBeenNthCalledWith(
       2,
-      "public",
+      "1",
       {
         limit: 50,
         beforeId: 1,
@@ -269,7 +269,7 @@ describe("useChatRoom", () => {
 
   it("stops pagination when nextBefore cursor is missing", async () => {
     controllerMocks.getRoomDetails.mockResolvedValue({
-      slug: "public",
+      roomId: 1,
       name: "Public",
       kind: "public",
       created: false,
@@ -280,7 +280,7 @@ describe("useChatRoom", () => {
       pagination: { limit: 50, hasMore: true, nextBefore: null },
     });
 
-    const { result } = renderHook(() => useChatRoom("public", authUser));
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.hasMore).toBe(true);
@@ -294,7 +294,7 @@ describe("useChatRoom", () => {
   });
 
   it("does not load private room for guests", async () => {
-    renderHook(() => useChatRoom("private123", null));
+    renderHook(() => useChatRoom("2", null));
 
     await act(async () => {
       await Promise.resolve();
@@ -306,7 +306,7 @@ describe("useChatRoom", () => {
 
   it("keeps messages when loadMore request fails", async () => {
     controllerMocks.getRoomDetails.mockResolvedValue({
-      slug: "public",
+      roomId: 1,
       name: "Public",
       kind: "public",
       created: false,
@@ -326,7 +326,7 @@ describe("useChatRoom", () => {
       })
       .mockRejectedValueOnce(new Error("failed to load more"));
 
-    const { result } = renderHook(() => useChatRoom("public", authUser));
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -338,13 +338,13 @@ describe("useChatRoom", () => {
     expect(result.current.loadingMore).toBe(false);
   });
 
-  it("resets room state immediately when slug changes", async () => {
+  it("resets room state immediately when room id changes", async () => {
     let resolveSecondDetails: ((value: RoomDetailsDto) => void) | null = null;
     let resolveSecondMessages: ((value: RoomMessagesDto) => void) | null = null;
 
     controllerMocks.getRoomDetails
       .mockResolvedValueOnce({
-        slug: "public",
+        roomId: 1,
         name: "Public",
         kind: "public",
         created: false,
@@ -376,16 +376,25 @@ describe("useChatRoom", () => {
           }),
       );
 
+    const initialProps: {
+      currentRoomId: string;
+      currentRoomKind?: RoomDetailsDto["kind"] | null;
+    } = {
+      currentRoomId: "1",
+      currentRoomKind: "public",
+    };
+
     const { result, rerender } = renderHook(
-      ({ currentSlug }) => useChatRoom(currentSlug, authUser),
-      { initialProps: { currentSlug: "public" } },
+      ({ currentRoomId, currentRoomKind }) =>
+        useChatRoom(currentRoomId, authUser, currentRoomKind ?? null),
+      { initialProps },
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.details?.slug).toBe("public");
+    expect(result.current.details?.roomId).toBe(1);
     expect(result.current.messages.map((m) => m.id)).toEqual([7]);
 
-    rerender({ currentSlug: "group-1" });
+    rerender({ currentRoomId: "3", currentRoomKind: "group" });
 
     expect(result.current.loading).toBe(true);
     expect(result.current.details).toBeNull();
@@ -411,7 +420,7 @@ describe("useChatRoom", () => {
     ) => void;
 
     resolveDetails({
-      slug: "group-1",
+      roomId: 3,
       name: "Group",
       kind: "group",
       created: false,
@@ -430,7 +439,7 @@ describe("useChatRoom", () => {
     });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.details?.slug).toBe("group-1");
+    expect(result.current.details?.roomId).toBe(3);
     expect(result.current.messages.map((m) => m.id)).toEqual([1]);
   });
 });

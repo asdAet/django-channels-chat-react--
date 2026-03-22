@@ -35,14 +35,6 @@
   color: var(--tg-text-primary, #fff);
 }
 
-.viewBody {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-  animation: viewIn 180ms ease;
-}
-
 .infoView {
   display: flex;
   flex-direction: column;
@@ -251,14 +243,6 @@
 
 .fileRow:hover {
   background: rgba(255, 255, 255, 0.08);
-}
-
-.fileName {
-  min-width: 0;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .fileInfo {
@@ -531,83 +515,10 @@
   border-radius: 50%;
 }
 
-.disabledControl {
-  display: grid;
-  gap: 2px;
-  border-radius: 10px;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-  padding: 8px;
-}
-
-.disabledControl span {
-  font-size: 12px;
-}
-
-.disabledControl em {
-  font-style: normal;
-  color: var(--tg-text-secondary, #aaa);
-  font-size: 11px;
-}
-
 .empty {
   margin: 0;
   color: var(--tg-text-secondary, #aaa);
   font-size: 13px;
-}
-
-.controlDivider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.08);
-  margin: 2px 0;
-}
-
-.memberPickerList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 320px;
-  overflow-y: auto;
-  margin-top: 8px;
-}
-
-.memberPickerItem {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--tg-text-primary, #fff);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.memberPickerItem:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.memberPickerMeta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: 2px;
-}
-
-.memberPickerMeta strong {
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.memberPickerMeta span {
-  color: var(--tg-text-secondary, #aaa);
-  font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .hiddenInput {

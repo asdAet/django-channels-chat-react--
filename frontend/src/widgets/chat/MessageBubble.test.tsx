@@ -641,4 +641,77 @@ describe("MessageBubble", () => {
       "true",
     );
   });
+
+  it("shows readers action only when canViewReaders is enabled", () => {
+    const restoreDesktopInputModel = installDesktopInputModel();
+    try {
+      const onViewReaders = vi.fn();
+      const { container, rerender } = render(
+        <MessageBubble
+          message={baseMessage}
+          isOwn={true}
+          canViewReaders={true}
+          onViewReaders={onViewReaders}
+          onlineUsernames={new Set<string>()}
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onReact={vi.fn()}
+        />,
+      );
+
+      const article = container.querySelector(
+        'article[data-message-id="1"]',
+      ) as HTMLElement;
+
+      fireEvent.contextMenu(article);
+      fireEvent.click(screen.getByText("Кто прочитал"));
+      expect(onViewReaders).toHaveBeenCalledWith(
+        baseMessage,
+        expect.objectContaining({
+          x: expect.any(Number),
+          y: expect.any(Number),
+        }),
+      );
+
+      rerender(
+        <MessageBubble
+          message={baseMessage}
+          isOwn={true}
+          canViewReaders={false}
+          onlineUsernames={new Set<string>()}
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onReact={vi.fn()}
+        />,
+      );
+
+      fireEvent.contextMenu(article);
+      expect(screen.queryByText("Кто прочитал")).toBeNull();
+    } finally {
+      restoreDesktopInputModel();
+    }
+  });
+
+  it("hides avatar and header for grouped follow-up message", () => {
+    const { container } = render(
+      <MessageBubble
+        message={baseMessage}
+        isOwn={false}
+        showAvatar={false}
+        showHeader={false}
+        grouped={true}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    expect(
+      container.querySelector('article[data-message-grouped="true"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('article[data-message-avatar="false"]'),
+    ).not.toBeNull();
+    expect(screen.queryByText("alice")).toBeNull();
+  });
 });

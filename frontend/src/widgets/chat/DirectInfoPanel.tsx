@@ -8,6 +8,7 @@ import {
   resolveImagePreviewUrl,
 } from "../../shared/lib/attachmentMedia";
 import { formatLastSeen, formatTimestamp } from "../../shared/lib/format";
+import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { AudioAttachmentPlayer, Avatar, Spinner } from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
 
@@ -15,7 +16,7 @@ import styles from "../../styles/chat/DirectInfoPanel.module.css";
  * Описывает входные props компонента `Props`.
  */
 type Props = {
-  slug: string;
+  roomId: string;
 };
 
 /**
@@ -49,6 +50,7 @@ const formatFileSize = (bytes: number) => {
  */
 function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
   const isImage = isImageAttachment(item.contentType, item.originalFilename);
+  const displayName = resolveIdentityLabel(item);
   const imageSrc = resolveImagePreviewUrl({
     url: item.url,
     thumbnailUrl: item.thumbnailUrl,
@@ -114,7 +116,7 @@ function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
         )}
 
       <div className={styles.cardMeta}>
-        <span>{item.displayName ?? item.username}</span>
+        <span>{displayName}</span>
         <span>{formatTimestamp(item.createdAt)}</span>
       </div>
     </>
@@ -147,7 +149,7 @@ function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
 /**
  * React-компонент DirectInfoPanel отвечает за отрисовку и обработку UI-сценария.
  */
-export function DirectInfoPanel({ slug }: Props) {
+export function DirectInfoPanel({ roomId }: Props) {
   const [tab, setTab] = useState<Tab>("profile");
   const [details, setDetails] = useState<RoomDetails | null>(null);
   const [attachments, setAttachments] = useState<RoomAttachmentItem[]>([]);
@@ -160,8 +162,8 @@ export function DirectInfoPanel({ slug }: Props) {
     setLoading(true);
     try {
       const [room, files] = await Promise.all([
-        chatController.getRoomDetails(slug),
-        chatController.getRoomAttachments(slug, { limit: 60 }),
+        chatController.getRoomDetails(roomId),
+        chatController.getRoomAttachments(roomId, { limit: 60 }),
       ]);
       setDetails(room);
       setAttachments(files.items);
@@ -175,7 +177,7 @@ export function DirectInfoPanel({ slug }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   useEffect(() => {
     void loadInitial();
@@ -185,7 +187,7 @@ export function DirectInfoPanel({ slug }: Props) {
     if (!hasMore || !nextBefore || loadingMore) return;
     setLoadingMore(true);
     try {
-      const files = await chatController.getRoomAttachments(slug, {
+      const files = await chatController.getRoomAttachments(roomId, {
         limit: 60,
         before: nextBefore,
       });
@@ -197,10 +199,11 @@ export function DirectInfoPanel({ slug }: Props) {
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, nextBefore, slug]);
+  }, [hasMore, loadingMore, nextBefore, roomId]);
 
   const peer = details?.peer ?? null;
   const attachmentItems = useMemo(() => attachments, [attachments]);
+  const peerDisplayName = peer ? resolveIdentityLabel(peer) : "";
 
   if (loading) {
     return (
@@ -236,14 +239,12 @@ export function DirectInfoPanel({ slug }: Props) {
       {tab === "profile" && peer && (
         <div className={styles.profile}>
           <Avatar
-            username={peer.displayName ?? peer.username}
+            username={peerDisplayName}
             profileImage={peer.profileImage}
             avatarCrop={peer.avatarCrop}
             size="default"
           />
-          <h4 className={styles.peerName}>
-            {peer.displayName ?? peer.username}
-          </h4>
+          <h4 className={styles.peerName}>{peerDisplayName}</h4>
           <p className={styles.meta}>
             Был(а) в сети: {formatLastSeen(peer.lastSeen ?? null) || "—"}
           </p>

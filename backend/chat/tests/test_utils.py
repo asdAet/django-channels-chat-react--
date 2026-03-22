@@ -333,7 +333,7 @@ class BuildRoomMediaUrlFromRequestTests(SimpleTestCase):
 
     @override_settings(MEDIA_URL="/media/", ALLOWED_HOSTS=["*"])
     def test_builds_room_scoped_attachment_url(self):
-        request = self.factory.get("/api/chat/rooms/1/messages/", HTTP_HOST="localhost:8000")
+        request = self.factory.get("/api/chat/1/messages/", HTTP_HOST="localhost:8000")
 
         url = build_room_media_url_from_request(
             request,
@@ -351,7 +351,7 @@ class BuildRoomMediaUrlFromRequestTests(SimpleTestCase):
 
     @override_settings(MEDIA_URL="/media/", ALLOWED_HOSTS=["*"])
     def test_rejects_non_attachment_paths_and_bad_room_id(self):
-        request = self.factory.get("/api/chat/rooms/1/messages/", HTTP_HOST="localhost:8000")
+        request = self.factory.get("/api/chat/1/messages/", HTTP_HOST="localhost:8000")
 
         self.assertIsNone(
             build_room_media_url_from_request(request, "profile_pics/a.jpg", room_id=1),

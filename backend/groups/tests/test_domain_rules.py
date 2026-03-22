@@ -48,14 +48,3 @@ class GroupDomainRulesTests(SimpleTestCase):
         private_room = cast(Room, SimpleNamespace(kind=Room.Kind.PRIVATE))
         with self.assertRaises(ValueError):
             rules.ensure_is_group(private_room)
-
-    def test_generate_group_slug_handles_short_and_long_names(self):
-        with patch("groups.domain.rules.secrets.token_hex", side_effect=["abcd1234", "deadbeef"]):
-            short_slug = rules.generate_group_slug("!!")
-        self.assertTrue(short_slug.startswith("g--abcd1234-"))
-        self.assertTrue(short_slug.endswith("-deadbeef"))
-
-        with patch("groups.domain.rules.secrets.token_hex", return_value="cafebabe"):
-            long_slug = rules.generate_group_slug("Very Long Group Name !!! With ### Symbols")
-        self.assertTrue(long_slug.startswith("g-very-long-group-name-with-symbols"))
-        self.assertTrue(long_slug.endswith("-cafebabe"))

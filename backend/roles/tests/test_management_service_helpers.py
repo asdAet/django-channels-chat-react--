@@ -40,7 +40,7 @@ def _override_stub(**kwargs) -> PermissionOverride:
 
 class ManagementServiceHelperTests(SimpleTestCase):
     def test_load_room_and_authentication_guards(self):
-        room = _room_stub(slug="r1")
+        room = _room_stub(pk=1)
         with patch("roles.application.management_service.repositories.get_room_by_id", return_value=room):
             self.assertEqual(management_service._load_room_or_raise(1), room)
         with patch("roles.application.management_service.repositories.get_room_by_id", return_value=None):
@@ -137,7 +137,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
 
     def test_list_room_roles_and_member_not_found_paths(self):
         context = management_service.RoomActorContext(
-            room=_room_stub(slug="room"),
+            room=_room_stub(pk=1),
             actor_context=ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99),
         )
         with patch(
@@ -164,7 +164,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
     def test_update_room_role_error_and_change_paths(self):
         actor = SimpleNamespace(pk=1, username="actor", is_authenticated=True)
         context = management_service.RoomActorContext(
-            room=_room_stub(slug="room"),
+            room=_room_stub(pk=1),
             actor_context=ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99),
         )
 
@@ -225,7 +225,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
         role.save.assert_called_once()
 
     def test_resolve_override_target_validation_and_lookup_errors(self):
-        room = _room_stub(slug="room")
+        room = _room_stub(pk=1)
         actor_context = ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99)
 
         with self.assertRaises(RoleServiceError):
@@ -257,7 +257,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
     def test_create_room_role_conflict_when_name_exists(self):
         actor = SimpleNamespace(pk=1, username="actor", is_authenticated=True)
         context = management_service.RoomActorContext(
-            room=_room_stub(slug="room"),
+            room=_room_stub(pk=1),
             actor_context=ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99),
         )
         with patch(
@@ -283,7 +283,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
     def test_update_room_role_conflict_when_save_raises_integrity(self):
         actor = SimpleNamespace(pk=1, username="actor", is_authenticated=True)
         context = management_service.RoomActorContext(
-            room=_room_stub(slug="room"),
+            room=_room_stub(pk=1),
             actor_context=ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99),
         )
         role = SimpleNamespace(
@@ -314,7 +314,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
     def test_delete_room_role_not_found_and_protected(self):
         actor = SimpleNamespace(pk=1, username="actor", is_authenticated=True)
         context = management_service.RoomActorContext(
-            room=_room_stub(slug="room"),
+            room=_room_stub(pk=1),
             actor_context=ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99),
         )
         with patch(
@@ -341,7 +341,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
     def test_update_room_override_error_paths_and_change_save(self):
         actor = SimpleNamespace(pk=1, username="actor", is_authenticated=True)
         context = management_service.RoomActorContext(
-            room=_room_stub(slug="room"),
+            room=_room_stub(pk=1),
             actor_context=ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99),
         )
 
@@ -422,7 +422,7 @@ class ManagementServiceHelperTests(SimpleTestCase):
     def test_delete_room_override_error_and_target_branches(self):
         actor = SimpleNamespace(pk=1, username="actor", is_authenticated=True)
         context = management_service.RoomActorContext(
-            room=_room_stub(slug="room"),
+            room=_room_stub(pk=1),
             actor_context=ActorContext(permissions=Perm.ADMINISTRATOR, top_position=99),
         )
 

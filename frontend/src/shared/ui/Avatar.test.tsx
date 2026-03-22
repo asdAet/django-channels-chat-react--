@@ -81,4 +81,20 @@ describe("Avatar", () => {
     );
     expect(screen.getByRole("img", { name: "alice" })).toBeInTheDocument();
   });
+
+  it("retries the same image source after remount instead of caching the failure globally", () => {
+    const { unmount } = render(
+      <Avatar username="alice" profileImage="https://cdn.example.com/a.jpg" />,
+    );
+
+    fireEvent.error(screen.getByRole("img", { name: "alice" }));
+    expect(screen.queryByRole("img", { name: "alice" })).toBeNull();
+
+    unmount();
+    render(
+      <Avatar username="alice" profileImage="https://cdn.example.com/a.jpg" />,
+    );
+
+    expect(screen.getByRole("img", { name: "alice" })).toBeInTheDocument();
+  });
 });

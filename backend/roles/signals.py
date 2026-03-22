@@ -24,7 +24,7 @@ def audit_membership_save(sender, instance: Membership, created: bool, **kwargs)
         actor_user_id=getattr(instance.user, "id", None),
         actor_username=getattr(instance.user, "username", None),
         is_authenticated=bool(getattr(instance.user, "is_authenticated", False)),
-        room_slug=getattr(instance.room, "slug", None),
+        room_id=getattr(instance.room, "pk", None),
         username=getattr(instance.user, "username", None),
         is_banned=instance.is_banned,
     )
@@ -45,7 +45,7 @@ def audit_membership_delete(sender, instance: Membership, **kwargs):
         actor_user_id=getattr(instance.user, "id", None),
         actor_username=getattr(instance.user, "username", None),
         is_authenticated=bool(getattr(instance.user, "is_authenticated", False)),
-        room_slug=getattr(instance.room, "slug", None),
+        room_id=getattr(instance.room, "pk", None),
         username=getattr(instance.user, "username", None),
     )
 
@@ -62,7 +62,7 @@ def audit_role_save(sender, instance: Role, created: bool, **kwargs):
     """
     audit_security_event(
         "role.created" if created else "role.updated",
-        room_slug=getattr(instance.room, "slug", None),
+        room_id=getattr(instance.room, "pk", None),
         role_name=instance.name,
         position=instance.position,
         permissions=instance.permissions,
@@ -80,6 +80,6 @@ def audit_role_delete(sender, instance: Role, **kwargs):
     """
     audit_security_event(
         "role.deleted",
-        room_slug=getattr(instance.room, "slug", None),
+        room_id=getattr(instance.room, "pk", None),
         role_name=instance.name,
     )

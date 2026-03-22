@@ -15,10 +15,11 @@ import { DirectInfoPanel } from "./DirectInfoPanel";
 describe("DirectInfoPanel", () => {
   it("renders AudioAttachmentPlayer in attachments tab for audio items", async () => {
     chatControllerMock.getRoomDetails.mockResolvedValue({
-      slug: "dm_1",
+      roomId: 1,
       name: "dm_1",
       kind: "direct",
       peer: {
+        publicRef: "@alice",
         username: "alice",
         profileImage: null,
         lastSeen: null,
@@ -37,18 +38,19 @@ describe("DirectInfoPanel", () => {
           width: null,
           height: null,
           createdAt: "2026-03-11T10:00:00.000Z",
-          username: "alice",
+          publicRef: "@alice",
+        username: "alice",
         },
       ],
       pagination: { limit: 60, hasMore: false, nextBefore: null },
     });
 
-    render(<DirectInfoPanel slug="dm_1" />);
+    render(<DirectInfoPanel roomId="1" />);
 
     await waitFor(() => {
-      expect(chatControllerMock.getRoomDetails).toHaveBeenCalledWith("dm_1");
+      expect(chatControllerMock.getRoomDetails).toHaveBeenCalledWith("1");
       expect(chatControllerMock.getRoomAttachments).toHaveBeenCalledWith(
-        "dm_1",
+        "1",
         { limit: 60 },
       );
     });

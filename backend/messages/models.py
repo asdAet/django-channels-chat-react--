@@ -188,3 +188,46 @@ class MessageReadState(models.Model):
             Функция не возвращает значение.
         """
         return f"{self.user_id}:room{self.room_id}:msg{self.last_read_message_id}"
+
+
+class MessageReadReceipt(models.Model):
+    """Фиксирует точное время прочтения конкретного сообщения пользователем."""
+
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="read_receipts",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="message_read_receipts",
+    )
+    read_at = models.DateTimeField(default=timezone.now, db_index=True)
+    message_id: int
+    user_id: int
+
+    class Meta:
+        """Класс Meta инкапсулирует связанную бизнес-логику модуля."""
+
+        db_table = "messages_read_receipt"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["message", "user"],
+                name="read_receipt_message_user_uniq",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["message", "read_at"],
+                name="read_receipt_msg_read_idx",
+            ),
+        ]
+
+    def __str__(self):
+        """Возвращает человекочитаемое строковое представление объекта.
+
+        Returns:
+            Функция не возвращает значение.
+        """
+        return f"{self.user_id}:message{self.message_id}@{self.read_at.isoformat()}"

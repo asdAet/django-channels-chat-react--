@@ -1,13 +1,7 @@
 import type { AvatarCrop } from "../../shared/api/users";
 
-/**
- * Описывает структуру данных `RoomKind`.
- */
 export type RoomKind = "public" | "private" | "direct" | "group";
 
-/**
- * Описывает структуру данных `RoomPeer`.
- */
 export type RoomPeer = {
   userId?: number;
   publicRef: string;
@@ -20,12 +14,8 @@ export type RoomPeer = {
   blocked?: boolean;
 };
 
-/**
- * Описывает структуру данных `RoomDetails`.
- */
 export type RoomDetails = {
   roomId?: number;
-  slug: string;
   name: string;
   kind: RoomKind;
   avatarUrl?: string | null;
@@ -38,11 +28,8 @@ export type RoomDetails = {
   lastReadMessageId?: number | null;
 };
 
-/**
- * Описывает структуру данных `DirectChatListItem`.
- */
 export type DirectChatListItem = {
-  slug: string;
+  roomId: number;
   peer: RoomPeer;
   lastMessage: string;
   lastMessageAt: string;

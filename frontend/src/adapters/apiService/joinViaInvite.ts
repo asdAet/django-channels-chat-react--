@@ -9,8 +9,11 @@ import type { AxiosInstance } from "axios";
 export async function joinViaInvite(
   apiClient: AxiosInstance,
   code: string,
-): Promise<{ roomId: number }> {
-  const response = await apiClient.post<{ roomId?: number | string }>(
+): Promise<{ roomId: number; groupPublicRef?: string | null }> {
+  const response = await apiClient.post<{
+    roomId?: number | string;
+    groupPublicRef?: string | null;
+  }>(
     `/invite/${encodeURIComponent(code)}/join/`,
   );
   const payload =
@@ -21,5 +24,11 @@ export async function joinViaInvite(
     typeof payload.roomId === "number"
       ? payload.roomId
       : Number(payload.roomId ?? NaN);
-  return { roomId: Number.isFinite(roomId) ? Math.trunc(roomId) : 0 };
+  return {
+    roomId: Number.isFinite(roomId) ? Math.trunc(roomId) : 0,
+    groupPublicRef:
+      typeof payload.groupPublicRef === "string"
+        ? payload.groupPublicRef.trim() || null
+        : null,
+  };
 }

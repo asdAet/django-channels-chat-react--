@@ -83,7 +83,7 @@ describe("UserProfilePage", () => {
     );
 
     fireEvent.click(screen.getByTestId("send-dm-button"));
-    expect(onNavigate).toHaveBeenCalledWith("/direct/alice");
+    expect(onNavigate).toHaveBeenCalledWith("/@alice");
   });
 
   it("shows @username under profile name", () => {

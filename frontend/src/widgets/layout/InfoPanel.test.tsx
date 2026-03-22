@@ -9,11 +9,11 @@ import {
 import { InfoPanel } from "./InfoPanel";
 
 vi.mock("../chat/ChatSearch", () => ({
-  ChatSearch: ({ slug }: { slug: string }) => <div>search:{slug}</div>,
+  ChatSearch: ({ roomId }: { roomId: string }) => <div>search:{roomId}</div>,
 }));
 
 vi.mock("../chat/DirectInfoPanel", () => ({
-  DirectInfoPanel: ({ slug }: { slug: string }) => <div>direct:{slug}</div>,
+  DirectInfoPanel: ({ roomId }: { roomId: string }) => <div>direct:{roomId}</div>,
 }));
 
 vi.mock("../chat/UserProfilePanel", () => ({
@@ -23,7 +23,7 @@ vi.mock("../chat/UserProfilePanel", () => ({
 }));
 
 vi.mock("../groups/GroupInfoPanel", () => ({
-  GroupInfoPanel: ({ slug }: { slug: string }) => <div>group:{slug}</div>,
+  GroupInfoPanel: ({ roomId }: { roomId: string }) => <div>group:{roomId}</div>,
 }));
 
 /**

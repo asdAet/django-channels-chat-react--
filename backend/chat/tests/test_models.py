@@ -15,7 +15,7 @@ class ChatModelsTests(TestCase):
 
     def test_message_str_uses_related_user_when_available(self):
         user = User.objects.create_user(username="msg_user", password="pass12345")
-        room = Room.objects.create(name="Public", slug="public", kind=Room.Kind.PUBLIC)
+        room = Room.objects.create(name="Public", kind=Room.Kind.PUBLIC)
         message = Message.objects.create(
             username="sender_name",
             user=user,
@@ -25,7 +25,7 @@ class ChatModelsTests(TestCase):
         self.assertEqual(str(message), "msg_user: hello")
 
     def test_message_str_falls_back_to_username_field(self):
-        room = Room.objects.create(name="Public", slug="public", kind=Room.Kind.PUBLIC)
+        room = Room.objects.create(name="Public", kind=Room.Kind.PUBLIC)
         message = Message.objects.create(
             username="sender_name",
             room=room,
@@ -34,25 +34,25 @@ class ChatModelsTests(TestCase):
         self.assertEqual(str(message), "sender_name: hello")
 
     def test_room_str_returns_name(self):
-        room = Room.objects.create(name="My Room", slug="my-room", kind=Room.Kind.PRIVATE)
+        room = Room.objects.create(name="My Room", kind=Room.Kind.PRIVATE)
         self.assertEqual(str(room), "My Room")
 
     def test_room_defaults_to_private_kind(self):
-        room = Room.objects.create(name="Room", slug="room-123")
+        room = Room.objects.create(name="Room")
         self.assertEqual(room.kind, Room.Kind.PRIVATE)
 
     def test_role_str(self):
-        room = Room.objects.create(name="Role Room", slug="role-room", kind=Room.Kind.PRIVATE)
+        room = Room.objects.create(name="Role Room", kind=Room.Kind.PRIVATE)
         role = Role.objects.create(
             room=room,
             name="Member",
             position=20,
             permissions=0,
         )
-        self.assertEqual(str(role), f"{room.slug}:Member")
+        self.assertEqual(str(role), f"{room.pk}:Member")
 
     def test_role_signal_writes_security_audit_logs(self):
-        room = Room.objects.create(name="Audit Room", slug="audit-room", kind=Room.Kind.PRIVATE)
+        room = Room.objects.create(name="Audit Room", kind=Room.Kind.PRIVATE)
 
         with self.assertLogs("security.audit", level="INFO") as captured:
             role = Role.objects.create(

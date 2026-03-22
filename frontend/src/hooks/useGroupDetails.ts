@@ -32,10 +32,10 @@ type UseGroupDetailsResult = {
 
 /**
  * Хук useGroupDetails управляет состоянием и побочными эффектами текущего сценария.
- * @param slug Человекочитаемый идентификатор сущности.
+ * @param roomId Идентификатор комнаты.
  * @returns Публичное состояние хука и его обработчики.
  */
-export function useGroupDetails(slug: string): UseGroupDetailsResult {
+export function useGroupDetails(roomId: string): UseGroupDetailsResult {
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [pins, setPins] = useState<PinnedMessage[]>([]);
@@ -47,9 +47,9 @@ export function useGroupDetails(slug: string): UseGroupDetailsResult {
     setError(null);
     try {
       const [g, m, p] = await Promise.all([
-        groupController.getGroupDetails(slug),
-        groupController.getGroupMembers(slug),
-        groupController.getPinnedMessages(slug),
+        groupController.getGroupDetails(roomId),
+        groupController.getGroupMembers(roomId),
+        groupController.getPinnedMessages(roomId),
       ]);
       setGroup(g);
       setMembers(m.items);
@@ -63,7 +63,7 @@ export function useGroupDetails(slug: string): UseGroupDetailsResult {
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   useEffect(() => {
     void reload();
@@ -71,74 +71,74 @@ export function useGroupDetails(slug: string): UseGroupDetailsResult {
 
   const updateGroupCb = useCallback(
     async (data: UpdateGroupInput) => {
-      const updated = await groupController.updateGroup(slug, data);
+      const updated = await groupController.updateGroup(roomId, data);
       setGroup(updated);
     },
-    [slug],
+    [roomId],
   );
 
   const deleteGroupCb = useCallback(async () => {
-    await groupController.deleteGroup(slug);
-  }, [slug]);
+    await groupController.deleteGroup(roomId);
+  }, [roomId]);
 
   const joinGroupCb = useCallback(async () => {
-    await groupController.joinGroup(slug);
+    await groupController.joinGroup(roomId);
     void reload();
-  }, [slug, reload]);
+  }, [roomId, reload]);
 
   const leaveGroupCb = useCallback(async () => {
-    await groupController.leaveGroup(slug);
+    await groupController.leaveGroup(roomId);
     void reload();
-  }, [slug, reload]);
+  }, [roomId, reload]);
 
   const kickMemberCb = useCallback(
     async (userId: number) => {
-      await groupController.kickMember(slug, userId);
+      await groupController.kickMember(roomId, userId);
       void reload();
     },
-    [slug, reload],
+    [roomId, reload],
   );
 
   const banMemberCb = useCallback(
     async (userId: number, reason?: string) => {
-      await groupController.banMember(slug, userId, reason);
+      await groupController.banMember(roomId, userId, reason);
       void reload();
     },
-    [slug, reload],
+    [roomId, reload],
   );
 
   const muteMemberCb = useCallback(
     async (userId: number, durationSeconds?: number) => {
-      await groupController.muteMember(slug, userId, durationSeconds);
+      await groupController.muteMember(roomId, userId, durationSeconds);
       void reload();
     },
-    [slug, reload],
+    [roomId, reload],
   );
 
   const unmuteMemberCb = useCallback(
     async (userId: number) => {
-      await groupController.unmuteMember(slug, userId);
+      await groupController.unmuteMember(roomId, userId);
       void reload();
     },
-    [slug, reload],
+    [roomId, reload],
   );
 
   const pinMessageCb = useCallback(
     async (messageId: number) => {
-      await groupController.pinMessage(slug, messageId);
-      const updated = await groupController.getPinnedMessages(slug);
+      await groupController.pinMessage(roomId, messageId);
+      const updated = await groupController.getPinnedMessages(roomId);
       setPins(updated);
     },
-    [slug],
+    [roomId],
   );
 
   const unpinMessageCb = useCallback(
     async (messageId: number) => {
-      await groupController.unpinMessage(slug, messageId);
-      const updated = await groupController.getPinnedMessages(slug);
+      await groupController.unpinMessage(roomId, messageId);
+      const updated = await groupController.getPinnedMessages(roomId);
       setPins(updated);
     },
-    [slug],
+    [roomId],
   );
 
   return {

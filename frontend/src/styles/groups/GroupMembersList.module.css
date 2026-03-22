@@ -1,0 +1,115 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--app-gutter, 20px);
+  transition: background 0.12s;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text, #e2e8f5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemDesc {
+  font-size: 12px;
+  color: var(--color-muted, #9eb0c7);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  background: none;
+  border: 1px solid var(--color-border, #2a2a2a);
+  color: var(--color-text, #e2e8f5);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  min-height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--color-muted, #9eb0c7);
+}
+
+.actionBtnDanger {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.actionBtnDanger:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.memberRoleBadge {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(47, 179, 163, 0.15);
+  color: var(--color-accent, #8ae6ff);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 6px;
+}
+
+.mutedTag {
+  font-size: 10px;
+  color: #ff6b6b;
+  margin-left: 6px;
+}
+
+@media (max-width: 1024px) {
+  .item {
+    padding-inline: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .item {
+    align-items: flex-start;
+    gap: 10px;
+    padding-inline: 10px;
+  }
+
+  .actionBtn {
+    min-height: var(--touch-target-min, 44px);
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .item {
+    flex-wrap: wrap;
+    padding-inline: 8px;
+  }
+
+  .itemActions {
+    width: 100%;
+  }
+}

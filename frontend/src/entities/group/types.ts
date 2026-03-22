@@ -1,15 +1,14 @@
 import type { AvatarCrop } from "../../shared/api/users";
 
-/**
- * Описывает структуру данных `Group`.
- */
 export type Group = {
   roomId: number;
-  slug: string;
+  roomTarget: string;
   name: string;
   description: string;
   isPublic: boolean;
   username: string | null;
+  publicId?: string | null;
+  publicRef?: string | null;
   memberCount: number;
   slowModeSeconds: number;
   joinApprovalRequired: boolean;
@@ -18,23 +17,19 @@ export type Group = {
   avatarCrop?: AvatarCrop | null;
 };
 
-/**
- * Описывает структуру данных `GroupListItem`.
- */
 export type GroupListItem = {
   roomId: number;
-  slug: string;
+  roomTarget: string;
   name: string;
   description: string;
   username: string | null;
+  publicId?: string | null;
+  publicRef?: string | null;
   memberCount: number;
   avatarUrl?: string | null;
   avatarCrop?: AvatarCrop | null;
 };
 
-/**
- * Описывает структуру данных `GroupMember`.
- */
 export type GroupMember = {
   userId: number;
   username: string;
@@ -49,9 +44,6 @@ export type GroupMember = {
   isSelf?: boolean;
 };
 
-/**
- * Описывает структуру данных `GroupInvite`.
- */
 export type GroupInvite = {
   code: string;
   name: string;
@@ -64,21 +56,16 @@ export type GroupInvite = {
   createdAt: string;
 };
 
-/**
- * Описывает структуру данных `InvitePreview`.
- */
 export type InvitePreview = {
   code: string;
   groupId: number;
+  groupPublicRef?: string | null;
   groupName: string;
   groupDescription: string;
   memberCount: number;
   isPublic: boolean;
 };
 
-/**
- * Описывает payload запроса `JoinRequest`.
- */
 export type JoinRequest = {
   id: number;
   userId: number;
@@ -89,9 +76,6 @@ export type JoinRequest = {
   createdAt: string;
 };
 
-/**
- * Описывает структуру данных `PinnedMessage`.
- */
 export type PinnedMessage = {
   messageId: number;
   content: string;
@@ -101,9 +85,6 @@ export type PinnedMessage = {
   createdAt: string;
 };
 
-/**
- * Описывает структуру данных `BannedMember`.
- */
 export type BannedMember = {
   userId: number;
   username: string;

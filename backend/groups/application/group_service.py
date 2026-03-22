@@ -251,12 +251,9 @@ def create_group(
     if is_public and not normalized_handle:
         raise GroupError("Для публичной группы требуется username")
 
-    slug = group_rules.generate_group_slug(name)
-
     with transaction.atomic():
         room = Room.objects.create(
             name=name,
-            slug=slug,
             kind=Room.Kind.GROUP,
             description=description,
             is_public=is_public,
@@ -645,4 +642,3 @@ def list_my_groups(
             "nextBefore": next_before,
         },
     }
-

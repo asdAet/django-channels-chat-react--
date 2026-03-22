@@ -20,7 +20,7 @@ export async function updateRoomOverride(
   data: Partial<{ allow: number; deny: number }>,
 ): Promise<PermissionOverride> {
   const response = await apiClient.patch<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomId)}/overrides/${overrideId}/`,
+    `/chat/${encodeURIComponent(roomId)}/overrides/${overrideId}/`,
     data,
   );
   return decodeOverrideResponse(response.data);

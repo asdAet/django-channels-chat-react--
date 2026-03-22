@@ -14,6 +14,7 @@ import {
   formatPublicRef,
   normalizePublicRef,
 } from "../../shared/lib/publicRef";
+import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { usePresence } from "../../shared/presence";
 import { Avatar, Spinner } from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
@@ -379,7 +380,7 @@ export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
     formatFullName(
       user.name,
       (user as { last_name?: string | null }).last_name,
-    ) || "Без имени";
+    ) || resolveIdentityLabel(user, "Без имени");
   const targetPublicRef = (user.publicRef || publicRef || "").trim();
   const isSelf = relation.state === "self";
   const lastSeenLabel = formatLastSeen(user.lastSeen ?? null);
@@ -392,7 +393,7 @@ export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
     <div className={styles.root}>
       <div className={styles.profile}>
         <Avatar
-          username={fullName || user.username || targetPublicRef || "user"}
+          username={resolveIdentityLabel({ name: fullName, username: user.username, publicRef: targetPublicRef }, "user")}
           profileImage={user.profileImage}
           avatarCrop={user.avatarCrop}
           size="default"
@@ -597,3 +598,4 @@ export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
     </div>
   );
 }
+

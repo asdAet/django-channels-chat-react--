@@ -23,7 +23,7 @@ export async function createRoomOverride(
   },
 ): Promise<PermissionOverride> {
   const response = await apiClient.post<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomId)}/overrides/`,
+    `/chat/${encodeURIComponent(roomId)}/overrides/`,
     data,
   );
   return decodeOverrideResponse(response.data);

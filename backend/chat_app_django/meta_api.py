@@ -22,8 +22,8 @@ def client_config_view(_request):
         {
             "usernameMaxLength": int(getattr(settings, "USERNAME_MAX_LENGTH", 30)),
             "chatMessageMaxLength": int(getattr(settings, "CHAT_MESSAGE_MAX_LENGTH", 1000)),
-            "chatRoomSlugRegex": str(
-                getattr(settings, "CHAT_ROOM_SLUG_REGEX", r"^[A-Za-z0-9_-]{3,50}$")
+            "chatTargetRegex": str(
+                getattr(settings, "CHAT_TARGET_REGEX", r"^[A-Za-z0-9_@-]{1,60}$")
             ),
             "chatAttachmentMaxSizeMb": int(getattr(settings, "CHAT_ATTACHMENT_MAX_SIZE_MB", 10)),
             "chatAttachmentMaxPerMessage": int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 5)),

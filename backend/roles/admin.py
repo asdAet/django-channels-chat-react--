@@ -35,7 +35,7 @@ class RoleAdmin(admin.ModelAdmin):
         "is_default",
         "created_at",
     )
-    search_fields = ("room__slug", "name")
+    search_fields = ("room__name", "room__public_id", "name")
     list_filter = ("is_default", "room__kind")
     ordering = ("room", "-position")
     list_select_related = ("room",)
@@ -68,7 +68,7 @@ class RoleAdmin(admin.ModelAdmin):
 class MembershipAdmin(admin.ModelAdmin):
     """Класс MembershipAdmin настраивает поведение сущности в Django Admin."""
     list_display = ("room", "user", "role_names", "is_banned", "nickname", "joined_at")
-    search_fields = ("room__slug", "user__username", "nickname")
+    search_fields = ("room__name", "room__public_id", "user__username", "nickname")
     list_filter = ("is_banned", "room__kind")
     raw_id_fields = ("room", "user", "banned_by")
     filter_horizontal = ("roles",)
@@ -100,7 +100,7 @@ class PermissionOverrideAdmin(admin.ModelAdmin):
         "deny",
         "deny_flags",
     )
-    search_fields = ("room__slug", "target_role__name", "target_user__username")
+    search_fields = ("room__name", "room__public_id", "target_role__name", "target_user__username")
     list_filter = ("room__kind",)
     raw_id_fields = ("room", "target_role", "target_user")
     list_select_related = ("room", "target_role", "target_user")

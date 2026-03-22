@@ -7,7 +7,7 @@ describe("dto/http/meta", () => {
     const decoded = decodeClientConfigResponse({
       usernameMaxLength: 30,
       chatMessageMaxLength: 1000,
-      chatRoomSlugRegex: "^[A-Za-z0-9_-]{3,50}$",
+      chatTargetRegex: "^[A-Za-z0-9_-]{3,50}$",
       chatAttachmentMaxSizeMb: 10,
       chatAttachmentMaxPerMessage: 5,
       chatAttachmentAllowedTypes: ["audio/mpeg", "text/plain"],

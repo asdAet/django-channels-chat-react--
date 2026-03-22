@@ -116,7 +116,6 @@ class UsersIdentityTests(TestCase):
         owner = User.objects.create_user(username="group_owner", password="pass12345")
         room = Room.objects.create(
             name="Group Room",
-            slug="group-room-public-id",
             kind=Room.Kind.GROUP,
             created_by=owner,
         )
@@ -138,7 +137,6 @@ class UsersIdentityTests(TestCase):
         owner = User.objects.create_user(username="auto_group_owner", password="pass12345")
         room = Room.objects.create(
             name="Auto Public Id Group",
-            slug="auto-public-id-group",
             kind=Room.Kind.GROUP,
             created_by=owner,
         )

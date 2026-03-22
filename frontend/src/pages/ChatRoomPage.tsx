@@ -11,7 +11,10 @@ import { useLocation } from "react-router-dom";
 import { chatController } from "../controllers/ChatController";
 import { friendsController } from "../controllers/FriendsController";
 import { groupController } from "../controllers/GroupController";
-import type { SearchResultItem } from "../domain/interfaces/IApiService";
+import type {
+  MessageReadersResult,
+  SearchResultItem,
+} from "../domain/interfaces/IApiService";
 import { decodeChatWsEvent } from "../dto";
 import type { Message } from "../entities/message/types";
 import type { UserProfile } from "../entities/user/types";
@@ -32,9 +35,13 @@ import {
 } from "../shared/config/limits";
 import { useDirectInbox } from "../shared/directInbox";
 import { useInfoPanel } from "../shared/layout/useInfoPanel";
+import { useMobileShell } from "../shared/layout/useMobileShell";
 import { debugLog } from "../shared/lib/debug";
 import { formatLastSeen, formatTimestamp } from "../shared/lib/format";
 import { sanitizeText } from "../shared/lib/sanitize";
+import {
+  resolveIdentityLabel,
+} from "../shared/lib/userIdentity";
 import { getWebSocketBase } from "../shared/lib/ws";
 import { usePresence } from "../shared/presence";
 import { Avatar, Button, Modal, Panel, Toast } from "../shared/ui";
@@ -45,6 +52,10 @@ import {
 import styles from "../styles/pages/ChatRoomPage.module.css";
 import { MessageBubble } from "../widgets/chat/MessageBubble";
 import { MessageInput } from "../widgets/chat/MessageInput";
+import {
+  ReadersMenu,
+  type ReadersMenuEntry,
+} from "../widgets/chat/ReadersMenu";
 import { TypingIndicator } from "../widgets/chat/TypingIndicator";
 import { useFileDropZone } from "./chatRoomPage/useFileDropZone";
 import type {
@@ -77,15 +88,25 @@ import {
  * Описывает входные props компонента `Props`.
  */
 type Props = {
-  slug: string;
+  roomId: string;
+  initialRoomKind?: "public" | "private" | "direct" | "group" | null;
   user: UserProfile | null;
   onNavigate: (path: string) => void;
+};
+
+type ReadersMenuState = {
+  message: Message;
+  x: number;
+  y: number;
+  loading: boolean;
+  error: string | null;
+  result: MessageReadersResult | null;
 };
 
 /**
  * React-компонент ChatRoomPage отвечает за отрисовку и обработку UI-сценария.
  */
-export function ChatRoomPage({ slug, user, onNavigate }: Props) {
+export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate }: Props) {
   const {
     details,
     messages,
@@ -96,27 +117,29 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     loadMore,
     reload,
     setMessages,
-  } = useChatRoom(slug, user);
+  } = useChatRoom(roomId, user, initialRoomKind);
   const location = useLocation();
-  const isPublicRoom = slug === "public";
-  const parsedSlugRoomId = useMemo(() => parseRoomIdRef(slug), [slug]);
+  const resolvedRoomKind = details?.kind ?? initialRoomKind ?? null;
+  const isPublicRoom = resolvedRoomKind === "public";
+  const parsedInitialRoomId = useMemo(() => parseRoomIdRef(roomId), [roomId]);
   const resolvedRoomId = useMemo(() => {
     const fromDetails = parseRoomIdRef(details?.roomId);
-    return fromDetails ?? parsedSlugRoomId;
-  }, [details?.roomId, parsedSlugRoomId]);
+    return fromDetails ?? parsedInitialRoomId;
+  }, [details?.roomId, parsedInitialRoomId]);
   const roomApiRef = useMemo(() => {
     return resolvedRoomId === null ? null : String(resolvedRoomId);
   }, [resolvedRoomId]);
-  const roomIdForRequests = roomApiRef ?? slug;
+  const roomIdForRequests = roomApiRef ?? roomId;
   const isOnline = useOnlineStatus();
   const { open: openInfoPanel } = useInfoPanel();
+  const { openDrawer } = useMobileShell();
   const { setActiveRoom, markRead: markDirectRoomRead } = useDirectInbox();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
   const maxMessageLength = useChatMessageMaxLength();
   const maxAttachmentSizeMb = useChatAttachmentMaxSizeMb();
   const maxAttachmentPerMessage = useChatAttachmentMaxPerMessage();
   const isCurrentUserSuperuser = Boolean(user?.isSuperuser);
-  const roomPermissions = useRoomPermissions(user ? slug : null);
+  const roomPermissions = useRoomPermissions(user ? roomIdForRequests : null);
   const {
     loading: permissionsLoading,
     canWrite: canWriteToRoom,
@@ -155,6 +178,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     new Map(),
   );
   const [deleteConfirm, setDeleteConfirm] = useState<Message | null>(null);
+  const [readersMenu, setReadersMenu] = useState<ReadersMenuState | null>(
+    null,
+  );
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [joinInProgress, setJoinInProgress] = useState(false);
@@ -197,7 +223,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     null,
   );
   const paginationInteractionRef = useRef(false);
-  const pendingReadFlushRef = useRef<number>(readPendingReadFromStorage(slug));
+  const pendingReadFlushRef = useRef<number>(readPendingReadFromStorage(roomId));
+  const readersRequestSeqRef = useRef(0);
   const [initialPositioningPhase, setInitialPositioningPhase] =
     useState<InitialPositioningPhase>("pending");
   const unreadDividerAnchorRef = useRef<number | null>(null);
@@ -260,9 +287,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       if (normalized < 1) return;
       if (normalized <= pendingReadFlushRef.current) return;
       pendingReadFlushRef.current = normalized;
-      writePendingReadToStorage(slug, normalized);
+      writePendingReadToStorage(roomId, normalized);
     },
-    [slug],
+    [roomId],
   );
 
   const clearPendingRead = useCallback(
@@ -270,9 +297,9 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       const normalized = normalizeReadMessageId(upTo);
       if (normalized < pendingReadFlushRef.current) return;
       pendingReadFlushRef.current = 0;
-      clearPendingReadFromStorage(slug);
+      clearPendingReadFromStorage(roomId);
     },
-    [slug],
+    [roomId],
   );
 
   const effectiveServerLastReadMessageId = Math.max(
@@ -280,7 +307,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     pendingReadFlushRef.current,
   );
 
-  const readStateEnabled = Boolean(user && !isPublicRoom);
+  // Read tracking stays enabled for every authenticated room, including public.
+  const readStateEnabled = Boolean(user);
 
   const {
     localLastReadMessageId: trackedLocalLastReadMessageId,
@@ -292,7 +320,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     currentActorRef,
     serverLastReadMessageId: effectiveServerLastReadMessageId,
     enabled: Boolean(readStateEnabled && initialPositioningPhase === "settled"),
-    resetKey: slug,
+    resetKey: roomId,
   });
   const localLastReadMessageId = readStateEnabled
     ? trackedLocalLastReadMessageId
@@ -301,7 +329,10 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     ? trackedFirstUnreadMessageId
     : null;
   const localUnreadCount = readStateEnabled ? trackedLocalUnreadCount : 0;
-  const roomDataReady = !loading && (details?.slug === slug || Boolean(error));
+  const roomDataReady =
+    !loading &&
+    ((details?.roomId !== undefined && String(details.roomId) === roomIdForRequests) ||
+      Boolean(error));
 
   const unreadDividerRenderTarget = useMemo(() => {
     if (!roomDataReady && unreadDividerAnchorId === null) {
@@ -436,7 +467,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     uploadAbortRef.current?.abort();
     uploadAbortRef.current = null;
     lastReadSentRef.current = 0;
-    pendingReadFlushRef.current = readPendingReadFromStorage(slug);
+    pendingReadFlushRef.current = readPendingReadFromStorage(roomId);
+    readersRequestSeqRef.current += 1;
     if (markReadTimerRef.current !== null) {
       window.clearTimeout(markReadTimerRef.current);
       markReadTimerRef.current = null;
@@ -452,13 +484,18 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     isProgrammaticScrollRef.current = false;
     initialPositioningTargetRef.current = null;
     paginationInteractionRef.current = false;
+    setReadReceipts(new Map());
+    setDeleteConfirm(null);
+    setReadersMenu(null);
+    setShowScrollFab(false);
+    setNewMsgCount(0);
     setQueuedFiles([]);
     setUploadProgress(null);
     updateUnreadDividerAnchor(null);
     updateInitialPositioningPhase("pending");
     lastMessageSnapshotRef.current = { count: 0, lastId: null };
-    clearUnreadOverride(slug);
-  }, [slug, updateInitialPositioningPhase, updateUnreadDividerAnchor]);
+    clearUnreadOverride(roomIdForRequests);
+  }, [roomId, roomIdForRequests, updateInitialPositioningPhase, updateUnreadDividerAnchor]);
 
   useEffect(() => {
     return () => {
@@ -473,16 +510,16 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
         window.clearTimeout(programmaticScrollTimerRef.current);
       }
       isProgrammaticScrollRef.current = false;
-      clearUnreadOverride(slug);
+      clearUnreadOverride(roomIdForRequests);
     };
-  }, [slug]);
+  }, [roomIdForRequests]);
 
   useEffect(() => {
     if (headerSearchTimerRef.current !== null) {
       window.clearTimeout(headerSearchTimerRef.current);
       headerSearchTimerRef.current = null;
     }
-  }, [slug]);
+  }, [roomIdForRequests]);
 
   useEffect(() => {
     return () => {
@@ -644,8 +681,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     if (!roomApiRef) return;
 
     persistPendingRead(candidate);
-    const encodedRoomRef = encodeURIComponent(roomApiRef);
-    const url = `/api/chat/rooms/${encodedRoomRef}/read/`;
+    const encodedRoomId = encodeURIComponent(roomApiRef);
+    const url = `/api/chat/${encodedRoomId}/read/`;
     const csrfToken = resolveCsrfToken();
     let beaconSent = false;
 
@@ -763,8 +800,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   }, [details?.kind, resolvedRoomId, setActiveRoom, user]);
 
   useEffect(() => {
-    setUnreadOverride({ roomSlug: slug, unreadCount: localUnreadCount });
-  }, [localUnreadCount, slug]);
+    setUnreadOverride({ roomId: roomIdForRequests, unreadCount: localUnreadCount });
+  }, [localUnreadCount, roomIdForRequests]);
 
   useEffect(() => {
     if (!roomDataReady) return;
@@ -932,7 +969,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             return;
           }
           const messageId = decoded.message.id;
-          invalidateRoomMessages(slug);
+          invalidateRoomMessages(roomIdForRequests);
           if (details?.kind === "direct") invalidateDirectChats();
 
           setMessages((prev) => {
@@ -1083,6 +1120,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
               username: decoded.username,
               displayName: decoded.displayName,
               lastReadMessageId: decoded.lastReadMessageId,
+              lastReadAt: decoded.lastReadAt,
             });
             return next;
           });
@@ -1097,7 +1135,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       maxMessageLength,
       readStateEnabled,
       setMessages,
-      slug,
+      roomIdForRequests,
       updateUnreadDividerAnchor,
       currentActorRef,
     ],
@@ -1251,6 +1289,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       currentSnapshot.lastId !== null &&
       currentSnapshot.lastId !== previousSnapshot.lastId;
     if (!appendedNewMessage) return;
+    // После initial open удерживаем низ только для новых append-сообщений,
+    // когда пользователь и так уже стоял у нижней границы.
     if (!isAtBottomRef.current) return;
 
     beginProgrammaticScroll();
@@ -1382,7 +1422,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
       message: cleaned,
       username: currentActorRef,
       profile_pic: user.profileImage,
-      room: slug,
+      room: roomIdForRequests,
     };
     if (replyTo) payload.replyTo = replyTo.id;
 
@@ -1406,7 +1446,6 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     roomIdForRequests,
     send,
     setMessages,
-    slug,
     scrollToBottom,
     status,
     updateUnreadDividerAnchor,
@@ -1428,6 +1467,58 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
   const handleDelete = useCallback((msg: Message) => {
     setDeleteConfirm(msg);
   }, []);
+
+  const closeReadersMenu = useCallback(() => {
+    readersRequestSeqRef.current += 1;
+    setReadersMenu(null);
+  }, []);
+
+  const handleOpenReaders = useCallback(
+    (msg: Message, anchor: { x: number; y: number }) => {
+      if (!user) return;
+
+      const requestSeq = readersRequestSeqRef.current + 1;
+      readersRequestSeqRef.current = requestSeq;
+      setReadersMenu({
+        message: msg,
+        x: anchor.x,
+        y: anchor.y,
+        loading: true,
+        error: null,
+        result: null,
+      });
+
+      void chatController
+        .getMessageReaders(roomIdForRequests, msg.id)
+        .then((result) => {
+          if (readersRequestSeqRef.current !== requestSeq) return;
+          setReadersMenu((current) => {
+            if (!current || current.message.id !== msg.id) return current;
+            return {
+              ...current,
+              loading: false,
+              error: null,
+              result,
+            };
+          });
+        })
+        .catch((err) => {
+          if (readersRequestSeqRef.current !== requestSeq) return;
+          setReadersMenu((current) => {
+            if (!current || current.message.id !== msg.id) return current;
+            return {
+              ...current,
+              loading: false,
+              error: extractApiErrorMessage(
+                err,
+                "Не удалось загрузить прочтения",
+              ),
+            };
+          });
+        });
+    },
+    [roomIdForRequests, user],
+  );
 
   const confirmDelete = useCallback(() => {
     if (!deleteConfirm) return;
@@ -1571,13 +1662,13 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
   const openDirectInfo = useCallback(() => {
     if (!details?.peer?.publicRef && !details?.peer?.username) return;
-    openInfoPanel("direct", slug);
-  }, [details?.peer?.publicRef, details?.peer?.username, openInfoPanel, slug]);
+    openInfoPanel("direct", roomIdForRequests);
+  }, [details?.peer?.publicRef, details?.peer?.username, openInfoPanel, roomIdForRequests]);
 
   const openGroupInfo = useCallback(() => {
     if (details?.kind !== "group") return;
-    openInfoPanel("group", slug);
-  }, [details?.kind, openInfoPanel, slug]);
+    openInfoPanel("group", roomIdForRequests);
+  }, [details?.kind, openInfoPanel, roomIdForRequests]);
 
   const handleJoinGroup = useCallback(async () => {
     if (!user) {
@@ -1587,7 +1678,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     setJoinInProgress(true);
     setRoomError(null);
     try {
-      await groupController.joinGroup(slug);
+      await groupController.joinGroup(roomIdForRequests);
       reload();
       await refreshRoomPermissions();
     } catch (err) {
@@ -1597,7 +1688,11 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     } finally {
       setJoinInProgress(false);
     }
-  }, [refreshRoomPermissions, reload, slug, user]);
+  }, [refreshRoomPermissions, reload, roomIdForRequests, user]);
+
+  const handleMobileOpenClick = useCallback(() => {
+    openDrawer();
+  }, [openDrawer]);
 
   const openRoomSearch = useCallback(() => {
     setHeaderSearchOpen((prev) => {
@@ -1650,8 +1745,8 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
   const roomTitle =
     details?.kind === "direct"
-      ? (details.peer?.displayName ?? details.peer?.username ?? details.name)
-      : (details?.name ?? slug);
+      ? resolveIdentityLabel(details.peer ?? { name: details.name }, details.name)
+      : (details?.name ?? roomIdForRequests);
 
   const groupTypingLabel = useMemo(
     () => formatGroupTypingLabel(details?.kind, activeTypingUsers),
@@ -1714,6 +1809,35 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
     }
     return maxId;
   }, [currentActorRef, readReceipts]);
+  const readersMenuEntries = useMemo<ReadersMenuEntry[]>(() => {
+    if (!readersMenu?.result) return [];
+
+    if (readersMenu.result.roomKind === "direct") {
+      // Direct readers API returns only the read timestamp, so identity comes from room peer details.
+      if (!readersMenu.result.readAt || !details?.peer) return [];
+      return [
+        {
+          key: `direct-${details.peer.publicRef || details.peer.username}`,
+          publicRef: details.peer.publicRef || null,
+          username: details.peer.username,
+          displayName: details.peer.displayName,
+          profileImage: details.peer.profileImage,
+          avatarCrop: details.peer.avatarCrop ?? null,
+          readAt: readersMenu.result.readAt,
+        },
+      ];
+    }
+
+    return readersMenu.result.readers.map((reader) => ({
+      key: `${reader.userId}-${reader.readAt}`,
+      publicRef: reader.publicRef,
+      username: reader.username,
+      displayName: reader.displayName,
+      profileImage: reader.profileImage,
+      avatarCrop: reader.avatarCrop ?? null,
+      readAt: reader.readAt,
+    }));
+  }, [details?.peer, readersMenu]);
 
   if (!user && !isPublicRoom) {
     return (
@@ -1767,34 +1891,37 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
       <div className={styles.chatHeader}>
         <div className={styles.directHeader}>
-          <button
-            type="button"
-            className={styles.mobileBackBtn}
-            onClick={() => onNavigate("/")}
-            aria-label="Назад"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className={styles.mobileHeaderButtons}>
+            <button
+              type="button"
+              className={styles.mobileBackBtn}
+              onClick={handleMobileOpenClick}
+              aria-label="Открыть меню"
+              data-testid="chat-mobile-open-button"
             >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+          </div>
           {details?.kind === "direct" && details.peer ? (
             <button
               type="button"
               className={styles.directHeaderAvatar}
               onClick={openDirectInfo}
-              aria-label={`Профиль ${details.peer.username}`}
+              aria-label={`Профиль ${resolveIdentityLabel(details.peer)}`}
             >
               <Avatar
-                username={details.peer.displayName ?? details.peer.username}
+                username={resolveIdentityLabel(details.peer)}
                 profileImage={details.peer.profileImage}
                 avatarCrop={details.peer.avatarCrop}
                 online={onlineUsernames.has(
@@ -1955,7 +2082,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
 
               <div className={styles.headerSearchResults}>
                 {headerSearchLoading && (
-                  <div className={styles.headerSearchState}>Ищем...</div>
+                  <div className={styles.headerSearchState}>РС‰РµРј...</div>
                 )}
                 {!headerSearchLoading &&
                   headerSearchQuery.trim().length >= 2 &&
@@ -1973,7 +2100,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                       onClick={() => onHeaderSearchResultClick(item.id)}
                     >
                       <span className={styles.headerSearchResultTop}>
-                        <strong>{item.displayName ?? item.username}</strong>
+                        <strong>{resolveIdentityLabel(item)}</strong>
                         <time>{formatTimestamp(item.createdAt)}</time>
                       </span>
                       <span className={styles.headerSearchResultText}>
@@ -2011,7 +2138,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
             )}
             {/* {!hasMore && <Panel muted>Это начало истории.</Panel>} */}
 
-            {timeline.map((item) =>
+            {timeline.map((item, index) =>
               item.type === "day" ? (
                 <div
                   className={styles.daySeparator}
@@ -2033,6 +2160,16 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                 </div>
               ) : (
                 (() => {
+                  const previousTimelineItem = timeline[index - 1];
+                  const previousMessage =
+                    previousTimelineItem?.type === "message"
+                      ? previousTimelineItem.message
+                      : null;
+                  // Группируем только соседние message-элементы одного автора.
+                  const grouped =
+                    previousMessage !== null &&
+                    resolveMessageActorRef(previousMessage) ===
+                      resolveMessageActorRef(item.message);
                   const ownMessage = isOwnMessage(
                     item.message,
                     currentActorRef,
@@ -2046,7 +2183,11 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                       key={`${item.message.id}-${item.message.createdAt}`}
                       message={item.message}
                       isOwn={ownMessage}
+                      showAvatar={!grouped}
+                      showHeader={!grouped}
+                      grouped={grouped}
                       canModerate={canModerateMessage}
+                      canViewReaders={ownMessage && !item.message.isDeleted}
                       isRead={ownMessage && item.message.id <= maxReadMessageId}
                       highlighted={item.message.id === highlightedMessageId}
                       onlineUsernames={onlineUsernames}
@@ -2054,6 +2195,7 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
                       onEdit={canEditOrDelete ? handleEdit : undefined}
                       onDelete={canEditOrDelete ? handleDelete : undefined}
                       onReact={user ? handleReact : undefined}
+                      onViewReaders={user ? handleOpenReaders : undefined}
                       onReplyQuoteClick={handleReplyQuoteClick}
                       onAvatarClick={openUserProfile}
                     />
@@ -2218,6 +2360,26 @@ export function ChatRoomPage({ slug, user, onNavigate }: Props) {
           </Button>
         </div>
       </Modal>
+      {readersMenu && (
+        <ReadersMenu
+          x={readersMenu.x}
+          y={readersMenu.y}
+          loading={readersMenu.loading}
+          error={readersMenu.error}
+          entries={readersMenuEntries}
+          emptyLabel={
+            readersMenu.result?.roomKind === "direct"
+              ? "Еще не прочитано"
+              : "Еще никто не прочитал"
+          }
+          onClose={closeReadersMenu}
+          onOpenProfile={openUserProfile}
+        />
+      )}
     </div>
   );
 }
+
+
+
+

@@ -18,11 +18,11 @@ test("public chat allows authenticated send and keeps guest read-only mode", asy
 
   const login = await register(page, username, password);
 
-  await page.goto("/rooms/public");
+  await page.goto("/public");
   const authCallout = page.getByTestId("chat-auth-callout");
   if (await authCallout.isVisible().catch(() => false)) {
     await ensureAuthenticated(page, login, password);
-    await page.goto("/rooms/public");
+    await page.goto("/public");
   }
 
   const joinCallout = page.getByTestId("group-join-callout");
@@ -44,7 +44,7 @@ test("public chat allows authenticated send and keeps guest read-only mode", asy
 
   const guestContext = await browser.newContext();
   const guestPage = await guestContext.newPage();
-  await guestPage.goto("/rooms/public");
+  await guestPage.goto("/public");
   await expect(guestPage.getByTestId("chat-auth-callout")).toBeVisible();
   await expect(guestPage.getByTestId("chat-message-input")).toHaveCount(0);
   await guestContext.close();

@@ -1,4 +1,4 @@
-const HANDLE_RE = /^[a-z][a-z0-9_]{2,29}$/;
+﻿const HANDLE_RE = /^[a-z][a-z0-9_]{2,29}$/;
 const USER_PUBLIC_ID_RE = /^[1-9]\d{9}$/;
 const GROUP_PUBLIC_ID_RE = /^-[1-9]\d{9}$/;
 
@@ -22,7 +22,6 @@ export const normalizePublicRef = (
  * @param value Входное значение для преобразования.
  * @returns Булев результат проверки условия.
  */
-
 export const isHandleRef = (value: string): boolean =>
   HANDLE_RE.test(normalizePublicRef(value).toLowerCase());
 
@@ -34,7 +33,9 @@ export const isHandleRef = (value: string): boolean =>
 
 export const isFallbackPublicId = (value: string): boolean => {
   const normalized = normalizePublicRef(value);
-  return USER_PUBLIC_ID_RE.test(normalized) || GROUP_PUBLIC_ID_RE.test(normalized);
+  return (
+    USER_PUBLIC_ID_RE.test(normalized) || GROUP_PUBLIC_ID_RE.test(normalized)
+  );
 };
 
 /**
@@ -57,9 +58,9 @@ export const formatPublicRef = (value: string): string => {
  */
 
 export const buildDirectPath = (value: string): string => {
-  const normalized = normalizePublicRef(value);
-  if (!normalized) return "/direct";
-  return `/direct/${encodeURIComponent(normalized)}`;
+  const target = formatPublicRef(value);
+  if (!target) return "/friends";
+  return `/${encodeURIComponent(target).replace(/%40/gi, "@")}`;
 };
 
 /**

@@ -28,7 +28,7 @@ const chatMock = vi.hoisted(() => ({
     vi.fn<
       () => Promise<{
         items: Array<{
-          slug: string;
+          roomId: number;
           peer: {
             publicRef: string;
             username: string;
@@ -89,7 +89,7 @@ function Probe() {
       <p data-testid="unread-count">{inbox.unreadDialogsCount}</p>
       <p data-testid="unread-counts">{JSON.stringify(inbox.unreadCounts)}</p>
       <p data-testid="items-order">
-        {inbox.items.map((item) => item.slug).join(",")}
+        {inbox.items.map((item) => item.roomId).join(",")}
       </p>
       <button onClick={() => inbox.setActiveRoom("1")}>set-active</button>
       <button onClick={() => inbox.markRead("1")}>mark-read</button>
@@ -138,7 +138,7 @@ describe("DirectInboxProvider", () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
-          slug: "1",
+          roomId: 1,
           peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-02-13T10:00:00Z",
@@ -234,13 +234,13 @@ describe("DirectInboxProvider", () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
-          slug: "1",
+          roomId: 1,
           peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "old",
           lastMessageAt: "2026-02-13T10:00:00Z",
         },
         {
-          slug: "2",
+          roomId: 2,
           peer: { publicRef: "bob", username: "bob", profileImage: null },
           lastMessage: "new",
           lastMessageAt: "2026-02-13T11:00:00Z",
@@ -462,7 +462,7 @@ describe("DirectInboxProvider", () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
-          slug: "1",
+          roomId: 1,
           peer: { publicRef: "alice", username: "alice", profileImage: null },
           lastMessage: "hello",
           lastMessageAt: "2026-02-13T10:00:00Z",
@@ -492,7 +492,7 @@ describe("DirectInboxProvider", () => {
     });
 
     act(() => {
-      setUnreadOverride({ roomSlug: "1", unreadCount: 4 });
+      setUnreadOverride({ roomId: "1", unreadCount: 4 });
     });
 
     expect(screen.getByTestId("unread-count").textContent).toBe("1");

@@ -126,6 +126,7 @@ const readReceiptSchema = z
     username: z.string(),
     displayName: z.string().optional(),
     lastReadMessageId: z.number(),
+    lastReadAt: z.string().nullable().optional(),
     roomId: z.union([z.number(), z.string()]),
   })
   .passthrough();
@@ -220,6 +221,7 @@ export type ChatWsEvent =
       username: string;
       displayName: string;
       lastReadMessageId: number;
+      lastReadAt: string | null;
       roomId: number;
     }
   | { type: "unknown" };
@@ -338,6 +340,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
       username: receipt.username,
       displayName: receipt.displayName ?? receipt.username,
       lastReadMessageId: receipt.lastReadMessageId,
+      lastReadAt: receipt.lastReadAt ?? null,
       roomId,
     };
   }

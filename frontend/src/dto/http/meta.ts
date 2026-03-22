@@ -9,7 +9,7 @@ const clientConfigSchema = z
   .object({
     usernameMaxLength: z.number().int().min(1).max(150),
     chatMessageMaxLength: z.number().int().min(1),
-    chatRoomSlugRegex: z.string().min(1),
+    chatTargetRegex: z.string().min(1),
     chatAttachmentMaxSizeMb: z.number().int().min(1),
     chatAttachmentMaxPerMessage: z.number().int().min(1),
     chatAttachmentAllowedTypes: z.array(z.string().min(1)),

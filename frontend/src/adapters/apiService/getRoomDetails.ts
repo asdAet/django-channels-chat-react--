@@ -12,13 +12,13 @@ import { resolveRoomId } from "./resolveRoomId";
  */
 export async function getRoomDetails(
   apiClient: AxiosInstance,
-  roomRef: string,
+  roomTarget: string,
 ): Promise<RoomDetails> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomRef);
-  const logicalRoomRef = roomRef === "public" ? "public" : roomRef;
+  const apiRoomId = await resolveRoomId(apiClient, roomTarget);
+  const logicalRoomRef = roomTarget === "public" ? "public" : roomTarget;
 
-  const encodedRef = encodeURIComponent(apiRoomRef);
-  const response = await apiClient.get<unknown>(`/chat/rooms/${encodedRef}/`);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
+  const response = await apiClient.get<unknown>(`/chat/${encodedRoomId}/`);
   const payload =
     typeof response.data === "object" && response.data !== null
       ? (response.data as Record<string, unknown>)

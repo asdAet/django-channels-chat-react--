@@ -37,7 +37,8 @@ const groupMock = vi.hoisted(() => ({
   getMyGroups: vi.fn<
     () => Promise<{
       items: Array<{
-        slug: string;
+        roomTarget: string;
+        roomId: number;
         name: string;
         description: string;
         username: string | null;

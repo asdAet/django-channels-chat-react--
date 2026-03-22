@@ -29,8 +29,6 @@ const sizeClassMap: Record<AvatarSize, string> = {
   tiny: styles.tiny,
 };
 
-const failedAvatarSources = new Set<string>();
-
 /**
  * Компонент Avatar рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
  *
@@ -46,10 +44,7 @@ export function Avatar({
   loading = "lazy",
 }: AvatarProps) {
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
-  const shouldRenderImage =
-    Boolean(profileImage) &&
-    brokenSrc !== profileImage &&
-    !failedAvatarSources.has(profileImage as string);
+  const shouldRenderImage = Boolean(profileImage) && brokenSrc !== profileImage;
 
   return (
     <div
@@ -73,7 +68,6 @@ export function Avatar({
           decoding="async"
           onError={() => {
             if (profileImage) {
-              failedAvatarSources.add(profileImage);
               setBrokenSrc(profileImage);
             }
           }}

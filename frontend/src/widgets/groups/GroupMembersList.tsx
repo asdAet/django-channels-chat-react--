@@ -1,6 +1,7 @@
 import type { GroupMember } from "../../entities/group/types";
+import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { Avatar } from "../../shared/ui";
-import styles from "../../styles/groups/GroupsPage.module.css";
+import styles from "../../styles/groups/GroupMembersList.module.css";
 
 /**
  * Описывает входные props компонента `Props`.
@@ -15,9 +16,7 @@ type Props = {
 };
 
 /**
- * Компонент GroupMembersList рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- *
- * @param props Свойства компонента.
+ * Компонент GroupMembersList рендерит список участников и их базовые действия.
  */
 export function GroupMembersList({
   members,
@@ -29,66 +28,64 @@ export function GroupMembersList({
 }: Props) {
   return (
     <>
-      {members.map((m) => {
-        const isSelf = m.isSelf === true;
+      {members.map((member) => {
+        const isSelf = member.isSelf === true;
+        const displayName = resolveIdentityLabel(member);
+
         return (
-          <div key={m.userId} className={styles.item}>
+          <div key={member.userId} className={styles.item}>
             <Avatar
-              username={m.username}
-              profileImage={m.profileImage ?? null}
-              avatarCrop={m.avatarCrop ?? undefined}
+              username={displayName}
+              profileImage={member.profileImage ?? null}
+              avatarCrop={member.avatarCrop ?? undefined}
               size="small"
               online={false}
             />
             <div className={styles.itemInfo}>
               <div className={styles.itemName}>
-                {m.username}
-                {m.roles.map((r) => (
-                  <span key={r} className={styles.memberRoleBadge}>
-                    {r}
+                {displayName}
+                {member.roles.map((role) => (
+                  <span key={role} className={styles.memberRoleBadge}>
+                    {role}
                   </span>
                 ))}
-                {m.isMuted && <span className={styles.mutedTag}>muted</span>}
+                {member.isMuted && <span className={styles.mutedTag}>muted</span>}
               </div>
               <div className={styles.itemDesc}>
-                {m.nickname ||
-                  `Участник с ${new Date(m.joinedAt).toLocaleDateString()}`}
+                {member.nickname ||
+                  `Участник с ${new Date(member.joinedAt).toLocaleDateString()}`}
               </div>
             </div>
             {isAdmin && !isSelf && (
               <div className={styles.itemActions}>
-                {m.isMuted ? (
+                {member.isMuted ? (
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => onUnmute?.(m.userId)}
+                    onClick={() => onUnmute?.(member.userId)}
                   >
-                    Unmute
+                    Включить звук
                   </button>
                 ) : (
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => onMute?.(m.userId)}
+                    onClick={() => onMute?.(member.userId)}
                   >
-                    Mute
+                    Заглушить
                   </button>
                 )}
                 <button
                   type="button"
-                  className={[styles.actionBtn, styles.actionBtnDanger].join(
-                    " ",
-                  )}
-                  onClick={() => onKick?.(m.userId)}
+                  className={[styles.actionBtn, styles.actionBtnDanger].join(" ")}
+                  onClick={() => onKick?.(member.userId)}
                 >
                   Кик
                 </button>
                 <button
                   type="button"
-                  className={[styles.actionBtn, styles.actionBtnDanger].join(
-                    " ",
-                  )}
-                  onClick={() => onBan?.(m.userId)}
+                  className={[styles.actionBtn, styles.actionBtnDanger].join(" ")}
+                  onClick={() => onBan?.(member.userId)}
                 >
                   Бан
                 </button>

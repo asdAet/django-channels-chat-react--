@@ -41,7 +41,7 @@ urlpatterns = [
     path("<int:room_id>/transfer-ownership/", views.TransferOwnershipInteractiveView.as_view(), name="transfer-ownership"),
 ]
 
-# Invite preview & join (top-level, not nested under group slug)
+# Invite preview and join live at top level.
 invite_urlpatterns = [
     path("invite/<str:code>/", views.invite_preview, name="invite-preview"),
     path("invite/<str:code>/join/", views.join_via_invite, name="invite-join"),

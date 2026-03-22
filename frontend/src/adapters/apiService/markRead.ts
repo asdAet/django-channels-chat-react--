@@ -5,23 +5,24 @@ import { decodeReadStateResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Выполняет API-запрос для операции mark read.
- * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
- * @param roomId Идентификатор комнаты.
- * @param messageId Идентификатор сообщения.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Marks a room as read up to the specified message.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @param messageId Optional last read message id.
+ * @returns Updated read state.
  */
 export async function markRead(
   apiClient: AxiosInstance,
   roomId: string,
   messageId?: number,
 ): Promise<ReadStateResult> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomId);
-  const encodedRoomRef = encodeURIComponent(apiRoomRef);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
   const body = messageId ? { lastReadMessageId: messageId } : {};
   const response = await apiClient.post<unknown>(
-    `/chat/rooms/${encodedRoomRef}/read/`,
+    `/chat/${encodedRoomId}/read/`,
     body,
   );
   return decodeReadStateResponse(response.data);
 }
+

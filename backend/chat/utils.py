@@ -14,16 +14,9 @@ from chat_app_django.media_utils import (  # noqa: F401
 )
 
 
-def is_valid_room_slug(value: str) -> bool:
-    """Проверяет условие valid room slug и возвращает логический результат.
-    
-    Args:
-        value: Входное значение для проверки или преобразования.
-    
-    Returns:
-        Логическое значение результата проверки.
-    """
-    pattern = getattr(settings, "CHAT_ROOM_SLUG_REGEX", r"^[A-Za-z0-9_-]{3,50}$")
+def is_valid_chat_target(value: str) -> bool:
+    """Validate a public chat target against the configured runtime regex."""
+    pattern = getattr(settings, "CHAT_TARGET_REGEX", r"^[A-Za-z0-9_@-]{1,60}$")
     try:
         return bool(re.match(pattern, value or ""))
     except re.error:

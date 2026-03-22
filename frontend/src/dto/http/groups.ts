@@ -28,6 +28,8 @@ const groupSchema = z
     description: z.string().optional(),
     isPublic: z.boolean().optional(),
     username: z.string().nullable().optional(),
+    publicId: z.string().nullable().optional(),
+    publicRef: z.string().nullable().optional(),
     memberCount: z.number().optional(),
     slowModeSeconds: z.number().optional(),
     joinApprovalRequired: z.boolean().optional(),
@@ -43,6 +45,8 @@ const groupListItemSchema = z
     name: z.string(),
     description: z.string().optional(),
     username: z.string().nullable().optional(),
+    publicId: z.string().nullable().optional(),
+    publicRef: z.string().nullable().optional(),
     memberCount: z.number().optional(),
     avatarUrl: z.string().nullable().optional(),
     avatarCrop: avatarCropSchema.nullable().optional(),
@@ -124,6 +128,7 @@ const invitePreviewSchema = z
   .object({
     code: z.string(),
     groupId: z.union([z.number(), z.string()]),
+    groupPublicRef: z.string().optional(),
     groupName: z.string(),
     groupDescription: z.string().optional(),
     memberCount: z.number().optional(),
@@ -197,11 +202,13 @@ const bannedListSchema = z
  */
 const mapGroup = (dto: z.infer<typeof groupSchema>): Group => ({
   roomId: toRoomId(dto.roomId),
-  slug: String(toRoomId(dto.roomId)),
+  roomTarget: dto.publicRef?.trim() || String(toRoomId(dto.roomId)),
   name: dto.name,
   description: dto.description ?? "",
   isPublic: dto.isPublic ?? false,
   username: dto.username ?? null,
+  publicId: dto.publicId ?? null,
+  publicRef: dto.publicRef ?? null,
   memberCount: dto.memberCount ?? 0,
   slowModeSeconds: dto.slowModeSeconds ?? 0,
   joinApprovalRequired: dto.joinApprovalRequired ?? false,
@@ -237,10 +244,12 @@ export const decodeGroupListResponse = (
   return {
     items: parsed.items.map((i) => ({
       roomId: toRoomId(i.roomId),
-      slug: String(toRoomId(i.roomId)),
+      roomTarget: i.publicRef?.trim() || String(toRoomId(i.roomId)),
       name: i.name,
       description: i.description ?? "",
       username: i.username ?? null,
+      publicId: i.publicId ?? null,
+      publicRef: i.publicRef ?? null,
       memberCount: i.memberCount ?? 0,
       avatarUrl: i.avatarUrl ?? null,
       avatarCrop: i.avatarCrop ?? null,
@@ -353,6 +362,7 @@ export const decodeInvitePreviewResponse = (input: unknown): InvitePreview => {
   return {
     code: parsed.code,
     groupId: toRoomId(parsed.groupId),
+    groupPublicRef: parsed.groupPublicRef ?? null,
     groupName: parsed.groupName,
     groupDescription: parsed.groupDescription ?? "",
     memberCount: parsed.memberCount ?? 0,

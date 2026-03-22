@@ -25,10 +25,10 @@ class BrowsableApiFormsTests(TestCase):
     def test_register_endpoint_rejects_get_for_browsable_form(self):
         self._get_html("/api/auth/register/", expected_status=405)
 
-    def test_direct_start_form_shows_ref_for_authenticated_user(self):
+    def test_chat_resolve_form_shows_target_for_authenticated_user(self):
         self.client.force_login(self.user)
-        html = self._get_html("/api/chat/direct/start/")
-        self.assertIn('name="ref"', html)
+        html = self._get_html("/api/chat/resolve/")
+        self.assertIn('name="target"', html)
 
     def test_profile_form_shows_profile_update_fields_for_authenticated_user(self):
         self.client.force_login(self.user)

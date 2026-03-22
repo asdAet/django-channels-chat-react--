@@ -21,7 +21,7 @@ export async function editMessage(
   const resolvedRoomId = await resolveRoomId(apiClient, roomId);
   const encodedRoomId = encodeURIComponent(resolvedRoomId);
   const response = await apiClient.patch<unknown>(
-    `/chat/rooms/${encodedRoomId}/messages/${messageId}/`,
+    `/chat/${encodedRoomId}/messages/${messageId}/`,
     { content },
   );
   return decodeEditMessageResponse(response.data);

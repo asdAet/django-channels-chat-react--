@@ -1,0 +1,109 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 4px 8px;
+  padding: 14px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.item:hover {
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--friends-text, #f2f3f5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemMeta {
+  margin-top: 4px;
+  color: var(--friends-soft, #949ba4);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: var(--friends-panel-soft, #1e1f22);
+  color: var(--friends-text, #f2f3f5);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.actionBtn:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.actionBtnAccept {
+  border-color: rgba(35, 165, 90, 0.34);
+  background: rgba(35, 165, 90, 0.12);
+  color: #c9ffda;
+}
+
+.actionBtnAccept:hover {
+  border-color: rgba(35, 165, 90, 0.5);
+  background: rgba(35, 165, 90, 0.2);
+}
+
+.actionBtnDanger {
+  border-color: rgba(242, 63, 67, 0.26);
+  background: rgba(242, 63, 67, 0.08);
+  color: #ffb5b7;
+}
+
+.actionBtnDanger:hover {
+  border-color: rgba(242, 63, 67, 0.45);
+  background: rgba(242, 63, 67, 0.14);
+}
+
+@media (max-width: 768px) {
+  .item {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .itemActions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .actionBtn {
+    min-height: var(--touch-target-min, 44px);
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .item {
+    margin-inline: 0;
+    padding: 12px;
+  }
+}

@@ -1,4 +1,4 @@
-﻿"""Invite link management for groups."""
+"""Invite link management for groups."""
 
 from __future__ import annotations
 
@@ -204,7 +204,7 @@ def join_via_invite(actor, invite_code: str) -> dict:
         if existing:
             if existing.is_banned:
                 raise GroupForbiddenError("Вы заблокированы в этой группе")
-            return {"roomId": room.pk, "status": "already_member"}
+            return {"roomId": room.pk, "groupPublicRef": room_public_ref(room), "status": "already_member"}
 
         room = Room.objects.select_for_update().get(pk=room.pk)
         if room.member_count >= room.max_members:
@@ -240,6 +240,6 @@ def join_via_invite(actor, invite_code: str) -> dict:
         invite_code=invite_code,
         status=status,
     )
-    return {"roomId": room.pk, "status": status}
+    return {"roomId": room.pk, "groupPublicRef": room_public_ref(room), "status": status}
 
 

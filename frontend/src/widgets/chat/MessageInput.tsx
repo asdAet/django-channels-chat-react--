@@ -9,6 +9,7 @@
 } from "react";
 
 import type { Message } from "../../entities/message/types";
+import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import styles from "../../styles/chat/MessageInput.module.css";
 
 /**
@@ -268,7 +269,7 @@ export function MessageInput({
           <div className={styles.replyBarAccent} />
           <div className={styles.replyBarBody}>
             <div className={styles.replyBarUser}>
-              {replyTo.displayName ?? replyTo.username}
+              {resolveIdentityLabel(replyTo, "user")}
             </div>
             <div className={styles.replyBarText}>{replyTo.content}</div>
           </div>

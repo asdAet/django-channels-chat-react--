@@ -6,15 +6,34 @@ import logging
 import time
 
 from django.conf import settings
-from django.db import OperationalError, transaction
+from django.db import OperationalError, ProgrammingError, transaction
 from django.utils import timezone
 
-from messages.models import Message, MessageAttachment, MessageReadState, Reaction
+from messages.models import (
+    Message,
+    MessageAttachment,
+    MessageReadReceipt,
+    MessageReadState,
+    Reaction,
+)
 from roles.access import has_permission
 from roles.permissions import Perm
 from rooms.models import Room
 
 logger = logging.getLogger(__name__)
+
+
+def _is_missing_read_receipt_table_error(exc: Exception) -> bool:
+    """Определяет, что exact read receipts недоступны из-за непримененной миграции."""
+
+    message = str(exc).lower()
+    if "messages_read_receipt" not in message:
+        return False
+    return (
+        "no such table" in message
+        or "does not exist" in message
+        or "undefined table" in message
+    )
 
 
 def _attachment_delete_retry_delay(attempt: int) -> float:
@@ -293,6 +312,52 @@ def remove_reaction(user, room: Room, message_id: int, emoji: str) -> None:
 
 
 # ── Read State ─────────────────────────────────────────────────────────
+def _store_exact_read_receipts(
+    user,
+    room: Room,
+    previous_last_read_message_id: int,
+    next_last_read_message_id: int,
+    *,
+    read_at,
+) -> None:
+    """Создает точные receipts для сообщений, впервые попавших в read-диапазон."""
+
+    if next_last_read_message_id <= previous_last_read_message_id:
+        return
+
+    message_ids = list(
+        Message.objects.filter(
+            room=room,
+            is_deleted=False,
+            id__gt=previous_last_read_message_id,
+            id__lte=next_last_read_message_id,
+        )
+        .exclude(user=user)
+        .values_list("id", flat=True)
+    )
+    if not message_ids:
+        return
+
+    try:
+        MessageReadReceipt.objects.bulk_create(
+            [
+                MessageReadReceipt(
+                    message_id=message_id,
+                    user=user,
+                    read_at=read_at,
+                )
+                for message_id in message_ids
+            ],
+            ignore_conflicts=True,
+        )
+    except (OperationalError, ProgrammingError) as exc:
+        if not _is_missing_read_receipt_table_error(exc):
+            raise
+        logger.warning(
+            "Exact read receipts are temporarily unavailable because the "
+            "messages_read_receipt table is missing. Apply migrations.",
+        )
+
 
 def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
     """Помечает read новым состоянием.
@@ -316,11 +381,21 @@ def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
                     user=user, room=room,
                     defaults={"last_read_message_id": last_read_message_id},
                 )
+                previous_last_read_message_id = 0
                 if not created:
-                    current_id = state.last_read_message_id or 0
-                    if last_read_message_id > current_id:
+                    previous_last_read_message_id = state.last_read_message_id or 0
+                    if last_read_message_id > previous_last_read_message_id:
                         state.last_read_message_id = last_read_message_id
-                        state.save(update_fields=["last_read_message_id", "last_read_at"])
+                        # Обновляем room-level cursor отдельно от exact receipts,
+                        # чтобы unread/open-positioning оставались быстрыми.
+                        state.save(update_fields=["last_read_message", "last_read_at"])
+                _store_exact_read_receipts(
+                    user,
+                    room,
+                    previous_last_read_message_id,
+                    state.last_read_message_id or 0,
+                    read_at=state.last_read_at or timezone.now(),
+                )
             return state
         except OperationalError:
             if attempt == max_retries - 1:
@@ -328,6 +403,61 @@ def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
             time.sleep(0.1 * (attempt + 1))
     raise OperationalError("база данных заблокирована")
 
+def get_message_readers(user, room: Room, message_id: int) -> dict:
+    """Возвращает readers конкретного сообщения, если запрос сделал его автор."""
+
+    message = (
+        Message.objects.select_related("user")
+        .filter(pk=message_id, room=room, is_deleted=False)
+        .first()
+    )
+    if message is None:
+        raise MessageNotFoundError("Сообщение не найдено")
+    if message.user_id != user.pk:
+        raise MessageForbiddenError("Недостаточно прав для просмотра прочтений")
+
+    if room.kind == Room.Kind.DIRECT:
+        try:
+            receipt = (
+                MessageReadReceipt.objects.filter(message=message)
+                .exclude(user=user)
+                .order_by("-read_at", "-pk")
+                .first()
+            )
+        except (OperationalError, ProgrammingError) as exc:
+            if not _is_missing_read_receipt_table_error(exc):
+                raise
+            logger.warning(
+                "Direct message read receipts are unavailable because the "
+                "messages_read_receipt table is missing. Apply migrations.",
+            )
+            receipt = None
+        return {
+            "message": message,
+            "read_at": receipt.read_at if receipt else None,
+            "receipts": [],
+        }
+
+    try:
+        receipts = list(
+            MessageReadReceipt.objects.filter(message=message)
+            .exclude(user=user)
+            .select_related("user", "user__profile")
+            .order_by("-read_at", "-pk")
+        )
+    except (OperationalError, ProgrammingError) as exc:
+        if not _is_missing_read_receipt_table_error(exc):
+            raise
+        logger.warning(
+            "Group/public read receipts are unavailable because the "
+            "messages_read_receipt table is missing. Apply migrations.",
+        )
+        receipts = []
+    return {
+        "message": message,
+        "read_at": None,
+        "receipts": receipts,
+    }
 
 def get_unread_counts(user) -> list[dict]:
     """Возвращает unread counts из текущего контекста или хранилища.
@@ -346,8 +476,12 @@ def get_unread_counts(user) -> list[dict]:
     )
 
     result = []
-    for ms in memberships:
-        room = ms.room
+    rooms = [membership.room for membership in memberships]
+    public_room = Room.objects.filter(kind=Room.Kind.PUBLIC).first()
+    if public_room is not None and all(public_room.pk != room.pk for room in rooms):
+        rooms.append(public_room)
+
+    for room in rooms:
         read_state = MessageReadState.objects.filter(user=user, room=room).first()
         last_read_id = read_state.last_read_message_id if read_state else 0
         unread = (
@@ -360,3 +494,4 @@ def get_unread_counts(user) -> list[dict]:
             result.append({"roomId": room.pk, "unreadCount": unread})
 
     return result
+

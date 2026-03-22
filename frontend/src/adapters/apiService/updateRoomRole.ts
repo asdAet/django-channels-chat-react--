@@ -25,7 +25,7 @@ export async function updateRoomRole(
   }>,
 ): Promise<Role> {
   const response = await apiClient.patch<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomId)}/roles/${roleId}/`,
+    `/chat/${encodeURIComponent(roomId)}/roles/${roleId}/`,
     data,
   );
   return decodeRoleResponse(response.data);

@@ -1,34 +1,25 @@
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+﻿import { Route, Routes, useParams } from "react-router-dom";
 
-import { decodePublicRefParam, decodeRoomRefParam } from "../dto";
+import { decodePublicRefParam } from "../dto";
 import type { UserProfile } from "../entities/user/types";
-import { ChatRoomPage } from "../pages/ChatRoomPage";
-import { DirectChatByUsernamePage } from "../pages/DirectChatByUsernamePage";
-import { DirectChatsPage } from "../pages/DirectChatsPage";
+import { ChatTargetPage } from "../pages/ChatTargetPage";
 import { FriendsPage } from "../pages/FriendsPage";
 import { GroupsPage } from "../pages/GroupsPage";
 import { HomePage } from "../pages/HomePage";
 import { InvitePreviewPage } from "../pages/InvitePreviewPage";
 import { LoginPage } from "../pages/LoginPage";
+import { NotFoundPage } from "../pages/NotFoundPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { UserProfilePage } from "../pages/UserProfilePage";
+import { isReservedChatTarget, normalizeChatTarget } from "../shared/lib/chatTarget";
 
-/**
- * Описывает структуру данных `ProfileFieldErrors`.
- */
 type ProfileFieldErrors = Record<string, string[]>;
-/**
- * Описывает результат операции `ProfileSave`.
- */
 type ProfileSaveResult =
   | { ok: true }
   | { ok: false; errors?: ProfileFieldErrors; message?: string };
 
-/**
- * Описывает входные props компонента `AppRoutes`.
- */
 type AppRoutesProps = {
   user: UserProfile | null;
   error: string | null;
@@ -54,11 +45,6 @@ type AppRoutesProps = {
   }) => Promise<ProfileSaveResult>;
 };
 
-/**
- * Компонент UserProfileRoute рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- *
- * @param props Свойства компонента.
- */
 function UserProfileRoute({
   user,
   onNavigate,
@@ -67,7 +53,7 @@ function UserProfileRoute({
   const params = useParams<{ ref: string }>();
   const ref = decodePublicRefParam(params.ref);
   if (!ref) {
-    return <Navigate to="/" replace />;
+    return <NotFoundPage onNavigate={onNavigate} />;
   }
 
   return (
@@ -82,61 +68,40 @@ function UserProfileRoute({
   );
 }
 
-/**
- * Компонент DirectRoute рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- *
- * @param props Свойства компонента.
- */
-function DirectRoute({
+function ChatTargetRoute({
   user,
   onNavigate,
 }: Pick<AppRoutesProps, "user" | "onNavigate">) {
-  const params = useParams<{ ref: string }>();
-  const ref = decodePublicRefParam(params.ref);
-  if (!ref) {
-    return <Navigate to="/direct" replace />;
+  const params = useParams<{ target: string }>();
+  const rawTarget = params.target ?? "";
+  if (!rawTarget || isReservedChatTarget(rawTarget)) {
+    return <NotFoundPage onNavigate={onNavigate} />;
   }
 
-  return <DirectChatByUsernamePage user={user} publicRef={ref} onNavigate={onNavigate} />;
-}
-
-/**
- * Компонент RoomRoute рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- *
- * @param props Свойства компонента.
- */
-function RoomRoute({
-  user,
-  onNavigate,
-}: Pick<AppRoutesProps, "user" | "onNavigate">) {
-  const params = useParams<{ roomRef: string }>();
-  const roomRef = decodeRoomRefParam(params.roomRef);
-  if (!roomRef) {
-    return <Navigate to="/" replace />;
+  const target = normalizeChatTarget(rawTarget);
+  if (!target) {
+    return <NotFoundPage onNavigate={onNavigate} />;
   }
 
   return (
-    <ChatRoomPage key={roomRef} slug={roomRef} user={user} onNavigate={onNavigate} />
+    <ChatTargetPage
+      key={target}
+      user={user}
+      target={target}
+      onNavigate={onNavigate}
+    />
   );
 }
 
-/**
- * React-компонент InviteRoute отвечает за отрисовку и обработку UI-сценария.
- */
 function InviteRoute({ onNavigate }: Pick<AppRoutesProps, "onNavigate">) {
   const params = useParams<{ code: string }>();
   const code = params.code || "";
   if (!code) {
-    return <Navigate to="/" replace />;
+    return <NotFoundPage onNavigate={onNavigate} />;
   }
   return <InvitePreviewPage code={code} onNavigate={onNavigate} />;
 }
 
-/**
- * Компонент AppRoutes рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- *
- * @param props Свойства компонента.
- */
 export function AppRoutes({
   user,
   error,
@@ -214,14 +179,6 @@ export function AppRoutes({
         element={<InviteRoute onNavigate={onNavigate} />}
       />
       <Route
-        path="/direct"
-        element={<DirectChatsPage user={user} onNavigate={onNavigate} />}
-      />
-      <Route
-        path="/direct/:ref"
-        element={<DirectRoute user={user} onNavigate={onNavigate} />}
-      />
-      <Route
         path="/users/:ref"
         element={
           <UserProfileRoute
@@ -232,10 +189,10 @@ export function AppRoutes({
         }
       />
       <Route
-        path="/rooms/:roomRef"
-        element={<RoomRoute user={user} onNavigate={onNavigate} />}
+        path="/:target"
+        element={<ChatTargetRoute user={user} onNavigate={onNavigate} />}
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage onNavigate={onNavigate} />} />
     </Routes>
   );
 }

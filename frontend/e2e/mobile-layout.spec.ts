@@ -23,10 +23,9 @@ async function login(page: Page, identifier: string, password: string) {
 }
 
 test("core routes have no horizontal overflow", async ({ page }) => {
-  const routes = ["/", "/login", "/register", "/rooms/public"];
+  const routes = ["/", "/login", "/register", "/public"];
   for (const route of routes) {
     await page.goto(route);
-    await page.waitForLoadState("networkidle");
     await expect.poll(async () => hasNoHorizontalOverflow(page)).toBeTruthy();
   }
 });
@@ -38,7 +37,7 @@ test("mobile shell switches between list and chat without clipping", async ({
   const password = "pass12345";
 
   await register(page, username, password);
-  await page.goto("/rooms/public");
+  await page.goto("/public");
 
   const chatInput = page.locator("textarea").first();
   const joinCallout = page.getByTestId("group-join-callout");
@@ -61,16 +60,10 @@ test("mobile shell switches between list and chat without clipping", async ({
   const searchInput = page.locator("aside input[aria-label]").first();
   if (isNarrowViewport) {
     await expect(searchInput).toBeHidden();
-    const backButton = page
-      .locator('button[aria-label]')
-      .filter({
-        has: page.locator('polyline[points="15 18 9 12 15 6"]'),
-      })
-      .first();
-    await expect(backButton).toBeVisible();
-    await backButton.click();
-    await expect(page).toHaveURL("/");
-    await expect(searchInput).toBeVisible();
+    const openButton = page.getByTestId("chat-mobile-open-button");
+    await expect(openButton).toBeVisible();
+    await openButton.click();
+    await expect(page.getByTestId("sidebar-mobile-close")).toBeVisible();
   } else {
     await expect(searchInput).toBeVisible();
     await page.goto("/");
@@ -86,8 +79,7 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
   const password = "pass12345";
 
   await register(page, username, password);
-  await page.goto("/rooms/public");
-  await page.waitForLoadState("networkidle");
+  await page.goto("/public");
 
   const chatInput = page.getByTestId("chat-message-input");
   const sendButton = page.getByTestId("chat-send-button");
@@ -109,8 +101,7 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
 
   if (await authCallout.isVisible()) {
     await login(page, username, password);
-    await page.goto("/rooms/public");
-    await page.waitForLoadState("networkidle");
+    await page.goto("/public");
   }
 
   await expect(readOnlyCallout).toBeHidden();
@@ -168,5 +159,5 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
   }
   const menu = page.getByRole("menu");
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole("menuitem")).toHaveCount(5);
+  await expect(menu.getByRole("menuitem")).toHaveCount(6);
 });

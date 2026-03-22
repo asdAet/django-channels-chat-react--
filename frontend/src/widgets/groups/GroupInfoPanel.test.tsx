@@ -148,7 +148,7 @@ import { GroupInfoPanel } from "./GroupInfoPanel";
 
 const sampleGroup: Group = {
   roomId: 101,
-  slug: "test-group",
+  roomTarget: "@testgroup",
   name: "Test Group",
   description: "Test description",
   isPublic: true,
@@ -225,7 +225,7 @@ describe("GroupInfoPanel", () => {
     });
     groupControllerMock.getGroupDetails.mockReturnValue(groupPromise);
 
-    render(<GroupInfoPanel slug="test-group" />);
+    render(<GroupInfoPanel roomId="101" />);
 
     expect(screen.getByTestId("spinner")).toBeInTheDocument();
 
@@ -246,7 +246,7 @@ describe("GroupInfoPanel", () => {
   it("renders unavailable state when group details request fails", async () => {
     groupControllerMock.getGroupDetails.mockRejectedValue(new Error("boom"));
 
-    render(<GroupInfoPanel slug="test-group" />);
+    render(<GroupInfoPanel roomId="101" />);
 
     await waitFor(() => {
       expect(screen.getByText("Группа недоступна.")).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe("GroupInfoPanel", () => {
       total: 2,
     });
 
-    render(<GroupInfoPanel slug="test-group" />);
+    render(<GroupInfoPanel roomId="101" />);
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: "Test Group" }),
@@ -334,7 +334,7 @@ describe("GroupInfoPanel", () => {
       total: 1,
     });
 
-    render(<GroupInfoPanel slug="test-group" />);
+    render(<GroupInfoPanel roomId="101" />);
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: "Test Group" }),
@@ -370,7 +370,7 @@ describe("GroupInfoPanel", () => {
     groupControllerMock.getGroupDetails.mockResolvedValue(sampleGroup);
     groupControllerMock.updateGroup.mockResolvedValue(sampleGroup);
 
-    render(<GroupInfoPanel slug="test-group" />);
+    render(<GroupInfoPanel roomId="101" />);
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: "Test Group" }),
@@ -392,7 +392,7 @@ describe("GroupInfoPanel", () => {
       expect(groupControllerMock.updateGroup).toHaveBeenCalled();
     });
     expect(groupControllerMock.updateGroup).toHaveBeenCalledWith(
-      "test-group",
+      "101",
       expect.objectContaining({
         avatar: file,
         avatarCrop: { x: 0.1, y: 0.2, width: 0.5, height: 0.5 },
@@ -439,7 +439,7 @@ describe("GroupInfoPanel", () => {
       pagination: { limit: 100, hasMore: false, nextBefore: null },
     });
 
-    render(<GroupInfoPanel slug="test-group" />);
+    render(<GroupInfoPanel roomId="101" />);
     await waitFor(() => {
       expect(
         screen.getByRole("heading", { name: "Test Group" }),
@@ -449,7 +449,7 @@ describe("GroupInfoPanel", () => {
     fireEvent.click(screen.getByTestId("group-quick-media"));
     await waitFor(() => {
       expect(chatControllerMock.getRoomAttachments).toHaveBeenCalledWith(
-        "test-group",
+        "101",
         { limit: 120 },
       );
     });
@@ -467,7 +467,7 @@ describe("GroupInfoPanel", () => {
     roomPermissionsMock.canManageRoles = false;
     groupControllerMock.getGroupDetails.mockResolvedValue(sampleGroup);
 
-    render(<GroupInfoPanel slug="test-group" />);
+    render(<GroupInfoPanel roomId="101" />);
 
     await waitFor(() => {
       expect(

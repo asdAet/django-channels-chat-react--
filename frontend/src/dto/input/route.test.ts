@@ -7,7 +7,7 @@ describe("route input decoders", () => {
     expect(decodeRoomRefParam("public")).toBe("public");
     expect(decodeRoomRefParam("123")).toBe("123");
     expect(decodeRoomRefParam("0")).toBeNull();
-    expect(decodeRoomRefParam("bad slug")).toBeNull();
+    expect(decodeRoomRefParam("bad target")).toBeNull();
   });
 
   it("normalizes public refs", () => {

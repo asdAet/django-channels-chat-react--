@@ -9,13 +9,13 @@ import styles from "../../styles/admin/RolesManager.module.css";
  * Описывает входные props компонента `Props`.
  */
 type Props = {
-  slug: string;
+  roomId: string;
 };
 
 /**
  * React-компонент RolesManager отвечает за отрисовку и обработку UI-сценария.
  */
-export function RolesManager({ slug }: Props) {
+export function RolesManager({ roomId }: Props) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -26,14 +26,14 @@ export function RolesManager({ slug }: Props) {
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await rolesController.getRoomRoles(slug);
+      const result = await rolesController.getRoomRoles(roomId);
       setRoles(result);
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [roomId]);
 
   useEffect(() => {
     void reload();
@@ -44,7 +44,7 @@ export function RolesManager({ slug }: Props) {
     if (!trimmed) return;
     setCreating(true);
     try {
-      await rolesController.createRoomRole(slug, {
+      await rolesController.createRoomRole(roomId, {
         name: trimmed,
         color: newColor,
       });
@@ -56,18 +56,18 @@ export function RolesManager({ slug }: Props) {
     } finally {
       setCreating(false);
     }
-  }, [slug, newName, newColor, reload]);
+  }, [roomId, newName, newColor, reload]);
 
   const handleDelete = useCallback(
     async (roleId: number) => {
       try {
-        await rolesController.deleteRoomRole(slug, roleId);
+        await rolesController.deleteRoomRole(roomId, roleId);
         void reload();
       } catch {
         // silent
       }
     },
-    [slug, reload],
+    [roomId, reload],
   );
 
   if (loading) {

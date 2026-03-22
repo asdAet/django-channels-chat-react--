@@ -5,10 +5,25 @@ import { uploadAttachments } from "./uploadAttachments";
 
 describe("uploadAttachments", () => {
   it("resolves public room ref before upload", async () => {
-    const get = vi.fn().mockResolvedValue({ data: { roomId: 777 } });
+    const get = vi.fn();
     const post = vi
       .fn()
-      .mockResolvedValue({ data: { id: 10, content: "", attachments: [] } });
+      .mockResolvedValueOnce({
+        data: {
+          targetKind: "public",
+          roomId: 777,
+          roomKind: "public",
+          resolvedTarget: "public",
+          room: {
+            roomId: 777,
+            name: "Public",
+            kind: "public",
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: { id: 10, content: "", attachments: [] },
+      });
     const apiClient = { get, post } as unknown as AxiosInstance;
 
     const file = new File(["x"], "unknown.bin", {
@@ -16,10 +31,13 @@ describe("uploadAttachments", () => {
     });
     const result = await uploadAttachments(apiClient, "public", [file]);
 
-    expect(get).toHaveBeenCalledWith("/chat/public-room/");
-    expect(post).toHaveBeenCalledTimes(1);
-    expect(post.mock.calls[0][0]).toBe("/chat/rooms/777/attachments/");
-    expect(post.mock.calls[0][1]).toBeInstanceOf(FormData);
+    expect(get).not.toHaveBeenCalled();
+    expect(post).toHaveBeenNthCalledWith(1, "/chat/resolve/", {
+      target: "public",
+    });
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1][0]).toBe("/chat/777/attachments/");
+    expect(post.mock.calls[1][1]).toBeInstanceOf(FormData);
     expect(result.id).toBe(10);
   });
 
@@ -36,6 +54,6 @@ describe("uploadAttachments", () => {
     await uploadAttachments(apiClient, "42", [file]);
 
     expect(get).not.toHaveBeenCalled();
-    expect(post.mock.calls[0][0]).toBe("/chat/rooms/42/attachments/");
+    expect(post.mock.calls[0][0]).toBe("/chat/42/attachments/");
   });
 });

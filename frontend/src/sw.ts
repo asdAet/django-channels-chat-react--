@@ -49,26 +49,19 @@ const matchSignedMedia = (url: URL) =>
  * @param url URL-адрес ресурса.
  */
 const matchRoomMessages = (url: URL) =>
-  url.pathname.startsWith("/api/chat/rooms/") &&
-  url.pathname.endsWith("/messages/");
+  /^\/api\/chat\/\d+\/messages\/$/.test(url.pathname);
 /**
  * Обрабатывает match room details.
  * @param url URL-адрес ресурса.
  */
 const matchRoomDetails = (url: URL) =>
-  url.pathname.startsWith("/api/chat/rooms/") &&
-  !url.pathname.endsWith("/messages/");
-/**
- * Обрабатывает match public room.
- * @param url URL-адрес ресурса.
- */
-const matchPublicRoom = (url: URL) => url.pathname === "/api/chat/public-room/";
+  /^\/api\/chat\/\d+\/$/.test(url.pathname);
 /**
  * Обрабатывает match direct chats.
  * @param url URL-адрес ресурса.
  */
 const matchDirectChats = (url: URL) =>
-  url.pathname === "/api/chat/direct/chats/";
+  url.pathname === "/api/chat/inbox/";
 /**
  * Обрабатывает match user profile.
  * @param url URL-адрес ресурса.
@@ -162,7 +155,7 @@ registerRoute(
   ({ request, url }) =>
     isSameOrigin(url) &&
     isGetRequest(request) &&
-    (matchRoomDetails(url) || matchPublicRoom(url)),
+    matchRoomDetails(url),
   new StaleWhileRevalidate({
     cacheName: CACHE_NAMES.apiRooms,
     plugins: [
@@ -262,7 +255,7 @@ self.addEventListener("message", (event) => {
       event.waitUntil(
         deleteMatching(
           CACHE_NAMES.apiMessages,
-          (url) => url.pathname === `/api/chat/rooms/${roomRef}/messages/`,
+          (url) => url.pathname === `/api/chat/${roomRef}/messages/`,
         ),
       );
       return;
@@ -275,7 +268,7 @@ self.addEventListener("message", (event) => {
       event.waitUntil(
         deleteMatching(
           CACHE_NAMES.apiRooms,
-          (url) => url.pathname === `/api/chat/rooms/${roomRef}/`,
+          (url) => url.pathname === `/api/chat/${roomRef}/`,
         ),
       );
       return;
@@ -285,7 +278,7 @@ self.addEventListener("message", (event) => {
       event.waitUntil(
         deleteMatching(
           CACHE_NAMES.apiDirect,
-          (url) => url.pathname === "/api/chat/direct/chats/",
+          (url) => url.pathname === "/api/chat/inbox/",
         ),
       );
       return;

@@ -737,6 +737,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
             "lastReadMessageId": event["lastReadMessageId"],
+            "lastReadAt": event.get("lastReadAt"),
             "roomId": event["roomId"],
         }))
     # Обработка отметки прочитанного через WebSocket.
@@ -804,6 +805,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "username": user_public_username(user),
             "displayName": user_display_name(user),
             "lastReadMessageId": state.last_read_message_id,
+            "lastReadAt": state.last_read_at.isoformat() if state.last_read_at else None,
             "roomId": room.pk,
         })
 
@@ -902,4 +904,3 @@ class ChatConsumer(AsyncWebsocketConsumer):
             }
             targets.append({"group": user_group_name(participant.pk), "payload": payload})
         return targets
-

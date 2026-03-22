@@ -13,6 +13,6 @@ export async function deleteRoomRole(
   roleId: number,
 ): Promise<void> {
   await apiClient.delete(
-    `/chat/rooms/${encodeURIComponent(roomId)}/roles/${roleId}/`,
+    `/chat/${encodeURIComponent(roomId)}/roles/${roleId}/`,
   );
 }

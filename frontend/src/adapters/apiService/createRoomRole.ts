@@ -18,7 +18,7 @@ export async function createRoomRole(
   data: { name: string; color?: string; permissions?: number },
 ): Promise<Role> {
   const response = await apiClient.post<unknown>(
-    `/chat/rooms/${encodeURIComponent(roomId)}/roles/`,
+    `/chat/${encodeURIComponent(roomId)}/roles/`,
     data,
   );
   return decodeRoleResponse(response.data);

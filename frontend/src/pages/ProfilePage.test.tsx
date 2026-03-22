@@ -39,7 +39,7 @@ vi.mock("../shared/ui", async () => {
       onCancel: () => void;
     }) =>
       open ? (
-        <div data-testid="avatar-crop-modal">
+        <div>
           <button
             type="button"
             onClick={() => onApply({ x: 0.1, y: 0.2, width: 0.3, height: 0.4 })}
@@ -183,7 +183,9 @@ describe("ProfilePage", () => {
       target: { files: [file] },
     });
 
-    expect(screen.getByTestId("avatar-crop-modal")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Apply crop" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Apply crop" }));
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
@@ -201,13 +203,13 @@ describe("ProfilePage", () => {
     const onSave = vi.fn(async () => ({ ok: true as const }));
     render(<ProfilePage user={user} onSave={onSave} onNavigate={vi.fn()} />);
 
-    fireEvent.change(screen.getByTestId("profile-name-input"), {
+    fireEvent.change(screen.getByLabelText("Имя"), {
       target: { value: "Directness" },
     });
-    fireEvent.change(screen.getByTestId("profile-username-input"), {
+    fireEvent.change(screen.getByLabelText("Юзернейм (@username)"), {
       target: { value: "demohandle" },
     });
-    fireEvent.click(screen.getByTestId("profile-save-button"));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave).toHaveBeenCalledWith(
@@ -234,12 +236,14 @@ describe("ProfilePage", () => {
       target: { files: [file] },
     });
 
-    expect(screen.getByTestId("avatar-crop-modal")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Apply crop" }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel crop" }));
-    expect(screen.queryByTestId("avatar-crop-modal")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Apply crop" })).toBeNull();
 
-    fireEvent.click(screen.getByTestId("profile-save-button"));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave).toHaveBeenCalledWith(

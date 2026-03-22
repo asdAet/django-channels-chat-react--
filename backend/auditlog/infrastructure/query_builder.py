@@ -48,8 +48,8 @@ def apply_filters(
         qs = qs.filter(created_at__gte=filters.date_from)
     if filters.date_to:
         qs = qs.filter(created_at__lte=filters.date_to)
-    if filters.room_slug:
-        qs = qs.filter(metadata__room_slug=filters.room_slug)
+    if filters.room_id is not None:
+        qs = qs.filter(metadata__room_id=filters.room_id)
 
     parsed_cursor = decode_cursor(filters.cursor)
     if parsed_cursor:

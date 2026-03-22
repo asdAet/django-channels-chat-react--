@@ -4,8 +4,8 @@ This directory contains generated code reference documentation.
 
 ## Contents
 
-- [Backend Reference](generated/backend-reference.md) (185 modules)
-- [Frontend Reference](generated/frontend-reference.md) (251 modules)
+- [Backend Reference](generated/backend-reference.md) (184 modules)
+- [Frontend Reference](generated/frontend-reference.md) (257 modules)
 
 ## Regenerate
 

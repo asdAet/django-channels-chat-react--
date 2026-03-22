@@ -19,6 +19,6 @@ class AuditQueryFilters:
     path_contains: str | None = None
     date_from: datetime | None = None
     date_to: datetime | None = None
-    room_slug: str | None = None
+    room_id: int | None = None
     limit: int = 50
     cursor: str | None = None

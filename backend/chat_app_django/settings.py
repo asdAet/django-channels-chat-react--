@@ -515,7 +515,7 @@ CHAT_MESSAGE_MAX_LENGTH = int(os.getenv("CHAT_MESSAGE_MAX_LENGTH", "1000"))
 CHAT_MESSAGES_PAGE_SIZE = int(os.getenv("CHAT_MESSAGES_PAGE_SIZE", "50"))
 CHAT_MESSAGES_MAX_PAGE_SIZE = int(os.getenv("CHAT_MESSAGES_MAX_PAGE_SIZE", "200"))
 CHAT_WS_IDLE_TIMEOUT = int(os.getenv("CHAT_WS_IDLE_TIMEOUT", "600"))
-CHAT_ROOM_SLUG_REGEX = os.getenv("CHAT_ROOM_SLUG_REGEX", r"^[A-Za-z0-9_-]{3,60}$")
+CHAT_TARGET_REGEX = os.getenv("CHAT_TARGET_REGEX", r"^[A-Za-z0-9_@-]{1,60}$")
 
 # -- Attachments --------------------------------------------------------
 CHAT_ATTACHMENT_MAX_SIZE_MB = env_int("CHAT_ATTACHMENT_MAX_SIZE_MB", 10, minimum=1)
@@ -530,7 +530,6 @@ CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE = env_bool(
     True,
 )
 CHAT_THUMBNAIL_MAX_SIDE = env_int("CHAT_THUMBNAIL_MAX_SIDE", 400, minimum=50)
-CHAT_DIRECT_SLUG_SALT = os.getenv("CHAT_DIRECT_SLUG_SALT", "").strip() or SECRET_KEY
 PRESENCE_TTL = int(os.getenv("PRESENCE_TTL", "40"))
 PRESENCE_GRACE = int(os.getenv("PRESENCE_GRACE", "5"))
 PRESENCE_HEARTBEAT = int(os.getenv("PRESENCE_HEARTBEAT", "20"))

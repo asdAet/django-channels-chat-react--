@@ -26,7 +26,6 @@ class RoomRolesApiTests(TestCase):
         )
 
         self.room = Room.objects.create(
-            slug="roles-room-01",
             name="Roles Room",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -36,7 +35,7 @@ class RoomRolesApiTests(TestCase):
         ensure_membership(self.room, self.other, role_name="Member")
 
     def _url(self, suffix: str) -> str:
-        return f"/api/chat/rooms/{self.room.pk}/{suffix}"
+        return f"/api/chat/{self.room.pk}/{suffix}"
 
     def test_roles_api_denies_user_without_manage_roles(self):
         self.client.force_login(self.member)
@@ -115,7 +114,6 @@ class RoomRolesApiTests(TestCase):
 
     def test_member_roles_reject_cross_room_role_id(self):
         other_room = Room.objects.create(
-            slug="roles-room-02",
             name="Other Roles Room",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -199,7 +197,6 @@ class RoomRolesApiTests(TestCase):
 
     def test_permissions_me_for_public_group_non_member_is_read_only_joinable(self):
         public_group = Room.objects.create(
-            slug="roles-public-group-01",
             name="Roles Public",
             kind=Room.Kind.GROUP,
             is_public=True,
@@ -208,7 +205,7 @@ class RoomRolesApiTests(TestCase):
         ensure_membership(public_group, self.owner, role_name="Owner")
 
         self.client.force_login(self.member)
-        response = self.client.get(f"/api/chat/rooms/{public_group.pk}/permissions/me/")
+        response = self.client.get(f"/api/chat/{public_group.pk}/permissions/me/")
         self.assertEqual(response.status_code, 200)
 
         payload = response.json()
@@ -220,7 +217,6 @@ class RoomRolesApiTests(TestCase):
 
     def test_direct_room_rejects_role_management(self):
         direct_room = Room.objects.create(
-            slug="dm_roles_api_01",
             name="dm",
             kind=Room.Kind.DIRECT,
             direct_pair_key=f"{self.owner.pk}:{self.member.pk}",
@@ -230,12 +226,11 @@ class RoomRolesApiTests(TestCase):
         ensure_membership(direct_room, self.member)
 
         self.client.force_login(self.owner)
-        response = self.client.get(f"/api/chat/rooms/{direct_room.pk}/roles/")
+        response = self.client.get(f"/api/chat/{direct_room.pk}/roles/")
         self.assertEqual(response.status_code, 400)
 
     def test_permissions_me_hides_private_room_for_outsider(self):
         hidden_room = Room.objects.create(
-            slug="roles-hidden-01",
             name="Hidden",
             kind=Room.Kind.PRIVATE,
             created_by=self.owner,
@@ -243,7 +238,7 @@ class RoomRolesApiTests(TestCase):
         ensure_membership(hidden_room, self.owner, role_name="Owner")
 
         self.client.force_login(self.member)
-        response = self.client.get(f"/api/chat/rooms/{hidden_room.pk}/permissions/me/")
+        response = self.client.get(f"/api/chat/{hidden_room.pk}/permissions/me/")
         self.assertEqual(response.status_code, 404)
 
     def test_superuser_can_manage_roles_without_room_membership(self):

@@ -1,361 +1,533 @@
-﻿import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import type { UserProfile } from "../../entities/user/types";
 import { useConversationList } from "../../shared/conversationList/ConversationListProvider";
 import { useDirectInbox } from "../../shared/directInbox";
+import {
+  DIRECT_HOME_FALLBACK_PATH,
+  rememberLastDirectRef,
+  resolveRememberedDirectPath,
+} from "../../shared/lib/directNavigation";
+import {
+  buildChatTargetPath,
+  buildPublicChatPath,
+  normalizeChatTarget,
+  parseChatTargetFromPathname,
+  PUBLIC_CHAT_TARGET,
+} from "../../shared/lib/chatTarget";
 import { formatFullName } from "../../shared/lib/format";
 import {
+  buildDirectPath,
   buildUserProfilePath,
-  formatPublicRef,
+  normalizePublicRef,
 } from "../../shared/lib/publicRef";
-import { Avatar, Button } from "../../shared/ui";
+import {
+  resolveIdentityHandle,
+  resolveIdentityLabel,
+} from "../../shared/lib/userIdentity";
+import { usePresence } from "../../shared/presence";
+import { Avatar, Button, Modal } from "../../shared/ui";
 import styles from "../../styles/layout/Sidebar.module.css";
-import { ConversationList } from "../sidebar/ConversationList";
+import { CreateGroupDialog } from "../groups/CreateGroupDialog";
+import { SettingsContent } from "../settings/SettingsContent";
 
-/**
- * Описывает входные props компонента `Props`.
- */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
   onLogout: () => void;
+  onCloseMobileDrawer?: () => void;
+  showMobileDrawerControls?: boolean;
 };
 
-/**
- * React-компонент IconMenu отвечает за отрисовку и обработку UI-сценария.
- */
-const IconMenu = () => (
-  <svg
-    width="22"
-    height="22"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-  >
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="18" x2="21" y2="18" />
+const MOBILE_BREAKPOINT = 768;
+const SIDEBAR_WIDTH_VAR = "--tg-sidebar-w";
+const SIDEBAR_WIDTH_STORAGE_KEY = "ui.sidebar.width";
+const SIDEBAR_DEFAULT_WIDTH = 360;
+const SIDEBAR_MIN_WIDTH = 320;
+const SIDEBAR_MAX_WIDTH = 520;
+
+const clampSidebarWidth = (value: number): number =>
+  Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(value)));
+
+const normalizeActorRef = (value: string): string =>
+  normalizePublicRef(value).toLowerCase();
+
+const FriendsIcon = () => (
+  <svg viewBox="0 0 24 24" className={styles.iconSvg} aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M16 11c1.66 0 3-1.57 3-3.5S17.66 4 16 4s-3 1.57-3 3.5 1.34 3.5 3 3.5Zm-8 0c1.66 0 3-1.57 3-3.5S9.66 4 8 4 5 5.57 5 7.5 6.34 11 8 11Zm0 2c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4Zm8 0c-.29 0-.62.02-.97.05 1.33.97 1.97 2.06 1.97 3.45v3h7v-3c0-2.66-5.33-4-8-4Z"
+    />
   </svg>
 );
 
-/**
- * React-компонент IconSearch отвечает за отрисовку и обработку UI-сценария.
- */
-const IconSearch = () => (
-  <svg
-    className={styles.searchIcon}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+const PublicChatIcon = () => (
+  <svg viewBox="0 0 24 24" className={styles.iconSvg} aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M10 4a1 1 0 0 1 1 1v2h2V5a1 1 0 1 1 2 0v2h2a1 1 0 1 1 0 2h-2v4h2a1 1 0 1 1 0 2h-2v4a1 1 0 1 1-2 0v-4h-2v4a1 1 0 1 1-2 0v-4H7a1 1 0 1 1 0-2h2V9H7a1 1 0 1 1 0-2h2V5a1 1 0 0 1 1-1Zm1 5v4h2V9h-2Z"
+    />
   </svg>
 );
 
-/**
- * React-компонент IconHome отвечает за отрисовку и обработку UI-сценария.
- */
-const IconHome = () => (
-  <svg
-    className={styles.drawerIcon}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    <polyline points="9 22 9 12 15 12 15 22" />
+const SettingsIcon = () => (
+  <svg viewBox="0 0 24 24" className={styles.iconSvg} aria-hidden="true">
+    <path
+      fill="currentColor"
+      d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.23-1.12.54-1.62.94l-2.4-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.05.31-.08.63-.08.95 0 .31.03.63.08.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.4-.96c.5.39 1.04.71 1.62.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.23 1.12-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.01-1.59ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"
+    />
   </svg>
 );
 
-/**
- * React-компонент IconFriends отвечает за отрисовку и обработку UI-сценария.
- */
-const IconFriends = () => (
-  <svg
-    className={styles.drawerIcon}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="8.5" cy="7" r="4" />
-    <line x1="20" y1="8" x2="20" y2="14" />
-    <line x1="23" y1="11" x2="17" y2="11" />
-  </svg>
-);
-
-/**
- * React-компонент IconGroup отвечает за отрисовку и обработку UI-сценария.
- */
-const IconGroup = () => (
-  <svg
-    className={styles.drawerIcon}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
-/**
- * React-компонент IconSettings отвечает за отрисовку и обработку UI-сценария.
- */
-const IconSettings = () => (
-  <svg
-    className={styles.drawerIcon}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
-
-/**
- * React-компонент IconLogout отвечает за отрисовку и обработку UI-сценария.
- */
-const IconLogout = () => (
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
-
-/**
- * React-компонент Sidebar отвечает за отрисовку и обработку UI-сценария.
- */
-export function Sidebar({ user, onNavigate, onLogout }: Props) {
+export function Sidebar({
+  user,
+  onNavigate,
+  onLogout,
+  onCloseMobileDrawer,
+  showMobileDrawerControls = false,
+}: Props) {
   const location = useLocation();
-  const { unreadDialogsCount } = useDirectInbox();
-  const { searchQuery, setSearchQuery } = useConversationList();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const isActive = useCallback(
-    (path: string) => {
-      if (path === "/") return location.pathname === "/";
-      return location.pathname.startsWith(path);
-    },
+  const { searchQuery, setSearchQuery, serverItems, refresh } =
+    useConversationList();
+  const { items: directItems, unreadCounts, unreadDialogsCount } =
+    useDirectInbox();
+  const { online: presenceOnline, status: presenceStatus } = usePresence();
+
+  const onlineUsernames = useMemo(
+    () =>
+      new Set(
+        presenceStatus === "online"
+          ? presenceOnline.map((entry) =>
+              normalizeActorRef(entry.publicRef || ""),
+            )
+          : [],
+      ),
+    [presenceOnline, presenceStatus],
+  );
+
+  const activeChatTarget = useMemo(
+    () => parseChatTargetFromPathname(location.pathname),
     [location.pathname],
   );
-
-  const navAndClose = useCallback(
-    (path: string) => {
-      setDrawerOpen(false);
-      onNavigate(path);
-    },
-    [onNavigate],
+  const directChatTargets = useMemo(
+    () =>
+      new Set(
+        directItems
+          .map((item) => normalizeChatTarget(item.peer.publicRef))
+          .filter(Boolean),
+      ),
+    [directItems],
   );
 
-  useEffect(() => {
-    if (!drawerOpen) return;
-    /**
-     * Обрабатывает handler.
-     * @param e DOM-событие, вызвавшее обработчик.
-     */
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDrawerOpen(false);
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [drawerOpen]);
+  const isLogoActive =
+    location.pathname.startsWith("/friends") ||
+    (activeChatTarget !== null && directChatTargets.has(activeChatTarget));
+
+  const isFriendsActive = location.pathname.startsWith("/friends");
+  const isPublicChatActive = activeChatTarget === PUBLIC_CHAT_TARGET;
+  // Shortcut в DM-pane использует тот же unread, что и public room в server rail.
+  const publicChatUnread =
+    serverItems.find((item) => item.isPublic)?.unreadCount ?? 0;
 
   const fullName = user
     ? formatFullName(
         user.name,
         (user as { last_name?: string | null }).last_name,
-      ) || "Без имени"
-    : "Без имени";
-  const publicUsername = (user?.username || "").trim();
+      )
+    : "";
   const publicRef = (user?.publicRef || "").trim();
-  const profileIdentity = fullName || publicUsername || publicRef;
+  const publicUsername = (user?.username || "").trim();
+  const profileIdentity = resolveIdentityLabel(
+    {
+      name: fullName,
+      username: publicUsername,
+      publicRef,
+    },
+    "Без имени",
+  );
+  const profileHandle = resolveIdentityHandle({
+    username: publicUsername,
+    publicRef,
+  });
   const profilePath = publicRef ? buildUserProfilePath(publicRef) : "/profile";
 
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+
+  const filteredDirectItems = useMemo(() => {
+    if (!normalizedSearchQuery) return directItems;
+
+    return directItems.filter((item) => {
+      const displayName = (item.peer.displayName ?? item.peer.username)
+        .toLowerCase()
+        .trim();
+      const peerRef = normalizePublicRef(item.peer.publicRef).toLowerCase();
+      const preview = item.lastMessage.toLowerCase();
+      return (
+        displayName.includes(normalizedSearchQuery) ||
+        peerRef.includes(normalizedSearchQuery) ||
+        preview.includes(normalizedSearchQuery)
+      );
+    });
+  }, [directItems, normalizedSearchQuery]);
+
+  const navigateFromSidebar = useCallback(
+    (path: string) => {
+      onCloseMobileDrawer?.();
+      onNavigate(path);
+    },
+    [onCloseMobileDrawer, onNavigate],
+  );
+
+  const rememberedDirectPath = useMemo(() => {
+    return resolveRememberedDirectPath({
+      pathname: location.pathname,
+      directPeerRefs: directItems.map((item) => item.peer.publicRef),
+      fallbackPath: DIRECT_HOME_FALLBACK_PATH,
+    });
+  }, [directItems, location.pathname]);
+
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
+    const parsedWidth = storedValue ? Number(storedValue) : NaN;
+    const width = Number.isFinite(parsedWidth)
+      ? clampSidebarWidth(parsedWidth)
+      : SIDEBAR_DEFAULT_WIDTH;
+
+    document.documentElement.style.setProperty(SIDEBAR_WIDTH_VAR, `${width}px`);
+
+    return () => {
+      // Страхуемся на unmount: если drag ещё активен, снимаем подписки и курсор.
+      resizeCleanupRef.current?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    const activeDirectRef = parseChatTargetFromPathname(location.pathname);
+    if (!activeDirectRef || !directChatTargets.has(activeDirectRef)) return;
+
+    // Запоминаем последнее реально открытое ЛС, чтобы логотип возвращал именно туда.
+    rememberLastDirectRef(activeDirectRef);
+  }, [directChatTargets, location.pathname]);
+
+  const handleResizeStart = useCallback((event: React.MouseEvent) => {
+    if (window.innerWidth <= MOBILE_BREAKPOINT) return;
+
+    const sidebarElement = sidebarRef.current;
+    if (!sidebarElement) return;
+
+    event.preventDefault();
+
+    const startWidth = sidebarElement.getBoundingClientRect().width;
+    const startX = event.clientX;
+
+    resizeCleanupRef.current?.();
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    // Пересчитываем ширину от исходной точки drag и мгновенно применяем в CSS-var shell.
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const nextWidth = clampSidebarWidth(startWidth + moveEvent.clientX - startX);
+      document.documentElement.style.setProperty(
+        SIDEBAR_WIDTH_VAR,
+        `${nextWidth}px`,
+      );
+      window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(nextWidth));
+    };
+
+    const stopResize = () => {
+      document.body.style.removeProperty("cursor");
+      document.body.style.removeProperty("user-select");
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", stopResize);
+      resizeCleanupRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResize);
+    resizeCleanupRef.current = stopResize;
+  }, []);
+
+  const handleGroupCreated = useCallback(
+    (roomTarget: string) => {
+      setShowCreateGroup(false);
+      refresh();
+      navigateFromSidebar(buildChatTargetPath(roomTarget));
+    },
+    [navigateFromSidebar, refresh],
+  );
+
+  const handleSettingsNavigate = useCallback(
+    (path: string) => {
+      setShowSettings(false);
+      navigateFromSidebar(path);
+    },
+    [navigateFromSidebar],
+  );
+
+  const handleSettingsLogout = useCallback(async () => {
+    setShowSettings(false);
+    await onLogout();
+  }, [onLogout]);
+
   return (
-    <aside className={styles.sidebar}>
-      {drawerOpen && (
+    <aside
+      className={[
+        styles.sidebar,
+        showMobileDrawerControls ? styles.sidebarMobileDrawer : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      ref={sidebarRef}
+    >
+      <nav className={styles.guildsSidebar} aria-label="Серверы">
         <div
-          className={styles.drawerOverlay}
-          onClick={() => setDrawerOpen(false)}
+          className={[
+            styles.guildItem,
+            isLogoActive ? styles.guildItemActive : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
-          <nav
-            className={styles.drawer}
-            onClick={(e) => e.stopPropagation()}
-            role="navigation"
-            aria-label="Main menu"
+          <button
+            className={[styles.guildButton, styles.guildButtonLogo].join(" ")}
+            type="button"
+            title="Личные сообщения"
+            aria-label="Личные сообщения"
+            data-testid="sidebar-logo-button"
+            onClick={() => navigateFromSidebar(rememberedDirectPath)}
           >
-            {user && (
-              <div className={styles.drawerHeader}>
-                <Avatar
-                  username={profileIdentity}
-                  profileImage={user.profileImage}
-                  avatarCrop={user.avatarCrop}
-                  size="default"
-                />
-                <div className={styles.userIdentity}>
-                  <span className={styles.drawerUserName}>{fullName}</span>
-                  {publicRef && (
-                    <span className={styles.userHandle}>
-                      {formatPublicRef(publicRef)}
+            <img
+              src="/devils_map_icon.svg"
+              alt="Devils"
+              className={styles.guildLogo}
+            />
+          </button>
+        </div>
+
+        <div className={styles.guildSeparator} />
+
+        <div className={styles.guildsList}>
+          {serverItems.map((server) => {
+            const isServerActive = activeChatTarget === server.roomTarget;
+            const unread = server.unreadCount;
+
+            return (
+              <div
+                key={server.key}
+                className={[
+                  styles.guildItem,
+                  isServerActive ? styles.guildItemActive : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <button
+                  className={styles.guildButton}
+                  type="button"
+                  title={server.name}
+                  aria-label={server.name}
+                  aria-current={isServerActive ? "page" : undefined}
+                  onClick={() => navigateFromSidebar(server.path)}
+                >
+                  {server.avatarUrl ? (
+                    <img
+                      src={server.avatarUrl}
+                      alt={server.name}
+                      className={styles.guildIcon}
+                    />
+                  ) : (
+                    <span className={styles.guildFallback}>
+                      {server.isPublic
+                        ? "#"
+                        : server.name.slice(0, 2).toUpperCase()}
                     </span>
                   )}
-                </div>
+                  {unread > 0 && (
+                    <span className={styles.guildBadge}>
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  )}
+                </button>
               </div>
-            )}
-
-            <div className={styles.drawerDivider} />
-
-            <button
-              type="button"
-              className={[
-                styles.drawerItem,
-                isActive("/") ? styles.drawerActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              onClick={() => navAndClose("/")}
-            >
-              <IconHome />
-              <span>Главная</span>
-            </button>
-
-            {user && (
-              <button
-                type="button"
-                className={[
-                  styles.drawerItem,
-                  isActive("/friends") ? styles.drawerActive : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() => navAndClose("/friends")}
-              >
-                <IconFriends />
-                <span>Друзья</span>
-              </button>
-            )}
-
-            {user && (
-              <button
-                type="button"
-                className={[
-                  styles.drawerItem,
-                  isActive("/groups") ? styles.drawerActive : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() => navAndClose("/groups")}
-              >
-                <IconGroup />
-                <span>Группы</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              className={[
-                styles.drawerItem,
-                isActive("/settings") ? styles.drawerActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              onClick={() => navAndClose("/settings")}
-            >
-              <IconSettings />
-              <span>Настройки</span>
-            </button>
-
-            <div className={styles.drawerDivider} />
-
-            {user && (
-              <button
-                type="button"
-                className={[styles.drawerItem, styles.drawerDanger]
-                  .filter(Boolean)
-                  .join(" ")}
-                onClick={() => {
-                  setDrawerOpen(false);
-                  onLogout();
-                }}
-              >
-                <IconLogout />
-                <span>Выйти</span>
-              </button>
-            )}
-          </nav>
+            );
+          })}
         </div>
-      )}
 
-      <div className={styles.sidebarWrap}>
-        <div className={styles.header}>
+        {user && (
+          <div className={styles.guildItem}>
+            <button
+              className={[styles.guildButton, styles.guildButtonCreate].join(" ")}
+              type="button"
+              title="Создать группу"
+              aria-label="Создать группу"
+              onClick={() => setShowCreateGroup(true)}
+            >
+              <span className={styles.guildButtonIcon}>+</span>
+            </button>
+          </div>
+        )}
+      </nav>
+
+      <div className={styles.dmPane}>
+        <div className={styles.sidebarSearch}>
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder="Поиск"
+            aria-label="Поиск"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+          {showMobileDrawerControls && (
+            <button
+              type="button"
+              className={styles.mobileCloseButton}
+              onClick={onCloseMobileDrawer}
+              aria-label="Закрыть меню"
+              data-testid="sidebar-mobile-close"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className={styles.dmScroll} data-testid="sidebar-dm-scroll">
           <button
             type="button"
-            className={styles.menuBtn}
-            aria-label="Меню"
-            onClick={() => setDrawerOpen(true)}
+            className={[
+              styles.dmLink,
+              styles.dmLinkFriends,
+              isFriendsActive ? styles.dmItemActive : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => navigateFromSidebar("/friends")}
+            data-testid="friends-nav-button"
           >
-            <IconMenu />
+            <span className={styles.dmIcon} aria-hidden="true">
+              <FriendsIcon />
+            </span>
+            <span className={styles.dmName}>Друзья</span>
           </button>
-          <div className={styles.searchBox}>
-            <IconSearch />
-            <input
-              type="text"
-              className={styles.searchInput}
-              placeholder="Поиск"
-              aria-label="Поиск"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
 
-        <div className={styles.conversations}>
-          {user ? (
-            <ConversationList onNavigate={onNavigate} />
+          <button
+            type="button"
+            className={[
+              styles.dmLink,
+              styles.dmLinkShortcut,
+              isPublicChatActive ? styles.dmItemActive : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onClick={() => navigateFromSidebar(buildPublicChatPath())}
+            data-testid="public-chat-nav-button"
+          >
+            <span
+              className={[styles.dmIcon, styles.dmIconPublic].join(" ")}
+              aria-hidden="true"
+            >
+              <PublicChatIcon />
+            </span>
+            <span className={styles.dmName}>Публичный чат</span>
+            {publicChatUnread > 0 && (
+              <span className={styles.dmBadge}>
+                {publicChatUnread > 99 ? "99+" : publicChatUnread}
+              </span>
+            )}
+          </button>
+
+          <div className={styles.dmSectionDivider} data-testid="friends-divider" />
+
+          <div className={styles.privateHeader}>
+            <span className={styles.privateTitle}>Личные сообщения</span>
+            {unreadDialogsCount > 0 && (
+              <span className={styles.privateBadge}>{unreadDialogsCount}</span>
+            )}
+          </div>
+
+          {!user ? (
+            <div className={styles.emptyHint}>Войдите, чтобы видеть личные чаты</div>
+          ) : filteredDirectItems.length === 0 ? (
+            <div className={styles.emptyHint}>
+              {normalizedSearchQuery
+                ? "Ничего не найдено"
+                : "Пока нет личных сообщений"}
+            </div>
           ) : (
-            <div className={styles.emptyHint}>Войдите, чтобы видеть беседы</div>
+            <ul className={styles.dmList}>
+              {filteredDirectItems.map((item) => {
+                const displayName = resolveIdentityLabel(item.peer);
+                const peerRef = item.peer.publicRef;
+                const directTarget = normalizeChatTarget(peerRef);
+                const directPath = buildDirectPath(peerRef);
+                const isDirectActive =
+                  Boolean(directTarget) && activeChatTarget === directTarget;
+                const isPeerOnline = onlineUsernames.has(
+                  normalizeActorRef(peerRef),
+                );
+                const unread = unreadCounts[String(item.roomId)] ?? 0;
+
+                return (
+                  <li key={item.roomId} className={styles.dmItem}>
+                    <button
+                      type="button"
+                      className={[
+                        styles.dmLink,
+                        isDirectActive ? styles.dmItemActive : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => navigateFromSidebar(directPath)}
+                      aria-current={isDirectActive ? "page" : undefined}
+                    >
+                      <Avatar
+                        username={displayName}
+                        profileImage={item.peer.profileImage}
+                        avatarCrop={item.peer.avatarCrop}
+                        size="tiny"
+                        online={isPeerOnline}
+                      />
+                      <span className={styles.dmName} title={displayName}>
+                        {displayName}
+                      </span>
+                      {unread > 0 && (
+                        <span className={styles.dmBadge}>
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       </div>
 
       {user ? (
-        <div className={styles.footer}>
+        <section className={styles.userPanel}>
           <button
+            className={styles.userProfileButton}
             type="button"
-            className={styles.userInfo}
-            onClick={() => onNavigate(profilePath)}
+            onClick={() => navigateFromSidebar(profilePath)}
           >
             <Avatar
               username={profileIdentity}
@@ -363,46 +535,74 @@ export function Sidebar({ user, onNavigate, onLogout }: Props) {
               avatarCrop={user.avatarCrop}
               size="tiny"
             />
-            <div className={styles.userIdentity}>
-              <span className={styles.userName}>{fullName}</span>
-              {publicRef && (
-                <span className={styles.userHandle}>
-                  {formatPublicRef(publicRef)}
-                </span>
+            <div className={styles.userMeta}>
+              <span className={styles.userName}>{profileIdentity}</span>
+              {profileHandle && (
+                <span className={styles.userStatus}>{profileHandle}</span>
               )}
             </div>
           </button>
-          {unreadDialogsCount > 0 && (
-            <span className={styles.navBadge}>{unreadDialogsCount}</span>
-          )}
-          <button
-            type="button"
-            className={styles.logoutBtn}
-            onClick={onLogout}
-            aria-label="Выйти"
-            title="Выйти"
-          >
-            <IconLogout />
-          </button>
-        </div>
+
+          <div className={styles.userControls}>
+            <button
+              className={styles.controlButton}
+              type="button"
+              title="Настройки"
+              aria-label="Открыть настройки"
+              onClick={() => setShowSettings(true)}
+              data-testid="sidebar-settings-button"
+            >
+              <SettingsIcon />
+            </button>
+          </div>
+        </section>
       ) : (
         <div className={styles.authButtons}>
           <Button
             variant="primary"
             fullWidth
-            onClick={() => onNavigate("/login")}
+            onClick={() => navigateFromSidebar("/login")}
           >
             Войти
           </Button>
           <Button
             variant="ghost"
             fullWidth
-            onClick={() => onNavigate("/register")}
+            onClick={() => navigateFromSidebar("/register")}
           >
             Регистрация
           </Button>
         </div>
       )}
+
+      <div
+        className={styles.sidebarResizeHandle}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Изменить ширину боковой панели"
+        onMouseDown={handleResizeStart}
+      />
+
+      {showCreateGroup && (
+        <CreateGroupDialog
+          onCreated={handleGroupCreated}
+          onClose={() => setShowCreateGroup(false)}
+        />
+      )}
+
+      <Modal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        title="Настройки"
+      >
+        <SettingsContent
+          user={user}
+          onNavigate={handleSettingsNavigate}
+          onLogout={handleSettingsLogout}
+          compact={true}
+          showTitle={false}
+        />
+      </Modal>
     </aside>
   );
 }

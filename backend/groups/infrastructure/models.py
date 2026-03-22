@@ -60,7 +60,7 @@ class InviteLink(models.Model):
         Returns:
             Функция не возвращает значение.
         """
-        return f"{self.room.slug}:{self.code}"
+        return f"{self.room_id}:{self.code}"
 
     @property
     def is_expired(self) -> bool:
@@ -151,7 +151,7 @@ class JoinRequest(models.Model):
         Returns:
             Функция не возвращает значение.
         """
-        return f"{self.room.slug}:{self.user.username}:{self.status}"
+        return f"{self.room_id}:{self.user.username}:{self.status}"
 
 
 class PinnedMessage(models.Model):
@@ -195,4 +195,4 @@ class PinnedMessage(models.Model):
         Returns:
             Функция не возвращает значение.
         """
-        return f"{self.room.slug}:pin:{self.message_id}"
+        return f"{self.room_id}:pin:{self.message_id}"

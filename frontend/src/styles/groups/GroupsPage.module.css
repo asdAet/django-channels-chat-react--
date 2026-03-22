@@ -153,11 +153,6 @@
   flex-shrink: 0;
 }
 
-.itemActions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
 
 /* Action buttons */
 .actionBtn {
@@ -260,9 +255,21 @@
 }
 
 .dialogTextarea {
-  composes: dialogInput;
+  width: 100%;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  border: 1px solid var(--color-border, #2a2a2a);
+  border-radius: 8px;
+  color: var(--color-text, #e2e8f5);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
   min-height: 60px;
   resize: vertical;
+}
+
+.dialogTextarea:focus {
+  border-color: var(--color-accent, #8ae6ff);
 }
 
 .dialogCheckRow {
@@ -434,11 +441,6 @@
     padding-inline: 10px;
   }
 
-  .itemActions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
   .actionBtn {
     min-height: var(--touch-target-min, 44px);
     font-size: 13px;
@@ -489,11 +491,6 @@
 
   .item {
     flex-wrap: wrap;
-  }
-
-  .itemActions {
-    width: 100%;
-    justify-content: flex-start;
   }
 
   .inviteGroupName {

@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+﻿import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { server } from "../test/setup";
@@ -20,7 +20,7 @@ const friendItem = {
 
 const group = {
   roomId: 101,
-  slug: "101",
+  roomTarget: "101",
   name: "Group One",
   description: "group description",
   isPublic: true,
@@ -37,7 +37,7 @@ const groupList = {
   items: [
     {
       roomId: group.roomId,
-      slug: group.slug,
+      roomTarget: group.roomTarget,
       name: group.name,
       description: group.description,
       username: group.username,
@@ -88,6 +88,21 @@ const override = {
   allow: 8,
   deny: 2,
 };
+
+const makeResolvePayload = (target: string, roomId: number) => ({
+  targetKind: "public" as const,
+  roomId,
+  roomKind: "public" as const,
+  resolvedTarget: target,
+  room: {
+    roomId,
+    roomRef: target,
+    name: "Public",
+    kind: "public" as const,
+    created: false,
+    createdBy: null,
+  },
+});
 
 describe("ApiService", () => {
   beforeEach(() => {
@@ -321,26 +336,33 @@ describe("ApiService", () => {
           },
         });
       }),
-      http.get("/api/chat/public-room/", () =>
+      http.post("/api/chat/resolve/", async ({ request }) => {
+        const payload = (await request.json()) as { target?: string };
+        return HttpResponse.json(
+          makeResolvePayload(payload.target ?? "public", 999),
+        );
+      }),
+      http.get("/api/chat/999/", () =>
         HttpResponse.json({
           roomId: 999,
-          slug: "public",
+          roomRef: "public",
           name: "Public",
           kind: "public",
           created: false,
           createdBy: null,
         }),
       ),
-      http.get("/api/chat/rooms/:slug/", ({ params }) =>
+      http.get("/api/chat/:roomId/", ({ params }) =>
         HttpResponse.json({
-          slug: String(params.slug),
+          roomId: Number(params.roomId),
+          roomRef: String(params.roomId),
           name: "Room",
           kind: "private",
           created: false,
           createdBy: null,
         }),
       ),
-      http.get("/api/chat/rooms/:slug/messages/", ({ request }) => {
+      http.get("/api/chat/:roomId/messages/", ({ request }) => {
         beforeParam = new URL(request.url).searchParams.get("before");
         return HttpResponse.json({
           messages: [],
@@ -352,7 +374,7 @@ describe("ApiService", () => {
 
     const session = await apiService.getSession();
     const rules = await apiService.getPasswordRules();
-    const publicRoom = await apiService.getPublicRoom();
+    const publicRoom = await apiService.resolveChatTarget("public");
     const room = await apiService.getRoomDetails("public");
     const roomMessages = await apiService.getRoomMessages("public", {
       limit: 50,
@@ -364,8 +386,9 @@ describe("ApiService", () => {
     expect(session.authenticated).toBe(false);
     expect(sessionCsrfHeader).toBeNull();
     expect(rules.rules).toEqual(["min length"]);
-    expect(publicRoom.slug).toBe("public");
-    expect(room.slug).toBe("public");
+    expect(publicRoom.roomId).toBe(999);
+    expect(publicRoom.resolvedTarget).toBe("public");
+    expect(room.roomId).toBe(999);
     expect(roomMessages.messages).toEqual([]);
     expect(beforeParam).toBe("123");
     expect(encodedUserPath).toBe("user name");
@@ -382,7 +405,7 @@ describe("ApiService", () => {
         HttpResponse.json({
           usernameMaxLength: 32,
           chatMessageMaxLength: 4000,
-          chatRoomSlugRegex: "^[a-z0-9_-]+$",
+          chatTargetRegex: "^[a-z0-9_@-]+$",
           chatAttachmentMaxSizeMb: 10,
           chatAttachmentMaxPerMessage: 5,
           chatAttachmentAllowedTypes: ["text/plain", "audio/mpeg"],
@@ -518,16 +541,16 @@ describe("ApiService", () => {
         myGroupsLimit = search.get("limit") ?? "";
         return HttpResponse.json(groupList);
       }),
-      http.get("/api/groups/:slug/", () => HttpResponse.json(group)),
-      http.patch("/api/groups/:slug/", () => HttpResponse.json(group)),
-      http.delete("/api/groups/:slug/", () => HttpResponse.json({ ok: true })),
-      http.post("/api/groups/:slug/join/", () =>
+      http.get("/api/groups/:roomId/", () => HttpResponse.json(group)),
+      http.patch("/api/groups/:roomId/", () => HttpResponse.json(group)),
+      http.delete("/api/groups/:roomId/", () => HttpResponse.json({ ok: true })),
+      http.post("/api/groups/:roomId/join/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.post("/api/groups/:slug/leave/", () =>
+      http.post("/api/groups/:roomId/leave/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.get("/api/groups/:slug/members/", ({ request }) => {
+      http.get("/api/groups/:roomId/members/", ({ request }) => {
         membersBefore = new URL(request.url).searchParams.get("before") ?? "";
         return HttpResponse.json({
           items: [
@@ -547,22 +570,22 @@ describe("ApiService", () => {
           pagination: { limit: 50, hasMore: false, nextBefore: null },
         });
       }),
-      http.delete("/api/groups/:slug/members/:userId/", () =>
+      http.delete("/api/groups/:roomId/members/:userId/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.post("/api/groups/:slug/members/:userId/ban/", () =>
+      http.post("/api/groups/:roomId/members/:userId/ban/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.post("/api/groups/:slug/members/:userId/unban/", () =>
+      http.post("/api/groups/:roomId/members/:userId/unban/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.post("/api/groups/:slug/members/:userId/mute/", () =>
+      http.post("/api/groups/:roomId/members/:userId/mute/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.post("/api/groups/:slug/members/:userId/unmute/", () =>
+      http.post("/api/groups/:roomId/members/:userId/unmute/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.get("/api/groups/:slug/banned/", () =>
+      http.get("/api/groups/:roomId/banned/", () =>
         HttpResponse.json({
           items: [
             {
@@ -585,7 +608,7 @@ describe("ApiService", () => {
           isPublic: true,
           username: "group_one",
         })
-      ).slug,
+      ).roomTarget,
     ).toBe("101");
     expect(
       (
@@ -637,15 +660,15 @@ describe("ApiService", () => {
     let inviteExpiresInSeconds = 0;
 
     server.use(
-      http.post("/api/groups/:slug/invites/", async ({ request }) => {
+      http.post("/api/groups/:roomId/invites/", async ({ request }) => {
         const payload = (await request.json()) as { expiresInSeconds?: number };
         inviteExpiresInSeconds = payload.expiresInSeconds ?? 0;
         return HttpResponse.json(invite);
       }),
-      http.get("/api/groups/:slug/invites/", () =>
+      http.get("/api/groups/:roomId/invites/", () =>
         HttpResponse.json({ items: [invite] }),
       ),
-      http.delete("/api/groups/:slug/invites/:code/", () =>
+      http.delete("/api/groups/:roomId/invites/:code/", () =>
         HttpResponse.json({ ok: true }),
       ),
       http.get("/api/invite/:code/", () =>
@@ -661,7 +684,7 @@ describe("ApiService", () => {
       http.post("/api/invite/:code/join/", () =>
         HttpResponse.json({ roomId: group.roomId }),
       ),
-      http.get("/api/groups/:slug/requests/", () =>
+      http.get("/api/groups/:roomId/requests/", () =>
         HttpResponse.json({
           items: [
             {
@@ -674,13 +697,13 @@ describe("ApiService", () => {
           ],
         }),
       ),
-      http.post("/api/groups/:slug/requests/:requestId/approve/", () =>
+      http.post("/api/groups/:roomId/requests/:requestId/approve/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.post("/api/groups/:slug/requests/:requestId/reject/", () =>
+      http.post("/api/groups/:roomId/requests/:requestId/reject/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.get("/api/groups/:slug/pins/", () =>
+      http.get("/api/groups/:roomId/pins/", () =>
         HttpResponse.json({
           items: [
             {
@@ -694,13 +717,13 @@ describe("ApiService", () => {
           ],
         }),
       ),
-      http.post("/api/groups/:slug/pins/", () =>
+      http.post("/api/groups/:roomId/pins/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.delete("/api/groups/:slug/pins/:messageId/", () =>
+      http.delete("/api/groups/:roomId/pins/:messageId/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.post("/api/groups/:slug/transfer-ownership/", () =>
+      http.post("/api/groups/:roomId/transfer-ownership/", () =>
         HttpResponse.json({ ok: true }),
       ),
     );
@@ -730,37 +753,37 @@ describe("ApiService", () => {
 
   it("supports roles and permissions endpoints", async () => {
     server.use(
-      http.get("/api/chat/rooms/:slug/roles/", () =>
+      http.get("/api/chat/:roomId/roles/", () =>
         HttpResponse.json({ items: [roomRole] }),
       ),
-      http.post("/api/chat/rooms/:slug/roles/", () =>
+      http.post("/api/chat/:roomId/roles/", () =>
         HttpResponse.json({ item: roomRole }),
       ),
-      http.patch("/api/chat/rooms/:slug/roles/:roleId/", () =>
+      http.patch("/api/chat/:roomId/roles/:roleId/", () =>
         HttpResponse.json({ item: roomRole }),
       ),
-      http.delete("/api/chat/rooms/:slug/roles/:roleId/", () =>
+      http.delete("/api/chat/:roomId/roles/:roleId/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.get("/api/chat/rooms/:slug/members/:userId/roles/", () =>
+      http.get("/api/chat/:roomId/members/:userId/roles/", () =>
         HttpResponse.json({ item: memberRoles }),
       ),
-      http.patch("/api/chat/rooms/:slug/members/:userId/roles/", () =>
+      http.patch("/api/chat/:roomId/members/:userId/roles/", () =>
         HttpResponse.json({ item: memberRoles }),
       ),
-      http.get("/api/chat/rooms/:slug/overrides/", () =>
+      http.get("/api/chat/:roomId/overrides/", () =>
         HttpResponse.json({ items: [override] }),
       ),
-      http.post("/api/chat/rooms/:slug/overrides/", () =>
+      http.post("/api/chat/:roomId/overrides/", () =>
         HttpResponse.json({ item: override }),
       ),
-      http.patch("/api/chat/rooms/:slug/overrides/:overrideId/", () =>
+      http.patch("/api/chat/:roomId/overrides/:overrideId/", () =>
         HttpResponse.json({ item: override }),
       ),
-      http.delete("/api/chat/rooms/:slug/overrides/:overrideId/", () =>
+      http.delete("/api/chat/:roomId/overrides/:overrideId/", () =>
         HttpResponse.json({ ok: true }),
       ),
-      http.get("/api/chat/rooms/:slug/permissions/me/", () =>
+      http.get("/api/chat/:roomId/permissions/me/", () =>
         HttpResponse.json({
           permissions: 15,
           roles: [4],
@@ -847,6 +870,7 @@ describe("ApiService", () => {
               name: group.name,
               description: group.description,
               publicRef: group.username ? `@${group.username}` : "",
+              roomTarget: group.username ? `@${group.username}` : "101",
               memberCount: group.memberCount,
               isPublic: true,
             },
@@ -861,11 +885,12 @@ describe("ApiService", () => {
               roomId: 101,
               roomName: group.name,
               roomKind: "group",
+              roomTarget: group.username ? `@${group.username}` : "101",
             },
           ],
         });
       }),
-      http.get("/api/chat/rooms/:slug/attachments/", ({ request }) => {
+      http.get("/api/chat/:roomId/attachments/", ({ request }) => {
         attachmentsBefore =
           new URL(request.url).searchParams.get("before") ?? "";
         return HttpResponse.json({
@@ -913,26 +938,35 @@ describe("ApiService", () => {
   });
 
   it("resolves public room ref to numeric roomId for attachment list/read endpoints", async () => {
-    let listRoomRef = "";
-    let readRoomRef = "";
+    let listRoomId = "";
+    let readRoomId = "";
 
     server.use(
-      http.get("/api/chat/public-room/", () =>
+      http.post("/api/chat/resolve/", async ({ request }) => {
+        const payload = (await request.json()) as { target?: string };
+        return HttpResponse.json(
+          makeResolvePayload(payload.target ?? "public", 777),
+        );
+      }),
+      http.get("/api/chat/777/", () =>
         HttpResponse.json({
           roomId: 777,
+          roomRef: "public",
           name: "Public",
           kind: "public",
+          created: false,
+          createdBy: null,
         }),
       ),
-      http.get("/api/chat/rooms/:slug/attachments/", ({ params }) => {
-        listRoomRef = String(params.slug);
+      http.get("/api/chat/:roomId/attachments/", ({ params }) => {
+        listRoomId = String(params.roomId);
         return HttpResponse.json({
           items: [],
           pagination: { limit: 20, hasMore: false, nextBefore: null },
         });
       }),
-      http.post("/api/chat/rooms/:slug/read/", ({ params }) => {
-        readRoomRef = String(params.slug);
+      http.post("/api/chat/:roomId/read/", ({ params }) => {
+        readRoomId = String(params.roomId);
         return HttpResponse.json({ roomId: 777, lastReadMessageId: null });
       }),
     );
@@ -940,28 +974,37 @@ describe("ApiService", () => {
     await apiService.getRoomAttachments("public");
     await apiService.markRead("public");
 
-    expect(listRoomRef).toBe("777");
-    expect(readRoomRef).toBe("777");
+    expect(listRoomId).toBe("777");
+    expect(readRoomId).toBe("777");
   });
 
   it("resolves public room ref to numeric roomId for message mutation/search endpoints", async () => {
-    let editRoomRef = "";
-    let deleteRoomRef = "";
-    let addReactionRoomRef = "";
-    let removeReactionRoomRef = "";
-    let searchRoomRef = "";
+    let editRoomId = "";
+    let deleteRoomId = "";
+    let addReactionRoomId = "";
+    let removeReactionRoomId = "";
+    let searchRoomId = "";
     let searchQuery = "";
 
     server.use(
-      http.get("/api/chat/public-room/", () =>
+      http.post("/api/chat/resolve/", async ({ request }) => {
+        const payload = (await request.json()) as { target?: string };
+        return HttpResponse.json(
+          makeResolvePayload(payload.target ?? "public", 777),
+        );
+      }),
+      http.get("/api/chat/777/", () =>
         HttpResponse.json({
           roomId: 777,
+          roomRef: "public",
           name: "Public",
           kind: "public",
+          created: false,
+          createdBy: null,
         }),
       ),
-      http.patch("/api/chat/rooms/:slug/messages/:messageId/", ({ params }) => {
-        editRoomRef = String(params.slug);
+      http.patch("/api/chat/:roomId/messages/:messageId/", ({ params }) => {
+        editRoomId = String(params.roomId);
         return HttpResponse.json({
           id: Number(params.messageId),
           content: "edited",
@@ -969,19 +1012,19 @@ describe("ApiService", () => {
         });
       }),
       http.delete(
-        "/api/chat/rooms/:slug/messages/:messageId/",
+        "/api/chat/:roomId/messages/:messageId/",
         ({ params }) => {
-          deleteRoomRef = String(params.slug);
+          deleteRoomId = String(params.roomId);
           return HttpResponse.json({ ok: true });
         },
       ),
       http.post(
-        "/api/chat/rooms/:slug/messages/:messageId/reactions/",
+        "/api/chat/:roomId/messages/:messageId/reactions/",
         ({ params }) => {
-          addReactionRoomRef = String(params.slug);
+          addReactionRoomId = String(params.roomId);
           return HttpResponse.json({
             messageId: Number(params.messageId),
-            emoji: "👍",
+            emoji: "рџ‘Ќ",
             userId: 1,
             publicRef: "alice",
             username: "alice",
@@ -989,14 +1032,14 @@ describe("ApiService", () => {
         },
       ),
       http.delete(
-        "/api/chat/rooms/:slug/messages/:messageId/reactions/:emoji/",
+        "/api/chat/:roomId/messages/:messageId/reactions/:emoji/",
         ({ params }) => {
-          removeReactionRoomRef = String(params.slug);
+          removeReactionRoomId = String(params.roomId);
           return HttpResponse.json({ ok: true });
         },
       ),
-      http.get("/api/chat/rooms/:slug/messages/search/", ({ params, request }) => {
-        searchRoomRef = String(params.slug);
+      http.get("/api/chat/:roomId/messages/search/", ({ params, request }) => {
+        searchRoomId = String(params.roomId);
         searchQuery = new URL(request.url).searchParams.get("q") ?? "";
         return HttpResponse.json({
           results: [],
@@ -1007,21 +1050,21 @@ describe("ApiService", () => {
 
     await apiService.editMessage("public", 188, "edited");
     await apiService.deleteMessage("public", 188);
-    await apiService.addReaction("public", 188, "👍");
-    await apiService.removeReaction("public", 188, "👍");
+    await apiService.addReaction("public", 188, "рџ‘Ќ");
+    await apiService.removeReaction("public", 188, "рџ‘Ќ");
     await apiService.searchMessages("public", "hello");
 
-    expect(editRoomRef).toBe("777");
-    expect(deleteRoomRef).toBe("777");
-    expect(addReactionRoomRef).toBe("777");
-    expect(removeReactionRoomRef).toBe("777");
-    expect(searchRoomRef).toBe("777");
+    expect(editRoomId).toBe("777");
+    expect(deleteRoomId).toBe("777");
+    expect(addReactionRoomId).toBe("777");
+    expect(removeReactionRoomId).toBe("777");
+    expect(searchRoomId).toBe("777");
     expect(searchQuery).toBe("hello");
   });
 
   it("normalizes role endpoint errors in extended matrix scenarios", async () => {
     server.use(
-      http.get("/api/chat/rooms/:slug/roles/", () =>
+      http.get("/api/chat/:roomId/roles/", () =>
         HttpResponse.json({ detail: "forbidden" }, { status: 403 }),
       ),
     );
@@ -1045,4 +1088,5 @@ describe("ApiService", () => {
     expect(normalized.message.length).toBeGreaterThan(0);
   });
 });
+
 

@@ -29,6 +29,7 @@ body {
   background: var(--tg-bg-secondary);
   color: var(--tg-text-primary);
   overflow-x: hidden;
+  background: #2b2d31;
 }
 
 #root {

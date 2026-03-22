@@ -39,7 +39,7 @@ class AuditAdminExportTests(TestCase):
             status_code=200,
             success=True,
             request_id="req-ok-1",
-            metadata={"room_slug": "public"},
+            metadata={"room_id": 1},
         )
         self.forbidden_event = AuditEvent.objects.create(
             action="chat.message.forbidden",
@@ -49,11 +49,11 @@ class AuditAdminExportTests(TestCase):
             actor_username_snapshot=self.actor.username,
             is_authenticated=True,
             method="POST",
-            path="/api/chat/rooms/private/messages/",
+            path="/api/chat/private/messages/",
             status_code=403,
             success=False,
             request_id="req-forbidden-1",
-            metadata={"room_slug": "private123"},
+            metadata={"room_id": 2},
         )
 
     def test_staff_can_export_filtered_json(self):

@@ -11,6 +11,6 @@ import { decodeUnreadCountsResponse } from "../../dto";
 export async function getUnreadCounts(
   apiClient: AxiosInstance,
 ): Promise<UnreadCountItem[]> {
-  const response = await apiClient.get<unknown>("/chat/rooms/unread/");
+  const response = await apiClient.get<unknown>("/chat/unread/");
   return decodeUnreadCountsResponse(response.data);
 }

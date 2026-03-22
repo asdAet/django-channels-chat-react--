@@ -20,7 +20,7 @@ from chat.consumers import (
     ChatConsumer,
     _ws_connect_rate_limited,
 )
-from chat.utils import is_valid_room_slug as _is_valid_room_slug
+from chat.utils import is_valid_chat_target as _is_valid_chat_target
 from direct_inbox.consumers import DirectInboxConsumer
 from presence.constants import PRESENCE_CLOSE_IDLE_CODE
 from presence.consumers import PresenceConsumer, _ws_connect_rate_limited as _presence_ws_connect_rate_limited
@@ -108,7 +108,7 @@ class ChatConsumerInternalTests(TestCase):
             'client': ('127.0.0.1', 50001),
         }
         consumer.room_name = 'private123'
-        consumer.room = Room(slug='private123', name='private', kind=Room.Kind.PRIVATE)
+        consumer.room = Room(name='private', kind=Room.Kind.PRIVATE)
         consumer.room_group_name = 'chat_private123'
         consumer.channel_name = 'chat.channel'
         consumer.channel_layer = SimpleNamespace(
@@ -121,10 +121,10 @@ class ChatConsumerInternalTests(TestCase):
         consumer._last_activity = 0.0
         return consumer
 
-    @override_settings(CHAT_ROOM_SLUG_REGEX='[')
-    def test_slug_validation_handles_invalid_regex(self):
-        """Проверяет сценарий `test_slug_validation_handles_invalid_regex`."""
-        self.assertFalse(_is_valid_room_slug('private123'))
+    @override_settings(CHAT_TARGET_REGEX='[')
+    def test_chat_target_validation_handles_invalid_regex(self):
+        """Проверяет сценарий `test_chat_target_validation_handles_invalid_regex`."""
+        self.assertFalse(_is_valid_chat_target('private123'))
 
     def test_get_profile_avatar_state_returns_empty_when_profile_missing(self):
         """Проверяет сценарий `test_get_profile_avatar_state_returns_empty_when_profile_missing`."""
@@ -565,7 +565,6 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
     def test_build_targets_handles_invalid_pair_key(self):
         """Invalid pair_key disables direct-inbox target fanout."""
         room = Room.objects.create(
-            slug='dm_badpair',
             name='badpair',
             kind=Room.Kind.DIRECT,
             direct_pair_key='bad:value',
@@ -579,7 +578,6 @@ class ChatConsumerDirectInboxTargetsTests(TestCase):
     def test_build_targets_requires_pair_memberships(self):
         """Strict DM mode: without membership for both pair users, no targets are built."""
         room = Room.objects.create(
-            slug='dm_missingpair',
             name='missingpair',
             kind=Room.Kind.DIRECT,
             direct_pair_key=f'{self.owner.pk}:{self.member.pk}',
@@ -640,7 +638,7 @@ class DirectInboxConsumerInternalTests(TestCase):
         consumer._clear_active_room = AsyncMock()
         consumer._set_active_room = AsyncMock()
         consumer._send_error = AsyncMock()
-        consumer._load_room = AsyncMock(return_value=Room(slug='private123', name='p', kind=Room.Kind.PRIVATE))
+        consumer._load_room = AsyncMock(return_value=Room(name='p', kind=Room.Kind.PRIVATE))
         consumer._can_read = AsyncMock(return_value=False)
 
         async_to_sync(consumer.receive)(json.dumps({'type': 'set_active_room', 'roomId': None}))

@@ -5,21 +5,22 @@ import { decodeSearchResponse } from "../../dto";
 import { resolveRoomId } from "./resolveRoomId";
 
 /**
- * Выполняет API-запрос для операции search messages.
- * @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
- * @param roomId Идентификатор комнаты.
- * @param query Поисковый запрос.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Searches messages inside the selected room.
+ * @param apiClient Configured HTTP client.
+ * @param roomId Room identifier.
+ * @param query Search query.
+ * @returns Search payload.
  */
 export async function searchMessages(
   apiClient: AxiosInstance,
   roomId: string,
   query: string,
 ): Promise<SearchResult> {
-  const apiRoomRef = await resolveRoomId(apiClient, roomId);
-  const encodedRoomRef = encodeURIComponent(apiRoomRef);
+  const apiRoomId = await resolveRoomId(apiClient, roomId);
+  const encodedRoomId = encodeURIComponent(apiRoomId);
   const response = await apiClient.get<unknown>(
-    `/chat/rooms/${encodedRoomRef}/messages/search/?q=${encodeURIComponent(query)}`,
+    `/chat/${encodedRoomId}/messages/search/?q=${encodeURIComponent(query)}`,
   );
   return decodeSearchResponse(response.data);
 }
+

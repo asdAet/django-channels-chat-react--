@@ -25,7 +25,6 @@ class Room(models.Model):
         GROUP = "group", "Group"
 
     name = models.CharField(max_length=50, db_index=True)
-    slug = models.CharField(max_length=60, unique=True)
     kind = models.CharField(
         max_length=10,
         choices=Kind.choices,
@@ -81,6 +80,14 @@ class Room(models.Model):
     class Meta:
         """Класс Meta объединяет связанную прикладную логику подсистемы."""
         db_table = "chat_room"
+        constraints = [
+            # В приложении должен существовать только один public room.
+            models.UniqueConstraint(
+                fields=["kind"],
+                condition=models.Q(kind="public"),
+                name="room_single_public_kind_uniq",
+            ),
+        ]
 
     def __str__(self):
         """Возвращает человекочитаемое строковое представление объекта.
