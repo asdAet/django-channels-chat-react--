@@ -1957,9 +1957,9 @@ describe("ChatRoomPage", () => {
       expect(chatControllerMock.getMessageReaders).toHaveBeenCalledWith("2", 1);
     });
     const readersMenu = screen.getByRole("menu", { name: "Кто прочитал" });
-    expect(within(readersMenu).getByText("Alice")).toBeInTheDocument();
+    expect(await within(readersMenu).findByText("Alice")).toBeInTheDocument();
     expect(
-      within(readersMenu).getByRole("img", { name: "Alice" }),
+      await within(readersMenu).findByRole("img", { name: "Alice" }),
     ).toBeInTheDocument();
     expect(
       within(readersMenu).getByText(
@@ -2034,17 +2034,17 @@ describe("ChatRoomPage", () => {
     await waitFor(() => {
       expect(chatControllerMock.getMessageReaders).toHaveBeenCalledWith("4", 8);
     });
-    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
     expect(
-      screen.getByRole("img", { name: "Alice" }),
+      await screen.findByRole("img", { name: "Alice" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
         formatReadReceiptTimestamp("2026-02-13T12:10:00.000Z"),
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Bob" })).toBeInTheDocument();
+    expect(await screen.findByText("Bob")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Bob" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("menuitem", { name: /Alice/ }));
     expect(infoPanelMock.open).toHaveBeenCalledWith("profile", "alice");

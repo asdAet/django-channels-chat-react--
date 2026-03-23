@@ -1,5 +1,5 @@
-import { act, createEvent, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+﻿import { act, createEvent, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ImageLightbox } from "./ImageLightbox";
 
@@ -13,7 +13,28 @@ const baseMetadata = {
   height: 720,
 };
 
+const installMatchMedia = (matches: boolean) => {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+};
+
 describe("ImageLightbox", () => {
+  beforeEach(() => {
+    installMatchMedia(false);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -77,7 +98,7 @@ describe("ImageLightbox", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("×").closest("button")!);
+    fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
     expect(historyBackSpy).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
 
@@ -115,7 +136,42 @@ describe("ImageLightbox", () => {
     expect(container.querySelector("video")).toBeInTheDocument();
   });
 
-  it("supports navigation across media items", () => {
+  it("uses a single desktop stage without side previews", () => {
+    render(
+      <ImageLightbox
+        mediaItems={[
+          {
+            src: "/media/one.png",
+            kind: "image",
+            alt: "one",
+            metadata: { ...baseMetadata, attachmentId: 1, fileName: "one.png" },
+          },
+          {
+            src: "/media/two.png",
+            kind: "image",
+            alt: "two",
+            metadata: { ...baseMetadata, attachmentId: 2, fileName: "two.png" },
+          },
+          {
+            src: "/media/three.png",
+            kind: "image",
+            alt: "three",
+            metadata: { ...baseMetadata, attachmentId: 3, fileName: "three.png" },
+          },
+        ]}
+        initialIndex={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("lightbox-desktop-stage")).toBeInTheDocument();
+    expect(screen.queryByTestId("lightbox-mobile-deck")).not.toBeInTheDocument();
+    expect(screen.getByAltText("two")).toBeInTheDocument();
+    expect(screen.queryByAltText("one")).not.toBeInTheDocument();
+    expect(screen.queryByAltText("three")).not.toBeInTheDocument();
+  });
+
+  it("supports navigation across media items on desktop", () => {
     render(
       <ImageLightbox
         mediaItems={[
@@ -146,7 +202,9 @@ describe("ImageLightbox", () => {
     expect(screen.getByText("one.png")).toBeInTheDocument();
   });
 
-  it("supports horizontal swipe navigation on touch devices", () => {
+  it("keeps the mobile underlay fullscreen and updates the index after settle", () => {
+    installMatchMedia(true);
+
     render(
       <ImageLightbox
         mediaItems={[
@@ -176,13 +234,114 @@ describe("ImageLightbox", () => {
     fireEvent.touchMove(viewport, {
       touches: [{ clientX: 120, clientY: 176 }],
     });
+
+    expect(screen.getByTestId("lightbox-mobile-deck")).toBeInTheDocument();
+    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
+      "data-direction",
+      "next",
+    );
+    expect(screen.getByTestId("lightbox-mobile-overlay").getAttribute("style")).toContain(
+      "translate3d(-100px, 0px, 0)",
+    );
+    expect(
+      screen.getByTestId("lightbox-mobile-overlay").getAttribute("style"),
+    ).not.toContain("scale(");
+    expect(
+      screen.getByTestId("lightbox-mobile-overlay").getAttribute("style"),
+    ).not.toContain("rotate(");
+    expect(
+      screen.getByTestId("lightbox-mobile-base-transform"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
+    ).not.toContain("scale(");
+    expect(
+      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
+    ).toContain("translate3d(");
+    expect(
+      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
+    ).not.toContain("translate3d(0px, 0px, 0px)");
+
     fireEvent.touchEnd(viewport, {
       changedTouches: [{ clientX: 120, clientY: 176 }],
     });
 
+    expect(screen.getByTestId("lightbox-mobile-overlay")).toHaveAttribute(
+      "data-settling",
+      "true",
+    );
+    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
+      "data-settling",
+      "true",
+    );
+    expect(
+      screen.getByTestId("lightbox-mobile-overlay").getAttribute("style"),
+    ).not.toContain("translate3d(0px, 0px, 0)");
+    expect(screen.getByText("one.png")).toBeInTheDocument();
+
+    fireEvent.transitionEnd(screen.getByTestId("lightbox-mobile-overlay"), {
+      propertyName: "transform",
+    });
+
+    expect(
+      screen.queryByTestId("lightbox-mobile-overlay"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
+      "data-settling",
+      "false",
+    );
+    expect(
+      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
+    ).toContain("translate3d(0px, 0px, 0)");
     expect(screen.getByText("two.png")).toBeInTheDocument();
   });
 
+  it("returns the current mobile media smoothly when swipe is cancelled", () => {
+    installMatchMedia(true);
+
+    render(
+      <ImageLightbox
+        mediaItems={[
+          {
+            src: "/media/one.png",
+            kind: "image",
+            alt: "one",
+            metadata: { ...baseMetadata, attachmentId: 1, fileName: "one.png" },
+          },
+          {
+            src: "/media/two.png",
+            kind: "image",
+            alt: "two",
+            metadata: { ...baseMetadata, attachmentId: 2, fileName: "two.png" },
+          },
+        ]}
+        initialIndex={0}
+        onClose={vi.fn()}
+      />,
+    );
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 220, clientY: 180 }],
+    });
+    fireEvent.touchMove(viewport, {
+      touches: [{ clientX: 170, clientY: 176 }],
+    });
+
+    fireEvent.touchEnd(viewport, {
+      changedTouches: [{ clientX: 170, clientY: 176 }],
+    });
+
+    expect(screen.getByText("one.png")).toBeInTheDocument();
+    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
+      "data-settling",
+      "false",
+    );
+    expect(
+      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
+    ).toContain("translate3d(0px, 0px, 0)");
+  });
   it("closes after a vertical swipe gesture", () => {
     vi.useFakeTimers();
     const onClose = vi.fn();
@@ -289,6 +448,8 @@ describe("ImageLightbox", () => {
   });
 
   it("toggles zoom with double tap", () => {
+    installMatchMedia(true);
+
     render(
       <ImageLightbox
         src="/media/preview.png"
@@ -339,6 +500,8 @@ describe("ImageLightbox", () => {
   });
 
   it("ignores the synthetic double click that can follow a touch double tap", () => {
+    installMatchMedia(true);
+
     render(
       <ImageLightbox
         src="/media/preview.png"
@@ -401,6 +564,8 @@ describe("ImageLightbox", () => {
   });
 
   it("supports pinch-to-zoom on touch devices", () => {
+    installMatchMedia(true);
+
     render(
       <ImageLightbox
         src="/media/preview.png"

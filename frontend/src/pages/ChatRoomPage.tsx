@@ -44,7 +44,8 @@ import {
 } from "../shared/lib/userIdentity";
 import { getWebSocketBase } from "../shared/lib/ws";
 import { usePresence } from "../shared/presence";
-import { Avatar, Button, Modal, Panel, Toast } from "../shared/ui";
+import type { ImageLightboxMediaItem } from "../shared/ui/ImageLightbox";
+import { Avatar, Button, ImageLightbox, Modal, Panel, Toast } from "../shared/ui";
 import {
   clearUnreadOverride,
   setUnreadOverride,
@@ -58,6 +59,10 @@ import {
 } from "../widgets/chat/ReadersMenu";
 import { TypingIndicator } from "../widgets/chat/TypingIndicator";
 import { useFileDropZone } from "./chatRoomPage/useFileDropZone";
+import {
+  buildChatLightboxMediaItems,
+  findLightboxMediaIndex,
+} from "./chatRoomPage/mediaLightbox";
 import type {
   InitialPositioningPhase,
   InitialPositioningTarget,
@@ -195,6 +200,9 @@ export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate 
   const [headerSearchResults, setHeaderSearchResults] = useState<
     SearchResultItem[]
   >([]);
+  const [lightboxAttachmentId, setLightboxAttachmentId] = useState<number | null>(
+    null,
+  );
 
   const maxAttachmentSizeBytes = useMemo(
     () => maxAttachmentSizeMb * 1024 * 1024,
@@ -382,6 +390,15 @@ export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate 
     unreadDividerAnchorId,
   ]);
 
+  const lightboxMediaItems = useMemo<ImageLightboxMediaItem[]>(
+    () => buildChatLightboxMediaItems(messages),
+    [messages],
+  );
+  const lightboxOpenIndex = useMemo(
+    () => findLightboxMediaIndex(lightboxMediaItems, lightboxAttachmentId),
+    [lightboxAttachmentId, lightboxMediaItems],
+  );
+
   const wsUrl = useMemo(() => {
     if (!user && !isPublicRoom) return null;
     if (!roomApiRef) return null;
@@ -489,6 +506,7 @@ export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate 
     setReadersMenu(null);
     setShowScrollFab(false);
     setNewMsgCount(0);
+    setLightboxAttachmentId(null);
     setQueuedFiles([]);
     setUploadProgress(null);
     updateUnreadDividerAnchor(null);
@@ -1694,6 +1712,10 @@ export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate 
     openDrawer();
   }, [openDrawer]);
 
+  const handleOpenMediaAttachment = useCallback((attachmentId: number) => {
+    setLightboxAttachmentId(attachmentId);
+  }, []);
+
   const openRoomSearch = useCallback(() => {
     setHeaderSearchOpen((prev) => {
       const next = !prev;
@@ -2198,6 +2220,7 @@ export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate 
                       onViewReaders={user ? handleOpenReaders : undefined}
                       onReplyQuoteClick={handleReplyQuoteClick}
                       onAvatarClick={openUserProfile}
+                      onOpenMediaAttachment={handleOpenMediaAttachment}
                     />
                   );
                 })()
@@ -2336,6 +2359,16 @@ export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate 
           )}
         </div>
       )}
+
+      {lightboxAttachmentId !== null &&
+        lightboxOpenIndex >= 0 &&
+        lightboxMediaItems.length > 0 && (
+          <ImageLightbox
+            mediaItems={lightboxMediaItems}
+            initialIndex={lightboxOpenIndex}
+            onClose={() => setLightboxAttachmentId(null)}
+          />
+        )}
 
       <Modal
         open={!!deleteConfirm}

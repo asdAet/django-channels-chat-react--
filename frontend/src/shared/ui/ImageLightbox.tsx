@@ -1,7 +1,9 @@
 import {
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
+  type TransitionEvent as ReactTransitionEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -9,8 +11,10 @@ import {
   useState,
   type WheelEvent as ReactWheelEvent,
 } from "react";
+import { flushSync } from "react-dom";
 
 import styles from "../../styles/ui/ImageLightbox.module.css";
+import { LightboxVideoPlayer } from "./LightboxVideoPlayer";
 
 const EXIT_ANIMATION_MS = 200;
 const MIN_ZOOM_SCALE = 1;
@@ -21,12 +25,12 @@ const MOBILE_BREAKPOINT_PX = 768;
 const SWIPE_AXIS_LOCK_PX = 14;
 const HORIZONTAL_SWIPE_TRIGGER_PX = 72;
 const VERTICAL_DISMISS_TRIGGER_PX = 96;
-const MAX_GESTURE_PREVIEW_PX = 160;
 const DOUBLE_TAP_DELAY_MS = 280;
 const DOUBLE_TAP_DISTANCE_PX = 24;
 const DOUBLE_TAP_ZOOM_SCALE = 2.5;
 const IGNORE_SYNTHETIC_DOUBLE_CLICK_AFTER_TOUCH_MS = 500;
 const LIGHTBOX_HISTORY_STATE_KEY = "__imageLightbox";
+const MOBILE_TRACK_GAP_PX = 16;
 
 const EXPAND_LABEL = "Развернуть";
 const CLOSE_LABEL = "Закрыть";
@@ -35,6 +39,8 @@ const NEXT_MEDIA_LABEL = "Следующее медиа";
 const IMAGE_DIALOG_LABEL = "Просмотр изображения";
 const VIDEO_DIALOG_LABEL = "Просмотр видео";
 const SENT_PREFIX = "Отправлено";
+
+type MobileCarouselDirection = "previous" | "next";
 
 export type ImageLightboxMediaKind = "image" | "video";
 
@@ -137,6 +143,11 @@ type TapSnapshot = {
   clientY: number;
 };
 
+type MobileCarouselAnimation = {
+  mode: "return" | "settle";
+  targetIndex: number;
+};
+
 const DEFAULT_VIEW_STATE: ViewState = {
   scale: 1,
   offsetX: 0,
@@ -163,6 +174,14 @@ const normalizeIndex = (value: number, size: number): number => {
   if (size <= 0) return 0;
   const remainder = value % size;
   return remainder < 0 ? remainder + size : remainder;
+};
+
+const readIsMobileViewport = (): boolean => {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches;
 };
 
 const formatFileSize = (bytes: number): string => {
@@ -216,11 +235,6 @@ const buildSingleItem = (props: SingleMediaProps): ImageLightboxMediaItem => ({
 const isGalleryMediaProps = (value: Props): value is GalleryMediaProps =>
   Array.isArray((value as Partial<GalleryMediaProps>).mediaItems);
 
-/**
- * Lightbox для изображений и видео.
- * На десктопе поддерживает zoom через ctrl + wheel и drag, на мобильных —
- * pinch-to-zoom, горизонтальный swipe между медиа и вертикальный dismiss.
- */
 export function ImageLightbox(props: Props) {
   const mediaItems = useMemo<ImageLightboxMediaItem[]>(
     () =>
@@ -237,11 +251,16 @@ export function ImageLightbox(props: Props) {
   );
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [displayIndex, setDisplayIndex] = useState(initialIndex);
   const [isClosing, setIsClosing] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [frameExpandProgress, setFrameExpandProgress] = useState(0);
   const [gesturePreview, setGesturePreview] = useState(DEFAULT_GESTURE_PREVIEW);
+  const [isMobileLayout, setIsMobileLayout] = useState(readIsMobileViewport);
+  const [verticalDismissDirection, setVerticalDismissDirection] = useState<
+    -1 | 1 | null
+  >(null);
 
   const closeTimerRef = useRef<number | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -249,8 +268,11 @@ export function ImageLightbox(props: Props) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const transformRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const mobileTrackRef = useRef<HTMLDivElement | null>(null);
+  const mobileTrackFrameRef = useRef<number | null>(null);
+  const mobileTrackOffsetRef = useRef(0);
+  const mobileTrackAnimationRef = useRef<MobileCarouselAnimation | null>(null);
   const viewStateRef = useRef<ViewState>({ ...DEFAULT_VIEW_STATE });
-  const gestureOffsetRef = useRef({ x: 0, y: 0 });
   const dragStateRef = useRef<DragState | null>(null);
   const pinchStateRef = useRef<PinchState | null>(null);
   const touchGestureRef = useRef<TouchGestureState | null>(null);
@@ -264,22 +286,21 @@ export function ImageLightbox(props: Props) {
     () => normalizeIndex(currentIndex, mediaItems.length),
     [currentIndex, mediaItems.length],
   );
-  const currentItem = mediaItems[normalizedCurrentIndex];
+  const normalizedDisplayIndex = useMemo(
+    () => normalizeIndex(displayIndex, mediaItems.length),
+    [displayIndex, mediaItems.length],
+  );
+  const currentItem = mediaItems[normalizedDisplayIndex];
   const hasNavigation = mediaItems.length > 1;
-
-  const isMobileViewport = useCallback(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia?.(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`)
-      .matches;
-  }, []);
+  const canGoPrevious = normalizedDisplayIndex > 0;
+  const canGoNext = normalizedDisplayIndex < mediaItems.length - 1;
 
   const applyTransform = useCallback(() => {
     const transformElement = transformRef.current;
     if (!transformElement) return;
 
     const { scale, offsetX, offsetY } = viewStateRef.current;
-    const { x, y } = gestureOffsetRef.current;
-    transformElement.style.transform = `translate3d(${offsetX + x}px, ${offsetY + y}px, 0) scale(${scale})`;
+    transformElement.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`;
   }, []);
 
   const applyTransformOnFrame = useCallback(() => {
@@ -290,56 +311,92 @@ export function ImageLightbox(props: Props) {
     });
   }, [applyTransform]);
 
-  const syncScaleUi = useCallback(
-    (scale: number) => {
-      setIsZoomed(scale > MIN_ZOOM_SCALE);
-      setFrameExpandProgress(
-        isMobileViewport() ? 0 : resolveFrameExpandProgress(scale),
-      );
-    },
-    [isMobileViewport],
-  );
+  const syncScaleUi = useCallback((scale: number) => {
+    setIsZoomed(scale > MIN_ZOOM_SCALE);
+    setFrameExpandProgress(
+      readIsMobileViewport() ? 0 : resolveFrameExpandProgress(scale),
+    );
+  }, []);
 
   const resetGesturePreview = useCallback(() => {
-    gestureOffsetRef.current = { x: 0, y: 0 };
     setGesturePreview(DEFAULT_GESTURE_PREVIEW);
   }, []);
 
-  const resetTransform = useCallback(() => {
+  const getMobileViewportWidth = useCallback(() => {
+    if (typeof window === "undefined") {
+      return 1;
+    }
+
+    return Math.max(
+      viewportRef.current?.clientWidth ?? window.innerWidth ?? 1,
+      1,
+    );
+  }, []);
+
+  const applyMobileTrackPosition = useCallback(
+    (index: number, offsetX: number, animate: boolean) => {
+      const trackElement = mobileTrackRef.current;
+      if (!trackElement) {
+        return;
+      }
+
+      const viewportWidth = getMobileViewportWidth();
+      trackElement.style.transition = animate
+        ? "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)"
+        : "none";
+      trackElement.style.transform = `translate3d(${-(index * (viewportWidth + MOBILE_TRACK_GAP_PX)) + offsetX}px, 0px, 0px)`;
+    },
+    [getMobileViewportWidth],
+  );
+
+  const queueMobileTrackPosition = useCallback(
+    (index: number, offsetX: number, animate = false) => {
+      mobileTrackOffsetRef.current = offsetX;
+      if (mobileTrackFrameRef.current !== null) {
+        window.cancelAnimationFrame(mobileTrackFrameRef.current);
+      }
+
+      mobileTrackFrameRef.current = window.requestAnimationFrame(() => {
+        mobileTrackFrameRef.current = null;
+        applyMobileTrackPosition(index, offsetX, animate);
+      });
+    },
+    [applyMobileTrackPosition],
+  );
+
+  const resetViewStateForNavigation = useCallback(() => {
     viewStateRef.current = { ...DEFAULT_VIEW_STATE };
     dragStateRef.current = null;
     pinchStateRef.current = null;
     touchGestureRef.current = null;
+    setVerticalDismissDirection(null);
     setIsDragging(false);
     syncScaleUi(MIN_ZOOM_SCALE);
     resetGesturePreview();
     applyTransform();
   }, [applyTransform, resetGesturePreview, syncScaleUi]);
-
   const applyScaleAtPoint = useCallback(
-    (clientX: number, clientY: number, nextScale: number) => {
-      const viewportRect = viewportRef.current?.getBoundingClientRect();
+    (_clientX: number, _clientY: number, nextScale: number) => {
       const state = viewStateRef.current;
+      const previousScale = state.scale;
       const clampedScale = clampNumber(
         nextScale,
         MIN_ZOOM_SCALE,
         MAX_ZOOM_SCALE,
       );
 
-      if (viewportRect && viewportRect.width > 0 && viewportRect.height > 0) {
-        const relativeX = clientX - viewportRect.left;
-        const relativeY = clientY - viewportRect.top;
-        const dx = relativeX - viewportRect.width / 2;
-        const dy = relativeY - viewportRect.height / 2;
-        const scaleRatio = clampedScale / state.scale;
-        state.offsetX = state.offsetX - dx * (scaleRatio - 1);
-        state.offsetY = state.offsetY - dy * (scaleRatio - 1);
+      state.scale = clampedScale;
+      if (!readIsMobileViewport() && previousScale > 0) {
+        const scaleRatio = clampedScale / previousScale;
+        state.offsetX *= scaleRatio;
+        state.offsetY *= scaleRatio;
       }
 
-      state.scale = clampedScale;
       if (clampedScale === MIN_ZOOM_SCALE) {
-        state.offsetX = 0;
-        state.offsetY = 0;
+        if (readIsMobileViewport()) {
+          state.offsetX = 0;
+          state.offsetY = 0;
+        }
         setIsDragging(false);
       }
 
@@ -351,27 +408,26 @@ export function ImageLightbox(props: Props) {
 
   const updateGesturePreview = useCallback(
     (axis: SwipeAxis | null, x: number, y: number) => {
-      gestureOffsetRef.current = { x, y };
       setGesturePreview({ axis, x, y });
-      applyTransformOnFrame();
     },
-    [applyTransformOnFrame],
+    [],
   );
 
-  /**
-   * Двойной клик/тап переключает масштаб как в desktop viewer:
-   * первое быстрое двойное нажатие приближает, повторное из любого zoom
-   * возвращает медиа в исходное состояние.
-   */
   const toggleZoomAtPoint = useCallback(
     (clientX: number, clientY: number) => {
       if (viewStateRef.current.scale > MIN_ZOOM_SCALE) {
-        resetTransform();
+        dragStateRef.current = null;
+        pinchStateRef.current = null;
+        touchGestureRef.current = null;
+        setIsDragging(false);
+        setVerticalDismissDirection(null);
+        resetGesturePreview();
+        applyScaleAtPoint(clientX, clientY, MIN_ZOOM_SCALE);
         return;
       }
       applyScaleAtPoint(clientX, clientY, DOUBLE_TAP_ZOOM_SCALE);
     },
-    [applyScaleAtPoint, resetTransform],
+    [applyScaleAtPoint, resetGesturePreview],
   );
 
   const registerTapOrToggleZoom = useCallback(
@@ -410,11 +466,33 @@ export function ImageLightbox(props: Props) {
     }, EXIT_ANIMATION_MS);
   }, [isClosing, props]);
 
-  /**
-   * Lightbox добавляет отдельную history entry, чтобы системный Back сначала
-   * закрывал viewer, а уже следующий Back менял страницу.
-   */
+  const animateMobileCarouselToIndex = useCallback(
+    (targetIndex: number) => {
+      if (!isMobileLayout) {
+        setDisplayIndex(targetIndex);
+        setCurrentIndex(targetIndex);
+        return;
+      }
+
+      setDisplayIndex(targetIndex);
+      mobileTrackAnimationRef.current = {
+        mode:
+          targetIndex === normalizedDisplayIndex ? "return" : "settle",
+        targetIndex,
+      };
+      queueMobileTrackPosition(targetIndex, 0, true);
+    },
+    [
+      isMobileLayout,
+      normalizedDisplayIndex,
+      queueMobileTrackPosition,
+      setDisplayIndex,
+    ],
+  );
+
   const beginClose = useCallback(() => {
+    mobileTrackAnimationRef.current = null;
+    mobileTrackOffsetRef.current = 0;
     if (historyEntryActiveRef.current && !historyBackPendingRef.current) {
       historyBackPendingRef.current = true;
       window.history.back();
@@ -425,20 +503,26 @@ export function ImageLightbox(props: Props) {
   }, [startCloseAnimation]);
 
   const goToPrevious = useCallback(() => {
-    if (!hasNavigation) return;
-    resetTransform();
-    setCurrentIndex((previous) =>
-      normalizeIndex(previous - 1, mediaItems.length),
-    );
-  }, [hasNavigation, mediaItems.length, resetTransform]);
+    if (!canGoPrevious) return;
+    resetViewStateForNavigation();
+    animateMobileCarouselToIndex(normalizedDisplayIndex - 1);
+  }, [
+    animateMobileCarouselToIndex,
+    canGoPrevious,
+    normalizedDisplayIndex,
+    resetViewStateForNavigation,
+  ]);
 
   const goToNext = useCallback(() => {
-    if (!hasNavigation) return;
-    resetTransform();
-    setCurrentIndex((previous) =>
-      normalizeIndex(previous + 1, mediaItems.length),
-    );
-  }, [hasNavigation, mediaItems.length, resetTransform]);
+    if (!canGoNext) return;
+    resetViewStateForNavigation();
+    animateMobileCarouselToIndex(normalizedDisplayIndex + 1);
+  }, [
+    animateMobileCarouselToIndex,
+    canGoNext,
+    normalizedDisplayIndex,
+    resetViewStateForNavigation,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -448,8 +532,59 @@ export function ImageLightbox(props: Props) {
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
       }
+      if (mobileTrackFrameRef.current !== null) {
+        window.cancelAnimationFrame(mobileTrackFrameRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia?.(
+      `(max-width: ${MOBILE_BREAKPOINT_PX}px)`,
+    );
+    if (!mediaQuery) {
+      return;
+    }
+
+    const syncLayout = (matches: boolean) => {
+      setIsMobileLayout(matches);
+      setFrameExpandProgress(
+        matches ? 0 : resolveFrameExpandProgress(viewStateRef.current.scale),
+      );
+    };
+
+    syncLayout(mediaQuery.matches);
+    const handleChange = (event: MediaQueryListEvent) => {
+      syncLayout(event.matches);
+    };
+
+    mediaQuery.addEventListener?.("change", handleChange);
+    return () => {
+      mediaQuery.removeEventListener?.("change", handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    setCurrentIndex(initialIndex);
+    setDisplayIndex(initialIndex);
+  }, [initialIndex]);
+
+  useEffect(() => {
+    if (!isMobileLayout) {
+      return;
+    }
+
+    queueMobileTrackPosition(normalizedCurrentIndex, 0, false);
+
+    const handleResize = () => {
+      queueMobileTrackPosition(normalizedCurrentIndex, 0, false);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isMobileLayout, normalizedCurrentIndex, queueMobileTrackPosition]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -460,7 +595,10 @@ export function ImageLightbox(props: Props) {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.history.pushState !== "function") {
+    if (
+      typeof window === "undefined" ||
+      typeof window.history.pushState !== "function"
+    ) {
       return;
     }
 
@@ -533,7 +671,6 @@ export function ImageLightbox(props: Props) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [beginClose, goToNext, goToPrevious, hasNavigation]);
-
   const handleViewportWheel = useCallback(
     (event: ReactWheelEvent<HTMLDivElement>) => {
       if (!event.ctrlKey) return;
@@ -606,13 +743,12 @@ export function ImageLightbox(props: Props) {
     [],
   );
 
-  /**
-   * Touch-жесты намеренно разделены на pan/pinch/swipe:
-   * zoomed-медиа двигается как на десктопе, а unzoomed-медиа
-   * использует горизонтальный swipe для навигации и вертикальный для dismiss.
-   */
   const handleTouchStart = useCallback(
     (event: ReactTouchEvent<HTMLDivElement>) => {
+      if (mobileTrackAnimationRef.current) {
+        return;
+      }
+
       if (event.touches.length === 2) {
         const distance = getTouchDistance(event.touches);
         if (!distance) return;
@@ -639,7 +775,6 @@ export function ImageLightbox(props: Props) {
           startOffsetY: viewStateRef.current.offsetY,
           moved: false,
         };
-        setIsDragging(true);
         return;
       }
 
@@ -692,7 +827,10 @@ export function ImageLightbox(props: Props) {
           Math.abs(touch.clientX - gesture.startClientX) > 4 ||
           Math.abs(touch.clientY - gesture.startClientY) > 4
         ) {
-          gesture.moved = true;
+          if (!gesture.moved) {
+            gesture.moved = true;
+            setIsDragging(true);
+          }
         }
         viewStateRef.current.offsetX =
           gesture.startOffsetX + (touch.clientX - gesture.startClientX);
@@ -724,28 +862,30 @@ export function ImageLightbox(props: Props) {
       }
 
       if (gesture.axis === "horizontal") {
-        const clampedX = hasNavigation
-          ? clampNumber(deltaX, -MAX_GESTURE_PREVIEW_PX, MAX_GESTURE_PREVIEW_PX)
-          : clampNumber(
-              deltaX * 0.2,
-              -MAX_GESTURE_PREVIEW_PX / 2,
-              MAX_GESTURE_PREVIEW_PX / 2,
-            );
-        updateGesturePreview("horizontal", clampedX, 0);
+        const wantsPrevious = deltaX > 0;
+        const wantsNext = deltaX < 0;
+        const isEdgeSwipe =
+          (wantsPrevious && !canGoPrevious) || (wantsNext && !canGoNext);
+        const nextOffsetX = hasNavigation
+          ? isEdgeSwipe
+            ? deltaX * 0.24
+            : deltaX
+          : deltaX * 0.18;
+
+        queueMobileTrackPosition(normalizedCurrentIndex, nextOffsetX, false);
         return;
       }
 
-      const clampedY = clampNumber(
-        deltaY,
-        -MAX_GESTURE_PREVIEW_PX,
-        MAX_GESTURE_PREVIEW_PX,
-      );
-      updateGesturePreview("vertical", 0, clampedY);
+      updateGesturePreview("vertical", 0, deltaY);
     },
     [
       applyScaleAtPoint,
       applyTransformOnFrame,
+      canGoNext,
+      canGoPrevious,
       hasNavigation,
+      normalizedCurrentIndex,
+      queueMobileTrackPosition,
       updateGesturePreview,
     ],
   );
@@ -778,7 +918,9 @@ export function ImageLightbox(props: Props) {
         return;
       }
 
-      const { axis, deltaX, deltaY } = gesture;
+      const { axis, deltaY } = gesture;
+      const effectiveHorizontalOffset = mobileTrackOffsetRef.current;
+      mobileTrackOffsetRef.current = 0;
 
       if (!axis) {
         if (changedTouch) {
@@ -793,13 +935,12 @@ export function ImageLightbox(props: Props) {
         return;
       }
 
-      resetGesturePreview();
-      applyTransform();
-
       if (
         axis === "vertical" &&
         Math.abs(deltaY) >= VERTICAL_DISMISS_TRIGGER_PX
       ) {
+        setVerticalDismissDirection(deltaY < 0 ? -1 : 1);
+        applyTransform();
         beginClose();
         return;
       }
@@ -807,41 +948,89 @@ export function ImageLightbox(props: Props) {
       if (
         axis === "horizontal" &&
         hasNavigation &&
-        Math.abs(deltaX) >= HORIZONTAL_SWIPE_TRIGGER_PX
+        Math.abs(effectiveHorizontalOffset) >= HORIZONTAL_SWIPE_TRIGGER_PX
       ) {
-        if (deltaX < 0) {
-          goToNext();
-        } else {
-          goToPrevious();
-        }
+        const direction: MobileCarouselDirection =
+          effectiveHorizontalOffset < 0 ? "next" : "previous";
+        const targetIndex =
+          direction === "next"
+            ? Math.min(normalizedCurrentIndex + 1, mediaItems.length - 1)
+            : Math.max(normalizedCurrentIndex - 1, 0);
+
+        animateMobileCarouselToIndex(targetIndex);
+        return;
       }
+
+      if (axis === "horizontal") {
+        animateMobileCarouselToIndex(normalizedCurrentIndex);
+        return;
+      }
+
+      resetGesturePreview();
+      applyTransform();
     },
     [
       applyTransform,
+      animateMobileCarouselToIndex,
       beginClose,
-      goToNext,
-      goToPrevious,
       hasNavigation,
+      mediaItems.length,
+      normalizedCurrentIndex,
       registerTapOrToggleZoom,
       resetGesturePreview,
     ],
   );
-
   const handleOpenFullscreen = useCallback(async () => {
     if (!currentItem) return;
     const frameElement = frameRef.current;
+    const fullscreenDocument = document as Document & {
+      webkitExitFullscreen?: () => Promise<void> | void;
+      webkitFullscreenElement?: Element | null;
+    };
+    const fullscreenFrame = frameElement as HTMLDivElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
 
     const openInNewTab = () => {
       window.open(currentItem.src, "_blank", "noopener,noreferrer");
     };
 
-    if (!frameElement?.requestFullscreen) {
+    if (!frameElement) {
+      openInNewTab();
+      return;
+    }
+
+    const activeFullscreenElement =
+      fullscreenDocument.fullscreenElement ??
+      fullscreenDocument.webkitFullscreenElement ??
+      null;
+
+    if (activeFullscreenElement === frameElement) {
+      try {
+        if (fullscreenDocument.exitFullscreen) {
+          await fullscreenDocument.exitFullscreen();
+          return;
+        }
+        if (fullscreenDocument.webkitExitFullscreen) {
+          await fullscreenDocument.webkitExitFullscreen();
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+
+    const requestFullscreen =
+      frameElement.requestFullscreen?.bind(frameElement) ??
+      fullscreenFrame.webkitRequestFullscreen?.bind(frameElement);
+
+    if (!requestFullscreen) {
       openInNewTab();
       return;
     }
 
     try {
-      await frameElement.requestFullscreen();
+      await requestFullscreen();
     } catch {
       openInNewTab();
     }
@@ -854,14 +1043,35 @@ export function ImageLightbox(props: Props) {
     [],
   );
 
-  const handleFrameClick = useCallback(
+  const handleViewportBackgroundClick = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (pointerMovedRef.current) {
+        pointerMovedRef.current = false;
+        event.preventDefault();
+        return;
+      }
+
+      if (event.target !== event.currentTarget) {
+        return;
+      }
+
+      beginClose();
+    },
+    [beginClose],
+  );
+
+  const handleImageClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       event.stopPropagation();
       if (pointerMovedRef.current) {
         pointerMovedRef.current = false;
+        event.preventDefault();
+        return;
       }
+
+      beginClose();
     },
-    [],
+    [beginClose],
   );
 
   const handlePreviousClick = useCallback(
@@ -914,6 +1124,93 @@ export function ImageLightbox(props: Props) {
     [toggleZoomAtPoint],
   );
 
+  const renderMediaElement = useCallback(
+    (item: ImageLightboxMediaItem, isActive: boolean) => {
+      if (item.kind === "video") {
+        return (
+          <video
+            className={styles.media}
+            src={item.src}
+            controls={isActive}
+            playsInline
+            autoPlay={isActive}
+            muted={!isActive}
+            preload={isActive ? "metadata" : "none"}
+            tabIndex={isActive ? undefined : -1}
+          >
+            <track kind="captions" />
+          </video>
+        );
+      }
+
+      return (
+        <img
+          className={styles.media}
+          src={item.src}
+          alt={item.alt ?? item.metadata.fileName}
+          draggable={false}
+        />
+      );
+    },
+    [],
+  );
+
+  const transformClassName = [
+    styles.mediaTransform,
+    isZoomed ? styles.mediaTransformZoomed : "",
+    isDragging ? styles.mediaTransformDragging : "",
+    gesturePreview.axis ? styles.mediaTransformGesture : "",
+    isMobileLayout ? styles.mobileMediaTransform : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const mobileSlideTransformClassName = [
+    styles.mediaTransform,
+    styles.mobileMediaTransform,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const renderActiveMediaElement = useCallback(
+    (item: ImageLightboxMediaItem) => {
+      if (item.kind === "video") {
+        return (
+          <LightboxVideoPlayer
+            src={item.src}
+            fileName={item.metadata.fileName}
+            mediaClassName={styles.media}
+            mediaTransformClassName={transformClassName}
+            mediaTransformRef={transformRef}
+            layout={isMobileLayout ? "mobile" : "desktop"}
+            onRequestFullscreen={() => {
+              void handleOpenFullscreen();
+            }}
+          />
+        );
+      }
+
+      return (
+        <div
+          className={transformClassName}
+          style={{ transform: "translate3d(0px, 0px, 0) scale(1)" }}
+          data-testid="lightbox-media-transform"
+          ref={transformRef}
+          onClick={handleImageClick}
+        >
+          {renderMediaElement(item, true)}
+        </div>
+      );
+    },
+    [
+      handleImageClick,
+      handleOpenFullscreen,
+      isMobileLayout,
+      renderMediaElement,
+      transformClassName,
+    ],
+  );
+
   const metadataLines = useMemo(() => {
     if (!currentItem) return [];
 
@@ -935,7 +1232,7 @@ export function ImageLightbox(props: Props) {
   }, [currentItem]);
 
   const frameStyle = useMemo(() => {
-    if (frameExpandProgress <= 0 || isMobileViewport()) {
+    if (frameExpandProgress <= 0 || !isMobileLayout) {
       return undefined;
     }
 
@@ -954,9 +1251,56 @@ export function ImageLightbox(props: Props) {
       width: `${width}px`,
       height: `${height}px`,
     };
-  }, [frameExpandProgress, isMobileViewport]);
+  }, [frameExpandProgress, isMobileLayout]);
+
+  const frameMotionStyle = useMemo(() => {
+    const viewportHeight =
+      typeof window !== "undefined" ? window.innerHeight || 1 : 1;
+
+    if (verticalDismissDirection) {
+      const dismissDistance = Math.min(viewportHeight * 0.22, 180);
+      return {
+        transform: `translate3d(0, ${verticalDismissDirection * dismissDistance}px, 0) scale(0.94)`,
+        transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+      } satisfies CSSProperties;
+    }
+
+    if (gesturePreview.axis !== "vertical") {
+      return undefined;
+    }
+
+    const progress = clampNumber(
+      Math.abs(gesturePreview.y) / VERTICAL_DISMISS_TRIGGER_PX,
+      0,
+      1,
+    );
+    const previewOffset = gesturePreview.y * 0.92;
+    const previewScale = 1 - progress * 0.09;
+
+    return {
+      transform: `translate3d(0, ${previewOffset}px, 0) scale(${previewScale})`,
+      transition: "none",
+    } satisfies CSSProperties;
+  }, [gesturePreview.axis, gesturePreview.y, verticalDismissDirection]);
+
+  const resolvedFrameStyle = useMemo(() => {
+    if (!frameStyle && !frameMotionStyle) {
+      return undefined;
+    }
+
+    return {
+      ...frameStyle,
+      ...frameMotionStyle,
+    } satisfies CSSProperties;
+  }, [frameMotionStyle, frameStyle]);
 
   const overlayStyle = useMemo(() => {
+    if (verticalDismissDirection) {
+      return {
+        background: "rgba(0, 0, 0, 0.52)",
+      } satisfies CSSProperties;
+    }
+
     if (gesturePreview.axis !== "vertical") {
       return undefined;
     }
@@ -969,8 +1313,42 @@ export function ImageLightbox(props: Props) {
 
     return {
       background: `rgba(0, 0, 0, ${0.9 - progress * 0.35})`,
-    };
-  }, [gesturePreview.axis, gesturePreview.y]);
+    } satisfies CSSProperties;
+  }, [gesturePreview.axis, gesturePreview.y, verticalDismissDirection]);
+
+  const handleMobileTrackTransitionEnd = useCallback(
+    (event: ReactTransitionEvent<HTMLDivElement>) => {
+      if (
+        event.target !== event.currentTarget ||
+        (event.propertyName && event.propertyName !== "transform")
+      ) {
+        return;
+      }
+
+      const animation = mobileTrackAnimationRef.current;
+      if (!animation) {
+        return;
+      }
+
+      mobileTrackAnimationRef.current = null;
+
+      if (animation.mode === "settle") {
+        flushSync(() => {
+          resetGesturePreview();
+          setCurrentIndex(animation.targetIndex);
+          setDisplayIndex(animation.targetIndex);
+        });
+      } else {
+        flushSync(() => {
+          resetGesturePreview();
+          setDisplayIndex(animation.targetIndex);
+        });
+      }
+
+      queueMobileTrackPosition(animation.targetIndex, 0, false);
+    },
+    [queueMobileTrackPosition, resetGesturePreview],
+  );
 
   if (!currentItem) {
     return null;
@@ -978,16 +1356,7 @@ export function ImageLightbox(props: Props) {
 
   const dialogLabel =
     currentItem.kind === "video" ? VIDEO_DIALOG_LABEL : IMAGE_DIALOG_LABEL;
-  const mediaAlt = currentItem.alt ?? currentItem.metadata.fileName;
-  const transformClassName = [
-    styles.mediaTransform,
-    isZoomed ? styles.mediaTransformZoomed : "",
-    isDragging ? styles.mediaTransformDragging : "",
-    gesturePreview.axis ? styles.mediaTransformGesture : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
+  const isDesktopFreeFrameLayout = !isMobileLayout;
   return (
     <div
       ref={overlayRef}
@@ -999,21 +1368,55 @@ export function ImageLightbox(props: Props) {
         .join(" ")}
       style={overlayStyle}
     >
+      {hasNavigation && (
+        <button
+          type="button"
+          className={[styles.navBtn, styles.navBtnPrev].join(" ")}
+          aria-label={PREVIOUS_MEDIA_LABEL}
+          onClick={handlePreviousClick}
+          disabled={!canGoPrevious}
+        >
+          <span className={styles.navBtnIcon} aria-hidden="true">
+            {"\u2039"}
+          </span>
+        </button>
+      )}
+
+      {hasNavigation && (
+        <button
+          type="button"
+          className={[styles.navBtn, styles.navBtnNext].join(" ")}
+          aria-label={NEXT_MEDIA_LABEL}
+          onClick={handleNextClick}
+          disabled={!canGoNext}
+        >
+          <span className={styles.navBtnIcon} aria-hidden="true">
+            {"\u203A"}
+          </span>
+        </button>
+      )}
+
       <div
-        className={styles.frame}
-        style={frameStyle}
+        className={[
+          styles.frame,
+          isDesktopFreeFrameLayout ? styles.frameDesktopVideo : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        style={resolvedFrameStyle}
         ref={frameRef}
-        onClick={handleFrameClick}
       >
         <div className={styles.actions} onClick={stopClickPropagation}>
-          <button
-            type="button"
-            className={styles.actionBtn}
-            onClick={handleExpandClick}
-            aria-label={EXPAND_LABEL}
-          >
-            {"\u26F6"}
-          </button>
+          {currentItem.kind !== "video" && (
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={handleExpandClick}
+              aria-label={EXPAND_LABEL}
+            >
+              {"\u26F6"}
+            </button>
+          )}
           <button
             type="button"
             className={styles.actionBtn}
@@ -1024,69 +1427,94 @@ export function ImageLightbox(props: Props) {
           </button>
         </div>
 
-        {hasNavigation && (
-          <button
-            type="button"
-            className={[styles.navBtn, styles.navBtnPrev].join(" ")}
-            aria-label={PREVIOUS_MEDIA_LABEL}
-            onClick={handlePreviousClick}
-          >
-            {"\u2039"}
-          </button>
-        )}
-
-        {hasNavigation && (
-          <button
-            type="button"
-            className={[styles.navBtn, styles.navBtnNext].join(" ")}
-            aria-label={NEXT_MEDIA_LABEL}
-            onClick={handleNextClick}
-          >
-            {"\u203A"}
-          </button>
-        )}
-
         <div
           ref={viewportRef}
-          className={styles.mediaViewport}
+          className={[
+            styles.mediaViewport,
+            isDesktopFreeFrameLayout ? styles.mediaViewportDesktop : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           data-testid="lightbox-media-viewport"
+          data-layout={isMobileLayout ? "mobile" : "desktop"}
           onWheel={handleViewportWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerDrag}
           onPointerCancel={endPointerDrag}
           onPointerLeave={endPointerDrag}
+          onClick={handleViewportBackgroundClick}
           onDoubleClick={handleViewportDoubleClick}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
         >
-          <div
-            className={transformClassName}
-            style={{ transform: "translate3d(0px, 0px, 0) scale(1)" }}
-            data-testid="lightbox-media-transform"
-            ref={transformRef}
-          >
-            {currentItem.kind === "video" ? (
-              <video
-                className={styles.media}
-                src={currentItem.src}
-                controls
-                playsInline
-                autoPlay
+          {isMobileLayout ? (
+            <div className={styles.mobileDeck} data-testid="lightbox-mobile-deck">
+              <div
+                ref={mobileTrackRef}
+                className={styles.mobileTrack}
+                data-testid="lightbox-mobile-track"
+                style={{
+                  transform: `translate3d(calc(-${normalizedCurrentIndex} * (100vw + ${MOBILE_TRACK_GAP_PX}px)), 0px, 0px)`,
+                }}
+                onTransitionEnd={handleMobileTrackTransitionEnd}
               >
-                <track kind="captions" />
-              </video>
-            ) : (
-              <img
-                className={styles.media}
-                src={currentItem.src}
-                alt={mediaAlt}
-                draggable={false}
-              />
-            )}
-          </div>
+                {mediaItems.map((item, index) => {
+                  const isActiveSlide = index === normalizedDisplayIndex;
+                  const shouldRenderMedia =
+                    Math.abs(index - normalizedCurrentIndex) <= 1 ||
+                    Math.abs(index - normalizedDisplayIndex) <= 1;
+
+                  return (
+                    <div
+                      key={item.metadata.attachmentId}
+                      className={[
+                        styles.mobileSlide,
+                        isActiveSlide ? styles.mobileSlideActive : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      data-active={isActiveSlide ? "true" : "false"}
+                      aria-hidden={isActiveSlide ? undefined : true}
+                    >
+                      <div className={styles.mobileDeckCard}>
+                        {shouldRenderMedia ? (
+                          isActiveSlide ? (
+                            renderActiveMediaElement(item)
+                          ) : (
+                            <div
+                              className={mobileSlideTransformClassName}
+                              style={{
+                                transform: "translate3d(0px, 0px, 0) scale(1)",
+                              }}
+                            >
+                              {renderMediaElement(item, false)}
+                            </div>
+                          )
+                        ) : (
+                          <div className={styles.mobileSlidePlaceholder} />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div
+              className={[
+                styles.desktopStage,
+                isDesktopFreeFrameLayout ? styles.desktopStageDesktop : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              data-testid="lightbox-desktop-stage"
+            >
+              {renderActiveMediaElement(currentItem)}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1098,3 +1526,5 @@ export function ImageLightbox(props: Props) {
     </div>
   );
 }
+
+

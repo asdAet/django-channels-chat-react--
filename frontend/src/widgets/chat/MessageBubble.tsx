@@ -56,6 +56,7 @@ type Props = {
   onViewReaders?: (msg: Message, anchor: { x: number; y: number }) => void;
   onReplyQuoteClick?: (replyToId: number) => void;
   onAvatarClick?: (actorRef: string) => void;
+  onOpenMediaAttachment?: (attachmentId: number) => void;
 };
 
 /**
@@ -317,6 +318,7 @@ export function MessageBubble({
   onViewReaders,
   onReplyQuoteClick,
   onAvatarClick,
+  onOpenMediaAttachment,
 }: Props) {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -657,6 +659,11 @@ export function MessageBubble({
   );
 
   const openLightboxByAttachmentId = (attachmentId: number) => {
+    if (onOpenMediaAttachment) {
+      onOpenMediaAttachment(attachmentId);
+      return;
+    }
+
     const targetIndex = lightboxMediaItems.findIndex(
       (item) => item.metadata.attachmentId === attachmentId,
     );
@@ -985,13 +992,15 @@ export function MessageBubble({
           onClose={() => setEmojiPickerOpen(false)}
         />
       )}
-      {lightboxOpenIndex !== null && lightboxMediaItems.length > 0 && (
+      {!onOpenMediaAttachment &&
+        lightboxOpenIndex !== null &&
+        lightboxMediaItems.length > 0 && (
         <ImageLightbox
           mediaItems={lightboxMediaItems}
           initialIndex={lightboxOpenIndex}
           onClose={() => setLightboxOpenIndex(null)}
         />
-      )}
+        )}
     </>
   );
 }
