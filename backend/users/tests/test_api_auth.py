@@ -228,12 +228,14 @@ class AuthApiTests(TestCase):
         payload = login_response.json()
         self.assertTrue(payload.get("authenticated"))
         self.assertFalse(payload.get("user", {}).get("isSuperuser"))
+        self.assertTrue(payload.get("wsAuthToken"))
 
         session_response = self.client.get("/api/auth/session/")
         self.assertEqual(session_response.status_code, 200)
         payload = session_response.json()
         self.assertTrue(payload.get("authenticated"))
         self.assertEqual(payload.get("user", {}).get("email"), "login@example.com")
+        self.assertTrue(payload.get("wsAuthToken"))
 
     def test_login_success_for_django_superuser_without_identity_rows(self):
         from django.contrib.auth import get_user_model
@@ -285,6 +287,7 @@ class AuthApiTests(TestCase):
         response = self.client.get("/api/auth/presence-session/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json().get("ok"), True)
+        self.assertTrue(response.json().get("wsAuthToken"))
         self.assertIsNotNone(self.client.session.session_key)
 
     def test_login_failed_writes_security_audit_log(self):

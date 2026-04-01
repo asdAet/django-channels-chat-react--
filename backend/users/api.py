@@ -33,6 +33,10 @@ from chat_app_django.media_utils import (
 from chat_app_django.security.audit import audit_http_event
 from chat_app_django.security.rate_limit import DbRateLimiter
 from chat_app_django.security.rate_limit_config import auth_rate_limit_policy
+from chat_app_django.ws_auth import (
+    issue_authenticated_ws_auth_token,
+    issue_guest_ws_auth_token,
+)
 
 from users.application import auth_service
 from users.application.errors import IdentityServiceError
@@ -60,6 +64,39 @@ from users.identity import (
 
 
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
+
+
+def _ensure_session_key(request) -> str:
+    """Возвращает существующий session key или создает его перед выдачей WS token."""
+    session = request.session
+    key = getattr(session, "session_key", None)
+    if key:
+        return str(key)
+    session.save()
+    key = getattr(session, "session_key", None)
+    return str(key or "")
+
+
+def _build_authenticated_session_payload(request, user) -> dict[str, object]:
+    """Собирает HTTP payload для авторизованной сессии вместе с WS token."""
+    session_key = _ensure_session_key(request)
+    return {
+        "authenticated": True,
+        "user": _serialize_user(request, user),
+        "wsAuthToken": issue_authenticated_ws_auth_token(
+            user_id=int(user.pk),
+            session_key=session_key,
+        ),
+    }
+
+
+def _build_guest_presence_payload(request) -> dict[str, object]:
+    """Собирает payload bootstrap-ответа для guest presence websocket."""
+    session_key = _ensure_session_key(request)
+    return {
+        "ok": True,
+        "wsAuthToken": issue_guest_ws_auth_token(session_key=session_key),
+    }
 
 
 def _protected_media_response(
@@ -256,8 +293,8 @@ def session_view(request):
     """
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
-        return Response({"authenticated": True, "user": _serialize_user(request, user)})
-    return Response({"authenticated": False, "user": None})
+        return Response(_build_authenticated_session_payload(request, user))
+    return Response({"authenticated": False, "user": None, "wsAuthToken": None})
 
 
 @ensure_csrf_cookie
@@ -271,11 +308,9 @@ def presence_session_view(request):
     Returns:
         Результат вычислений, сформированный в ходе выполнения функции.
     """
-    if not request.session.session_key:
-        request.session.create()
     request.session.modified = True
     audit_http_event("presence.session.bootstrap", request)
-    return Response({"ok": True})
+    return Response(_build_guest_presence_payload(request))
 
 
 @api_view(["GET"])
@@ -327,7 +362,7 @@ def login_view(request):
 
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.login.success", request, public_ref=user_public_ref(user))
-    return Response({"authenticated": True, "user": _serialize_user(request, user)})
+    return Response(_build_authenticated_session_payload(request, user))
 
 
 @csrf_protect
@@ -397,7 +432,7 @@ def register_view(request):
 
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.register.success", request, public_ref=user_public_ref(user))
-    return Response({"authenticated": True, "user": _serialize_user(request, user)}, status=201)
+    return Response(_build_authenticated_session_payload(request, user), status=201)
 
 
 @csrf_protect
@@ -429,7 +464,7 @@ def oauth_google_view(request):
 
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.oauth.google.success", request, public_ref=user_public_ref(user))
-    return Response({"authenticated": True, "user": _serialize_user(request, user)})
+    return Response(_build_authenticated_session_payload(request, user))
 
 
 @api_view(["GET"])

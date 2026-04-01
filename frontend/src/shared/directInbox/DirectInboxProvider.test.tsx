@@ -64,6 +64,7 @@ import {
   resetUnreadOverrides,
   setUnreadOverride,
 } from "../unreadOverrides/store";
+import { WsAuthProvider } from "../wsAuth";
 import { DirectInboxProvider } from "./DirectInboxProvider";
 import { useDirectInbox } from "./useDirectInbox";
 
@@ -456,6 +457,23 @@ describe("DirectInboxProvider", () => {
           payload?.type === "set_active_room" && payload?.roomId === 1,
       ),
     ).toBe(true);
+  });
+
+  it("appends ws auth token to inbox websocket url", async () => {
+    render(
+      <WsAuthProvider token="auth-token">
+        <DirectInboxProvider user={user}>
+          <Probe />
+        </DirectInboxProvider>
+      </WsAuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(chatMock.getDirectChats).toHaveBeenCalledTimes(1);
+    });
+
+    expect(wsMock.options?.url).toContain("/ws/inbox/");
+    expect(wsMock.options?.url).toContain("wst=auth-token");
   });
 
   it("applies local unread override for active direct chat to counts and dialogs", async () => {

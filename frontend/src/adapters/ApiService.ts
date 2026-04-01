@@ -289,8 +289,7 @@ export const normalizeAxiosError = (error: unknown): ApiError => {
 class ApiService implements IApiService {
   private apiClient: AxiosInstance;
 
-
-public constructor() {
+  public constructor() {
     this.apiClient = axios.create({
       baseURL: API_BASE,
       timeout: 10000,
@@ -330,14 +329,14 @@ public constructor() {
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет with decode.
    *
    * @param task Функция, выполняемая с единым обработчиком ошибок.
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-private async runWithDecode<T>(task: () => Promise<T>): Promise<T> {
+  private async runWithDecode<T>(task: () => Promise<T>): Promise<T> {
     try {
       return await task();
     } catch (error) {
@@ -345,11 +344,11 @@ private async runWithDecode<T>(task: () => Promise<T>): Promise<T> {
     }
   }
 
-    /**
-     * Гарантирует csrf.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-public async ensureCsrf(): Promise<{ csrfToken: string }> {
+  /**
+   * Гарантирует csrf.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  public async ensureCsrf(): Promise<{ csrfToken: string }> {
     return this.runWithDecode(async () => {
       const data = await ensureCsrfRequest(this.apiClient);
       writeCsrfToSessionStorage(CSRF_STORAGE_KEY, data.csrfToken || null);
@@ -357,50 +356,53 @@ public async ensureCsrf(): Promise<{ csrfToken: string }> {
     });
   }
 
-    /**
-     * Гарантирует presence session.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-public async ensurePresenceSession(): Promise<{ ok: boolean }> {
+  /**
+   * Гарантирует presence session.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  public async ensurePresenceSession(): Promise<{
+    ok: boolean;
+    wsAuthToken: string | null;
+  }> {
     return this.runWithDecode(async () =>
       ensurePresenceSession(this.apiClient),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает client конфиг.
    */
-public async getClientConfig() {
+  public async getClientConfig() {
     return this.runWithDecode(async () => getClientConfig(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно возвращает сессию.
    */
-public async getSession() {
+  public async getSession() {
     return this.runWithDecode(async () => getSession(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно авторизует данные.
    *
    * @param identifier Логин или email для аутентификации.
    * @param password Пароль пользователя.
    */
-public async login(identifier: string, password: string) {
+  public async login(identifier: string, password: string) {
     return this.runWithDecode(async () =>
       login(this.apiClient, identifier, password),
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет OAuth-аутентификацию google.
    *
    * @param token Токен OAuth-провайдера.
    * @param tokenType Тип OAuth-токена.
    * @param username Имя пользователя.
    */
-public async oauthGoogle(
+  public async oauthGoogle(
     token: string,
     tokenType: "idToken" | "accessToken" = "idToken",
     username?: string,
@@ -410,7 +412,7 @@ public async oauthGoogle(
     );
   }
 
-    /**
+  /**
    * Асинхронно регистрирует данные.
    *
    * @param loginValue Логин или email для регистрации.
@@ -420,7 +422,7 @@ public async oauthGoogle(
    * @param username Имя пользователя.
    * @param email Email пользователя.
    */
-public async register(
+  public async register(
     loginValue: string,
     password: string,
     passwordConfirm: string,
@@ -441,53 +443,55 @@ public async register(
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает password rules.
    */
-public async getPasswordRules() {
+  public async getPasswordRules() {
     return this.runWithDecode(async () => getPasswordRules(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно завершает сессию данные.
    */
-public async logout() {
+  public async logout() {
     return this.runWithDecode(async () => logout(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно обновляет профиля.
    *
    * @param fields Поля для обновления профиля.
    */
-public async updateProfile(fields: UpdateProfileInput) {
+  public async updateProfile(fields: UpdateProfileInput) {
     return this.runWithDecode(async () =>
       updateProfile(this.apiClient, fields),
     );
   }
 
-public async resolveChatTarget(target: string) {
+  public async resolveChatTarget(target: string) {
     return this.runWithDecode(async () =>
       resolveChatTarget(this.apiClient, target),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает комнаты details.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getRoomDetails(roomId: string) {
-    return this.runWithDecode(async () => getRoomDetails(this.apiClient, roomId));
+  public async getRoomDetails(roomId: string) {
+    return this.runWithDecode(async () =>
+      getRoomDetails(this.apiClient, roomId),
+    );
   }
 
-    /**
+  /**
    * Асинхронно возвращает комнаты сообщений.
    *
    * @param roomId Идентификатор комнаты.
    * @param params Параметры запроса.
    */
-public async getRoomMessages(
+  public async getRoomMessages(
     roomId: string,
     params?: { limit?: number; beforeId?: number },
   ) {
@@ -496,114 +500,118 @@ public async getRoomMessages(
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает direct-чат chats.
    */
-public async getDirectChats() {
+  public async getDirectChats() {
     return this.runWithDecode(async () => getDirectChats(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно возвращает пользователя профиля.
    *
    * @param publicRef Публичный идентификатор пользователя или комнаты.
    */
-public async getUserProfile(publicRef: string) {
+  public async getUserProfile(publicRef: string) {
     return this.runWithDecode(async () =>
       getUserProfile(this.apiClient, publicRef),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает непрочитанные счетчики.
    */
-public async getUnreadCounts() {
+  public async getUnreadCounts() {
     return this.runWithDecode(async () => getUnreadCounts(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно возвращает readers конкретного сообщения.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    */
-public async getMessageReaders(roomId: string, messageId: number) {
+  public async getMessageReaders(roomId: string, messageId: number) {
     return this.runWithDecode(async () =>
       getMessageReaders(this.apiClient, roomId, messageId),
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет сообщения.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    * @param content Текстовое содержимое.
    */
-public async editMessage(roomId: string, messageId: number, content: string) {
+  public async editMessage(roomId: string, messageId: number, content: string) {
     return this.runWithDecode(async () =>
       editMessage(this.apiClient, roomId, messageId, content),
     );
   }
 
-    /**
+  /**
    * Асинхронно удаляет сообщения.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    */
-public async deleteMessage(roomId: string, messageId: number) {
+  public async deleteMessage(roomId: string, messageId: number) {
     return this.runWithDecode(async () =>
       deleteMessage(this.apiClient, roomId, messageId),
     );
   }
 
-    /**
+  /**
    * Асинхронно добавляет реакцию.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    * @param emoji Символ реакции.
    */
-public async addReaction(roomId: string, messageId: number, emoji: string) {
+  public async addReaction(roomId: string, messageId: number, emoji: string) {
     return this.runWithDecode(async () =>
       addReaction(this.apiClient, roomId, messageId, emoji),
     );
   }
 
-    /**
+  /**
    * Асинхронно удаляет реакцию.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    * @param emoji Символ реакции.
    */
-public async removeReaction(roomId: string, messageId: number, emoji: string) {
+  public async removeReaction(
+    roomId: string,
+    messageId: number,
+    emoji: string,
+  ) {
     return this.runWithDecode(async () =>
       removeReaction(this.apiClient, roomId, messageId, emoji),
     );
   }
 
-    /**
+  /**
    * Асинхронно ищет сообщений.
    *
    * @param roomId Идентификатор комнаты.
    * @param query Поисковый запрос.
    */
-public async searchMessages(roomId: string, query: string) {
+  public async searchMessages(roomId: string, query: string) {
     return this.runWithDecode(async () =>
       searchMessages(this.apiClient, roomId, query),
     );
   }
 
-    /**
+  /**
    * Асинхронно загружает вложения.
    *
    * @param roomId Идентификатор комнаты.
    * @param files Файлы для загрузки.
    * @param options Дополнительные опции выполнения.
    */
-public async uploadAttachments(
+  public async uploadAttachments(
     roomId: string,
     files: File[],
     options?: {
@@ -618,123 +626,123 @@ public async uploadAttachments(
     );
   }
 
-    /**
+  /**
    * Асинхронно помечает read.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    */
-public async markRead(roomId: string, messageId?: number) {
+  public async markRead(roomId: string, messageId?: number) {
     return this.runWithDecode(async () =>
       markRead(this.apiClient, roomId, messageId),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает друзей.
    */
-public async getFriends() {
+  public async getFriends() {
     return this.runWithDecode(async () => getFriends(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно отправляет друга request.
    *
    * @param publicRef Публичный идентификатор пользователя или комнаты.
    */
-public async sendFriendRequest(publicRef: string) {
+  public async sendFriendRequest(publicRef: string) {
     return this.runWithDecode(async () =>
       sendFriendRequest(this.apiClient, publicRef),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает incoming requests.
    */
-public async getIncomingRequests() {
+  public async getIncomingRequests() {
     return this.runWithDecode(async () => getIncomingRequests(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно возвращает outgoing requests.
    */
-public async getOutgoingRequests() {
+  public async getOutgoingRequests() {
     return this.runWithDecode(async () => getOutgoingRequests(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно выполняет друга request.
    *
    * @param friendshipId Идентификатор связи дружбы.
    */
-public async acceptFriendRequest(friendshipId: number) {
+  public async acceptFriendRequest(friendshipId: number) {
     return this.runWithDecode(async () =>
       acceptFriendRequest(this.apiClient, friendshipId),
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет друга request.
    *
    * @param friendshipId Идентификатор связи дружбы.
    */
-public async declineFriendRequest(friendshipId: number) {
+  public async declineFriendRequest(friendshipId: number) {
     return this.runWithDecode(async () =>
       declineFriendRequest(this.apiClient, friendshipId),
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет outgoing друга request.
    *
    * @param friendshipId Идентификатор связи дружбы.
    */
-public async cancelOutgoingFriendRequest(friendshipId: number) {
+  public async cancelOutgoingFriendRequest(friendshipId: number) {
     return this.runWithDecode(async () =>
       cancelOutgoingFriendRequest(this.apiClient, friendshipId),
     );
   }
 
-    /**
+  /**
    * Асинхронно удаляет друга.
    *
    * @param userId Идентификатор пользователя.
    */
-public async removeFriend(userId: number) {
+  public async removeFriend(userId: number) {
     return this.runWithDecode(async () => removeFriend(this.apiClient, userId));
   }
 
-    /**
+  /**
    * Асинхронно выполняет пользователя.
    *
    * @param publicRef Публичный идентификатор пользователя или комнаты.
    */
-public async blockUser(publicRef: string) {
+  public async blockUser(publicRef: string) {
     return this.runWithDecode(async () => blockUser(this.apiClient, publicRef));
   }
 
-    /**
+  /**
    * Асинхронно выполняет пользователя.
    *
    * @param userId Идентификатор пользователя.
    */
-public async unblockUser(userId: number) {
+  public async unblockUser(userId: number) {
     return this.runWithDecode(async () => unblockUser(this.apiClient, userId));
   }
 
-    /**
+  /**
    * Асинхронно возвращает заблокированные пользователей.
    */
-public async getBlockedUsers() {
+  public async getBlockedUsers() {
     return this.runWithDecode(async () => getBlockedUsers(this.apiClient));
   }
 
-    /**
+  /**
    * Асинхронно создаёт группы.
    *
    * @param data Данные запроса или полезная нагрузка операции.
    */
-public async createGroup(data: {
+  public async createGroup(data: {
     name: string;
     description?: string;
     isPublic?: boolean;
@@ -743,12 +751,12 @@ public async createGroup(data: {
     return this.runWithDecode(async () => createGroup(this.apiClient, data));
   }
 
-    /**
+  /**
    * Асинхронно возвращает public групп.
    *
    * @param params Параметры запроса.
    */
-public async getPublicGroups(params?: {
+  public async getPublicGroups(params?: {
     search?: string;
     limit?: number;
     before?: number;
@@ -758,12 +766,12 @@ public async getPublicGroups(params?: {
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает my групп.
    *
    * @param params Параметры запроса.
    */
-public async getMyGroups(params?: {
+  public async getMyGroups(params?: {
     search?: string;
     limit?: number;
     before?: number;
@@ -771,63 +779,63 @@ public async getMyGroups(params?: {
     return this.runWithDecode(async () => getMyGroups(this.apiClient, params));
   }
 
-    /**
+  /**
    * Асинхронно возвращает группы details.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getGroupDetails(roomId: string) {
+  public async getGroupDetails(roomId: string) {
     return this.runWithDecode(async () =>
       getGroupDetails(this.apiClient, roomId),
     );
   }
 
-    /**
+  /**
    * Асинхронно обновляет группы.
    *
    * @param roomId Идентификатор комнаты.
    * @param data Данные запроса или полезная нагрузка операции.
    */
-public async updateGroup(roomId: string, data: UpdateGroupInput) {
+  public async updateGroup(roomId: string, data: UpdateGroupInput) {
     return this.runWithDecode(async () =>
       updateGroup(this.apiClient, roomId, data),
     );
   }
 
-    /**
+  /**
    * Асинхронно удаляет группы.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async deleteGroup(roomId: string) {
+  public async deleteGroup(roomId: string) {
     return this.runWithDecode(async () => deleteGroup(this.apiClient, roomId));
   }
 
-    /**
+  /**
    * Асинхронно присоединяет группы.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async joinGroup(roomId: string) {
+  public async joinGroup(roomId: string) {
     return this.runWithDecode(async () => joinGroup(this.apiClient, roomId));
   }
 
-    /**
+  /**
    * Асинхронно покидает группы.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async leaveGroup(roomId: string) {
+  public async leaveGroup(roomId: string) {
     return this.runWithDecode(async () => leaveGroup(this.apiClient, roomId));
   }
 
-    /**
+  /**
    * Асинхронно возвращает группы участников.
    *
    * @param roomId Идентификатор комнаты.
    * @param params Параметры запроса.
    */
-public async getGroupMembers(
+  public async getGroupMembers(
     roomId: string,
     params?: { limit?: number; before?: number },
   ) {
@@ -836,51 +844,51 @@ public async getGroupMembers(
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет участника.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    */
-public async kickMember(roomId: string, userId: number) {
+  public async kickMember(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
       kickMember(this.apiClient, roomId, userId),
     );
   }
 
-    /**
+  /**
    * Асинхронно блокирует участника.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    * @param reason Причина административного действия.
    */
-public async banMember(roomId: string, userId: number, reason?: string) {
+  public async banMember(roomId: string, userId: number, reason?: string) {
     return this.runWithDecode(async () =>
       banMember(this.apiClient, roomId, userId, reason),
     );
   }
 
-    /**
+  /**
    * Асинхронно снимает блокировку участника.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    */
-public async unbanMember(roomId: string, userId: number) {
+  public async unbanMember(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
       unbanMember(this.apiClient, roomId, userId),
     );
   }
 
-    /**
+  /**
    * Асинхронно ограничивает участника.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    * @param durationSeconds Длительность ограничения в секундах.
    */
-public async muteMember(
+  public async muteMember(
     roomId: string,
     userId: number,
     durationSeconds = 3600,
@@ -890,25 +898,25 @@ public async muteMember(
     );
   }
 
-    /**
+  /**
    * Асинхронно снимает ограничение участника.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    */
-public async unmuteMember(roomId: string, userId: number) {
+  public async unmuteMember(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
       unmuteMember(this.apiClient, roomId, userId),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает заблокированные участников.
    *
    * @param roomId Идентификатор комнаты.
    * @param params Параметры запроса.
    */
-public async getBannedMembers(
+  public async getBannedMembers(
     roomId: string,
     params?: { limit?: number; before?: number },
   ) {
@@ -917,13 +925,13 @@ public async getBannedMembers(
     );
   }
 
-    /**
+  /**
    * Асинхронно создаёт приглашение.
    *
    * @param roomId Идентификатор комнаты.
    * @param data Данные запроса или полезная нагрузка операции.
    */
-public async createInvite(
+  public async createInvite(
     roomId: string,
     data?: { maxUses?: number; expiresInHours?: number },
   ) {
@@ -932,145 +940,145 @@ public async createInvite(
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает приглашения.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getInvites(roomId: string) {
+  public async getInvites(roomId: string) {
     return this.runWithDecode(async () => getInvites(this.apiClient, roomId));
   }
 
-    /**
+  /**
    * Асинхронно выполняет приглашение.
    *
    * @param roomId Идентификатор комнаты.
    * @param code Код приглашения или операции.
    */
-public async revokeInvite(roomId: string, code: string) {
+  public async revokeInvite(roomId: string, code: string) {
     return this.runWithDecode(async () =>
       revokeInvite(this.apiClient, roomId, code),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает приглашение preview.
    *
    * @param code Код приглашения или операции.
    */
-public async getInvitePreview(code: string) {
+  public async getInvitePreview(code: string) {
     return this.runWithDecode(async () =>
       getInvitePreview(this.apiClient, code),
     );
   }
 
-    /**
+  /**
    * Асинхронно присоединяет via приглашение.
    *
    * @param code Код приглашения или операции.
    */
-public async joinViaInvite(code: string) {
+  public async joinViaInvite(code: string) {
     return this.runWithDecode(async () => joinViaInvite(this.apiClient, code));
   }
 
-    /**
+  /**
    * Асинхронно возвращает join requests.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getJoinRequests(roomId: string) {
+  public async getJoinRequests(roomId: string) {
     return this.runWithDecode(async () =>
       getJoinRequests(this.apiClient, roomId),
     );
   }
 
-    /**
+  /**
    * Асинхронно одобряет join request.
    *
    * @param roomId Идентификатор комнаты.
    * @param requestId Идентификатор заявки.
    */
-public async approveJoinRequest(roomId: string, requestId: number) {
+  public async approveJoinRequest(roomId: string, requestId: number) {
     return this.runWithDecode(async () =>
       approveJoinRequest(this.apiClient, roomId, requestId),
     );
   }
 
-    /**
+  /**
    * Асинхронно отклоняет join request.
    *
    * @param roomId Идентификатор комнаты.
    * @param requestId Идентификатор заявки.
    */
-public async rejectJoinRequest(roomId: string, requestId: number) {
+  public async rejectJoinRequest(roomId: string, requestId: number) {
     return this.runWithDecode(async () =>
       rejectJoinRequest(this.apiClient, roomId, requestId),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает закрепленные сообщений.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getPinnedMessages(roomId: string) {
+  public async getPinnedMessages(roomId: string) {
     return this.runWithDecode(async () =>
       getPinnedMessages(this.apiClient, roomId),
     );
   }
 
-    /**
+  /**
    * Асинхронно закрепляет сообщения.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    */
-public async pinMessage(roomId: string, messageId: number) {
+  public async pinMessage(roomId: string, messageId: number) {
     return this.runWithDecode(async () =>
       pinMessage(this.apiClient, roomId, messageId),
     );
   }
 
-    /**
+  /**
    * Асинхронно открепляет сообщения.
    *
    * @param roomId Идентификатор комнаты.
    * @param messageId Идентификатор сообщения.
    */
-public async unpinMessage(roomId: string, messageId: number) {
+  public async unpinMessage(roomId: string, messageId: number) {
     return this.runWithDecode(async () =>
       unpinMessage(this.apiClient, roomId, messageId),
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет ownership.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    */
-public async transferOwnership(roomId: string, userId: number) {
+  public async transferOwnership(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
       transferOwnership(this.apiClient, roomId, userId),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает комнаты ролей.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getRoomRoles(roomId: string) {
+  public async getRoomRoles(roomId: string) {
     return this.runWithDecode(async () => getRoomRoles(this.apiClient, roomId));
   }
 
-    /**
+  /**
    * Асинхронно создаёт комнаты роли.
    *
    * @param roomId Идентификатор комнаты.
    * @param data Данные запроса или полезная нагрузка операции.
    */
-public async createRoomRole(
+  public async createRoomRole(
     roomId: string,
     data: { name: string; color?: string; permissions?: number },
   ) {
@@ -1079,14 +1087,14 @@ public async createRoomRole(
     );
   }
 
-    /**
+  /**
    * Асинхронно обновляет комнаты роли.
    *
    * @param roomId Идентификатор комнаты.
    * @param roleId Идентификатор роли.
    * @param data Данные запроса или полезная нагрузка операции.
    */
-public async updateRoomRole(
+  public async updateRoomRole(
     roomId: string,
     roleId: number,
     data: Partial<{
@@ -1101,61 +1109,65 @@ public async updateRoomRole(
     );
   }
 
-    /**
+  /**
    * Асинхронно удаляет комнаты роли.
    *
    * @param roomId Идентификатор комнаты.
    * @param roleId Идентификатор роли.
    */
-public async deleteRoomRole(roomId: string, roleId: number) {
+  public async deleteRoomRole(roomId: string, roleId: number) {
     return this.runWithDecode(async () =>
       deleteRoomRole(this.apiClient, roomId, roleId),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает участника ролей.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    */
-public async getMemberRoles(roomId: string, userId: number) {
+  public async getMemberRoles(roomId: string, userId: number) {
     return this.runWithDecode(async () =>
       getMemberRoles(this.apiClient, roomId, userId),
     );
   }
 
-    /**
+  /**
    * Асинхронно устанавливает участника ролей.
    *
    * @param roomId Идентификатор комнаты.
    * @param userId Идентификатор пользователя.
    * @param roleIds Список идентификаторов ролей.
    */
-public async setMemberRoles(roomId: string, userId: number, roleIds: number[]) {
+  public async setMemberRoles(
+    roomId: string,
+    userId: number,
+    roleIds: number[],
+  ) {
     return this.runWithDecode(async () =>
       setMemberRoles(this.apiClient, roomId, userId, roleIds),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает комнаты overrides.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getRoomOverrides(roomId: string) {
+  public async getRoomOverrides(roomId: string) {
     return this.runWithDecode(async () =>
       getRoomOverrides(this.apiClient, roomId),
     );
   }
 
-    /**
+  /**
    * Асинхронно создаёт комнаты override.
    *
    * @param roomId Идентификатор комнаты.
    * @param data Данные запроса или полезная нагрузка операции.
    */
-public async createRoomOverride(
+  public async createRoomOverride(
     roomId: string,
     data: {
       targetRoleId?: number;
@@ -1169,14 +1181,14 @@ public async createRoomOverride(
     );
   }
 
-    /**
+  /**
    * Асинхронно обновляет комнаты override.
    *
    * @param roomId Идентификатор комнаты.
    * @param overrideId Идентификатор переопределения прав.
    * @param data Данные запроса или полезная нагрузка операции.
    */
-public async updateRoomOverride(
+  public async updateRoomOverride(
     roomId: string,
     overrideId: number,
     data: Partial<{ allow: number; deny: number }>,
@@ -1186,36 +1198,36 @@ public async updateRoomOverride(
     );
   }
 
-    /**
+  /**
    * Асинхронно удаляет комнаты override.
    *
    * @param roomId Идентификатор комнаты.
    * @param overrideId Идентификатор переопределения прав.
    */
-public async deleteRoomOverride(roomId: string, overrideId: number) {
+  public async deleteRoomOverride(roomId: string, overrideId: number) {
     return this.runWithDecode(async () =>
       deleteRoomOverride(this.apiClient, roomId, overrideId),
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает my права.
    *
    * @param roomId Идентификатор комнаты.
    */
-public async getMyPermissions(roomId: string) {
+  public async getMyPermissions(roomId: string) {
     return this.runWithDecode(async () =>
       getMyPermissions(this.apiClient, roomId),
     );
   }
 
-    /**
+  /**
    * Асинхронно выполняет поиск.
    *
    * @param query Поисковый запрос.
    * @param params Параметры запроса.
    */
-public async globalSearch(
+  public async globalSearch(
     query: string,
     params?: {
       usersLimit?: number;
@@ -1228,13 +1240,13 @@ public async globalSearch(
     );
   }
 
-    /**
+  /**
    * Асинхронно возвращает комнаты вложения.
    *
    * @param roomId Идентификатор комнаты.
    * @param params Параметры запроса.
    */
-public async getRoomAttachments(
+  public async getRoomAttachments(
     roomId: string,
     params?: { limit?: number; before?: number },
   ) {

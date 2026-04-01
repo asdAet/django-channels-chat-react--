@@ -1,6 +1,8 @@
 import {
   type CSSProperties,
+  lazy,
   type Ref,
+  Suspense,
   type SyntheticEvent,
   useCallback,
   useEffect,
@@ -9,7 +11,24 @@ import {
   useState,
 } from "react";
 
-import styles from "../../styles/ui/LightboxVideoPlayer.module.css";
+import mediaStyles from "../../styles/ui/LightboxVideoPlayer.media.module.css";
+import frameStyles from "../../styles/ui/LightboxVideoPlayer.module.css";
+import {
+  loadLightboxVideoPlayerDesktopView,
+  loadLightboxVideoPlayerMobileView,
+} from "./LightboxVideoPlayer.loaders";
+import {
+  type LightboxVideoPlayerLayout,
+  type LightboxVideoPlayerViewProps,
+} from "./LightboxVideoPlayer.types";
+import {
+  clampNumber,
+  formatTime,
+  stopPropagation,
+} from "./LightboxVideoPlayer.utils";
+
+const LightboxVideoPlayerDesktopView = lazy(loadLightboxVideoPlayerDesktopView);
+const LightboxVideoPlayerMobileView = lazy(loadLightboxVideoPlayerMobileView);
 
 type Props = {
   src: string;
@@ -18,12 +37,7 @@ type Props = {
   mediaTransformClassName: string;
   mediaTransformRef?: Ref<HTMLDivElement>;
   onRequestFullscreen: () => void;
-  layout: "desktop" | "mobile";
-};
-
-type PlaybackRateOption = {
-  value: number;
-  label: string;
+  layout: LightboxVideoPlayerLayout;
 };
 
 type PictureInPictureVideo = HTMLVideoElement & {
@@ -37,149 +51,17 @@ type PictureInPictureDocument = Document & {
   pictureInPictureEnabled?: boolean;
 };
 
-const PLAYBACK_RATE_OPTIONS: PlaybackRateOption[] = [
-  { value: 0.5, label: "Медленно" },
-  { value: 1, label: "По умолчанию" },
-  { value: 1.2, label: "Ускоренно" },
-  { value: 1.5, label: "Быстро" },
-  { value: 1.7, label: "Очень быстро" },
-  { value: 2, label: "Сверхбыстро" },
-];
-
-const formatTime = (value: number): string => {
-  const totalSeconds = Math.max(0, Math.floor(value));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
-
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-};
-
-const clampNumber = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-const stopPropagation = (event: SyntheticEvent<HTMLElement>) => {
-  event.stopPropagation();
-};
-
-function VolumeIcon({ muted }: { muted: boolean }) {
-  return muted ? (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M5 9h4l5-4v14l-5-4H5zM18 9l-4 6M14 9l4 6"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M5 9h4l5-4v14l-5-4H5z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M17 9.5a4.5 4.5 0 0 1 0 5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M19.5 7a8 8 0 0 1 0 10"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function PauseIcon() {
+function LightboxVideoPlayerFallback({
+  mediaViewport,
+}: Pick<LightboxVideoPlayerViewProps, "mediaViewport">) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M8 5.5l9 6.5-9 6.5z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ExpandIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M8 4H4v4M16 4h4v4M8 20H4v-4M20 16v4h-4"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M9 9L4 4M15 9l5-5M9 15l-5 5M15 15l5 5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function PictureInPictureIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect
-        x="4"
-        y="5"
-        width="16"
-        height="12"
-        rx="2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <rect x="12.5" y="10" width="5.5" height="4" rx="1" fill="currentColor" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M12 8.2A3.8 3.8 0 1 0 12 15.8 3.8 3.8 0 1 0 12 8.2z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M19 12l1.6-1.2-1.5-2.6-2 .4a7 7 0 0 0-1.2-.7L15.4 5h-3l-.5 1.9a7 7 0 0 0-1.2.7l-2-.4-1.5 2.6L8 12l-1.6 1.2 1.5 2.6 2-.4c.4.3.8.5 1.2.7l.5 1.9h3l.5-1.9c.4-.2.8-.4 1.2-.7l2 .4 1.5-2.6z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        strokeWidth="1.4"
-      />
-    </svg>
+    <div
+      className={frameStyles.root}
+      data-testid="lightbox-video-player-loading"
+    >
+      {mediaViewport}
+      <div className={frameStyles.controls} />
+    </div>
   );
 }
 
@@ -192,7 +74,29 @@ export function LightboxVideoPlayer({
   onRequestFullscreen,
   layout,
 }: Props) {
-  const isMobilePlayer = layout === "mobile";
+  return (
+    <LightboxVideoPlayerSession
+      key={src}
+      src={src}
+      fileName={fileName}
+      mediaClassName={mediaClassName}
+      mediaTransformClassName={mediaTransformClassName}
+      mediaTransformRef={mediaTransformRef}
+      onRequestFullscreen={onRequestFullscreen}
+      layout={layout}
+    />
+  );
+}
+
+function LightboxVideoPlayerSession({
+  src,
+  fileName,
+  mediaClassName,
+  mediaTransformClassName,
+  mediaTransformRef,
+  onRequestFullscreen: _onRequestFullscreen,
+  layout,
+}: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -205,17 +109,6 @@ export function LightboxVideoPlayer({
   const [isRateMenuOpen, setIsRateMenuOpen] = useState(false);
   const [canUsePictureInPicture, setCanUsePictureInPicture] = useState(false);
   const [isInPictureInPicture, setIsInPictureInPicture] = useState(false);
-
-  useEffect(() => {
-    setIsRateMenuOpen(false);
-    setIsReady(false);
-    setIsPlaying(false);
-    setDuration(0);
-    setCurrentTime(0);
-    setPlaybackRate(1);
-    setCanUsePictureInPicture(false);
-    setIsInPictureInPicture(false);
-  }, [src]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -254,6 +147,40 @@ export function LightboxVideoPlayer({
       ),
     );
   }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    const handleEnterPictureInPicture = () => {
+      setIsInPictureInPicture(true);
+    };
+    const handleLeavePictureInPicture = () => {
+      setIsInPictureInPicture(false);
+    };
+
+    video.addEventListener(
+      "enterpictureinpicture",
+      handleEnterPictureInPicture as EventListener,
+    );
+    video.addEventListener(
+      "leavepictureinpicture",
+      handleLeavePictureInPicture as EventListener,
+    );
+
+    return () => {
+      video.removeEventListener(
+        "enterpictureinpicture",
+        handleEnterPictureInPicture as EventListener,
+      );
+      video.removeEventListener(
+        "leavepictureinpicture",
+        handleLeavePictureInPicture as EventListener,
+      );
+    };
+  }, [src]);
 
   const handleTogglePlayback = useCallback(async () => {
     const video = videoRef.current;
@@ -367,6 +294,7 @@ export function LightboxVideoPlayer({
     "--player-range-progress": `${volumePercent}%`,
   } as CSSProperties;
   const remainingLabel = formatTime(Math.max(0, duration - currentTime));
+
   const handleVideoClick = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
       event.stopPropagation();
@@ -381,264 +309,131 @@ export function LightboxVideoPlayer({
     [],
   );
 
-  return (
+  const mediaViewport = (
     <div
-      ref={rootRef}
-      className={[
-        styles.root,
-        isMobilePlayer ? styles.rootMobile : styles.rootDesktop,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={mediaStyles.mediaViewport}
+      onDoubleClick={stopPropagation}
     >
       <div
-        className={styles.mediaViewport}
-        onDoubleClick={stopPropagation}
+        className={mediaTransformClassName}
+        ref={mediaTransformRef}
+        data-testid="lightbox-media-transform"
+        onPointerDownCapture={stopPropagation}
+        onPointerUpCapture={stopPropagation}
+        onClickCapture={stopPropagation}
+        onClick={stopPropagation}
       >
-        <div
-          className={mediaTransformClassName}
-          ref={mediaTransformRef}
-          data-testid="lightbox-media-transform"
+        <video
+          ref={videoRef}
+          className={mediaClassName}
+          src={src}
+          title={fileName}
+          aria-label={fileName}
+          playsInline
+          preload="metadata"
+          autoPlay
           onPointerDownCapture={stopPropagation}
           onPointerUpCapture={stopPropagation}
           onClickCapture={stopPropagation}
-          onClick={stopPropagation}
+          onClick={handleVideoClick}
+          onDoubleClick={stopPropagation}
+          onLoadedMetadata={(event) => {
+            setDuration(
+              Number.isFinite(event.currentTarget.duration)
+                ? event.currentTarget.duration
+                : 0,
+            );
+            setCurrentTime(
+              Number.isFinite(event.currentTarget.currentTime)
+                ? event.currentTarget.currentTime
+                : 0,
+            );
+            setPlaybackRate(event.currentTarget.playbackRate || 1);
+            setIsReady(true);
+            setVolume(event.currentTarget.volume);
+            setIsMuted(event.currentTarget.muted);
+            syncPictureInPictureCapability();
+          }}
+          onTimeUpdate={(event) => {
+            setCurrentTime(
+              Number.isFinite(event.currentTarget.currentTime)
+                ? event.currentTarget.currentTime
+                : 0,
+            );
+          }}
+          onDurationChange={(event) => {
+            setDuration(
+              Number.isFinite(event.currentTarget.duration)
+                ? event.currentTarget.duration
+                : 0,
+            );
+          }}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={(event) => {
+            setIsPlaying(false);
+            setCurrentTime(
+              Number.isFinite(event.currentTarget.duration)
+                ? event.currentTarget.duration
+                : duration,
+            );
+          }}
+          onRateChange={(event) => {
+            setPlaybackRate(event.currentTarget.playbackRate || 1);
+          }}
+          onVolumeChange={(event) => {
+            setVolume(event.currentTarget.volume);
+            setIsMuted(event.currentTarget.muted);
+          }}
+          onCanPlay={syncPictureInPictureCapability}
+          onLoadedData={syncPictureInPictureCapability}
         >
-          <video
-            ref={videoRef}
-            className={mediaClassName}
-            src={src}
-            title={fileName}
-            aria-label={fileName}
-            playsInline
-            preload="metadata"
-            autoPlay
-            onPointerDownCapture={stopPropagation}
-            onPointerUpCapture={stopPropagation}
-            onClickCapture={stopPropagation}
-            onClick={handleVideoClick}
-            onDoubleClick={stopPropagation}
-            onLoadedMetadata={(event) => {
-              setDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0);
-              setCurrentTime(
-                Number.isFinite(event.currentTarget.currentTime)
-                  ? event.currentTarget.currentTime
-                  : 0,
-              );
-              setPlaybackRate(event.currentTarget.playbackRate || 1);
-              setIsReady(true);
-              setVolume(event.currentTarget.volume);
-              setIsMuted(event.currentTarget.muted);
-              syncPictureInPictureCapability();
-            }}
-            onTimeUpdate={(event) => {
-              setCurrentTime(
-                Number.isFinite(event.currentTarget.currentTime)
-                  ? event.currentTarget.currentTime
-                  : 0,
-              );
-            }}
-            onDurationChange={(event) => {
-              setDuration(
-                Number.isFinite(event.currentTarget.duration)
-                  ? event.currentTarget.duration
-                  : 0,
-              );
-            }}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => {
-              setIsPlaying(false);
-              setCurrentTime(duration);
-            }}
-            onRateChange={(event) => {
-              setPlaybackRate(event.currentTarget.playbackRate || 1);
-            }}
-            onVolumeChange={(event) => {
-              setVolume(event.currentTarget.volume);
-              setIsMuted(event.currentTarget.muted);
-            }}
-            onEnterPictureInPicture={() => setIsInPictureInPicture(true)}
-            onLeavePictureInPicture={() => setIsInPictureInPicture(false)}
-            onCanPlay={syncPictureInPictureCapability}
-            onLoadedData={syncPictureInPictureCapability}
-          >
-            <track kind="captions" />
-          </video>
-        </div>
-      </div>
-
-      <div
-        className={[
-          styles.controls,
-          isMobilePlayer ? styles.controlsMobile : styles.controlsDesktop,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        onClick={stopPropagation}
-        onDoubleClick={stopPropagation}
-        onPointerDown={stopPropagation}
-        onPointerMove={stopPropagation}
-        onPointerUp={stopPropagation}
-        onTouchStart={stopPropagation}
-        onTouchMove={stopPropagation}
-        onTouchEnd={stopPropagation}
-      >
-        {!isMobilePlayer && (
-          <div className={styles.controlsTop}>
-            <div className={styles.leadingControls}>
-              <button
-                type="button"
-                className={styles.iconButton}
-                aria-label={isMuted || volume === 0 ? "Включить звук" : "Выключить звук"}
-                onClick={() => void handleToggleMute()}
-              >
-                <VolumeIcon muted={isMuted || volume === 0} />
-              </button>
-              <input
-                type="range"
-                className={[styles.range, styles.volumeRange].join(" ")}
-                min={0}
-                max={1}
-                step={0.01}
-                value={isMuted ? 0 : volume}
-                style={volumeStyle}
-                aria-label="Громкость"
-                onChange={(event) => {
-                  handleVolumeChange(Number(event.currentTarget.value));
-                }}
-              />
-            </div>
-
-            <button
-              type="button"
-              className={styles.playPauseButton}
-              aria-label={isPlaying ? "Пауза" : "Воспроизвести"}
-              onClick={() => void handleTogglePlayback()}
-            >
-              {isPlaying ? <PauseIcon /> : <PlayIcon />}
-            </button>
-
-            <div className={styles.trailingControls}>
-              {/* <button
-                type="button"
-                className={styles.iconButton}
-                aria-label="Открыть на весь экран"
-                onClick={() => void onRequestFullscreen()}
-              >
-                <ExpandIcon />
-              </button> */}
-
-              {canUsePictureInPicture && (
-                <button
-                  type="button"
-                  className={[
-                    styles.iconButton,
-                    isInPictureInPicture ? styles.iconButtonActive : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-label="Картинка в картинке"
-                  onClick={() => void handleTogglePictureInPicture()}
-                >
-                  <PictureInPictureIcon />
-                </button>
-              )}
-
-              <div className={styles.settingsWrap}>
-                <button
-                  type="button"
-                  className={[
-                    styles.iconButton,
-                    isRateMenuOpen ? styles.iconButtonActive : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  aria-label="Скорость воспроизведения"
-                  onClick={() => {
-                    setIsRateMenuOpen((prev) => !prev);
-                  }}
-                >
-                  <SettingsIcon />
-                </button>
-
-                {isRateMenuOpen && (
-                  <div className={styles.rateMenu}>
-                    <div className={styles.rateMenuHeader}>
-                      <span className={styles.rateMenuValue}>
-                        {playbackRate.toFixed(1)}x
-                      </span>
-                      <div className={styles.rateMenuMeter}>
-                        <div
-                          className={styles.rateMenuMeterFill}
-                          style={{
-                            width: `${((playbackRate - 0.5) / 1.5) * 100}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className={styles.rateMenuList}>
-                      {PLAYBACK_RATE_OPTIONS.map((option) => {
-                        const isSelected = playbackRate === option.value;
-
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={[
-                              styles.rateOption,
-                              isSelected ? styles.rateOptionSelected : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                            onClick={() => {
-                              handleSetPlaybackRate(option.value);
-                            }}
-                          >
-                            <span className={styles.rateOptionValue}>
-                              {option.value.toFixed(1)}x
-                            </span>
-                            <span className={styles.rateOptionLabel}>
-                              {option.label}
-                            </span>
-                            <span className={styles.rateOptionCheck}>
-                              {isSelected ? "✓" : ""}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div
-          className={[styles.timeline, isMobilePlayer ? styles.timelineMobile : ""]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <span className={styles.timeLabel}>{formatTime(currentTime)}</span>
-          <input
-            type="range"
-            className={[styles.range, styles.progressRange].join(" ")}
-            min={0}
-            max={duration > 0 ? duration : 0}
-            step={0.1}
-            value={duration > 0 ? Math.min(currentTime, duration) : 0}
-            style={progressStyle}
-            aria-label="Позиция видео"
-            disabled={!isReady || duration <= 0}
-            onChange={(event) => {
-              handleSeek(Number(event.currentTarget.value));
-            }}
-          />
-          <span className={styles.timeLabel}>-{remainingLabel}</span>
-        </div>
+          <track kind="captions" />
+        </video>
       </div>
     </div>
+  );
+
+  const SelectedView =
+    layout === "mobile"
+      ? LightboxVideoPlayerMobileView
+      : LightboxVideoPlayerDesktopView;
+
+  const viewProps: LightboxVideoPlayerViewProps = {
+    rootRef,
+    mediaViewport,
+    isReady,
+    isPlaying,
+    duration,
+    currentTime,
+    volume,
+    isMuted,
+    playbackRate,
+    isRateMenuOpen,
+    canUsePictureInPicture,
+    isInPictureInPicture,
+    progressStyle,
+    volumeStyle,
+    remainingLabel,
+    onTogglePlayback: () => {
+      void handleTogglePlayback();
+    },
+    onSeek: handleSeek,
+    onVolumeChange: handleVolumeChange,
+    onToggleMute: handleToggleMute,
+    onSetPlaybackRate: handleSetPlaybackRate,
+    onToggleRateMenu: () => {
+      setIsRateMenuOpen((previousValue) => !previousValue);
+    },
+    onTogglePictureInPicture: () => {
+      void handleTogglePictureInPicture();
+    },
+    onControlsInteraction: stopPropagation,
+  };
+
+  return (
+    <Suspense fallback={<LightboxVideoPlayerFallback mediaViewport={mediaViewport} />}>
+      <SelectedView {...viewProps} />
+    </Suspense>
   );
 }

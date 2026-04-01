@@ -9,7 +9,7 @@ import { decodePresenceSessionResponse } from "../../dto";
  */
 export async function ensurePresenceSession(
   apiClient: AxiosInstance,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; wsAuthToken: string | null }> {
   const response = await apiClient.get<unknown>("/auth/presence-session/");
   return decodePresenceSessionResponse(response.data);
 }

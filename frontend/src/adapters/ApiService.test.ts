@@ -20,11 +20,13 @@ const friendItem = {
 
 const group = {
   roomId: 101,
-  roomTarget: "101",
+  roomTarget: "group_one",
   name: "Group One",
   description: "group description",
   isPublic: true,
   username: "group_one",
+  publicId: "grp_101",
+  publicRef: "group_one",
   memberCount: 2,
   slowModeSeconds: 0,
   joinApprovalRequired: false,
@@ -41,6 +43,8 @@ const groupList = {
       name: group.name,
       description: group.description,
       username: group.username,
+      publicId: group.publicId,
+      publicRef: group.publicRef,
       memberCount: group.memberCount,
       avatarUrl: null,
       avatarCrop: null,
@@ -118,7 +122,11 @@ describe("ApiService", () => {
     server.use(
       http.post("/api/auth/login/", async ({ request }) => {
         receivedToken = request.headers.get("x-csrftoken");
-        return HttpResponse.json({ authenticated: true, user: null });
+        return HttpResponse.json({
+          authenticated: true,
+          user: null,
+          wsAuthToken: null,
+        });
       }),
     );
 
@@ -139,7 +147,11 @@ describe("ApiService", () => {
     server.use(
       http.post("/api/auth/login/", async ({ request }) => {
         receivedToken = request.headers.get("x-csrftoken");
-        return HttpResponse.json({ authenticated: true, user: null });
+        return HttpResponse.json({
+          authenticated: true,
+          user: null,
+          wsAuthToken: null,
+        });
       }),
     );
 
@@ -313,7 +325,11 @@ describe("ApiService", () => {
     server.use(
       http.get("/api/auth/session/", ({ request }) => {
         sessionCsrfHeader = request.headers.get("x-csrftoken");
-        return HttpResponse.json({ authenticated: false, user: null });
+        return HttpResponse.json({
+          authenticated: false,
+          user: null,
+          wsAuthToken: null,
+        });
       }),
       http.get("/api/auth/password-rules/", () =>
         HttpResponse.json({ rules: ["min length"] }),
@@ -399,7 +415,7 @@ describe("ApiService", () => {
   it("supports presence-session and client-config endpoints", async () => {
     server.use(
       http.get("/api/auth/presence-session/", () =>
-        HttpResponse.json({ ok: true }),
+        HttpResponse.json({ ok: true, wsAuthToken: "guest-token" }),
       ),
       http.get("/api/meta/client-config/", () =>
         HttpResponse.json({
@@ -418,6 +434,7 @@ describe("ApiService", () => {
 
     await expect(apiService.ensurePresenceSession()).resolves.toEqual({
       ok: true,
+      wsAuthToken: "guest-token",
     });
     await expect(apiService.getClientConfig()).resolves.toMatchObject({
       mediaMode: "signed_only",
@@ -439,6 +456,7 @@ describe("ApiService", () => {
         receivedAccessToken = payload.accessToken ?? "";
         return HttpResponse.json({
           authenticated: true,
+          wsAuthToken: "oauth-token",
           user: {
             name: "Google User",
             handle: "googleuser",
@@ -609,7 +627,7 @@ describe("ApiService", () => {
           username: "group_one",
         })
       ).roomTarget,
-    ).toBe("101");
+    ).toBe(group.roomTarget);
     expect(
       (
         await apiService.getPublicGroups({
@@ -869,8 +887,8 @@ describe("ApiService", () => {
               roomId: 101,
               name: group.name,
               description: group.description,
-              publicRef: group.username ? `@${group.username}` : "",
-              roomTarget: group.username ? `@${group.username}` : "101",
+              publicRef: group.publicRef,
+              roomTarget: group.roomTarget,
               memberCount: group.memberCount,
               isPublic: true,
             },
@@ -885,7 +903,7 @@ describe("ApiService", () => {
               roomId: 101,
               roomName: group.name,
               roomKind: "group",
-              roomTarget: group.username ? `@${group.username}` : "101",
+              roomTarget: group.roomTarget,
             },
           ],
         });

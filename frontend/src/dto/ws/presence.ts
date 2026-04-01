@@ -65,11 +65,15 @@ export type PresenceWsEvent =
 export const decodePresenceWsEvent = (raw: string): PresenceWsEvent => {
   const payload = parseJson(raw);
   if (!payload || typeof payload !== "object") {
-    return { type: "unknown" };
+    return {
+      type: "unknown",
+    };
   }
 
   if (safeDecode(pingSchema, payload)) {
-    return { type: "ping" };
+    return {
+      type: "ping",
+    };
   }
 
   const state = safeDecode(presenceStateSchema, payload);

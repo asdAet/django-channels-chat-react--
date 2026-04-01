@@ -13,8 +13,10 @@ import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
 import { isPrefixlessChatPath } from "../shared/lib/chatTarget";
 import { debugLog } from "../shared/lib/debug";
+import { DeviceProvider } from "../shared/lib/device";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { PresenceProvider } from "../shared/presence";
+import { WsAuthProvider } from "../shared/wsAuth";
 import appStyles from "../styles/app/AppAuthPage.module.css";
 import { AppShell } from "../widgets/layout/AppShell";
 import { AppRoutes } from "./routes";
@@ -500,24 +502,26 @@ function AppInner() {
   );
 
   return (
-    <PresenceProvider user={auth.user} ready={!auth.loading}>
-      <DirectInboxProvider user={auth.user} ready={!auth.loading}>
-        {isAuthRoute ? (
-          <div className={appStyles.authPage}>{routesElement}</div>
-        ) : (
-          <AppShell
-            user={auth.user}
-            onNavigate={onNavigate}
-            onLogout={handleLogout}
-            banner={banner}
-            error={error}
-            isAuthRoute={isAuthRoute}
-          >
-            {routesElement}
-          </AppShell>
-        )}
-      </DirectInboxProvider>
-    </PresenceProvider>
+    <WsAuthProvider token={auth.wsAuthToken}>
+      <PresenceProvider user={auth.user} ready={!auth.loading}>
+        <DirectInboxProvider user={auth.user} ready={!auth.loading}>
+          {isAuthRoute ? (
+            <div className={appStyles.authPage}>{routesElement}</div>
+          ) : (
+            <AppShell
+              user={auth.user}
+              onNavigate={onNavigate}
+              onLogout={handleLogout}
+              banner={banner}
+              error={error}
+              isAuthRoute={isAuthRoute}
+            >
+              {routesElement}
+            </AppShell>
+          )}
+        </DirectInboxProvider>
+      </PresenceProvider>
+    </WsAuthProvider>
   );
 }
 
@@ -530,7 +534,9 @@ export function App() {
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
       <RuntimeConfigProvider>
-        <AppInner />
+        <DeviceProvider>
+          <AppInner />
+        </DeviceProvider>
       </RuntimeConfigProvider>
     </BrowserRouter>
   );

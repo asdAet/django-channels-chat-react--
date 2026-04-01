@@ -120,6 +120,7 @@ function ShellLayout({
             .join(" ")}
           onClick={closeDrawer}
           aria-label="Закрыть меню"
+          data-testid="app-shell-sidebar-backdrop"
         />
       )}
 
@@ -131,6 +132,10 @@ function ShellLayout({
           .filter(Boolean)
           .join(" ")}
         aria-hidden={isMobileViewport && !isDrawerOpen}
+        data-testid="app-shell-sidebar-pane"
+        data-mobile-drawer-open={
+          isMobileViewport && isDrawerOpen ? "true" : "false"
+        }
       >
         <Sidebar
           user={user}

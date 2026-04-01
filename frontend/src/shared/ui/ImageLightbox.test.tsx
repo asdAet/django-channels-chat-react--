@@ -1,4 +1,4 @@
-﻿import { act, createEvent, fireEvent, render, screen } from "@testing-library/react";
+import { act, createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ImageLightbox } from "./ImageLightbox";
@@ -13,12 +13,58 @@ const baseMetadata = {
   height: 720,
 };
 
-const installMatchMedia = (matches: boolean) => {
+const createMediaItem = (attachmentId: number, fileName: string) => ({
+  src: `/media/${fileName}`,
+  kind: "image" as const,
+  alt: fileName.replace(".png", ""),
+  metadata: {
+    ...baseMetadata,
+    attachmentId,
+    fileName,
+  },
+});
+
+const installDeviceEnvironment = ({
+  viewportWidth,
+  viewportHeight = 720,
+  coarsePointer,
+  canHover,
+}: {
+  viewportWidth: number;
+  viewportHeight?: number;
+  coarsePointer?: boolean;
+  canHover?: boolean;
+}) => {
+  const isCoarsePointer = coarsePointer ?? viewportWidth <= 768;
+  const canUseHover = canHover ?? !isCoarsePointer;
+
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: viewportWidth,
+  });
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    writable: true,
+    value: viewportHeight,
+  });
+  Object.defineProperty(window.navigator, "maxTouchPoints", {
+    configurable: true,
+    value: isCoarsePointer ? 1 : 0,
+  });
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
-      matches,
+      matches:
+        (query.includes("pointer: coarse") ||
+          query.includes("any-pointer: coarse")) &&
+        isCoarsePointer
+          ? true
+          : (query.includes("pointer: fine") && !isCoarsePointer) ||
+              ((query.includes("hover: hover") ||
+                query.includes("any-hover: hover")) &&
+                canUseHover),
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -30,9 +76,22 @@ const installMatchMedia = (matches: boolean) => {
   });
 };
 
+const waitForDesktopView = async () => {
+  await screen.findByTestId("image-lightbox-desktop-view");
+};
+
+const waitForMobileView = async () => {
+  await screen.findByTestId("image-lightbox-mobile-view");
+};
+
 describe("ImageLightbox", () => {
   beforeEach(() => {
-    installMatchMedia(false);
+    installDeviceEnvironment({ viewportWidth: 1280 });
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -40,7 +99,7 @@ describe("ImageLightbox", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders image metadata in preview mode", () => {
+  it("renders image metadata in preview mode", async () => {
     render(
       <ImageLightbox
         src="/media/preview.png"
@@ -49,6 +108,8 @@ describe("ImageLightbox", () => {
         onClose={vi.fn()}
       />,
     );
+
+    await waitForDesktopView();
 
     expect(
       screen.getByRole("dialog", { name: /Просмотр изображения/i }),
@@ -60,8 +121,7 @@ describe("ImageLightbox", () => {
     expect(screen.getByText(/1280x720/i)).toBeInTheDocument();
   });
 
-  it("does not close when the overlay background is clicked", () => {
-    vi.useFakeTimers();
+  it("does not close when the overlay background is clicked", async () => {
     const onClose = vi.fn();
 
     render(
@@ -73,17 +133,13 @@ describe("ImageLightbox", () => {
       />,
     );
 
+    await waitForDesktopView();
     fireEvent.click(screen.getByRole("dialog"));
-
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
 
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("closes after pressing the close button and waiting for the animation", () => {
-    vi.useFakeTimers();
+  it("closes after pressing the close button and waiting for the animation", async () => {
     const onClose = vi.fn();
     const historyBackSpy = vi
       .spyOn(window.history, "back")
@@ -98,6 +154,8 @@ describe("ImageLightbox", () => {
       />,
     );
 
+    await waitForDesktopView();
+    vi.useFakeTimers();
     fireEvent.click(screen.getByRole("button", { name: "Закрыть" }));
     expect(historyBackSpy).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
@@ -114,7 +172,7 @@ describe("ImageLightbox", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("renders video player when kind is video", () => {
+  it("renders a desktop video player variant for video media", async () => {
     const { container } = render(
       <ImageLightbox
         src="/media/video.mp4"
@@ -130,39 +188,30 @@ describe("ImageLightbox", () => {
       />,
     );
 
+    await waitForDesktopView();
+    await screen.findByTestId("lightbox-video-player-desktop");
     expect(
       screen.getByRole("dialog", { name: /Просмотр видео/i }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("lightbox-video-player-desktop")).toBeInTheDocument();
+    expect(screen.queryByTestId("lightbox-video-player-mobile")).not.toBeInTheDocument();
     expect(container.querySelector("video")).toBeInTheDocument();
   });
 
-  it("uses a single desktop stage without side previews", () => {
+  it("uses a single desktop stage without mobile deck markup", async () => {
     render(
       <ImageLightbox
         mediaItems={[
-          {
-            src: "/media/one.png",
-            kind: "image",
-            alt: "one",
-            metadata: { ...baseMetadata, attachmentId: 1, fileName: "one.png" },
-          },
-          {
-            src: "/media/two.png",
-            kind: "image",
-            alt: "two",
-            metadata: { ...baseMetadata, attachmentId: 2, fileName: "two.png" },
-          },
-          {
-            src: "/media/three.png",
-            kind: "image",
-            alt: "three",
-            metadata: { ...baseMetadata, attachmentId: 3, fileName: "three.png" },
-          },
+          createMediaItem(1, "one.png"),
+          createMediaItem(2, "two.png"),
+          createMediaItem(3, "three.png"),
         ]}
         initialIndex={1}
         onClose={vi.fn()}
       />,
     );
+
+    await waitForDesktopView();
 
     expect(screen.getByTestId("lightbox-desktop-stage")).toBeInTheDocument();
     expect(screen.queryByTestId("lightbox-mobile-deck")).not.toBeInTheDocument();
@@ -171,28 +220,16 @@ describe("ImageLightbox", () => {
     expect(screen.queryByAltText("three")).not.toBeInTheDocument();
   });
 
-  it("supports navigation across media items on desktop", () => {
+  it("supports navigation across media items on desktop", async () => {
     render(
       <ImageLightbox
-        mediaItems={[
-          {
-            src: "/media/one.png",
-            kind: "image",
-            alt: "one",
-            metadata: { ...baseMetadata, attachmentId: 1, fileName: "one.png" },
-          },
-          {
-            src: "/media/two.png",
-            kind: "image",
-            alt: "two",
-            metadata: { ...baseMetadata, attachmentId: 2, fileName: "two.png" },
-          },
-        ]}
+        mediaItems={[createMediaItem(1, "one.png"), createMediaItem(2, "two.png")]}
         initialIndex={0}
         onClose={vi.fn()}
       />,
     );
 
+    await waitForDesktopView();
     expect(screen.getByText("one.png")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Следующее медиа/i }));
@@ -202,31 +239,24 @@ describe("ImageLightbox", () => {
     expect(screen.getByText("one.png")).toBeInTheDocument();
   });
 
-  it("keeps the mobile underlay fullscreen and updates the index after settle", () => {
-    installMatchMedia(true);
+  it("renders only the mobile deck and updates the current item after swipe settle", async () => {
+    installDeviceEnvironment({ viewportWidth: 390 });
 
     render(
       <ImageLightbox
-        mediaItems={[
-          {
-            src: "/media/one.png",
-            kind: "image",
-            alt: "one",
-            metadata: { ...baseMetadata, attachmentId: 1, fileName: "one.png" },
-          },
-          {
-            src: "/media/two.png",
-            kind: "image",
-            alt: "two",
-            metadata: { ...baseMetadata, attachmentId: 2, fileName: "two.png" },
-          },
-        ]}
+        mediaItems={[createMediaItem(1, "one.png"), createMediaItem(2, "two.png")]}
         initialIndex={0}
         onClose={vi.fn()}
       />,
     );
 
+    await waitForMobileView();
+
     const viewport = screen.getByTestId("lightbox-media-viewport");
+    const track = screen.getByTestId("lightbox-mobile-track");
+
+    expect(screen.getByTestId("lightbox-mobile-deck")).toBeInTheDocument();
+    expect(screen.queryByTestId("lightbox-desktop-stage")).not.toBeInTheDocument();
 
     fireEvent.touchStart(viewport, {
       touches: [{ clientX: 220, clientY: 180 }],
@@ -235,92 +265,34 @@ describe("ImageLightbox", () => {
       touches: [{ clientX: 120, clientY: 176 }],
     });
 
-    expect(screen.getByTestId("lightbox-mobile-deck")).toBeInTheDocument();
-    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
-      "data-direction",
-      "next",
-    );
-    expect(screen.getByTestId("lightbox-mobile-overlay").getAttribute("style")).toContain(
-      "translate3d(-100px, 0px, 0)",
-    );
-    expect(
-      screen.getByTestId("lightbox-mobile-overlay").getAttribute("style"),
-    ).not.toContain("scale(");
-    expect(
-      screen.getByTestId("lightbox-mobile-overlay").getAttribute("style"),
-    ).not.toContain("rotate(");
-    expect(
-      screen.getByTestId("lightbox-mobile-base-transform"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
-    ).not.toContain("scale(");
-    expect(
-      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
-    ).toContain("translate3d(");
-    expect(
-      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
-    ).not.toContain("translate3d(0px, 0px, 0px)");
+    expect(track.getAttribute("style")).toContain("translate3d(-100px, 0px, 0px)");
 
     fireEvent.touchEnd(viewport, {
       changedTouches: [{ clientX: 120, clientY: 176 }],
     });
 
-    expect(screen.getByTestId("lightbox-mobile-overlay")).toHaveAttribute(
-      "data-settling",
-      "true",
-    );
-    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
-      "data-settling",
-      "true",
-    );
-    expect(
-      screen.getByTestId("lightbox-mobile-overlay").getAttribute("style"),
-    ).not.toContain("translate3d(0px, 0px, 0)");
-    expect(screen.getByText("one.png")).toBeInTheDocument();
-
-    fireEvent.transitionEnd(screen.getByTestId("lightbox-mobile-overlay"), {
+    fireEvent.transitionEnd(track, {
       propertyName: "transform",
     });
 
-    expect(
-      screen.queryByTestId("lightbox-mobile-overlay"),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
-      "data-settling",
-      "false",
-    );
-    expect(
-      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
-    ).toContain("translate3d(0px, 0px, 0)");
     expect(screen.getByText("two.png")).toBeInTheDocument();
   });
 
-  it("returns the current mobile media smoothly when swipe is cancelled", () => {
-    installMatchMedia(true);
+  it("returns to the current mobile item when horizontal swipe is cancelled", async () => {
+    installDeviceEnvironment({ viewportWidth: 390 });
 
     render(
       <ImageLightbox
-        mediaItems={[
-          {
-            src: "/media/one.png",
-            kind: "image",
-            alt: "one",
-            metadata: { ...baseMetadata, attachmentId: 1, fileName: "one.png" },
-          },
-          {
-            src: "/media/two.png",
-            kind: "image",
-            alt: "two",
-            metadata: { ...baseMetadata, attachmentId: 2, fileName: "two.png" },
-          },
-        ]}
+        mediaItems={[createMediaItem(1, "one.png"), createMediaItem(2, "two.png")]}
         initialIndex={0}
         onClose={vi.fn()}
       />,
     );
 
+    await waitForMobileView();
+
     const viewport = screen.getByTestId("lightbox-media-viewport");
+    const track = screen.getByTestId("lightbox-mobile-track");
 
     fireEvent.touchStart(viewport, {
       touches: [{ clientX: 220, clientY: 180 }],
@@ -328,22 +300,19 @@ describe("ImageLightbox", () => {
     fireEvent.touchMove(viewport, {
       touches: [{ clientX: 170, clientY: 176 }],
     });
-
     fireEvent.touchEnd(viewport, {
       changedTouches: [{ clientX: 170, clientY: 176 }],
     });
+    fireEvent.transitionEnd(track, {
+      propertyName: "transform",
+    });
 
     expect(screen.getByText("one.png")).toBeInTheDocument();
-    expect(screen.getByTestId("lightbox-mobile-base")).toHaveAttribute(
-      "data-settling",
-      "false",
-    );
-    expect(
-      screen.getByTestId("lightbox-mobile-base").getAttribute("style"),
-    ).toContain("translate3d(0px, 0px, 0)");
+    expect(track.getAttribute("style")).toContain("translate3d(0px, 0px, 0px)");
   });
-  it("closes after a vertical swipe gesture", () => {
-    vi.useFakeTimers();
+
+  it("closes after a vertical swipe gesture on mobile", async () => {
+    installDeviceEnvironment({ viewportWidth: 390 });
     const onClose = vi.fn();
     const historyBackSpy = vi
       .spyOn(window.history, "back")
@@ -358,6 +327,8 @@ describe("ImageLightbox", () => {
       />,
     );
 
+    await waitForMobileView();
+    vi.useFakeTimers();
     const viewport = screen.getByTestId("lightbox-media-viewport");
 
     fireEvent.touchStart(viewport, {
@@ -379,8 +350,7 @@ describe("ImageLightbox", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("closes on browser back before page navigation", () => {
-    vi.useFakeTimers();
+  it("closes on browser back before page navigation", async () => {
     const onClose = vi.fn();
 
     render(
@@ -391,6 +361,9 @@ describe("ImageLightbox", () => {
         onClose={onClose}
       />,
     );
+
+    await waitForDesktopView();
+    vi.useFakeTimers();
 
     act(() => {
       window.dispatchEvent(new PopStateEvent("popstate"));
@@ -404,7 +377,7 @@ describe("ImageLightbox", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("zooms media with ctrl + wheel", () => {
+  it("zooms media with ctrl + wheel", async () => {
     render(
       <ImageLightbox
         src="/media/preview.png"
@@ -413,6 +386,8 @@ describe("ImageLightbox", () => {
         onClose={vi.fn()}
       />,
     );
+
+    await waitForDesktopView();
 
     const viewport = screen.getByTestId("lightbox-media-viewport");
     const transform = screen.getByTestId("lightbox-media-transform");
@@ -427,7 +402,7 @@ describe("ImageLightbox", () => {
     expect(transform.getAttribute("style")).toContain("scale(1.2)");
   });
 
-  it("toggles zoom with double click", () => {
+  it("toggles zoom with double click", async () => {
     render(
       <ImageLightbox
         src="/media/preview.png"
@@ -436,6 +411,8 @@ describe("ImageLightbox", () => {
         onClose={vi.fn()}
       />,
     );
+
+    await waitForDesktopView();
 
     const viewport = screen.getByTestId("lightbox-media-viewport");
     const transform = screen.getByTestId("lightbox-media-transform");
@@ -447,8 +424,8 @@ describe("ImageLightbox", () => {
     expect(transform.getAttribute("style")).toContain("scale(1)");
   });
 
-  it("toggles zoom with double tap", () => {
-    installMatchMedia(true);
+  it("toggles zoom with double tap", async () => {
+    installDeviceEnvironment({ viewportWidth: 390 });
 
     render(
       <ImageLightbox
@@ -458,6 +435,8 @@ describe("ImageLightbox", () => {
         onClose={vi.fn()}
       />,
     );
+
+    await waitForMobileView();
 
     const viewport = screen.getByTestId("lightbox-media-viewport");
     const transform = screen.getByTestId("lightbox-media-transform");
@@ -499,8 +478,8 @@ describe("ImageLightbox", () => {
     expect(transform.getAttribute("style")).toContain("scale(1)");
   });
 
-  it("ignores the synthetic double click that can follow a touch double tap", () => {
-    installMatchMedia(true);
+  it("ignores the synthetic double click that can follow a touch double tap", async () => {
+    installDeviceEnvironment({ viewportWidth: 390 });
 
     render(
       <ImageLightbox
@@ -510,6 +489,8 @@ describe("ImageLightbox", () => {
         onClose={vi.fn()}
       />,
     );
+
+    await waitForMobileView();
 
     const viewport = screen.getByTestId("lightbox-media-viewport");
     const transform = screen.getByTestId("lightbox-media-transform");
@@ -563,8 +544,8 @@ describe("ImageLightbox", () => {
     expect(transform.getAttribute("style")).toContain("scale(1)");
   });
 
-  it("supports pinch-to-zoom on touch devices", () => {
-    installMatchMedia(true);
+  it("supports pinch-to-zoom on touch devices", async () => {
+    installDeviceEnvironment({ viewportWidth: 390 });
 
     render(
       <ImageLightbox
@@ -574,6 +555,8 @@ describe("ImageLightbox", () => {
         onClose={vi.fn()}
       />,
     );
+
+    await waitForMobileView();
 
     const viewport = screen.getByTestId("lightbox-media-viewport");
     const transform = screen.getByTestId("lightbox-media-transform");
@@ -594,7 +577,7 @@ describe("ImageLightbox", () => {
     expect(transform.getAttribute("style")).not.toContain("scale(1);");
   });
 
-  it("prevents default browser zoom while lightbox handles ctrl + wheel", () => {
+  it("prevents default browser zoom while lightbox handles ctrl + wheel", async () => {
     render(
       <ImageLightbox
         src="/media/preview.png"
@@ -603,6 +586,8 @@ describe("ImageLightbox", () => {
         onClose={vi.fn()}
       />,
     );
+
+    await waitForDesktopView();
 
     const viewport = screen.getByTestId("lightbox-media-viewport");
     const wheelEvent = new WheelEvent("wheel", {
@@ -635,6 +620,7 @@ describe("ImageLightbox", () => {
       />,
     );
 
+    await waitForDesktopView();
     fireEvent.click(screen.getByRole("button", { name: /Развернуть/i }));
 
     await act(async () => {

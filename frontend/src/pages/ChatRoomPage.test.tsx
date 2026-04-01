@@ -16,6 +16,7 @@ const wsState = vi.hoisted(() => ({
   lastError: null as string | null,
   send: vi.fn<(payload: string) => boolean>(),
   options: null as {
+    url?: string | null;
     onMessage?: (event: MessageEvent) => void;
   } | null,
 }));
@@ -121,7 +122,10 @@ vi.mock("../hooks/useOnlineStatus", () => ({
 
 vi.mock("../hooks/useReconnectingWebSocket", () => ({
   useReconnectingWebSocket: (options: unknown) => {
-    wsState.options = options as { onMessage?: (event: MessageEvent) => void };
+    wsState.options = options as {
+      url?: string | null;
+      onMessage?: (event: MessageEvent) => void;
+    };
     return {
       status: wsState.status,
       lastError: wsState.lastError,
@@ -179,6 +183,7 @@ vi.mock("../controllers/GroupController", () => ({
   groupController: groupControllerMock,
 }));
 
+import { WsAuthProvider } from "../shared/wsAuth";
 import { ChatRoomPage } from "./ChatRoomPage";
 
 const user = {
@@ -301,6 +306,22 @@ describe("ChatRoomPage", () => {
 
     expect(screen.getByTestId("chat-auth-callout")).toBeInTheDocument();
     expect(screen.queryByLabelText("Сообщение")).toBeNull();
+  });
+
+  it("appends ws auth token to chat websocket url for authenticated user", () => {
+    render(
+      <WsAuthProvider token="auth-token">
+        <ChatRoomPage
+          roomId="1"
+          initialRoomKind="public"
+          user={user}
+          onNavigate={vi.fn()}
+        />
+      </WsAuthProvider>,
+    );
+
+    expect(wsState.options?.url).toContain("/ws/chat/1/");
+    expect(wsState.options?.url).toContain("wst=auth-token");
   });
 
   it("opens the mobile drawer from room chats", () => {

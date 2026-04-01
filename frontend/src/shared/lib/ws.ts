@@ -18,6 +18,8 @@ const resolveDevWsOrigin = (scheme: "ws" | "wss"): string => {
   return `${scheme}://${raw.replace(/\/+$/, "")}`;
 };
 
+type WebSocketQueryValue = string | number | boolean | null | undefined;
+
 /**
  * Возвращает web socket base.
  */
@@ -32,3 +34,24 @@ export const getWebSocketBase = () => {
 
   return `${scheme}://${window.location.host}`;
 };
+
+export const appendWebSocketParams = (
+  url: string,
+  params: Record<string, WebSocketQueryValue>,
+) => {
+  const nextUrl = new URL(url);
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
+    nextUrl.searchParams.set(key, String(value));
+  }
+
+  return nextUrl.toString();
+};
+
+export const appendWebSocketAuthToken = (
+  url: string,
+  token: string | null | undefined,
+) => appendWebSocketParams(url, { wst: token?.trim() || undefined });

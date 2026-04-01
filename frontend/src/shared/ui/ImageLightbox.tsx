@@ -1,7 +1,9 @@
 import {
   type CSSProperties,
+  lazy,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  Suspense,
   type TouchEvent as ReactTouchEvent,
   type TransitionEvent as ReactTransitionEvent,
   useCallback,
@@ -13,15 +15,39 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
-import styles from "../../styles/ui/ImageLightbox.module.css";
+import mediaStyles from "../../styles/ui/ImageLightbox.media.module.css";
+import shellStyles from "../../styles/ui/ImageLightbox.module.css";
+import { useDevice } from "../lib/device";
+import {
+  loadImageLightboxDesktopView,
+  loadImageLightboxMobileView,
+} from "./ImageLightbox.loaders";
+import type {
+  GalleryMediaProps,
+  ImageLightboxMediaItem,
+  ImageLightboxProps,
+  ImageLightboxViewProps,
+  SingleMediaProps,
+} from "./ImageLightbox.types";
 import { LightboxVideoPlayer } from "./LightboxVideoPlayer";
+
+export type {
+  GalleryMediaProps,
+  ImageLightboxMediaItem,
+  ImageLightboxMediaKind,
+  ImageLightboxMetadata,
+  ImageLightboxProps,
+  SingleMediaProps,
+} from "./ImageLightbox.types";
+
+const ImageLightboxDesktopView = lazy(loadImageLightboxDesktopView);
+const ImageLightboxMobileView = lazy(loadImageLightboxMobileView);
 
 const EXIT_ANIMATION_MS = 200;
 const MIN_ZOOM_SCALE = 1;
 const MAX_ZOOM_SCALE = 6;
 const ZOOM_STEP = 0.2;
 const FRAME_FULL_AT_SCALE = 2.6;
-const MOBILE_BREAKPOINT_PX = 768;
 const SWIPE_AXIS_LOCK_PX = 14;
 const HORIZONTAL_SWIPE_TRIGGER_PX = 72;
 const VERTICAL_DISMISS_TRIGGER_PX = 96;
@@ -32,56 +58,11 @@ const IGNORE_SYNTHETIC_DOUBLE_CLICK_AFTER_TOUCH_MS = 500;
 const LIGHTBOX_HISTORY_STATE_KEY = "__imageLightbox";
 const MOBILE_TRACK_GAP_PX = 16;
 
-const EXPAND_LABEL = "Развернуть";
-const CLOSE_LABEL = "Закрыть";
-const PREVIOUS_MEDIA_LABEL = "Предыдущее медиа";
-const NEXT_MEDIA_LABEL = "Следующее медиа";
 const IMAGE_DIALOG_LABEL = "Просмотр изображения";
 const VIDEO_DIALOG_LABEL = "Просмотр видео";
 const SENT_PREFIX = "Отправлено";
 
 type MobileCarouselDirection = "previous" | "next";
-
-export type ImageLightboxMediaKind = "image" | "video";
-
-export type ImageLightboxMetadata = {
-  attachmentId: number;
-  fileName: string;
-  contentType: string;
-  fileSize: number;
-  sentAt: string;
-  width: number | null;
-  height: number | null;
-};
-
-export type ImageLightboxMediaItem = {
-  src: string;
-  kind: ImageLightboxMediaKind;
-  alt?: string;
-  metadata: ImageLightboxMetadata;
-};
-
-type SingleMediaProps = {
-  src: string;
-  alt?: string;
-  kind?: ImageLightboxMediaKind;
-  metadata: ImageLightboxMetadata;
-  mediaItems?: never;
-  initialIndex?: never;
-  onClose: () => void;
-};
-
-type GalleryMediaProps = {
-  mediaItems: ImageLightboxMediaItem[];
-  initialIndex?: number;
-  src?: never;
-  alt?: never;
-  kind?: never;
-  metadata?: never;
-  onClose: () => void;
-};
-
-type Props = SingleMediaProps | GalleryMediaProps;
 
 type ViewState = {
   scale: number;
@@ -176,14 +157,6 @@ const normalizeIndex = (value: number, size: number): number => {
   return remainder < 0 ? remainder + size : remainder;
 };
 
-const readIsMobileViewport = (): boolean => {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-
-  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches;
-};
-
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -232,10 +205,54 @@ const buildSingleItem = (props: SingleMediaProps): ImageLightboxMediaItem => ({
   metadata: props.metadata,
 });
 
-const isGalleryMediaProps = (value: Props): value is GalleryMediaProps =>
+const isGalleryMediaProps = (
+  value: ImageLightboxProps,
+): value is GalleryMediaProps =>
   Array.isArray((value as Partial<GalleryMediaProps>).mediaItems);
 
-export function ImageLightbox(props: Props) {
+function ImageLightboxFallback({
+  dialogLabel,
+  isClosing,
+  overlayStyle,
+  metadataLines,
+}: Pick<
+  ImageLightboxViewProps,
+  "dialogLabel" | "isClosing" | "overlayStyle" | "metadataLines"
+>) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={dialogLabel}
+      className={[shellStyles.overlay, isClosing ? shellStyles.exiting : ""]
+        .filter(Boolean)
+        .join(" ")}
+      style={overlayStyle}
+      data-testid="image-lightbox-loading"
+    >
+      <div className={shellStyles.frame}>
+        <div
+          className={shellStyles.mediaViewport}
+          data-testid="lightbox-media-viewport"
+        >
+          <div
+            className={mediaStyles.mediaTransform}
+            data-testid="lightbox-media-transform"
+          />
+        </div>
+      </div>
+
+      <div className={shellStyles.metaText}>
+        {metadataLines.map((line, index) => (
+          <div key={`${index}-${line}`}>{line}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ImageLightbox(props: ImageLightboxProps) {
+  const { isMobileViewport } = useDevice();
   const mediaItems = useMemo<ImageLightboxMediaItem[]>(
     () =>
       isGalleryMediaProps(props) ? props.mediaItems : [buildSingleItem(props)],
@@ -257,10 +274,10 @@ export function ImageLightbox(props: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [frameExpandProgress, setFrameExpandProgress] = useState(0);
   const [gesturePreview, setGesturePreview] = useState(DEFAULT_GESTURE_PREVIEW);
-  const [isMobileLayout, setIsMobileLayout] = useState(readIsMobileViewport);
   const [verticalDismissDirection, setVerticalDismissDirection] = useState<
     -1 | 1 | null
   >(null);
+  const isMobileLayout = isMobileViewport;
 
   const closeTimerRef = useRef<number | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -314,9 +331,9 @@ export function ImageLightbox(props: Props) {
   const syncScaleUi = useCallback((scale: number) => {
     setIsZoomed(scale > MIN_ZOOM_SCALE);
     setFrameExpandProgress(
-      readIsMobileViewport() ? 0 : resolveFrameExpandProgress(scale),
+      isMobileLayout ? 0 : resolveFrameExpandProgress(scale),
     );
-  }, []);
+  }, [isMobileLayout]);
 
   const resetGesturePreview = useCallback(() => {
     setGesturePreview(DEFAULT_GESTURE_PREVIEW);
@@ -386,14 +403,14 @@ export function ImageLightbox(props: Props) {
       );
 
       state.scale = clampedScale;
-      if (!readIsMobileViewport() && previousScale > 0) {
+      if (!isMobileLayout && previousScale > 0) {
         const scaleRatio = clampedScale / previousScale;
         state.offsetX *= scaleRatio;
         state.offsetY *= scaleRatio;
       }
 
       if (clampedScale === MIN_ZOOM_SCALE) {
-        if (readIsMobileViewport()) {
+        if (isMobileLayout) {
           state.offsetX = 0;
           state.offsetY = 0;
         }
@@ -403,7 +420,7 @@ export function ImageLightbox(props: Props) {
       syncScaleUi(clampedScale);
       applyTransform();
     },
-    [applyTransform, syncScaleUi],
+    [applyTransform, isMobileLayout, syncScaleUi],
   );
 
   const updateGesturePreview = useCallback(
@@ -539,30 +556,10 @@ export function ImageLightbox(props: Props) {
   }, []);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia?.(
-      `(max-width: ${MOBILE_BREAKPOINT_PX}px)`,
+    setFrameExpandProgress(
+      isMobileLayout ? 0 : resolveFrameExpandProgress(viewStateRef.current.scale),
     );
-    if (!mediaQuery) {
-      return;
-    }
-
-    const syncLayout = (matches: boolean) => {
-      setIsMobileLayout(matches);
-      setFrameExpandProgress(
-        matches ? 0 : resolveFrameExpandProgress(viewStateRef.current.scale),
-      );
-    };
-
-    syncLayout(mediaQuery.matches);
-    const handleChange = (event: MediaQueryListEvent) => {
-      syncLayout(event.matches);
-    };
-
-    mediaQuery.addEventListener?.("change", handleChange);
-    return () => {
-      mediaQuery.removeEventListener?.("change", handleChange);
-    };
-  }, []);
+  }, [isMobileLayout]);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -857,6 +854,10 @@ export function ImageLightbox(props: Props) {
       gesture.deltaX = deltaX;
       gesture.deltaY = deltaY;
 
+      if (!isMobileLayout) {
+        return;
+      }
+
       if (event.cancelable) {
         event.preventDefault();
       }
@@ -884,6 +885,7 @@ export function ImageLightbox(props: Props) {
       canGoNext,
       canGoPrevious,
       hasNavigation,
+      isMobileLayout,
       normalizedCurrentIndex,
       queueMobileTrackPosition,
       updateGesturePreview,
@@ -935,6 +937,12 @@ export function ImageLightbox(props: Props) {
         return;
       }
 
+      if (!isMobileLayout) {
+        resetGesturePreview();
+        applyTransform();
+        return;
+      }
+
       if (
         axis === "vertical" &&
         Math.abs(deltaY) >= VERTICAL_DISMISS_TRIGGER_PX
@@ -974,6 +982,7 @@ export function ImageLightbox(props: Props) {
       animateMobileCarouselToIndex,
       beginClose,
       hasNavigation,
+      isMobileLayout,
       mediaItems.length,
       normalizedCurrentIndex,
       registerTapOrToggleZoom,
@@ -1129,7 +1138,7 @@ export function ImageLightbox(props: Props) {
       if (item.kind === "video") {
         return (
           <video
-            className={styles.media}
+            className={mediaStyles.media}
             src={item.src}
             controls={isActive}
             playsInline
@@ -1145,7 +1154,7 @@ export function ImageLightbox(props: Props) {
 
       return (
         <img
-          className={styles.media}
+          className={mediaStyles.media}
           src={item.src}
           alt={item.alt ?? item.metadata.fileName}
           draggable={false}
@@ -1155,31 +1164,34 @@ export function ImageLightbox(props: Props) {
     [],
   );
 
-  const transformClassName = [
-    styles.mediaTransform,
-    isZoomed ? styles.mediaTransformZoomed : "",
-    isDragging ? styles.mediaTransformDragging : "",
-    gesturePreview.axis ? styles.mediaTransformGesture : "",
-    isMobileLayout ? styles.mobileMediaTransform : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  const mobileSlideTransformClassName = [
-    styles.mediaTransform,
-    styles.mobileMediaTransform,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const buildTransformClassName = useCallback(
+    (extraTransformClassName?: string) =>
+      [
+        mediaStyles.mediaTransform,
+        isZoomed ? mediaStyles.mediaTransformZoomed : "",
+        isDragging ? mediaStyles.mediaTransformDragging : "",
+        gesturePreview.axis ? mediaStyles.mediaTransformGesture : "",
+        extraTransformClassName ?? "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+    [gesturePreview.axis, isDragging, isZoomed],
+  );
 
   const renderActiveMediaElement = useCallback(
-    (item: ImageLightboxMediaItem) => {
+    (
+      item: ImageLightboxMediaItem,
+      extraTransformClassName?: string,
+    ) => {
+      const transformClassName =
+        buildTransformClassName(extraTransformClassName);
+
       if (item.kind === "video") {
         return (
           <LightboxVideoPlayer
             src={item.src}
             fileName={item.metadata.fileName}
-            mediaClassName={styles.media}
+            mediaClassName={mediaStyles.media}
             mediaTransformClassName={transformClassName}
             mediaTransformRef={transformRef}
             layout={isMobileLayout ? "mobile" : "desktop"}
@@ -1203,12 +1215,27 @@ export function ImageLightbox(props: Props) {
       );
     },
     [
+      buildTransformClassName,
       handleImageClick,
       handleOpenFullscreen,
       isMobileLayout,
       renderMediaElement,
-      transformClassName,
     ],
+  );
+
+  const renderPreviewMediaElement = useCallback(
+    (
+      item: ImageLightboxMediaItem,
+      extraTransformClassName?: string,
+    ) => (
+      <div
+        className={buildTransformClassName(extraTransformClassName)}
+        style={{ transform: "translate3d(0px, 0px, 0) scale(1)" }}
+      >
+        {renderMediaElement(item, false)}
+      </div>
+    ),
+    [buildTransformClassName, renderMediaElement],
   );
 
   const metadataLines = useMemo(() => {
@@ -1356,174 +1383,63 @@ export function ImageLightbox(props: Props) {
 
   const dialogLabel =
     currentItem.kind === "video" ? VIDEO_DIALOG_LABEL : IMAGE_DIALOG_LABEL;
-  const isDesktopFreeFrameLayout = !isMobileLayout;
+  const SelectedView = isMobileLayout
+    ? ImageLightboxMobileView
+    : ImageLightboxDesktopView;
+  const mobileTrackStyle = {
+    transform: `translate3d(calc(-${normalizedCurrentIndex} * (100vw + ${MOBILE_TRACK_GAP_PX}px)), 0px, 0px)`,
+  } satisfies CSSProperties;
+  const viewProps: ImageLightboxViewProps = {
+    currentItem,
+    mediaItems,
+    normalizedCurrentIndex,
+    normalizedDisplayIndex,
+    isClosing,
+    dialogLabel,
+    overlayStyle,
+    resolvedFrameStyle,
+    metadataLines,
+    hasNavigation,
+    canGoPrevious,
+    canGoNext,
+    showExpandButton: currentItem.kind !== "video",
+    overlayRef,
+    frameRef,
+    viewportRef,
+    mobileTrackRef,
+    mobileTrackStyle,
+    onMobileTrackTransitionEnd: handleMobileTrackTransitionEnd,
+    onStopClickPropagation: stopClickPropagation,
+    onViewportWheel: handleViewportWheel,
+    onPointerDown: handlePointerDown,
+    onPointerMove: handlePointerMove,
+    onEndPointerDrag: endPointerDrag,
+    onViewportBackgroundClick: handleViewportBackgroundClick,
+    onViewportDoubleClick: handleViewportDoubleClick,
+    onTouchStart: handleTouchStart,
+    onTouchMove: handleTouchMove,
+    onTouchEnd: handleTouchEnd,
+    onPreviousClick: handlePreviousClick,
+    onNextClick: handleNextClick,
+    onCloseClick: handleCloseClick,
+    onExpandClick: handleExpandClick,
+    renderActiveMediaElement,
+    renderPreviewMediaElement,
+  };
+
   return (
-    <div
-      ref={overlayRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={dialogLabel}
-      className={[styles.overlay, isClosing ? styles.exiting : ""]
-        .filter(Boolean)
-        .join(" ")}
-      style={overlayStyle}
+    <Suspense
+      fallback={
+        <ImageLightboxFallback
+          dialogLabel={dialogLabel}
+          isClosing={isClosing}
+          overlayStyle={overlayStyle}
+          metadataLines={metadataLines}
+        />
+      }
     >
-      {hasNavigation && (
-        <button
-          type="button"
-          className={[styles.navBtn, styles.navBtnPrev].join(" ")}
-          aria-label={PREVIOUS_MEDIA_LABEL}
-          onClick={handlePreviousClick}
-          disabled={!canGoPrevious}
-        >
-          <span className={styles.navBtnIcon} aria-hidden="true">
-            {"\u2039"}
-          </span>
-        </button>
-      )}
-
-      {hasNavigation && (
-        <button
-          type="button"
-          className={[styles.navBtn, styles.navBtnNext].join(" ")}
-          aria-label={NEXT_MEDIA_LABEL}
-          onClick={handleNextClick}
-          disabled={!canGoNext}
-        >
-          <span className={styles.navBtnIcon} aria-hidden="true">
-            {"\u203A"}
-          </span>
-        </button>
-      )}
-
-      <div
-        className={[
-          styles.frame,
-          isDesktopFreeFrameLayout ? styles.frameDesktopVideo : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        style={resolvedFrameStyle}
-        ref={frameRef}
-      >
-        <div className={styles.actions} onClick={stopClickPropagation}>
-          {currentItem.kind !== "video" && (
-            <button
-              type="button"
-              className={styles.actionBtn}
-              onClick={handleExpandClick}
-              aria-label={EXPAND_LABEL}
-            >
-              {"\u26F6"}
-            </button>
-          )}
-          <button
-            type="button"
-            className={styles.actionBtn}
-            onClick={handleCloseClick}
-            aria-label={CLOSE_LABEL}
-          >
-            {"\u00D7"}
-          </button>
-        </div>
-
-        <div
-          ref={viewportRef}
-          className={[
-            styles.mediaViewport,
-            isDesktopFreeFrameLayout ? styles.mediaViewportDesktop : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          data-testid="lightbox-media-viewport"
-          data-layout={isMobileLayout ? "mobile" : "desktop"}
-          onWheel={handleViewportWheel}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={endPointerDrag}
-          onPointerCancel={endPointerDrag}
-          onPointerLeave={endPointerDrag}
-          onClick={handleViewportBackgroundClick}
-          onDoubleClick={handleViewportDoubleClick}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-        >
-          {isMobileLayout ? (
-            <div className={styles.mobileDeck} data-testid="lightbox-mobile-deck">
-              <div
-                ref={mobileTrackRef}
-                className={styles.mobileTrack}
-                data-testid="lightbox-mobile-track"
-                style={{
-                  transform: `translate3d(calc(-${normalizedCurrentIndex} * (100vw + ${MOBILE_TRACK_GAP_PX}px)), 0px, 0px)`,
-                }}
-                onTransitionEnd={handleMobileTrackTransitionEnd}
-              >
-                {mediaItems.map((item, index) => {
-                  const isActiveSlide = index === normalizedDisplayIndex;
-                  const shouldRenderMedia =
-                    Math.abs(index - normalizedCurrentIndex) <= 1 ||
-                    Math.abs(index - normalizedDisplayIndex) <= 1;
-
-                  return (
-                    <div
-                      key={item.metadata.attachmentId}
-                      className={[
-                        styles.mobileSlide,
-                        isActiveSlide ? styles.mobileSlideActive : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                      data-active={isActiveSlide ? "true" : "false"}
-                      aria-hidden={isActiveSlide ? undefined : true}
-                    >
-                      <div className={styles.mobileDeckCard}>
-                        {shouldRenderMedia ? (
-                          isActiveSlide ? (
-                            renderActiveMediaElement(item)
-                          ) : (
-                            <div
-                              className={mobileSlideTransformClassName}
-                              style={{
-                                transform: "translate3d(0px, 0px, 0) scale(1)",
-                              }}
-                            >
-                              {renderMediaElement(item, false)}
-                            </div>
-                          )
-                        ) : (
-                          <div className={styles.mobileSlidePlaceholder} />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div
-              className={[
-                styles.desktopStage,
-                isDesktopFreeFrameLayout ? styles.desktopStageDesktop : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              data-testid="lightbox-desktop-stage"
-            >
-              {renderActiveMediaElement(currentItem)}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.metaText}>
-        {metadataLines.map((line, index) => (
-          <div key={`${index}-${line}`}>{line}</div>
-        ))}
-      </div>
-    </div>
+      <SelectedView {...viewProps} />
+    </Suspense>
   );
 }
 

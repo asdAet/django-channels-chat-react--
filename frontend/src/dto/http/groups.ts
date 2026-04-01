@@ -147,6 +147,20 @@ const toRoomId = (value: number | string): number => {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
 };
 
+const resolveRoomTarget = (dto: {
+  publicRef?: string | null;
+  publicId?: string | null;
+}): string => {
+  const publicRef =
+    typeof dto.publicRef === "string" ? dto.publicRef.trim() : "";
+  if (publicRef) {
+    return publicRef;
+  }
+
+  const publicId = typeof dto.publicId === "string" ? dto.publicId.trim() : "";
+  return publicId;
+};
+
 const joinRequestSchema = z
   .object({
     id: z.number(),
@@ -202,7 +216,7 @@ const bannedListSchema = z
  */
 const mapGroup = (dto: z.infer<typeof groupSchema>): Group => ({
   roomId: toRoomId(dto.roomId),
-  roomTarget: dto.publicRef?.trim() || String(toRoomId(dto.roomId)),
+  roomTarget: resolveRoomTarget(dto),
   name: dto.name,
   description: dto.description ?? "",
   isPublic: dto.isPublic ?? false,
@@ -244,7 +258,7 @@ export const decodeGroupListResponse = (
   return {
     items: parsed.items.map((i) => ({
       roomId: toRoomId(i.roomId),
-      roomTarget: i.publicRef?.trim() || String(toRoomId(i.roomId)),
+      roomTarget: resolveRoomTarget(i),
       name: i.name,
       description: i.description ?? "",
       username: i.username ?? null,

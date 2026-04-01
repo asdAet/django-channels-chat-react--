@@ -11,6 +11,7 @@ import {
   parseChatTargetFromPathname,
   PUBLIC_CHAT_TARGET,
 } from "../../shared/lib/chatTarget";
+import { useDevice } from "../../shared/lib/device";
 import {
   DIRECT_HOME_FALLBACK_PATH,
   rememberLastDirectRef,
@@ -40,7 +41,6 @@ type Props = {
   showMobileDrawerControls?: boolean;
 };
 
-const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_WIDTH_VAR = "--tg-sidebar-w";
 const SIDEBAR_WIDTH_STORAGE_KEY = "ui.sidebar.width";
 const SIDEBAR_DEFAULT_WIDTH = 360;
@@ -87,6 +87,7 @@ export function Sidebar({
   onCloseMobileDrawer,
   showMobileDrawerControls = false,
 }: Props) {
+  const { isMobileViewport } = useDevice();
   const location = useLocation();
   const sidebarRef = useRef<HTMLElement | null>(null);
   const resizeCleanupRef = useRef<(() => void) | null>(null);
@@ -216,7 +217,7 @@ export function Sidebar({
   }, [directChatTargets, location.pathname]);
 
   const handleResizeStart = useCallback((event: React.MouseEvent) => {
-    if (window.innerWidth <= MOBILE_BREAKPOINT) return;
+    if (isMobileViewport) return;
 
     const sidebarElement = sidebarRef.current;
     if (!sidebarElement) return;
@@ -251,7 +252,7 @@ export function Sidebar({
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", stopResize);
     resizeCleanupRef.current = stopResize;
-  }, []);
+  }, [isMobileViewport]);
 
   const handleGroupCreated = useCallback(
     (roomTarget: string) => {

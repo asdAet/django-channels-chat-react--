@@ -8,7 +8,12 @@ import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import type { OnlineUser } from "../api/users";
 import { debugLog } from "../lib/debug";
 import { normalizePublicRef } from "../lib/publicRef";
-import { getWebSocketBase } from "../lib/ws";
+import {
+  appendWebSocketAuthToken,
+  appendWebSocketParams,
+  getWebSocketBase,
+} from "../lib/ws";
+import { useWsAuthToken } from "../wsAuth/useWsAuthToken";
 import { PresenceContext } from "./context";
 
 const PRESENCE_PING_MS = 10000;
@@ -40,9 +45,31 @@ export function PresenceProvider({
   children,
   ready = true,
 }: ProviderProps) {
+  const sessionKey = user?.publicRef
+    ? `auth:${user.publicRef}`
+    : user
+      ? "auth"
+      : "guest";
+
+  return (
+    <PresenceProviderSession key={sessionKey} user={user} ready={ready}>
+      {children}
+    </PresenceProviderSession>
+  );
+}
+
+type PresenceProviderSessionProps = ProviderProps;
+
+function PresenceProviderSession({
+  user,
+  children,
+  ready = true,
+}: PresenceProviderSessionProps) {
+  const authWsToken = useWsAuthToken();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [guestCount, setGuestCount] = useState(0);
   const [guestSessionReady, setGuestSessionReady] = useState(false);
+  const [guestWsAuthToken, setGuestWsAuthToken] = useState<string | null>(null);
   const needsGuestSessionBootstrap = ready && !user && !guestSessionReady;
 
   useEffect(() => {
@@ -51,13 +78,15 @@ export function PresenceProvider({
     let active = true;
     apiService
       .ensurePresenceSession()
-      .then(() => {
+      .then((payload) => {
         if (!active) return;
+        setGuestWsAuthToken(payload.wsAuthToken);
         setGuestSessionReady(true);
       })
       .catch((err) => {
         debugLog("Presence guest bootstrap failed", err);
         if (!active) return;
+        setGuestWsAuthToken(null);
         setGuestSessionReady(false);
       });
 
@@ -70,8 +99,14 @@ export function PresenceProvider({
     if (!ready) return null;
     if (!user && !guestSessionReady) return null;
     const base = `${getWebSocketBase()}/ws/presence/`;
-    return `${base}?auth=${user ? "1" : "0"}`;
-  }, [guestSessionReady, ready, user]);
+    const withAuthMode = appendWebSocketParams(base, {
+      auth: user ? "1" : "0",
+    });
+    return appendWebSocketAuthToken(
+      withAuthMode,
+      user ? authWsToken : guestWsAuthToken,
+    );
+  }, [authWsToken, guestSessionReady, guestWsAuthToken, ready, user]);
 
   const handlePresence = useCallback(
     (event: MessageEvent) => {
