@@ -1,7 +1,22 @@
-import type { AxiosInstance } from "axios";
-import { describe, expect, it, vi } from "vitest";
+import type { AxiosInstance, AxiosProgressEvent } from "axios";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { uploadAttachments } from "./uploadAttachments";
+import {
+  ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS,
+  uploadAttachments,
+} from "./uploadAttachments";
+
+type UploadResponsePayload = {
+  data: {
+    id: number;
+    content: string;
+    attachments: [];
+  };
+};
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe("uploadAttachments", () => {
   it("resolves public room ref before upload", async () => {
@@ -55,5 +70,113 @@ describe("uploadAttachments", () => {
 
     expect(get).not.toHaveBeenCalled();
     expect(post.mock.calls[0][0]).toBe("/chat/42/attachments/");
+  });
+
+  it("disables the fixed request timeout for uploads and forwards progress", async () => {
+    const get = vi.fn();
+    const post = vi
+      .fn()
+      .mockResolvedValue({ data: { id: 11, content: "", attachments: [] } });
+    const apiClient = { get, post } as unknown as AxiosInstance;
+    const onProgress = vi.fn();
+
+    const file = new File(["x"], "file.bin", {
+      type: "application/octet-stream",
+    });
+    await uploadAttachments(apiClient, "42", [file], { onProgress });
+
+    const requestConfig = post.mock.calls[0][2] as {
+      timeout?: number;
+      onUploadProgress?: (event: AxiosProgressEvent) => void;
+    };
+
+    expect(requestConfig.timeout).toBe(0);
+    requestConfig.onUploadProgress?.({
+      loaded: 1,
+      total: 4,
+    } as AxiosProgressEvent);
+    expect(onProgress).toHaveBeenCalledWith(25);
+  });
+
+  it("aborts stalled uploads only after extended inactivity", async () => {
+    vi.useFakeTimers();
+
+    const get = vi.fn();
+    const post = vi.fn().mockImplementation((_url, _data, config) => {
+      return new Promise((_resolve, reject) => {
+        config.signal?.addEventListener(
+          "abort",
+          () => reject(new Error("aborted")),
+          { once: true },
+        );
+      });
+    });
+    const apiClient = { get, post } as unknown as AxiosInstance;
+
+    const file = new File(["x"], "slow.bin", {
+      type: "application/octet-stream",
+    });
+    const promise = uploadAttachments(apiClient, "42", [file]);
+    const stalledExpectation = expect(promise).rejects.toMatchObject({
+      status: 408,
+      message: expect.stringContaining("слишком долго нет прогресса"),
+    });
+
+    await Promise.resolve();
+    const requestConfig = post.mock.calls[0][2] as { signal?: AbortSignal };
+
+    await vi.advanceTimersByTimeAsync(ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS - 1);
+    expect(requestConfig.signal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await stalledExpectation;
+  });
+
+  it("refreshes the inactivity watchdog when upload progress advances", async () => {
+    vi.useFakeTimers();
+
+    const get = vi.fn();
+    let resolveRequest: ((value: UploadResponsePayload) => void) | undefined;
+    const post = vi.fn().mockImplementation((_url, _data, config) => {
+      return new Promise<UploadResponsePayload>((resolve, reject) => {
+        resolveRequest = resolve;
+        config.signal?.addEventListener(
+          "abort",
+          () => reject(new Error("aborted")),
+          { once: true },
+        );
+      });
+    });
+    const apiClient = { get, post } as unknown as AxiosInstance;
+    const onProgress = vi.fn();
+
+    const file = new File(["x"], "steady.bin", {
+      type: "application/octet-stream",
+    });
+    const promise = uploadAttachments(apiClient, "42", [file], { onProgress });
+
+    await Promise.resolve();
+    const requestConfig = post.mock.calls[0][2] as {
+      signal?: AbortSignal;
+      onUploadProgress?: (event: AxiosProgressEvent) => void;
+    };
+
+    await vi.advanceTimersByTimeAsync(ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS - 1);
+    expect(requestConfig.signal?.aborted).toBe(false);
+
+    requestConfig.onUploadProgress?.({
+      loaded: 2,
+      total: 4,
+    } as AxiosProgressEvent);
+    expect(onProgress).toHaveBeenCalledWith(50);
+
+    await vi.advanceTimersByTimeAsync(ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS - 1);
+    expect(requestConfig.signal?.aborted).toBe(false);
+
+    if (!resolveRequest) {
+      throw new Error("Upload request did not expose resolver");
+    }
+    resolveRequest({ data: { id: 12, content: "", attachments: [] } });
+    await expect(promise).resolves.toMatchObject({ id: 12 });
   });
 });

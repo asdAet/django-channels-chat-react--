@@ -151,6 +151,15 @@ jobs:
             git fetch --all --prune
             git checkout main
             git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml build --pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-            docker compose -f docker-compose.prod.yml ps
+            if docker compose version >/dev/null 2>&1; then
+              compose() { docker compose "$@"; }
+            elif command -v docker-compose >/dev/null 2>&1; then
+              compose() { docker-compose "$@"; }
+            else
+              echo "Docker Compose is not installed on the server"
+              exit 1
+            fi
+            compose -f docker-compose.prod.yml down --remove-orphans || true
+            compose -f docker-compose.prod.yml build --pull
+            compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
+            compose -f docker-compose.prod.yml ps
