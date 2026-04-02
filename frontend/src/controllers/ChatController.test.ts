@@ -7,6 +7,8 @@ import type {
   RoomAttachmentsResult,
   SearchResult,
   UnreadCountItem,
+  UploadAttachmentsOptions,
+  UploadProgress,
   UploadResult,
 } from "../domain/interfaces/IApiService";
 import type {
@@ -56,12 +58,7 @@ const apiMocks = vi.hoisted(() => ({
     (
       roomId: string,
       files: File[],
-      options?: {
-        onProgress?: (percent: number) => void;
-        messageContent?: string;
-        replyTo?: number | null;
-        signal?: AbortSignal;
-      },
+      options?: UploadAttachmentsOptions,
     ) => Promise<UploadResult>
   >(),
   markRead:
@@ -509,5 +506,106 @@ describe("ChatController", () => {
       messageContent: undefined,
       replyTo: undefined,
     });
+  });
+
+  it("aggregates attachment progress by bytes across upload batches", async () => {
+    const firstUpload: UploadResult = {
+      id: 10,
+      content: "gallery",
+      attachments: [],
+    };
+    const secondUpload: UploadResult = {
+      id: 11,
+      content: "",
+      attachments: [],
+    };
+    const progressEvents: UploadProgress[] = [];
+
+    apiMocks.uploadAttachments
+      .mockImplementationOnce(async (_roomId, _files, options) => {
+        options?.onProgress?.({
+          phase: "uploading",
+          uploadedBytes: 50,
+          totalBytes: 100,
+          percent: 50,
+        });
+        options?.onProgress?.({
+          phase: "processing",
+          uploadedBytes: 100,
+          totalBytes: 100,
+          percent: 100,
+        });
+        return firstUpload;
+      })
+      .mockImplementationOnce(async (_roomId, _files, options) => {
+        options?.onProgress?.({
+          phase: "uploading",
+          uploadedBytes: 25,
+          totalBytes: 50,
+          percent: 50,
+        });
+        options?.onProgress?.({
+          phase: "processing",
+          uploadedBytes: 50,
+          totalBytes: 50,
+          percent: 100,
+        });
+        return secondUpload;
+      });
+
+    const chatController = await loadController();
+    const files = [
+      ...Array.from({ length: 10 }, (_value, index) =>
+        new File(["0123456789"], `${index + 1}.png`, { type: "image/png" }),
+      ),
+      new File(["01234567890123456789012345678901234567890123456789"], "11.png", {
+        type: "image/png",
+      }),
+    ];
+
+    await chatController.uploadAttachments("room_1", files, {
+      onProgress: (progress) => {
+        progressEvents.push(progress);
+      },
+    });
+
+    expect(progressEvents).toEqual([
+      {
+        phase: "uploading",
+        uploadedBytes: 0,
+        totalBytes: 150,
+        percent: 0,
+      },
+      {
+        phase: "uploading",
+        uploadedBytes: 50,
+        totalBytes: 150,
+        percent: (50 / 150) * 100,
+      },
+      {
+        phase: "processing",
+        uploadedBytes: 100,
+        totalBytes: 150,
+        percent: (100 / 150) * 100,
+      },
+      {
+        phase: "uploading",
+        uploadedBytes: 125,
+        totalBytes: 150,
+        percent: (125 / 150) * 100,
+      },
+      {
+        phase: "processing",
+        uploadedBytes: 150,
+        totalBytes: 150,
+        percent: 100,
+      },
+      {
+        phase: "processing",
+        uploadedBytes: 150,
+        totalBytes: 150,
+        percent: 100,
+      },
+    ]);
   });
 });

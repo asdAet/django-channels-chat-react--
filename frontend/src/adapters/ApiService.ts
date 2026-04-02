@@ -3,6 +3,7 @@ import axios, { AxiosHeaders } from "axios";
 
 import type {
   IApiService,
+  UploadAttachmentsOptions,
   UpdateGroupInput,
   UpdateProfileInput,
 } from "../domain/interfaces/IApiService";
@@ -614,12 +615,7 @@ class ApiService implements IApiService {
   public async uploadAttachments(
     roomId: string,
     files: File[],
-    options?: {
-      onProgress?: (percent: number) => void;
-      messageContent?: string;
-      replyTo?: number | null;
-      signal?: AbortSignal;
-    },
+    options?: UploadAttachmentsOptions,
   ) {
     return this.runWithDecode(async () =>
       uploadAttachments(this.apiClient, roomId, files, options),

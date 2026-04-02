@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS,
+  ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS,
   uploadAttachments,
 } from "./uploadAttachments";
 
@@ -72,7 +73,7 @@ describe("uploadAttachments", () => {
     expect(post.mock.calls[0][0]).toBe("/chat/42/attachments/");
   });
 
-  it("disables the fixed request timeout for uploads and forwards progress", async () => {
+  it("disables the fixed request timeout for uploads and forwards byte-based progress", async () => {
     const get = vi.fn();
     const post = vi
       .fn()
@@ -80,7 +81,7 @@ describe("uploadAttachments", () => {
     const apiClient = { get, post } as unknown as AxiosInstance;
     const onProgress = vi.fn();
 
-    const file = new File(["x"], "file.bin", {
+    const file = new File(["12345678"], "file.bin", {
       type: "application/octet-stream",
     });
     await uploadAttachments(apiClient, "42", [file], { onProgress });
@@ -95,7 +96,23 @@ describe("uploadAttachments", () => {
       loaded: 1,
       total: 4,
     } as AxiosProgressEvent);
-    expect(onProgress).toHaveBeenCalledWith(25);
+    expect(onProgress).toHaveBeenLastCalledWith({
+      phase: "uploading",
+      percent: 25,
+      uploadedBytes: 2,
+      totalBytes: 8,
+    });
+
+    requestConfig.onUploadProgress?.({
+      loaded: 4,
+      total: 4,
+    } as AxiosProgressEvent);
+    expect(onProgress).toHaveBeenLastCalledWith({
+      phase: "processing",
+      percent: 100,
+      uploadedBytes: 8,
+      totalBytes: 8,
+    });
   });
 
   it("aborts stalled uploads only after extended inactivity", async () => {
@@ -168,7 +185,12 @@ describe("uploadAttachments", () => {
       loaded: 2,
       total: 4,
     } as AxiosProgressEvent);
-    expect(onProgress).toHaveBeenCalledWith(50);
+    expect(onProgress).toHaveBeenLastCalledWith({
+      phase: "uploading",
+      percent: 50,
+      uploadedBytes: 1,
+      totalBytes: 1,
+    });
 
     await vi.advanceTimersByTimeAsync(ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS - 1);
     expect(requestConfig.signal?.aborted).toBe(false);
@@ -178,5 +200,61 @@ describe("uploadAttachments", () => {
     }
     resolveRequest({ data: { id: 12, content: "", attachments: [] } });
     await expect(promise).resolves.toMatchObject({ id: 12 });
+  });
+
+  it("switches to a processing timeout after the upload body is fully sent", async () => {
+    vi.useFakeTimers();
+
+    const get = vi.fn();
+    const post = vi.fn().mockImplementation((_url, _data, config) => {
+      return new Promise((_resolve, reject) => {
+        config.signal?.addEventListener(
+          "abort",
+          () => reject(new Error("aborted")),
+          { once: true },
+        );
+      });
+    });
+    const apiClient = { get, post } as unknown as AxiosInstance;
+    const onProgress = vi.fn();
+
+    const file = new File(["1234"], "processed.bin", {
+      type: "application/octet-stream",
+    });
+    const promise = uploadAttachments(apiClient, "42", [file], { onProgress });
+    const stalledExpectation = expect(promise).rejects.toMatchObject({
+      status: 504,
+      message: expect.stringContaining("обрабатывает"),
+    });
+
+    await Promise.resolve();
+    const requestConfig = post.mock.calls[0][2] as {
+      signal?: AbortSignal;
+      onUploadProgress?: (event: AxiosProgressEvent) => void;
+    };
+
+    requestConfig.onUploadProgress?.({
+      loaded: 4,
+      total: 4,
+    } as AxiosProgressEvent);
+    expect(onProgress).toHaveBeenLastCalledWith({
+      phase: "processing",
+      percent: 100,
+      uploadedBytes: 4,
+      totalBytes: 4,
+    });
+
+    await vi.advanceTimersByTimeAsync(ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS);
+    expect(requestConfig.signal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(
+      ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS -
+        ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS -
+        1,
+    );
+    expect(requestConfig.signal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await stalledExpectation;
   });
 });
