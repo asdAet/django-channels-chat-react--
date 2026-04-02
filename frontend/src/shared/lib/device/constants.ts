@@ -1,0 +1,1 @@
+export const MOBILE_VIEWPORT_MAX_PX = 768;

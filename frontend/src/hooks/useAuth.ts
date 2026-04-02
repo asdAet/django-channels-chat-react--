@@ -21,6 +21,7 @@ import { debugLog } from "../shared/lib/debug";
 export type AuthState = {
   user: UserProfileDto | null;
   loading: boolean;
+  wsAuthToken: string | null;
 };
 
 /**
@@ -28,7 +29,6 @@ export type AuthState = {
  * @param user Текущий пользователь.
  * @returns Нормализованное значение после обработки входа.
  */
-
 
 const normalizeProfileImage = (user: UserProfileDto): UserProfileDto => {
   if (!user.profileImage || user.profileImage.length === 0) {
@@ -41,9 +41,12 @@ const normalizeProfileImage = (user: UserProfileDto): UserProfileDto => {
  * Хук useAuth управляет состоянием и побочными эффектами текущего сценария.
  */
 
-
 export const useAuth = () => {
-  const [auth, setAuth] = useState<AuthState>({ user: null, loading: true });
+  const [auth, setAuth] = useState<AuthState>({
+    user: null,
+    loading: true,
+    wsAuthToken: null,
+  });
 
   /**
    * Вызывает `useEffect` как шаг текущего сценария.
@@ -67,7 +70,11 @@ export const useAuth = () => {
 
              */
 
-            setAuth({ user: session.user, loading: false });
+            setAuth({
+              user: session.user,
+              loading: false,
+              wsAuthToken: session.wsAuthToken,
+            });
           })
           .catch((err) => {
             /**
@@ -84,7 +91,7 @@ export const useAuth = () => {
 
              */
 
-            setAuth({ user: null, loading: false });
+            setAuth({ user: null, loading: false, wsAuthToken: null });
           });
       });
 
@@ -102,7 +109,11 @@ export const useAuth = () => {
 
      */
 
-    setAuth({ user: session.user, loading: false });
+    setAuth({
+      user: session.user,
+      loading: false,
+      wsAuthToken: session.wsAuthToken,
+    });
     /**
      * Вызывает `clearAllUserCaches` как шаг текущего сценария.
 
@@ -113,13 +124,14 @@ export const useAuth = () => {
   }, []);
 
   const loginWithGoogle = useCallback(
-    async (
-      token: string,
-      tokenType: "idToken" | "accessToken" = "idToken",
-    ) => {
+    async (token: string, tokenType: "idToken" | "accessToken" = "idToken") => {
       await authController.ensureCsrf();
       const session = await authController.oauthGoogle(token, tokenType);
-      setAuth({ user: session.user, loading: false });
+      setAuth({
+        user: session.user,
+        loading: false,
+        wsAuthToken: session.wsAuthToken,
+      });
       clearAllUserCaches();
       return session;
     },
@@ -135,7 +147,11 @@ export const useAuth = () => {
 
      */
 
-    setAuth({ user: session.user, loading: false });
+    setAuth({
+      user: session.user,
+      loading: false,
+      wsAuthToken: session.wsAuthToken,
+    });
     /**
      * Вызывает `clearAllUserCaches` как шаг текущего сценария.
 
@@ -153,7 +169,7 @@ export const useAuth = () => {
 
      */
 
-    setAuth({ user: null, loading: false });
+    setAuth({ user: null, loading: false, wsAuthToken: null });
     /**
      * Вызывает `clearAllUserCaches` как шаг текущего сценария.
 
@@ -203,7 +219,7 @@ export const useAuth = () => {
 
            */
 
-          setAuth({ user: null, loading: false });
+          setAuth({ user: null, loading: false, wsAuthToken: null });
         }
         throw err;
       }
@@ -220,4 +236,3 @@ export const useAuth = () => {
     updateProfile,
   };
 };
-

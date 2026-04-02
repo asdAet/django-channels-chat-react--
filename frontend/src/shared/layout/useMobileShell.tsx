@@ -4,12 +4,11 @@ import {
   type ReactNode,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
 
-const MOBILE_BREAKPOINT = 768;
+import { useDevice } from "../lib/device";
 
 type MobileShellState = {
   isMobileViewport: boolean;
@@ -27,46 +26,48 @@ const MobileShellContext = createContext<MobileShellState>({
   toggleDrawer: () => {},
 });
 
-const readIsMobileViewport = () =>
-  typeof window !== "undefined" && window.innerWidth <= MOBILE_BREAKPOINT;
-
 export function MobileShellProvider({ children }: { children: ReactNode }) {
-  const [isMobileViewport, setIsMobileViewport] = useState(readIsMobileViewport);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { isMobileViewport } = useDevice();
+  return (
+    <MobileShellStateProvider
+      key={isMobileViewport ? "mobile" : "desktop"}
+      isMobileViewport={isMobileViewport}
+    >
+      {children}
+    </MobileShellStateProvider>
+  );
+}
 
-  useEffect(() => {
-    const handleResize = () => {
-      const nextIsMobileViewport = readIsMobileViewport();
-      setIsMobileViewport(nextIsMobileViewport);
-      // Desktop never uses the drawer, so collapse it eagerly when viewport grows.
-      if (!nextIsMobileViewport) {
-        setIsDrawerOpen(false);
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize, { passive: true });
-    window.addEventListener("orientationchange", handleResize, {
-      passive: true,
-    });
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("orientationchange", handleResize);
-    };
-  }, []);
+function MobileShellStateProvider({
+  children,
+  isMobileViewport,
+}: {
+  children: ReactNode;
+  isMobileViewport: boolean;
+}) {
+  const [isDrawerRequestedOpen, setIsDrawerRequestedOpen] = useState(false);
 
   const openDrawer = useCallback(() => {
-    setIsDrawerOpen(true);
-  }, []);
+    if (!isMobileViewport) {
+      return;
+    }
+
+    setIsDrawerRequestedOpen(true);
+  }, [isMobileViewport]);
 
   const closeDrawer = useCallback(() => {
-    setIsDrawerOpen(false);
+    setIsDrawerRequestedOpen(false);
   }, []);
 
   const toggleDrawer = useCallback(() => {
-    setIsDrawerOpen((prev) => !prev);
-  }, []);
+    if (!isMobileViewport) {
+      return;
+    }
+
+    setIsDrawerRequestedOpen((prev) => !prev);
+  }, [isMobileViewport]);
+
+  const isDrawerOpen = isMobileViewport && isDrawerRequestedOpen;
 
   const value = useMemo<MobileShellState>(
     () => ({

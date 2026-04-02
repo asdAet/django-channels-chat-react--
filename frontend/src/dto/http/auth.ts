@@ -51,11 +51,17 @@ const sessionResponseSchema = z
   .object({
     authenticated: z.boolean(),
     user: rawUserProfileSchema.nullable(),
+    wsAuthToken: z.string().min(1).nullable().optional(),
   })
   .passthrough();
 
 const csrfSchema = z.object({ csrfToken: z.string() }).passthrough();
-const presenceSessionSchema = z.object({ ok: z.boolean() }).passthrough();
+const presenceSessionSchema = z
+  .object({
+    ok: z.boolean(),
+    wsAuthToken: z.string().min(1).nullable().optional(),
+  })
+  .passthrough();
 const passwordRulesSchema = z.object({ rules: z.array(z.string()) }).passthrough();
 const logoutSchema = z.object({ ok: z.boolean() }).passthrough();
 
@@ -211,6 +217,7 @@ const mapUserProfile = (
 export type SessionResponseDto = {
   authenticated: boolean;
   user: UserProfile | null;
+  wsAuthToken: string | null;
 };
 
 /**
@@ -261,8 +268,22 @@ export const decodeCsrfResponse = (input: unknown) =>
  * @returns Нормализованные данные после декодирования.
  */
 
-export const decodePresenceSessionResponse = (input: unknown) =>
-  decodeOrThrow(presenceSessionSchema, input, "auth/presence-session");
+export const decodePresenceSessionResponse = (
+  input: unknown,
+): {
+  ok: boolean;
+  wsAuthToken: string | null;
+} => {
+  const parsed = decodeOrThrow(
+    presenceSessionSchema,
+    input,
+    "auth/presence-session",
+  );
+  return {
+    ok: parsed.ok,
+    wsAuthToken: parsed.wsAuthToken ?? null,
+  };
+};
 
 /**
  * Декодирует password rules response.
@@ -297,6 +318,7 @@ export const decodeSessionResponse = (input: unknown): SessionResponseDto => {
   return {
     authenticated: parsed.authenticated,
     user: parsed.user ? mapUserProfile(parsed.user) : null,
+    wsAuthToken: parsed.wsAuthToken ?? null,
   };
 };
 
@@ -379,6 +401,5 @@ export const buildUpdateProfileRequestDto = (
 
 export const validatePublicUsername = (username: string): string =>
   decodeOrThrow(usernameLatinSchema, username, "auth/public-username");
-
 
 

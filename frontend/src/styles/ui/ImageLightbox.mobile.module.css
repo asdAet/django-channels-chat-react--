@@ -1,0 +1,95 @@
+.frameMobile {
+  width: 100vw;
+  height: 100vh;
+}
+
+.mediaViewportMobile {
+  padding: 0;
+}
+
+.navBtnMobile {
+  width: clamp(64px, 20vw, 108px);
+  color: transparent;
+}
+
+.navBtnPrevMobile {
+  left: 0;
+  padding-left: 0;
+}
+
+.navBtnNextMobile {
+  right: 0;
+  padding-right: 0;
+}
+
+.navBtnIconMobile {
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+}
+
+.metaTextMobile {
+  max-width: none;
+  font-size: 13px;
+  line-height: 1.4;
+  bottom: max(10px, calc(env(safe-area-inset-bottom) + 10px));
+}
+
+.mobileDeck {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mobileTrack {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 16px;
+  will-change: transform;
+}
+
+.mobileSlide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+}
+
+.mobileSlideActive {
+  z-index: 1;
+}
+
+.mobileDeckCard {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.mobileDeckCard img,
+.mobileDeckCard video {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.mobileSlidePlaceholder {
+  width: 100%;
+  height: 100%;
+}
+
+.mobileMediaTransform {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  flex: 1 1 auto;
+}

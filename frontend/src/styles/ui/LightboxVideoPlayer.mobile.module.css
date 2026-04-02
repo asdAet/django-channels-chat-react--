@@ -1,0 +1,15 @@
+.rootMobile {
+  width: 100%;
+  height: 100%;
+}
+
+.controlsMobile {
+  position: absolute;
+  z-index: 9;
+  pointer-events: auto;
+  left: 50%;
+  right: auto;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  width: min(calc(100vw - 20px), 100%);
+  transform: translateX(-50%);
+}

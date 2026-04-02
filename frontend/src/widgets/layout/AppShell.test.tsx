@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import styles from "../../styles/layout/AppShell.module.css";
 import { AppShell } from "./AppShell";
 
 const conversationListMock = vi.hoisted(() => ({
@@ -126,7 +125,7 @@ describe("AppShell mobile navigation", () => {
 
   it("opens the sidebar drawer from the home header button on mobile", () => {
     setViewport(390);
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={["/"]}>
         <ShellHarness />
       </MemoryRouter>,
@@ -135,46 +134,51 @@ describe("AppShell mobile navigation", () => {
     fireEvent.click(screen.getByTestId("app-shell-mobile-back"));
 
     expect(screen.getByTestId("route-value")).toHaveTextContent("/");
-    expect(
-      container.querySelector(`.${styles.sidebarPaneMobileOpen}`),
-    ).not.toBeNull();
+    expect(screen.getByTestId("app-shell-sidebar-pane")).toHaveAttribute(
+      "data-mobile-drawer-open",
+      "true",
+    );
   });
 
   it("opens the mobile drawer from back button on friends and closes it after sidebar navigation", async () => {
     setViewport(390);
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={["/friends"]}>
         <ShellHarness />
       </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByTestId("app-shell-mobile-back"));
-    expect(
-      container.querySelector(`.${styles.sidebarPaneMobileOpen}`),
-    ).not.toBeNull();
+    expect(screen.getByTestId("app-shell-sidebar-pane")).toHaveAttribute(
+      "data-mobile-drawer-open",
+      "true",
+    );
 
     fireEvent.click(screen.getByTestId("mock-sidebar-friends"));
 
     await waitFor(() => {
       expect(screen.getByTestId("route-value")).toHaveTextContent("/friends");
     });
-    expect(container.querySelector(`.${styles.sidebarPaneMobileOpen}`)).toBeNull();
+    expect(screen.getByTestId("app-shell-sidebar-pane")).toHaveAttribute(
+      "data-mobile-drawer-open",
+      "false",
+    );
   });
 
   it("does not render the mobile header on desktop widths", () => {
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={["/friends"]}>
         <ShellHarness />
       </MemoryRouter>,
     );
 
     expect(screen.queryByTestId("app-shell-mobile-back")).toBeNull();
-    expect(container.querySelector(`.${styles.sidebarBackdrop}`)).toBeNull();
+    expect(screen.queryByTestId("app-shell-sidebar-backdrop")).toBeNull();
   });
 
   it("opens the sidebar drawer instead of navigating back from friends on mobile", () => {
     setViewport(390);
-    const { container } = render(
+    render(
       <MemoryRouter initialEntries={["/", "/friends"]} initialIndex={1}>
         <ShellHarness />
       </MemoryRouter>,
@@ -183,9 +187,10 @@ describe("AppShell mobile navigation", () => {
     fireEvent.click(screen.getByTestId("app-shell-mobile-back"));
 
     expect(screen.getByTestId("route-value")).toHaveTextContent("/friends");
-    expect(
-      container.querySelector(`.${styles.sidebarPaneMobileOpen}`),
-    ).not.toBeNull();
+    expect(screen.getByTestId("app-shell-sidebar-pane")).toHaveAttribute(
+      "data-mobile-drawer-open",
+      "true",
+    );
   });
 });
 

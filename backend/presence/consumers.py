@@ -626,6 +626,11 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         Returns:
             Объект типа str | None, сформированный в рамках обработки.
         """
+        ws_guest_session_key = self.scope.get("ws_guest_session_key")
+        if isinstance(ws_guest_session_key, str):
+            normalized_ws_guest_session_key = ws_guest_session_key.strip()
+            if normalized_ws_guest_session_key:
+                return normalized_ws_guest_session_key
         session = self.scope.get("session")
         if not session:
             return None

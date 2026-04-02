@@ -289,7 +289,7 @@ export function FriendsPage({ user, onNavigate }: Props) {
     if (tab === "friends") {
       if (filteredFriends.length === 0) {
         return renderEmptyState(
-          searchQuery.trim() ? "Ничего не найдено" : "Нет друзей",
+          searchQuery.trim() ? "Ничего не найдено" : "Нет друзей :(",
           searchQuery.trim()
             ? "Попробуйте другой запрос или очистите поиск."
             : "Добавьте друзей, чтобы начать общение.",
@@ -313,7 +313,7 @@ export function FriendsPage({ user, onNavigate }: Props) {
     if (tab === "online") {
       if (filteredOnlineFriends.length === 0) {
         return renderEmptyState(
-          searchQuery.trim() ? "Ничего не найдено" : "Нет друзей онлайн",
+          searchQuery.trim() ? "Ничего не найдено" : "Нет друзей онлайн :(",
           searchQuery.trim()
             ? "По текущему запросу никто не найден."
             : "Когда кто-то появится в сети, он будет показан здесь.",

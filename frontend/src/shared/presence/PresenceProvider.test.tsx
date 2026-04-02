@@ -12,7 +12,10 @@ const wsMock = vi.hoisted(() => ({
 }));
 
 const apiMock = vi.hoisted(() => ({
-  ensurePresenceSession: vi.fn(async () => ({ ok: true })),
+  ensurePresenceSession: vi.fn(async () => ({
+    ok: true,
+    wsAuthToken: "guest-token",
+  })),
 }));
 
 vi.mock("../../hooks/useReconnectingWebSocket", () => ({
@@ -36,6 +39,7 @@ vi.mock("../../adapters/ApiService", () => ({
   },
 }));
 
+import { WsAuthProvider } from "../wsAuth";
 import { PresenceProvider } from "./PresenceProvider";
 import { usePresence } from "./usePresence";
 
@@ -71,7 +75,10 @@ describe("PresenceProvider", () => {
     wsMock.lastError = null;
     wsMock.options = null;
     wsMock.send.mockReset().mockReturnValue(true);
-    apiMock.ensurePresenceSession.mockReset().mockResolvedValue({ ok: true });
+    apiMock.ensurePresenceSession.mockReset().mockResolvedValue({
+      ok: true,
+      wsAuthToken: "guest-token",
+    });
   });
 
   afterEach(() => {
@@ -80,12 +87,15 @@ describe("PresenceProvider", () => {
 
   it("applies online list and guests payload for authenticated user", async () => {
     render(
-      <PresenceProvider user={user}>
-        <PresenceProbe />
-      </PresenceProvider>,
+      <WsAuthProvider token="auth-token">
+        <PresenceProvider user={user}>
+          <PresenceProbe />
+        </PresenceProvider>
+      </WsAuthProvider>,
     );
 
     await waitFor(() => expect(wsMock.options?.url).toContain("/ws/presence/"));
+    expect(wsMock.options?.url).toContain("wst=auth-token");
 
     act(() => {
       wsMock.options?.onMessage?.(
@@ -120,6 +130,7 @@ describe("PresenceProvider", () => {
       expect(apiMock.ensurePresenceSession).toHaveBeenCalledTimes(1),
     );
     await waitFor(() => expect(wsMock.options?.url).toContain("auth=0"));
+    expect(wsMock.options?.url).toContain("wst=guest-token");
 
     act(() => {
       wsMock.options?.onMessage?.(

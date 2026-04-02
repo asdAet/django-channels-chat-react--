@@ -16,6 +16,7 @@ import type {
 import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
 import { isVideoAttachment } from "../../shared/lib/attachmentMedia";
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
+import { useDevice } from "../../shared/lib/device";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
@@ -56,6 +57,7 @@ type Props = {
   onViewReaders?: (msg: Message, anchor: { x: number; y: number }) => void;
   onReplyQuoteClick?: (replyToId: number) => void;
   onAvatarClick?: (actorRef: string) => void;
+  onOpenMediaAttachment?: (attachmentId: number) => void;
 };
 
 /**
@@ -147,17 +149,6 @@ const MEDIA_GRID_VARIANT_CLASS_MAP = {
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
 
-/**
- * Определяет, используется ли устройство с touch-вводом.
- */
-
-const isTouchLikeDevice = () => {
-  if (typeof window === "undefined") return false;
-  if ("ontouchstart" in window || navigator.maxTouchPoints > 0) return true;
-  if (window.matchMedia?.("(pointer: coarse)").matches) return true;
-  if (window.matchMedia?.("(hover: none)").matches) return true;
-  return window.innerWidth <= 768;
-};
 /**
  * Проверяет, что тап был по интерактивному элементу и меню открывать не нужно.
  * @param target DOM-элемент, по которому пришло событие.
@@ -317,7 +308,9 @@ export function MessageBubble({
   onViewReaders,
   onReplyQuoteClick,
   onAvatarClick,
+  onOpenMediaAttachment,
 }: Props) {
+  const { hasTouch } = useDevice();
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -429,7 +422,7 @@ export function MessageBubble({
   const handleMobileTap = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
       if (typeof window !== "undefined" && "PointerEvent" in window) return;
-      if (message.isDeleted || !isTouchLikeDevice()) return;
+      if (message.isDeleted || !hasTouch) return;
       if (event.timeStamp - lastTouchTapTsRef.current < 500) return;
       if (shouldIgnoreMobileMenuTap(event.target)) return;
       const position = resolveMenuPosition(
@@ -439,7 +432,7 @@ export function MessageBubble({
       );
       openContextMenuAt(position.x, position.y);
     },
-    [message.isDeleted, openContextMenuAt, resolveMenuPosition],
+    [hasTouch, message.isDeleted, openContextMenuAt, resolveMenuPosition],
   );
 
   const handleMobilePointerUp = useCallback(
@@ -657,6 +650,11 @@ export function MessageBubble({
   );
 
   const openLightboxByAttachmentId = (attachmentId: number) => {
+    if (onOpenMediaAttachment) {
+      onOpenMediaAttachment(attachmentId);
+      return;
+    }
+
     const targetIndex = lightboxMediaItems.findIndex(
       (item) => item.metadata.attachmentId === attachmentId,
     );
@@ -985,13 +983,15 @@ export function MessageBubble({
           onClose={() => setEmojiPickerOpen(false)}
         />
       )}
-      {lightboxOpenIndex !== null && lightboxMediaItems.length > 0 && (
+      {!onOpenMediaAttachment &&
+        lightboxOpenIndex !== null &&
+        lightboxMediaItems.length > 0 && (
         <ImageLightbox
           mediaItems={lightboxMediaItems}
           initialIndex={lightboxOpenIndex}
           onClose={() => setLightboxOpenIndex(null)}
         />
-      )}
+        )}
     </>
   );
 }

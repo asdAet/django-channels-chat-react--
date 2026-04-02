@@ -8,21 +8,33 @@ const authControllerMock = vi.hoisted(() => ({
   ensureCsrf: vi.fn<() => Promise<{ csrfToken: string }>>(),
   getSession:
     vi.fn<
-      () => Promise<{ authenticated: boolean; user: UserProfile | null }>
+      () => Promise<{
+        authenticated: boolean;
+        user: UserProfile | null;
+        wsAuthToken: string | null;
+      }>
     >(),
   login:
     vi.fn<
       (dto: {
         identifier: string;
         password: string;
-      }) => Promise<{ authenticated: boolean; user: UserProfile | null }>
+      }) => Promise<{
+        authenticated: boolean;
+        user: UserProfile | null;
+        wsAuthToken: string | null;
+      }>
     >(),
   oauthGoogle:
     vi.fn<
       (
         token: string,
         tokenType?: "idToken" | "accessToken",
-      ) => Promise<{ authenticated: boolean; user: UserProfile | null }>
+      ) => Promise<{
+        authenticated: boolean;
+        user: UserProfile | null;
+        wsAuthToken: string | null;
+      }>
     >(),
   register:
     vi.fn<
@@ -33,7 +45,11 @@ const authControllerMock = vi.hoisted(() => ({
         name: string;
         username?: string;
         email?: string;
-      }) => Promise<{ authenticated: boolean; user: UserProfile | null }>
+      }) => Promise<{
+        authenticated: boolean;
+        user: UserProfile | null;
+        wsAuthToken: string | null;
+      }>
     >(),
   logout: vi.fn<() => Promise<{ ok: boolean }>>(),
   updateProfile:
@@ -68,16 +84,32 @@ describe("useAuth", () => {
       .mockResolvedValue({ csrfToken: "token" });
     authControllerMock.getSession
       .mockReset()
-      .mockResolvedValue({ authenticated: true, user: sessionUser });
+      .mockResolvedValue({
+        authenticated: true,
+        user: sessionUser,
+        wsAuthToken: "auth-token",
+      });
     authControllerMock.login
       .mockReset()
-      .mockResolvedValue({ authenticated: true, user: sessionUser });
+      .mockResolvedValue({
+        authenticated: true,
+        user: sessionUser,
+        wsAuthToken: "auth-token",
+      });
     authControllerMock.oauthGoogle
       .mockReset()
-      .mockResolvedValue({ authenticated: true, user: sessionUser });
+      .mockResolvedValue({
+        authenticated: true,
+        user: sessionUser,
+        wsAuthToken: "auth-token",
+      });
     authControllerMock.register
       .mockReset()
-      .mockResolvedValue({ authenticated: true, user: sessionUser });
+      .mockResolvedValue({
+        authenticated: true,
+        user: sessionUser,
+        wsAuthToken: "auth-token",
+      });
     authControllerMock.logout.mockReset().mockResolvedValue({ ok: true });
     authControllerMock.updateProfile
       .mockReset()

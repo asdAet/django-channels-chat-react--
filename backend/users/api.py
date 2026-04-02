@@ -33,6 +33,10 @@ from chat_app_django.media_utils import (
 from chat_app_django.security.audit import audit_http_event
 from chat_app_django.security.rate_limit import DbRateLimiter
 from chat_app_django.security.rate_limit_config import auth_rate_limit_policy
+from chat_app_django.ws_auth import (
+    issue_authenticated_ws_auth_token,
+    issue_guest_ws_auth_token,
+)
 
 from users.application import auth_service
 from users.application.errors import IdentityServiceError
@@ -40,6 +44,13 @@ from users.application.media_access_service import (
     MediaAccessNotFoundError,
     resolve_attachment_media_access,
     resolve_media_content_type,
+)
+from users.application.media_range_service import (
+    InvalidByteRangeError,
+    build_invalid_range_response,
+    build_partial_media_response,
+    open_protected_media_source,
+    parse_single_byte_range_header,
 )
 from users.avatar_service import (
     resolve_bundled_default_avatar_file,
@@ -62,7 +73,41 @@ from users.identity import (
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
 
 
+def _ensure_session_key(request) -> str:
+    """Возвращает существующий session key или создает его перед выдачей WS token."""
+    session = request.session
+    key = getattr(session, "session_key", None)
+    if key:
+        return str(key)
+    session.save()
+    key = getattr(session, "session_key", None)
+    return str(key or "")
+
+
+def _build_authenticated_session_payload(request, user) -> dict[str, object]:
+    """Собирает HTTP payload для авторизованной сессии вместе с WS token."""
+    session_key = _ensure_session_key(request)
+    return {
+        "authenticated": True,
+        "user": _serialize_user(request, user),
+        "wsAuthToken": issue_authenticated_ws_auth_token(
+            user_id=int(user.pk),
+            session_key=session_key,
+        ),
+    }
+
+
+def _build_guest_presence_payload(request) -> dict[str, object]:
+    """Собирает payload bootstrap-ответа для guest presence websocket."""
+    session_key = _ensure_session_key(request)
+    return {
+        "ok": True,
+        "wsAuthToken": issue_guest_ws_auth_token(session_key=session_key),
+    }
+
+
 def _protected_media_response(
+    request,
     normalized_path: str,
     cache_control: str,
     *,
@@ -84,19 +129,45 @@ def _protected_media_response(
         normalized_path,
         preferred_content_type=preferred_content_type,
     )
-    if file_path_override is not None:
-        response: FileResponse | HttpResponse = FileResponse(
-            file_path_override.open("rb"),
-            content_type=content_type,
-        )
-    elif settings.DEBUG:
-        response: FileResponse | HttpResponse = FileResponse(
-            default_storage.open(normalized_path, "rb"),
-            content_type=content_type,
-        )
-    else:
+
+    if not settings.DEBUG and file_path_override is None:
         response = HttpResponse(content_type=content_type)
         response["X-Accel-Redirect"] = f"/_protected_media/{quote(normalized_path, safe='/')}"
+    else:
+        file_obj = None
+        file_size = 0
+        try:
+            file_obj, file_size = open_protected_media_source(
+                normalized_path,
+                file_path_override=file_path_override,
+            )
+            requested_range = parse_single_byte_range_header(
+                request.headers.get("Range") or request.META.get("HTTP_RANGE"),
+                file_size=file_size,
+            )
+            if requested_range is not None:
+                response = build_partial_media_response(
+                    file_obj,
+                    byte_range=requested_range,
+                    content_type=content_type,
+                    cache_control=cache_control,
+                )
+                file_obj.close()
+                file_obj = None
+                return response
+
+            response = FileResponse(file_obj, content_type=content_type)
+            file_obj = None
+        except InvalidByteRangeError:
+            if file_obj is not None:
+                file_obj.close()
+            return build_invalid_range_response(
+                file_size=file_size,
+                content_type=content_type,
+                cache_control=cache_control,
+            )
+
+    response["Accept-Ranges"] = "bytes"
     response["Cache-Control"] = cache_control
     return response
 
@@ -256,8 +327,8 @@ def session_view(request):
     """
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
-        return Response({"authenticated": True, "user": _serialize_user(request, user)})
-    return Response({"authenticated": False, "user": None})
+        return Response(_build_authenticated_session_payload(request, user))
+    return Response({"authenticated": False, "user": None, "wsAuthToken": None})
 
 
 @ensure_csrf_cookie
@@ -271,11 +342,9 @@ def presence_session_view(request):
     Returns:
         Результат вычислений, сформированный в ходе выполнения функции.
     """
-    if not request.session.session_key:
-        request.session.create()
     request.session.modified = True
     audit_http_event("presence.session.bootstrap", request)
-    return Response({"ok": True})
+    return Response(_build_guest_presence_payload(request))
 
 
 @api_view(["GET"])
@@ -327,7 +396,7 @@ def login_view(request):
 
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.login.success", request, public_ref=user_public_ref(user))
-    return Response({"authenticated": True, "user": _serialize_user(request, user)})
+    return Response(_build_authenticated_session_payload(request, user))
 
 
 @csrf_protect
@@ -397,7 +466,7 @@ def register_view(request):
 
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.register.success", request, public_ref=user_public_ref(user))
-    return Response({"authenticated": True, "user": _serialize_user(request, user)}, status=201)
+    return Response(_build_authenticated_session_payload(request, user), status=201)
 
 
 @csrf_protect
@@ -429,7 +498,7 @@ def oauth_google_view(request):
 
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.oauth.google.success", request, public_ref=user_public_ref(user))
-    return Response({"authenticated": True, "user": _serialize_user(request, user)})
+    return Response(_build_authenticated_session_payload(request, user))
 
 
 @api_view(["GET"])
@@ -461,6 +530,7 @@ def media_view(request, file_path: str):
             return Response({"error": "Не найдено"}, status=404)
 
         return _protected_media_response(
+            request,
             normalized_path,
             cache_control="private, no-store",
             preferred_content_type=access.preferred_content_type,
@@ -490,6 +560,7 @@ def media_view(request, file_path: str):
 
     cache_seconds = max(0, expires_at - now)
     return _protected_media_response(
+        request,
         normalized_path,
         cache_control=f"private, max-age={cache_seconds}",
         file_path_override=bundled_default_avatar,

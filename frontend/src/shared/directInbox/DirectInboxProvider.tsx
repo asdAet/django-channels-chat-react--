@@ -8,8 +8,9 @@ import type { UserProfile } from "../../entities/user/types";
 import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import { invalidateDirectChats } from "../cache/cacheManager";
 import { debugLog } from "../lib/debug";
-import { getWebSocketBase } from "../lib/ws";
+import { appendWebSocketAuthToken, getWebSocketBase } from "../lib/ws";
 import { clearUnreadOverride, useUnreadOverrides } from "../unreadOverrides/store";
+import { useWsAuthToken } from "../wsAuth/useWsAuthToken";
 import { DirectInboxContext } from "./context";
 
 const DIRECT_INBOX_PING_MS = 15_000;
@@ -59,6 +60,7 @@ export function DirectInboxProvider({
   ready = true,
   children,
 }: ProviderProps) {
+  const authWsToken = useWsAuthToken();
   const [items, setItems] = useState<DirectChatListItemDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,8 +72,11 @@ export function DirectInboxProvider({
 
   const wsUrl = useMemo(() => {
     if (!ready || !user) return null;
-    return `${getWebSocketBase()}/ws/inbox/`;
-  }, [ready, user]);
+    return appendWebSocketAuthToken(
+      `${getWebSocketBase()}/ws/inbox/`,
+      authWsToken,
+    );
+  }, [authWsToken, ready, user]);
 
   const applyUnreadState = useCallback(
     (next: {

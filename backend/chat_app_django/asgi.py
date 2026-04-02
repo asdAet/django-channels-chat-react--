@@ -13,6 +13,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 import chat.routing
 import presence.routing
 import direct_inbox.routing
+from chat_app_django.ws_auth_middleware import WebSocketTokenAuthMiddleware
 
 websocket_urlpatterns = (
     chat.routing.websocket_urlpatterns
@@ -24,7 +25,9 @@ application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
-            URLRouter(websocket_urlpatterns)
+            WebSocketTokenAuthMiddleware(
+                URLRouter(websocket_urlpatterns)
+            )
         )
     )
 })

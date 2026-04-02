@@ -12,13 +12,13 @@ import type {
   UploadAttachmentsOptions,
   UploadResult,
 } from "../domain/interfaces/IApiService";
-import { getChatAttachmentMaxPerMessage } from "../shared/config/limits";
 import type {
   DirectChatsResponseDto,
   RoomMessagesDto,
   RoomMessagesParams,
 } from "../dto";
 import type { RoomDetails as RoomDetailsDto } from "../entities/room/types";
+import { getChatAttachmentMaxPerMessage } from "../shared/config/limits";
 
 let directChatsInFlight: Promise<DirectChatsResponseDto> | null = null;
 

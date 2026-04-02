@@ -1,0 +1,86 @@
+.desktopDock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 12px 12px;
+  border-radius: 18px;
+  background: rgba(24, 24, 24, 0.92);
+  border: 1px solid var(--tg-border, #303030);
+  box-shadow: var(--tg-shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.35));
+  backdrop-filter: blur(18px);
+}
+
+.progressRow {
+  gap: 10px;
+}
+
+.controlsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.volumeGroup {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.volumeRange {
+  width: 92px;
+}
+
+.transportSlot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transportButton {
+  width: 40px;
+  height: 40px;
+}
+
+.actionsGroup {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.menuWrap {
+  position: relative;
+}
+
+.speedButton {
+  min-width: 52px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--tg-border, #303030);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tg-text-primary, #fff);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--tg-transition-fast, 150ms ease),
+    border-color var(--tg-transition-fast, 150ms ease),
+    color var(--tg-transition-fast, 150ms ease);
+}
+
+.speedButton:hover {
+  background: var(--tg-hover, rgba(255, 255, 255, 0.05));
+}
+
+.speedButtonActive {
+  border-color: rgba(47, 179, 163, 0.42);
+  background: rgba(47, 179, 163, 0.16);
+  color: var(--tg-primary, #2fb3a3);
+}

@@ -16,6 +16,7 @@ const wsState = vi.hoisted(() => ({
   lastError: null as string | null,
   send: vi.fn<(payload: string) => boolean>(),
   options: null as {
+    url?: string | null;
     onMessage?: (event: MessageEvent) => void;
   } | null,
 }));
@@ -121,7 +122,10 @@ vi.mock("../hooks/useOnlineStatus", () => ({
 
 vi.mock("../hooks/useReconnectingWebSocket", () => ({
   useReconnectingWebSocket: (options: unknown) => {
-    wsState.options = options as { onMessage?: (event: MessageEvent) => void };
+    wsState.options = options as {
+      url?: string | null;
+      onMessage?: (event: MessageEvent) => void;
+    };
     return {
       status: wsState.status,
       lastError: wsState.lastError,
@@ -179,6 +183,7 @@ vi.mock("../controllers/GroupController", () => ({
   groupController: groupControllerMock,
 }));
 
+import { WsAuthProvider } from "../shared/wsAuth";
 import { ChatRoomPage } from "./ChatRoomPage";
 
 const user = {
@@ -200,6 +205,31 @@ const formatReadReceiptTimestamp = (iso: string) =>
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(iso));
+
+const HEADER_SEARCH_DEBOUNCE_MS = 260;
+
+const createDomRect = ({
+  top,
+  left,
+  width,
+  height,
+}: {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}): DOMRect =>
+  ({
+    x: left,
+    y: top,
+    top,
+    left,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    toJSON: () => ({}),
+  }) as DOMRect;
 
 /**
  * Создает сообщение от другого пользователя для проверки прав.
@@ -223,6 +253,7 @@ const makeForeignMessage = (id: number, content: string): Message => ({
 
 describe("ChatRoomPage", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     wsState.status = "online";
     wsState.lastError = null;
     wsState.send.mockReset().mockReturnValue(true);
@@ -271,6 +302,9 @@ describe("ChatRoomPage", () => {
     permissionsMock.refresh.mockReset().mockResolvedValue(undefined);
     groupControllerMock.joinGroup.mockReset().mockResolvedValue(undefined);
     chatControllerMock.markRead.mockReset().mockResolvedValue({});
+    chatControllerMock.searchMessages.mockReset().mockResolvedValue({
+      results: [],
+    });
     chatControllerMock.getMessageReaders.mockReset().mockResolvedValue({
       roomKind: "direct",
       messageId: 1,
@@ -292,6 +326,14 @@ describe("ChatRoomPage", () => {
       configurable: true,
       value: undefined,
     });
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1280,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 720,
+    });
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
@@ -303,6 +345,22 @@ describe("ChatRoomPage", () => {
     expect(screen.queryByLabelText("Сообщение")).toBeNull();
   });
 
+  it("appends ws auth token to chat websocket url for authenticated user", () => {
+    render(
+      <WsAuthProvider token="auth-token">
+        <ChatRoomPage
+          roomId="1"
+          initialRoomKind="public"
+          user={user}
+          onNavigate={vi.fn()}
+        />
+      </WsAuthProvider>,
+    );
+
+    expect(wsState.options?.url).toContain("/ws/chat/1/");
+    expect(wsState.options?.url).toContain("wst=auth-token");
+  });
+
   it("opens the mobile drawer from room chats", () => {
     locationMock.pathname = "/public";
 
@@ -310,6 +368,133 @@ describe("ChatRoomPage", () => {
 
     fireEvent.click(screen.getByTestId("chat-mobile-open-button"));
     expect(mobileShellMock.openDrawer).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders header search in a top-level layer and closes only on outside click", () => {
+    render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    const searchButton = screen.getByTestId(
+      "chat-header-search-anchor",
+    ) as HTMLButtonElement;
+    Object.defineProperty(searchButton, "getBoundingClientRect", {
+      configurable: true,
+      value: () => createDomRect({ top: 12, left: 280, width: 44, height: 44 }),
+    });
+
+    fireEvent.click(searchButton);
+
+    const searchLayer = screen.getByTestId("chat-header-search-layer");
+    expect(searchLayer).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("chat-header-actions")).queryByTestId(
+        "chat-header-search-layer",
+      ),
+    ).toBeNull();
+
+    fireEvent.mouseDown(within(searchLayer).getByRole("textbox"));
+    expect(screen.getByTestId("chat-header-search-layer")).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByTestId("chat-header-search-layer")).toBeNull();
+  });
+
+  it("clamps header search layer to the viewport on narrow screens", () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 320,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 500,
+    });
+
+    render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    const searchButton = screen.getByTestId(
+      "chat-header-search-anchor",
+    ) as HTMLButtonElement;
+    Object.defineProperty(searchButton, "getBoundingClientRect", {
+      configurable: true,
+      value: () => createDomRect({ top: 18, left: 270, width: 44, height: 44 }),
+    });
+
+    fireEvent.click(searchButton);
+
+    const searchLayer = screen.getByTestId(
+      "chat-header-search-layer",
+    ) as HTMLDivElement;
+    expect(searchLayer.style.left).toBe("8px");
+    expect(searchLayer.style.width).toBe("304px");
+    expect(searchLayer.style.maxHeight).toBe("418px");
+  });
+
+  it("closes header search after selecting a result from the top-level layer", async () => {
+    vi.useFakeTimers();
+    chatControllerMock.searchMessages.mockResolvedValueOnce({
+      results: [
+        {
+          id: 17,
+          publicRef: "alice",
+          username: "alice",
+          displayName: "Alice",
+          content: "Found message",
+          createdAt: "2026-02-13T12:10:00.000Z",
+          highlight: "Found message",
+        },
+      ],
+    });
+
+    render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    const searchButton = screen.getByTestId(
+      "chat-header-search-anchor",
+    ) as HTMLButtonElement;
+    Object.defineProperty(searchButton, "getBoundingClientRect", {
+      configurable: true,
+      value: () => createDomRect({ top: 12, left: 280, width: 44, height: 44 }),
+    });
+
+    fireEvent.click(searchButton);
+    fireEvent.change(
+      within(screen.getByTestId("chat-header-search-layer")).getByRole("textbox"),
+      {
+        target: { value: "found" },
+      },
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(HEADER_SEARCH_DEBOUNCE_MS);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(chatControllerMock.searchMessages).toHaveBeenCalledWith("1", "found");
+
+    const resultText = screen.getByText("Found message");
+    fireEvent.click(resultText);
+
+    expect(screen.queryByTestId("chat-header-search-layer")).toBeNull();
   });
 
   it("sends message for authenticated user", () => {
@@ -1957,9 +2142,9 @@ describe("ChatRoomPage", () => {
       expect(chatControllerMock.getMessageReaders).toHaveBeenCalledWith("2", 1);
     });
     const readersMenu = screen.getByRole("menu", { name: "Кто прочитал" });
-    expect(within(readersMenu).getByText("Alice")).toBeInTheDocument();
+    expect(await within(readersMenu).findByText("Alice")).toBeInTheDocument();
     expect(
-      within(readersMenu).getByRole("img", { name: "Alice" }),
+      await within(readersMenu).findByRole("img", { name: "Alice" }),
     ).toBeInTheDocument();
     expect(
       within(readersMenu).getByText(
@@ -2034,17 +2219,17 @@ describe("ChatRoomPage", () => {
     await waitFor(() => {
       expect(chatControllerMock.getMessageReaders).toHaveBeenCalledWith("4", 8);
     });
-    expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(await screen.findByText("Alice")).toBeInTheDocument();
     expect(
-      screen.getByRole("img", { name: "Alice" }),
+      await screen.findByRole("img", { name: "Alice" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
         formatReadReceiptTimestamp("2026-02-13T12:10:00.000Z"),
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Bob" })).toBeInTheDocument();
+    expect(await screen.findByText("Bob")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Bob" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("menuitem", { name: /Alice/ }));
     expect(infoPanelMock.open).toHaveBeenCalledWith("profile", "alice");

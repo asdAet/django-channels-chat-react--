@@ -47,6 +47,7 @@ export type UpdateProfileInput = {
 export type SessionResponse = {
   authenticated: boolean;
   user: UserProfile | null;
+  wsAuthToken: string | null;
 };
 
 /**
@@ -124,7 +125,7 @@ ensureCsrf(): Promise<{ csrfToken: string }>;
      * Гарантирует presence session.
      * @returns Промис с данными, возвращаемыми этой функцией.
      */
-ensurePresenceSession(): Promise<{ ok: boolean }>;
+ensurePresenceSession(): Promise<{ ok: boolean; wsAuthToken: string | null }>;
 
     /**
      * Возвращает client config.

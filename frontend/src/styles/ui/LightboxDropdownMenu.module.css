@@ -1,0 +1,100 @@
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--tg-bg-surface, #2b2b2b);
+  border: 1px solid var(--tg-border, #303030);
+  box-shadow: var(--tg-shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.35));
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 14;
+  overscroll-behavior: contain;
+}
+
+.menuMobile {
+  right: -2px;
+}
+
+.menuDesktop {
+  right: 0;
+}
+
+.menuItem {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: var(--tg-text-primary, #fff);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.menuItem:hover {
+  background: var(--tg-hover, rgba(255, 255, 255, 0.05));
+}
+
+.menuItem:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.menuItemActive {
+  color: var(--tg-primary, #2fb3a3);
+}
+
+.menuItemDanger {
+  color: var(--tg-danger, #ff595a);
+}
+
+.menuItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menuItemIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.menuItemText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuItemLabel {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.menuItemDescription {
+  color: var(--tg-text-secondary, #aaa);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.menuItemDivider {
+  position: absolute;
+  left: 46px;
+  right: 12px;
+  bottom: -1px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
