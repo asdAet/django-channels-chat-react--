@@ -6,6 +6,14 @@ import {
   uploadAttachments,
 } from "./uploadAttachments";
 
+type UploadResponsePayload = {
+  data: {
+    id: number;
+    content: string;
+    attachments: [];
+  };
+};
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -128,12 +136,10 @@ describe("uploadAttachments", () => {
     vi.useFakeTimers();
 
     const get = vi.fn();
-    let resolveRequest:
-      | ((value: { data: { id: number; content: string; attachments: [] } }) => void)
-      | null = null;
+    let resolveRequest: ((value: UploadResponsePayload) => void) | undefined;
     const post = vi.fn().mockImplementation((_url, _data, config) => {
-      return new Promise((resolve, reject) => {
-        resolveRequest = resolve as typeof resolveRequest;
+      return new Promise<UploadResponsePayload>((resolve, reject) => {
+        resolveRequest = resolve;
         config.signal?.addEventListener(
           "abort",
           () => reject(new Error("aborted")),
@@ -167,7 +173,10 @@ describe("uploadAttachments", () => {
     await vi.advanceTimersByTimeAsync(ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS - 1);
     expect(requestConfig.signal?.aborted).toBe(false);
 
-    resolveRequest?.({ data: { id: 12, content: "", attachments: [] } });
+    if (!resolveRequest) {
+      throw new Error("Upload request did not expose resolver");
+    }
+    resolveRequest({ data: { id: 12, content: "", attachments: [] } });
     await expect(promise).resolves.toMatchObject({ id: 12 });
   });
 });
