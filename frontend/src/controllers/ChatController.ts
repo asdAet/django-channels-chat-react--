@@ -10,6 +10,7 @@ import type {
   SearchResult,
   UnreadCountItem,
   UploadAttachmentsOptions,
+  UploadProgress,
   UploadResult,
 } from "../domain/interfaces/IApiService";
 import type {
@@ -35,6 +36,25 @@ const chunkFiles = (files: File[], maxPerChunk: number): File[][] => {
 
   return chunks;
 };
+
+const getTotalFileBytes = (files: File[]): number =>
+  files.reduce((total, file) => total + file.size, 0);
+
+const buildOverallUploadProgress = (
+  phase: UploadProgress["phase"],
+  uploadedBytes: number,
+  totalBytes: number,
+): UploadProgress => ({
+  phase,
+  uploadedBytes,
+  totalBytes,
+  percent:
+    totalBytes > 0
+      ? (uploadedBytes / totalBytes) * 100
+      : phase === "processing"
+        ? 100
+        : 0,
+});
 
 
 /**
@@ -206,28 +226,48 @@ public async uploadAttachments(
   ): Promise<UploadResult> {
     const maxPerMessage = getChatAttachmentMaxPerMessage();
     const chunks = chunkFiles(files, maxPerMessage);
+    const totalBytes = getTotalFileBytes(files);
 
     if (chunks.length <= 1) {
       return apiService.uploadAttachments(roomId, files, options);
     }
 
-    const totalFiles = files.length;
-    let uploadedFiles = 0;
+    options?.onProgress?.(
+      buildOverallUploadProgress("uploading", 0, totalBytes),
+    );
+
+    let uploadedBytes = 0;
     let firstResult: UploadResult | null = null;
 
     for (const [chunkIndex, chunk] of chunks.entries()) {
       const isFirstChunk = chunkIndex === 0;
-      const chunkStartOffset = uploadedFiles;
+      const chunkStartOffset = uploadedBytes;
+      const chunkBytes = getTotalFileBytes(chunk);
+      let chunkUploadedBytes = 0;
       const result = await apiService.uploadAttachments(roomId, chunk, {
         ...options,
         messageContent: isFirstChunk ? options?.messageContent : undefined,
         replyTo: isFirstChunk ? options?.replyTo : undefined,
         onProgress: options?.onProgress
-          ? (percent) => {
-              const completedFiles =
-                chunkStartOffset + (chunk.length * percent) / 100;
+          ? (progress) => {
+              chunkUploadedBytes = Math.max(
+                chunkUploadedBytes,
+                progress.phase === "processing"
+                  ? chunkBytes
+                  : Math.min(chunkBytes, progress.uploadedBytes),
+              );
+
+              const overallUploadedBytes = Math.min(
+                totalBytes,
+                chunkStartOffset + chunkUploadedBytes,
+              );
+
               options.onProgress?.(
-                Math.round((completedFiles / totalFiles) * 100),
+                buildOverallUploadProgress(
+                  progress.phase,
+                  overallUploadedBytes,
+                  totalBytes,
+                ),
               );
             }
           : undefined,
@@ -236,10 +276,12 @@ public async uploadAttachments(
       if (!firstResult) {
         firstResult = result;
       }
-      uploadedFiles += chunk.length;
+      uploadedBytes += chunkBytes;
     }
 
-    options?.onProgress?.(100);
+    options?.onProgress?.(
+      buildOverallUploadProgress("processing", totalBytes, totalBytes),
+    );
     return firstResult as UploadResult;
   }
 

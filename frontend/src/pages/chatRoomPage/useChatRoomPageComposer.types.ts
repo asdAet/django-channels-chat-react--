@@ -1,5 +1,6 @@
 import type { Message } from "../../entities/message/types";
 import type { UserProfile } from "../../entities/user/types";
+import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type {
   JumpToMessageById,
   ReadersMenuState,
@@ -144,7 +145,7 @@ export type UseChatRoomPageComposerResult = {
   /**
    * Прогресс загрузки вложений в процентах.
    */
-  uploadProgress: number | null;
+  uploadProgress: UploadProgress | null;
   /**
    * Очередь файлов, подготовленных к отправке.
    */

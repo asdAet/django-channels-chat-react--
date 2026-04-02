@@ -8,6 +8,7 @@
   useRef,
 } from "react";
 
+import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type { Message } from "../../entities/message/types";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import styles from "../../styles/chat/MessageInput.module.css";
@@ -28,8 +29,31 @@ type Props = {
   pendingFiles?: File[];
   onRemovePendingFile?: (index: number) => void;
   onClearPendingFiles?: () => void;
-  uploadProgress?: number | null;
+  uploadProgress?: UploadProgress | null;
   onCancelUpload?: () => void;
+};
+
+const formatUploadBytes = (bytes: number): string => {
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  if (bytes >= 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${bytes} B`;
+};
+
+const formatUploadPercent = (percent: number): string => {
+  if (percent >= 100) {
+    return "100";
+  }
+  if (percent < 10) {
+    return percent.toFixed(2);
+  }
+  return percent.toFixed(1);
 };
 
 /**
@@ -188,14 +212,26 @@ export function MessageInput({
 
   const uploading = uploadProgress !== null && uploadProgress !== undefined;
   const uploadPercent = uploading
-    ? Math.max(0, Math.min(100, Math.round(uploadProgress ?? 0)))
+    ? Math.max(0, Math.min(100, uploadProgress?.percent ?? 0))
     : null;
-  const uploadIsIndeterminate = uploading && (uploadPercent ?? 0) <= 0;
-  const uploadLabel = !uploading
-    ? ""
-    : uploadPercent && uploadPercent > 0
-      ? `Загрузка файлов: ${uploadPercent}%`
-      : "Загрузка файлов...";
+  const uploadPhase = uploadProgress?.phase ?? "uploading";
+  const uploadLoadedBytes = uploadProgress?.uploadedBytes ?? 0;
+  const uploadTotalBytes = uploadProgress?.totalBytes ?? 0;
+  const uploadStageLabel =
+    uploadPhase === "processing"
+      ? "Сервер обрабатывает файлы"
+      : uploadPercent !== null && uploadPercent > 0
+        ? `Загрузка файлов: ${formatUploadPercent(uploadPercent)}%`
+        : "Подготовка загрузки...";
+  const uploadMetaLabel =
+    uploadTotalBytes > 0
+      ? `${formatUploadBytes(uploadLoadedBytes)} / ${formatUploadBytes(uploadTotalBytes)}`
+      : "";
+  const uploadLabel = [uploadStageLabel, uploadMetaLabel]
+    .filter(Boolean)
+    .join(" • ");
+  const uploadIsIndeterminate =
+    uploading && (uploadPhase === "processing" || (uploadPercent ?? 0) <= 0);
   const hasQueuedFiles = pendingFiles.length > 0;
   const canSend = Boolean(draft.trim() || hasQueuedFiles);
 
@@ -269,7 +305,12 @@ export function MessageInput({
                 style={
                   uploadIsIndeterminate
                     ? undefined
-                    : { width: `${uploadPercent ?? 0}%` }
+                    : {
+                        width:
+                          uploadPercent && uploadPercent > 0
+                            ? `max(${uploadPercent}%, 4px)`
+                            : "0%",
+                      }
                 }
               />
             </div>

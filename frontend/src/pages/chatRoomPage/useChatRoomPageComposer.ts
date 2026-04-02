@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { chatController } from "../../controllers/ChatController";
+import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import { groupController } from "../../controllers/GroupController";
 import type { Message } from "../../entities/message/types";
 import { debugLog } from "../../shared/lib/debug";
@@ -10,6 +11,9 @@ import type {
   UseChatRoomPageComposerResult,
 } from "./useChatRoomPageComposer.types";
 import { extractApiErrorMessage } from "./utils";
+
+const getTotalFileBytes = (files: File[]): number =>
+  files.reduce((total, file) => total + file.size, 0);
 
 /**
  * Управляет состоянием composer и мутациями сообщений страницы комнаты.
@@ -46,7 +50,9 @@ export function useChatRoomPageComposer({
   const [readersMenu, setReadersMenu] = useState<
     UseChatRoomPageComposerResult["readersMenu"]
   >(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
+    null,
+  );
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [joinInProgress, setJoinInProgress] = useState(false);
   const [lightboxAttachmentId, setLightboxAttachmentId] = useState<
@@ -134,13 +140,19 @@ export function useChatRoomPageComposer({
 
     if (hasQueuedFiles) {
       const abortController = new AbortController();
+      const totalBytes = getTotalFileBytes(queuedFiles);
       uploadAbortRef.current = abortController;
-      setUploadProgress(0);
+      setUploadProgress({
+        phase: "uploading",
+        percent: 0,
+        uploadedBytes: 0,
+        totalBytes,
+      });
       try {
         await chatController.uploadAttachments(roomIdForRequests, queuedFiles, {
           messageContent: cleaned,
           replyTo: replyTo?.id ?? null,
-          onProgress: (pct) => setUploadProgress(pct),
+          onProgress: (progress) => setUploadProgress(progress),
           signal: abortController.signal,
         });
         setDraft("");

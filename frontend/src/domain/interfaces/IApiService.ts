@@ -836,6 +836,13 @@ export type UploadResult = {
   content: string;
   attachments: Attachment[];
 };
+export type UploadProgressPhase = "uploading" | "processing";
+export type UploadProgress = {
+  phase: UploadProgressPhase;
+  percent: number;
+  uploadedBytes: number;
+  totalBytes: number;
+};
 /**
  * Описывает результат операции `ReadState`.
  */
@@ -876,7 +883,7 @@ export type MessageReadersResult = {
  * Описывает настраиваемые опции `UploadAttachments`.
  */
 export type UploadAttachmentsOptions = {
-  onProgress?: (percent: number) => void;
+  onProgress?: (progress: UploadProgress) => void;
   messageContent?: string;
   replyTo?: number | null;
   signal?: AbortSignal;
