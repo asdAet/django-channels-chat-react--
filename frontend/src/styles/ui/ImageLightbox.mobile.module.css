@@ -7,12 +7,6 @@
   padding: 0;
 }
 
-.actionBtnMobile {
-  width: 44px;
-  height: 44px;
-  background: rgba(16, 16, 16, 0.62);
-}
-
 .navBtnMobile {
   width: clamp(64px, 20vw, 108px);
   color: transparent;

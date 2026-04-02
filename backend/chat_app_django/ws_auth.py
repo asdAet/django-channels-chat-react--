@@ -22,6 +22,26 @@ class WebSocketAuthClaims:
     user_id: int | None = None
 
 
+def _parse_positive_user_id(raw_user_id: object) -> int | None:
+    """Parses a positive user id from cache payload."""
+    if isinstance(raw_user_id, bool):
+        return None
+    if isinstance(raw_user_id, int):
+        user_id = raw_user_id
+    elif isinstance(raw_user_id, str):
+        normalized_user_id = raw_user_id.strip()
+        if not normalized_user_id:
+            return None
+        try:
+            user_id = int(normalized_user_id)
+        except ValueError:
+            return None
+    else:
+        return None
+
+    return user_id if user_id > 0 else None
+
+
 def _ws_auth_cache_key(token: str) -> str:
     return f"{WS_AUTH_CACHE_PREFIX}{token}"
 
@@ -86,12 +106,8 @@ def resolve_ws_auth_claims(token: str | None) -> WebSocketAuthClaims | None:
     if kind == "guest":
         return WebSocketAuthClaims(kind="guest", session_key=session_key)
 
-    raw_user_id = payload.get("user_id")
-    try:
-        user_id = int(raw_user_id)
-    except (TypeError, ValueError):
-        return None
-    if user_id <= 0:
+    user_id = _parse_positive_user_id(payload.get("user_id"))
+    if user_id is None:
         return None
 
     return WebSocketAuthClaims(

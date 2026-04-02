@@ -9,6 +9,8 @@ import type {
   WheelEvent as ReactWheelEvent,
 } from "react";
 
+import type { LightboxControlsLayout } from "./lightboxControls/types";
+
 export type ImageLightboxMediaKind = "image" | "video";
 
 export type ImageLightboxMetadata = {
@@ -51,6 +53,8 @@ export type GalleryMediaProps = {
 export type ImageLightboxProps = SingleMediaProps | GalleryMediaProps;
 
 export type ImageLightboxViewProps = {
+  layout: LightboxControlsLayout;
+  chrome: ReactNode;
   currentItem: ImageLightboxMediaItem;
   mediaItems: ImageLightboxMediaItem[];
   normalizedCurrentIndex: number;
@@ -63,7 +67,6 @@ export type ImageLightboxViewProps = {
   hasNavigation: boolean;
   canGoPrevious: boolean;
   canGoNext: boolean;
-  showExpandButton: boolean;
   overlayRef: RefObject<HTMLDivElement | null>;
   frameRef: RefObject<HTMLDivElement | null>;
   viewportRef: RefObject<HTMLDivElement | null>;
@@ -72,7 +75,6 @@ export type ImageLightboxViewProps = {
   onMobileTrackTransitionEnd: (
     event: ReactTransitionEvent<HTMLDivElement>,
   ) => void;
-  onStopClickPropagation: (event: ReactMouseEvent<HTMLElement>) => void;
   onViewportWheel: (event: ReactWheelEvent<HTMLDivElement>) => void;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -86,8 +88,6 @@ export type ImageLightboxViewProps = {
   onTouchEnd: (event: ReactTouchEvent<HTMLDivElement>) => void;
   onPreviousClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   onNextClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
-  onCloseClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
-  onExpandClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   renderActiveMediaElement: (
     item: ImageLightboxMediaItem,
     extraTransformClassName?: string,

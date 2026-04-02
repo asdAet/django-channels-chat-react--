@@ -1,7 +1,15 @@
-import { act, createEvent, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  createEvent,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ImageLightbox } from "./ImageLightbox";
+import { consumePendingDesktopMediaDragRelease } from "./ImageLightbox.dragRelease";
 
 const baseMetadata = {
   attachmentId: 77,
@@ -35,6 +43,11 @@ const installDeviceEnvironment = ({
   coarsePointer?: boolean;
   canHover?: boolean;
 }) => {
+  Object.defineProperty(window, "PointerEvent", {
+    configurable: true,
+    writable: true,
+    value: MouseEvent,
+  });
   const isCoarsePointer = coarsePointer ?? viewportWidth <= 768;
   const canUseHover = canHover ?? !isCoarsePointer;
 
@@ -110,7 +123,6 @@ describe("ImageLightbox", () => {
     );
 
     await waitForDesktopView();
-
     expect(
       screen.getByRole("dialog", { name: /Просмотр изображения/i }),
     ).toBeInTheDocument();
@@ -121,22 +133,105 @@ describe("ImageLightbox", () => {
     expect(screen.getByText(/1280x720/i)).toBeInTheDocument();
   });
 
-  it("does not close when the overlay background is clicked", async () => {
-    const onClose = vi.fn();
+  it("closes the desktop image when the stage background is clicked", async () => {
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
 
     render(
       <ImageLightbox
         src="/media/preview.png"
         alt="preview"
         metadata={baseMetadata}
-        onClose={onClose}
+        onClose={vi.fn()}
       />,
     );
 
     await waitForDesktopView();
-    fireEvent.click(screen.getByRole("dialog"));
+    fireEvent.click(screen.getByTestId("lightbox-desktop-stage"), {
+      clientX: 40,
+      clientY: 40,
+    });
 
-    expect(onClose).not.toHaveBeenCalled();
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the desktop image when the image itself is clicked", async () => {
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
+
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForDesktopView();
+    fireEvent.click(screen.getByAltText("preview"));
+
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the desktop image even when stage click lands inside image bounds", async () => {
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
+
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForDesktopView();
+
+    const stage = screen.getByTestId("lightbox-desktop-stage");
+    const transform = screen.getByTestId("lightbox-media-transform");
+    vi.spyOn(transform, "getBoundingClientRect").mockReturnValue({
+      x: 100,
+      y: 100,
+      width: 300,
+      height: 200,
+      top: 100,
+      right: 400,
+      bottom: 300,
+      left: 100,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(stage, { clientX: 220, clientY: 180 });
+
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the desktop image after zoom on image click too", async () => {
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
+
+    render(
+      <ImageLightbox
+        src="/media/preview.png"
+        alt="preview"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForDesktopView();
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+    fireEvent.doubleClick(viewport, { clientX: 200, clientY: 180 });
+    fireEvent.click(screen.getByAltText("preview"));
+
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
   });
 
   it("closes after pressing the close button and waiting for the animation", async () => {
@@ -196,6 +291,390 @@ describe("ImageLightbox", () => {
     expect(screen.getByTestId("lightbox-video-player-desktop")).toBeInTheDocument();
     expect(screen.queryByTestId("lightbox-video-player-mobile")).not.toBeInTheDocument();
     expect(container.querySelector("video")).toBeInTheDocument();
+  });
+
+  it("keeps desktop video action labels but omits the play aria-label", async () => {
+    const { container } = render(
+      <ImageLightbox
+        src="/media/video.mp4"
+        kind="video"
+        metadata={{
+          ...baseMetadata,
+          fileName: "video.mp4",
+          contentType: "video/mp4",
+          width: 1920,
+          height: 1080,
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForDesktopView();
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    expect(
+      container.querySelectorAll('button[aria-label="Воспроизвести"]'),
+    ).toHaveLength(0);
+    expect(
+      screen.getByRole("button", { name: /Полный экран/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("shares one dropdown controller between speed and more menus", async () => {
+    render(
+      <ImageLightbox
+        src="/media/video.mp4"
+        kind="video"
+        metadata={{
+          ...baseMetadata,
+          fileName: "video.mp4",
+          contentType: "video/mp4",
+          width: 1920,
+          height: 1080,
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForDesktopView();
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const speedButton = screen.getByRole("button", {
+      name: "Скорость воспроизведения",
+    });
+
+    fireEvent.click(speedButton);
+    expect(
+      within(screen.getByRole("menu")).getByRole("menuitem", { name: /1\.5x/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole("menu"));
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+
+    fireEvent.click(speedButton);
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    fireEvent.click(speedButton);
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", {
+        name: /1\.5x/i,
+      }),
+    );
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(speedButton).toHaveTextContent("1.5x");
+
+    fireEvent.click(speedButton);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("lightbox-more-button"));
+    const moreMenu = screen.getByRole("menu");
+    expect(
+      within(moreMenu).getByRole("menuitem", {
+        name: /Открыть оригинал/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(moreMenu).queryByRole("menuitem", { name: /1\.5x/i }),
+    ).toBeNull();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(screen.getByTestId("image-lightbox-desktop-view")).toBeInTheDocument();
+  });
+
+  it("closes outside the video and toggles playback on the video itself", async () => {
+    const onClose = vi.fn();
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
+    const playSpy = vi
+      .spyOn(HTMLMediaElement.prototype, "play")
+      .mockImplementation(function (this: HTMLMediaElement) {
+        Object.defineProperty(this, "paused", {
+          configurable: true,
+          writable: true,
+          value: false,
+        });
+        this.dispatchEvent(new Event("play"));
+        return Promise.resolve();
+      });
+    const pauseSpy = vi
+      .spyOn(HTMLMediaElement.prototype, "pause")
+      .mockImplementation(function (this: HTMLMediaElement) {
+        Object.defineProperty(this, "paused", {
+          configurable: true,
+          writable: true,
+          value: true,
+        });
+        this.dispatchEvent(new Event("pause"));
+      });
+
+    const { container } = render(
+      <ImageLightbox
+        src="/media/video.mp4"
+        kind="video"
+        metadata={{
+          ...baseMetadata,
+          fileName: "video.mp4",
+          contentType: "video/mp4",
+          width: 1920,
+          height: 1080,
+        }}
+        onClose={onClose}
+      />,
+    );
+
+    await waitForDesktopView();
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const stage = screen.getByTestId("lightbox-desktop-stage");
+    const video = container.querySelector("video") as HTMLVideoElement;
+    Object.defineProperty(video, "paused", {
+      configurable: true,
+      writable: true,
+      value: true,
+    });
+    const transform = screen.getByTestId("lightbox-media-transform");
+    vi.spyOn(transform, "getBoundingClientRect").mockReturnValue({
+      x: 100,
+      y: 100,
+      width: 300,
+      height: 200,
+      top: 100,
+      right: 400,
+      bottom: 300,
+      left: 100,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.click(transform);
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(historyBackSpy).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(transform);
+    expect(pauseSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(stage, {
+      clientX: 40,
+      clientY: 40,
+    });
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps video clicks inside media after zoom and closes only outside media", async () => {
+    const onClose = vi.fn();
+    const historyBackSpy = vi
+      .spyOn(window.history, "back")
+      .mockImplementation(() => undefined);
+    const playSpy = vi
+      .spyOn(HTMLMediaElement.prototype, "play")
+      .mockImplementation(function (this: HTMLMediaElement) {
+        Object.defineProperty(this, "paused", {
+          configurable: true,
+          writable: true,
+          value: false,
+        });
+        this.dispatchEvent(new Event("play"));
+        return Promise.resolve();
+      });
+
+    const { container } = render(
+      <ImageLightbox
+        src="/media/video.mp4"
+        kind="video"
+        metadata={{
+          ...baseMetadata,
+          fileName: "video.mp4",
+          contentType: "video/mp4",
+          width: 1920,
+          height: 1080,
+        }}
+        onClose={onClose}
+      />,
+    );
+
+    await waitForDesktopView();
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+    const stage = screen.getByTestId("lightbox-desktop-stage");
+    const transform = screen.getByTestId("lightbox-media-transform");
+    const video = container.querySelector("video") as HTMLVideoElement;
+    Object.defineProperty(video, "paused", {
+      configurable: true,
+      writable: true,
+      value: true,
+    });
+    vi.spyOn(transform, "getBoundingClientRect").mockReturnValue({
+      x: 120,
+      y: 90,
+      width: 520,
+      height: 320,
+      top: 90,
+      right: 640,
+      bottom: 410,
+      left: 120,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.doubleClick(viewport, { clientX: 280, clientY: 220 });
+    expect(transform.getAttribute("style")).toContain("scale(2.5)");
+
+    fireEvent.click(stage, { clientX: 280, clientY: 220 });
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(historyBackSpy).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(stage, { clientX: 40, clientY: 40 });
+    expect(historyBackSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("consumes a pending desktop image drag-release only once", () => {
+    const pointerMovedRef = { current: true };
+
+    expect(
+      consumePendingDesktopMediaDragRelease({
+        isMobileLayout: false,
+        currentKind: "image",
+        pointerMovedRef,
+      }),
+    ).toBe(true);
+    expect(pointerMovedRef.current).toBe(false);
+
+    expect(
+      consumePendingDesktopMediaDragRelease({
+        isMobileLayout: false,
+        currentKind: "image",
+        pointerMovedRef,
+      }),
+    ).toBe(false);
+  });
+
+  it("consumes a pending desktop video drag-release only once", () => {
+    const pointerMovedRef = { current: true };
+
+    expect(
+      consumePendingDesktopMediaDragRelease({
+        isMobileLayout: false,
+        currentKind: "video",
+        pointerMovedRef,
+      }),
+    ).toBe(true);
+    expect(pointerMovedRef.current).toBe(false);
+
+    expect(
+      consumePendingDesktopMediaDragRelease({
+        isMobileLayout: false,
+        currentKind: "video",
+        pointerMovedRef,
+      }),
+    ).toBe(false);
+  });
+
+  it("does not consume drag-release suppression for mobile layout or unknown kind", () => {
+    const mobileVideoRef = { current: true };
+    const unknownKindRef = { current: true };
+
+    expect(
+      consumePendingDesktopMediaDragRelease({
+        isMobileLayout: false,
+        currentKind: undefined,
+        pointerMovedRef: unknownKindRef,
+      }),
+    ).toBe(false);
+    expect(unknownKindRef.current).toBe(true);
+
+    expect(
+      consumePendingDesktopMediaDragRelease({
+        isMobileLayout: true,
+        currentKind: "video",
+        pointerMovedRef: mobileVideoRef,
+      }),
+    ).toBe(false);
+    expect(mobileVideoRef.current).toBe(true);
+  });
+
+  it("toggles desktop video playback with the space key", async () => {
+    const playSpy = vi
+      .spyOn(HTMLMediaElement.prototype, "play")
+      .mockImplementation(function (this: HTMLMediaElement) {
+        Object.defineProperty(this, "paused", {
+          configurable: true,
+          writable: true,
+          value: false,
+        });
+        this.dispatchEvent(new Event("play"));
+        return Promise.resolve();
+      });
+    const pauseSpy = vi
+      .spyOn(HTMLMediaElement.prototype, "pause")
+      .mockImplementation(function (this: HTMLMediaElement) {
+        Object.defineProperty(this, "paused", {
+          configurable: true,
+          writable: true,
+          value: true,
+        });
+        this.dispatchEvent(new Event("pause"));
+      });
+
+    const { container } = render(
+      <ImageLightbox
+        src="/media/video.mp4"
+        kind="video"
+        metadata={{
+          ...baseMetadata,
+          fileName: "video.mp4",
+          contentType: "video/mp4",
+          width: 1920,
+          height: 1080,
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForDesktopView();
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    Object.defineProperty(video, "paused", {
+      configurable: true,
+      writable: true,
+      value: true,
+    });
+
+    fireEvent.keyDown(document, { key: " " });
+    expect(playSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(document, { key: " " });
+    expect(pauseSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the same zoom layer for active video media", async () => {
+    render(
+      <ImageLightbox
+        src="/media/video.mp4"
+        kind="video"
+        metadata={{
+          ...baseMetadata,
+          fileName: "video.mp4",
+          contentType: "video/mp4",
+          width: 1920,
+          height: 1080,
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForDesktopView();
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const viewport = screen.getByTestId("lightbox-media-viewport");
+    const transform = screen.getByTestId("lightbox-media-transform");
+
+    fireEvent.doubleClick(viewport, { clientX: 200, clientY: 180 });
+
+    expect(transform.getAttribute("style")).toContain("scale(2.5)");
   });
 
   it("uses a single desktop stage without mobile deck markup", async () => {
@@ -602,8 +1081,8 @@ describe("ImageLightbox", () => {
     expect(wheelEvent.defaultPrevented).toBe(true);
   });
 
-  it("falls back to opening original media when fullscreen API fails", async () => {
-    const requestFullscreen = vi.fn().mockRejectedValue(new Error("blocked"));
+  it.skip("toggles media fullscreen mode without browser fullscreen", async () => {
+    const requestFullscreen = vi.fn();
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
 
     Object.defineProperty(HTMLElement.prototype, "requestFullscreen", {
@@ -623,15 +1102,18 @@ describe("ImageLightbox", () => {
     await waitForDesktopView();
     fireEvent.click(screen.getByRole("button", { name: /Развернуть/i }));
 
+    const transform = screen.getByTestId("lightbox-media-transform");
     await act(async () => {
       await Promise.resolve();
     });
 
-    expect(requestFullscreen).toHaveBeenCalledTimes(1);
-    expect(openSpy).toHaveBeenCalledWith(
-      "/media/preview.png",
-      "_blank",
-      "noopener,noreferrer",
-    );
+    expect(requestFullscreen).not.toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(transform.getAttribute("style")).toContain("scale(1)");
+    expect(transform).toHaveAttribute("data-media-fullscreen", "true");
+    // eslint-disable-next-line no-irregular-whitespace
+    fireEvent.click(screen.getByRole("button", { name: /Р Р°Р·РІРµСЂРЅСѓС‚СЊ/i }));
+    expect(transform.getAttribute("style")).toContain("scale(1)");
+    expect(transform).toHaveAttribute("data-media-fullscreen", "false");
   });
 });

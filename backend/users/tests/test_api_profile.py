@@ -385,6 +385,12 @@ class AttachmentMediaAccessTests(TestCase):
         buff.seek(0)
         return buff.read()
 
+    @staticmethod
+    def _read_response_content(response) -> bytes:
+        if getattr(response, "streaming", False):
+            return b"".join(response.streaming_content)
+        return bytes(response.content)
+
     def _attachment_with_png_thumbnail_for_room(self, room: Room, *, author) -> MessageAttachment:
         message = Message.objects.create(
             username=author.username,
@@ -418,6 +424,8 @@ class AttachmentMediaAccessTests(TestCase):
 
         self.assertEqual(file_response.status_code, 200)
         self.assertEqual(thumb_response.status_code, 200)
+        self.assertEqual(file_response.headers.get("Accept-Ranges"), "bytes")
+        self.assertEqual(thumb_response.headers.get("Accept-Ranges"), "bytes")
         file_response.close()
         thumb_response.close()
 
@@ -564,6 +572,111 @@ class AttachmentMediaAccessTests(TestCase):
                     expected_content_type,
                 )
                 response.close()
+
+    @override_settings(DEBUG=True)
+    def test_attachment_media_view_supports_video_range_requests_in_debug(self):
+        payload = b"....ftypseek-test-video-payload-0123456789"
+        attachment = self._attachment_with_custom_file(
+            self.direct_room,
+            author=self.owner,
+            file_name="clip.mp4",
+            file_content_type="video/mp4",
+            file_payload=payload,
+        )
+        self.client.force_login(self.owner)
+        target_url = f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}"
+
+        test_cases = [
+            ("bytes=0-3", payload[:4], f"bytes 0-3/{len(payload)}"),
+            ("bytes=10-", payload[10:], f"bytes 10-{len(payload) - 1}/{len(payload)}"),
+            ("bytes=-8", payload[-8:], f"bytes {len(payload) - 8}-{len(payload) - 1}/{len(payload)}"),
+        ]
+
+        for header_value, expected_body, expected_range in test_cases:
+            with self.subTest(range=header_value):
+                response = self.client.get(target_url, HTTP_RANGE=header_value)
+                self.assertEqual(response.status_code, 206)
+                self.assertEqual(response.headers.get("Accept-Ranges"), "bytes")
+                self.assertEqual(response.headers.get("Content-Range"), expected_range)
+                self.assertEqual(response.headers.get("Content-Length"), str(len(expected_body)))
+                self.assertEqual(
+                    response.headers.get("Content-Type", "").split(";")[0],
+                    "video/mp4",
+                )
+                self.assertEqual(self._read_response_content(response), expected_body)
+                response.close()
+
+    @override_settings(DEBUG=True)
+    def test_attachment_media_view_rejects_invalid_video_range_in_debug(self):
+        payload = b"....ftypseek-test-video-payload-0123456789"
+        attachment = self._attachment_with_custom_file(
+            self.direct_room,
+            author=self.owner,
+            file_name="clip.mp4",
+            file_content_type="video/mp4",
+            file_payload=payload,
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            HTTP_RANGE="bytes=999-1001",
+        )
+
+        self.assertEqual(response.status_code, 416)
+        self.assertEqual(response.headers.get("Accept-Ranges"), "bytes")
+        self.assertEqual(response.headers.get("Content-Range"), f"bytes */{len(payload)}")
+        self.assertEqual(response.headers.get("Content-Length"), "0")
+        response.close()
+
+    @override_settings(DEBUG=True)
+    def test_attachment_media_view_keeps_full_video_response_seekable_in_debug(self):
+        payload = b"....ftypseek-test-video-payload-0123456789"
+        attachment = self._attachment_with_custom_file(
+            self.direct_room,
+            author=self.owner,
+            file_name="clip.mp4",
+            file_content_type="video/mp4",
+            file_payload=payload,
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Accept-Ranges"), "bytes")
+        self.assertEqual(
+            response.headers.get("Content-Type", "").split(";")[0],
+            "video/mp4",
+        )
+        self.assertEqual(self._read_response_content(response), payload)
+        response.close()
+
+    @override_settings(DEBUG=False)
+    def test_attachment_media_view_advertises_range_support_with_x_accel_redirect(self):
+        payload = b"....ftypseek-test-video-payload-0123456789"
+        attachment = self._attachment_with_custom_file(
+            self.direct_room,
+            author=self.owner,
+            file_name="clip.mp4",
+            file_content_type="video/mp4",
+            file_payload=payload,
+        )
+        self.client.force_login(self.owner)
+
+        response = self.client.get(
+            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("Accept-Ranges"), "bytes")
+        self.assertEqual(
+            response.headers.get("X-Accel-Redirect"),
+            f"/_protected_media/{quote(attachment.file.name, safe='/')}",
+        )
+        response.close()
 
     def test_attachment_media_view_denies_unauthorized_for_any_attachment_type(self):
         guest_client = Client()

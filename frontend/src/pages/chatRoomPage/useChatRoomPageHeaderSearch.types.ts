@@ -28,7 +28,8 @@ export type UseChatRoomPageHeaderSearchResult = {
   /**
    * Ref корневого контейнера поиска для outside-click логики.
    */
-  searchWrapRef: RefObject<HTMLDivElement | null>;
+  searchAnchorRef: RefObject<HTMLButtonElement | null>;
+  searchLayerRef: RefObject<HTMLDivElement | null>;
   /**
    * Ref поля ввода поиска для фокуса при открытии.
    */

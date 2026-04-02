@@ -2,8 +2,13 @@ import controlsStyles from "../../styles/ui/ImageLightbox.controls.module.css";
 import desktopStyles from "../../styles/ui/ImageLightbox.desktop.module.css";
 import shellStyles from "../../styles/ui/ImageLightbox.module.css";
 import type { ImageLightboxViewProps } from "./ImageLightbox.types";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "./lightboxControls/LightboxIcons";
 
 export default function ImageLightboxDesktopView({
+  chrome,
   currentItem,
   isClosing,
   dialogLabel,
@@ -13,11 +18,9 @@ export default function ImageLightboxDesktopView({
   hasNavigation,
   canGoPrevious,
   canGoNext,
-  showExpandButton,
   overlayRef,
   frameRef,
   viewportRef,
-  onStopClickPropagation,
   onViewportWheel,
   onPointerDown,
   onPointerMove,
@@ -29,8 +32,6 @@ export default function ImageLightboxDesktopView({
   onTouchEnd,
   onPreviousClick,
   onNextClick,
-  onCloseClick,
-  onExpandClick,
   renderActiveMediaElement,
 }: ImageLightboxViewProps) {
   return (
@@ -45,6 +46,8 @@ export default function ImageLightboxDesktopView({
       style={overlayStyle}
       data-testid="image-lightbox-desktop-view"
     >
+      {chrome}
+
       {hasNavigation && (
         <button
           type="button"
@@ -54,7 +57,7 @@ export default function ImageLightboxDesktopView({
           disabled={!canGoPrevious}
         >
           <span className={controlsStyles.navBtnIcon} aria-hidden="true">
-            {"\u2039"}
+            <ChevronLeftIcon />
           </span>
         </button>
       )}
@@ -68,7 +71,7 @@ export default function ImageLightboxDesktopView({
           disabled={!canGoNext}
         >
           <span className={controlsStyles.navBtnIcon} aria-hidden="true">
-            {"\u203A"}
+            <ChevronRightIcon />
           </span>
         </button>
       )}
@@ -80,27 +83,6 @@ export default function ImageLightboxDesktopView({
         style={resolvedFrameStyle}
         ref={frameRef}
       >
-        <div className={controlsStyles.actions} onClick={onStopClickPropagation}>
-          {showExpandButton && (
-            <button
-              type="button"
-              className={controlsStyles.actionBtn}
-              onClick={onExpandClick}
-              aria-label="Развернуть"
-            >
-              {"\u26F6"}
-            </button>
-          )}
-          <button
-            type="button"
-            className={controlsStyles.actionBtn}
-            onClick={onCloseClick}
-            aria-label="Закрыть"
-          >
-            {"\u00D7"}
-          </button>
-        </div>
-
         <div
           ref={viewportRef}
           className={[shellStyles.mediaViewport, desktopStyles.mediaViewportDesktop]
@@ -127,7 +109,10 @@ export default function ImageLightboxDesktopView({
               .join(" ")}
             data-testid="lightbox-desktop-stage"
           >
-            {renderActiveMediaElement(currentItem, desktopStyles.desktopMediaTransform)}
+            {renderActiveMediaElement(
+              currentItem,
+              desktopStyles.desktopImageMediaTransform,
+            )}
           </div>
         </div>
       </div>

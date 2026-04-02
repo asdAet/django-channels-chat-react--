@@ -224,7 +224,8 @@ export function useChatRoomPageController({
       currentActorRef,
     },
     headerSearch: {
-      searchWrapRef: headerSearch.searchWrapRef,
+      searchAnchorRef: headerSearch.searchAnchorRef,
+      searchLayerRef: headerSearch.searchLayerRef,
       headerSearchInputRef: headerSearch.headerSearchInputRef,
       isHeaderSearchOpen: headerSearch.isHeaderSearchOpen,
       headerSearchQuery: headerSearch.headerSearchQuery,

@@ -1,11 +1,12 @@
 import {
   type CSSProperties,
+  forwardRef,
   lazy,
   type Ref,
   Suspense,
-  type SyntheticEvent,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -13,11 +14,13 @@ import {
 
 import mediaStyles from "../../styles/ui/LightboxVideoPlayer.media.module.css";
 import frameStyles from "../../styles/ui/LightboxVideoPlayer.module.css";
+import type { LightboxDropdownMenuController, LightboxDropdownMenuId } from "./lightboxControls/types";
 import {
   loadLightboxVideoPlayerDesktopView,
   loadLightboxVideoPlayerMobileView,
 } from "./LightboxVideoPlayer.loaders";
 import {
+  type LightboxVideoPlayerHandle,
   type LightboxVideoPlayerLayout,
   type LightboxVideoPlayerViewProps,
 } from "./LightboxVideoPlayer.types";
@@ -30,12 +33,30 @@ import {
 const LightboxVideoPlayerDesktopView = lazy(loadLightboxVideoPlayerDesktopView);
 const LightboxVideoPlayerMobileView = lazy(loadLightboxVideoPlayerMobileView);
 
+const CONTROLS_HIDE_DELAY_MS = 2600;
+const SEEK_SYNC_EPSILON_SECONDS = 0.75;
+
+const normalizePlaybackTime = (value: number) =>
+  Number.isFinite(value) && value > 0 ? value : 0;
+
+const clampSeekTime = (value: number, nextDuration: number) => {
+  const normalizedValue = normalizePlaybackTime(value);
+  const maxValue =
+    Number.isFinite(nextDuration) && nextDuration > 0
+      ? nextDuration
+      : normalizedValue;
+
+  return clampNumber(normalizedValue, 0, maxValue);
+};
+
 type Props = {
   src: string;
   fileName: string;
   mediaClassName: string;
   mediaTransformClassName: string;
   mediaTransformRef?: Ref<HTMLDivElement>;
+  consumeMediaClickSuppression?: () => boolean;
+  menuController?: LightboxDropdownMenuController;
   onRequestFullscreen: () => void;
   layout: LightboxVideoPlayerLayout;
 };
@@ -60,33 +81,44 @@ function LightboxVideoPlayerFallback({
       data-testid="lightbox-video-player-loading"
     >
       {mediaViewport}
-      <div className={frameStyles.controls} />
     </div>
   );
 }
 
-export function LightboxVideoPlayer({
-  src,
-  fileName,
-  mediaClassName,
-  mediaTransformClassName,
-  mediaTransformRef,
-  onRequestFullscreen,
-  layout,
-}: Props) {
-  return (
-    <LightboxVideoPlayerSession
-      key={src}
-      src={src}
-      fileName={fileName}
-      mediaClassName={mediaClassName}
-      mediaTransformClassName={mediaTransformClassName}
-      mediaTransformRef={mediaTransformRef}
-      onRequestFullscreen={onRequestFullscreen}
-      layout={layout}
-    />
-  );
-}
+export const LightboxVideoPlayer = forwardRef<LightboxVideoPlayerHandle, Props>(
+  function LightboxVideoPlayer(
+    {
+      src,
+      fileName,
+      mediaClassName,
+      mediaTransformClassName,
+      mediaTransformRef,
+      consumeMediaClickSuppression,
+      menuController,
+      onRequestFullscreen,
+      layout,
+    },
+    ref,
+  ) {
+    return (
+      <LightboxVideoPlayerSession
+        key={src}
+        src={src}
+        fileName={fileName}
+        mediaClassName={mediaClassName}
+        mediaTransformClassName={mediaTransformClassName}
+        mediaTransformRef={mediaTransformRef}
+        consumeMediaClickSuppression={consumeMediaClickSuppression}
+        menuController={menuController}
+        onRequestFullscreen={onRequestFullscreen}
+        layout={layout}
+        imperativeRef={ref}
+      />
+    );
+  },
+);
+
+LightboxVideoPlayer.displayName = "LightboxVideoPlayer";
 
 function LightboxVideoPlayerSession({
   src,
@@ -94,34 +126,74 @@ function LightboxVideoPlayerSession({
   mediaClassName,
   mediaTransformClassName,
   mediaTransformRef,
-  onRequestFullscreen: _onRequestFullscreen,
+  consumeMediaClickSuppression,
+  menuController,
+  onRequestFullscreen,
   layout,
-}: Props) {
+  imperativeRef,
+}: Props & { imperativeRef?: Ref<LightboxVideoPlayerHandle> }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isControlsVisible, setIsControlsVisible] = useState(true);
+  const [controlsWakeToken, setControlsWakeToken] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [seekDraftTime, setSeekDraftTime] = useState<number | null>(null);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [isRateMenuOpen, setIsRateMenuOpen] = useState(false);
+  const [internalActiveMenuId, setInternalActiveMenuId] =
+    useState<LightboxDropdownMenuId | null>(null);
   const [canUsePictureInPicture, setCanUsePictureInPicture] = useState(false);
   const [isInPictureInPicture, setIsInPictureInPicture] = useState(false);
+  const isSeekInteractionActiveRef = useRef(false);
+  const pendingSeekTargetRef = useRef<number | null>(null);
+  const activeMenuId = menuController?.activeMenuId ?? internalActiveMenuId;
+  const isAnyMenuOpen = activeMenuId !== null;
+
+  const markControlsActive = useCallback(() => {
+    setIsControlsVisible(true);
+    setControlsWakeToken((previousValue) => previousValue + 1);
+  }, []);
+
+  const closeActiveMenu = useCallback(() => {
+    if (menuController) {
+      menuController.onCloseMenu();
+      return;
+    }
+
+    setInternalActiveMenuId(null);
+  }, [menuController]);
+
+  const toggleMenu = useCallback(
+    (menuId: LightboxDropdownMenuId) => {
+      if (menuController) {
+        menuController.onToggleMenu(menuId);
+        return;
+      }
+
+      setInternalActiveMenuId((previousValue) =>
+        previousValue === menuId ? null : menuId,
+      );
+    },
+    [menuController],
+  );
 
   useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setIsRateMenuOpen(false);
-      }
-    };
+    if (layout === "mobile" || !isReady || !isPlaying || isAnyMenuOpen) {
+      return;
+    }
 
-    document.addEventListener("pointerdown", handlePointerDown, true);
+    const timerId = window.setTimeout(() => {
+      setIsControlsVisible(false);
+    }, CONTROLS_HIDE_DELAY_MS);
+
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown, true);
+      window.clearTimeout(timerId);
     };
-  }, []);
+  }, [controlsWakeToken, isAnyMenuOpen, isPlaying, isReady, layout]);
 
   const syncPictureInPictureCapability = useCallback(() => {
     if (typeof document === "undefined") {
@@ -188,6 +260,8 @@ function LightboxVideoPlayerSession({
       return;
     }
 
+    markControlsActive();
+
     if (video.paused) {
       try {
         await video.play();
@@ -198,38 +272,185 @@ function LightboxVideoPlayerSession({
     }
 
     video.pause();
-  }, []);
+  }, [markControlsActive]);
 
-  const handleSeek = useCallback((nextValue: number) => {
-    const video = videoRef.current;
-    if (!video || !Number.isFinite(nextValue)) {
+  useImperativeHandle(
+    imperativeRef,
+    () => ({
+      togglePlayback: () => {
+        void handleTogglePlayback();
+      },
+    }),
+    [handleTogglePlayback],
+  );
+
+  useEffect(() => {
+    if (layout !== "desktop") {
       return;
     }
 
-    video.currentTime = nextValue;
-    setCurrentTime(nextValue);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== " " && event.key !== "Spacebar") {
+        return;
+      }
+
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      void handleTogglePlayback();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleTogglePlayback, layout]);
+
+  const syncMeasuredCurrentTime = useCallback(
+    (nextValue: number) => {
+      const resolvedTime = normalizePlaybackTime(nextValue);
+      const pendingSeekTarget = pendingSeekTargetRef.current;
+
+      if (pendingSeekTarget !== null) {
+        if (
+          Math.abs(resolvedTime - pendingSeekTarget) <= SEEK_SYNC_EPSILON_SECONDS
+        ) {
+          pendingSeekTargetRef.current = null;
+          isSeekInteractionActiveRef.current = false;
+          setCurrentTime(resolvedTime);
+          setSeekDraftTime(null);
+        }
+
+        return;
+      }
+
+      setCurrentTime(resolvedTime);
+      setSeekDraftTime((previousValue) => {
+        if (previousValue === null) {
+          return previousValue;
+        }
+
+        if (Math.abs(resolvedTime - previousValue) <= SEEK_SYNC_EPSILON_SECONDS) {
+          return null;
+        }
+
+        return previousValue;
+      });
+    },
+    [],
+  );
+
+  const writeSeekDraft = useCallback(
+    (nextValue: number) => {
+      const video = videoRef.current;
+      if (!video || !Number.isFinite(nextValue)) {
+        return;
+      }
+
+      const clampedValue = clampSeekTime(nextValue, duration);
+      markControlsActive();
+      pendingSeekTargetRef.current = clampedValue;
+      setCurrentTime(clampedValue);
+      setSeekDraftTime(clampedValue);
+      video.currentTime = clampedValue;
+    },
+    [duration, markControlsActive],
+  );
+
+  const handleSeekPreview = useCallback(
+    (nextValue: number) => {
+      writeSeekDraft(nextValue);
+    },
+    [writeSeekDraft],
+  );
+
+  const handleSeekCommit = useCallback(
+    (nextValue: number) => {
+      writeSeekDraft(nextValue);
+    },
+    [writeSeekDraft],
+  );
+
+  const handleSeekInteractionStart = useCallback(() => {
+    isSeekInteractionActiveRef.current = true;
+    markControlsActive();
+  }, [markControlsActive]);
+
+  const handleSeekInteractionEnd = useCallback(() => {
+    isSeekInteractionActiveRef.current = false;
   }, []);
 
-  const handleVolumeChange = useCallback((nextValue: number) => {
-    const video = videoRef.current;
-    const clampedValue = clampNumber(nextValue, 0, 1);
+  const displayTime = seekDraftTime ?? currentTime;
 
-    setVolume(clampedValue);
-    setIsMuted(clampedValue === 0);
-
-    if (!video) {
-      return;
+  const progressPercent = useMemo(() => {
+    if (duration <= 0) {
+      return 0;
     }
 
-    video.volume = clampedValue;
-    video.muted = clampedValue === 0;
+    return clampNumber((displayTime / duration) * 100, 0, 100);
+  }, [displayTime, duration]);
+
+  const remainingLabel = formatTime(Math.max(0, duration - displayTime));
+  const resolvedControlsVisible =
+    layout === "mobile" ||
+    !isReady ||
+    !isPlaying ||
+    isAnyMenuOpen ||
+    isControlsVisible;
+  const volumePercent = clampNumber(volume * 100, 0, 100);
+  const progressStyle = {
+    "--player-range-progress": `${progressPercent}%`,
+  } as CSSProperties;
+  const volumeStyle = {
+    "--player-range-progress": `${volumePercent}%`,
+  } as CSSProperties;
+  const clearSeekDraft = useCallback(() => {
+    pendingSeekTargetRef.current = null;
+    setSeekDraftTime(null);
+    isSeekInteractionActiveRef.current = false;
   }, []);
+
+  const markSeekSettled = useCallback(
+    (nextValue: number) => {
+      syncMeasuredCurrentTime(nextValue);
+    },
+    [syncMeasuredCurrentTime],
+  );
+
+  const handleVolumeChange = useCallback(
+    (nextValue: number) => {
+      const video = videoRef.current;
+      const clampedValue = clampNumber(nextValue, 0, 1);
+
+      markControlsActive();
+      setVolume(clampedValue);
+      setIsMuted(clampedValue === 0);
+
+      if (!video) {
+        return;
+      }
+
+      video.volume = clampedValue;
+      video.muted = clampedValue === 0;
+    },
+    [markControlsActive],
+  );
 
   const handleToggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) {
       return;
     }
+
+    markControlsActive();
 
     if (video.muted || video.volume === 0) {
       const restoredVolume = volume > 0 ? volume : 1;
@@ -242,18 +463,22 @@ function LightboxVideoPlayerSession({
 
     video.muted = true;
     setIsMuted(true);
-  }, [volume]);
+  }, [markControlsActive, volume]);
 
-  const handleSetPlaybackRate = useCallback((nextRate: number) => {
-    const video = videoRef.current;
-    if (!video) {
-      return;
-    }
+  const handleSetPlaybackRate = useCallback(
+    (nextRate: number) => {
+      const video = videoRef.current;
+      if (!video) {
+        return;
+      }
 
-    video.playbackRate = nextRate;
-    setPlaybackRate(nextRate);
-    setIsRateMenuOpen(false);
-  }, []);
+      markControlsActive();
+      video.playbackRate = nextRate;
+      setPlaybackRate(nextRate);
+      closeActiveMenu();
+    },
+    [closeActiveMenu, markControlsActive],
+  );
 
   const handleTogglePictureInPicture = useCallback(async () => {
     if (typeof document === "undefined") {
@@ -266,88 +491,57 @@ function LightboxVideoPlayerSession({
       return;
     }
 
+    markControlsActive();
+
     try {
-      if (pipDocument.pictureInPictureElement === video) {
+      if (pipDocument.pictureInPictureElement) {
         await pipDocument.exitPictureInPicture?.();
+        setIsInPictureInPicture(false);
         return;
       }
 
       await video.requestPictureInPicture?.();
     } catch {
-      setIsInPictureInPicture(false);
+      syncPictureInPictureCapability();
     }
-  }, []);
-
-  const progressPercent = useMemo(() => {
-    if (duration <= 0) {
-      return 0;
-    }
-
-    return clampNumber((currentTime / duration) * 100, 0, 100);
-  }, [currentTime, duration]);
-
-  const volumePercent = clampNumber(volume * 100, 0, 100);
-  const progressStyle = {
-    "--player-range-progress": `${progressPercent}%`,
-  } as CSSProperties;
-  const volumeStyle = {
-    "--player-range-progress": `${volumePercent}%`,
-  } as CSSProperties;
-  const remainingLabel = formatTime(Math.max(0, duration - currentTime));
-
-  const handleVideoClick = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
-      event.stopPropagation();
-
-      const video = videoRef.current;
-      if (!video || video.paused) {
-        return;
-      }
-
-      video.pause();
-    },
-    [],
-  );
+  }, [markControlsActive, syncPictureInPictureCapability]);
 
   const mediaViewport = (
-    <div
-      className={mediaStyles.mediaViewport}
-      onDoubleClick={stopPropagation}
-    >
+    <div className={mediaStyles.mediaSurface} data-testid="lightbox-video-surface">
       <div
-        className={mediaTransformClassName}
+        className={[
+          mediaTransformClassName,
+          mediaStyles.videoTransform,
+          layout === "desktop" ? mediaStyles.desktopVideoTransform : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         ref={mediaTransformRef}
         data-testid="lightbox-media-transform"
-        onPointerDownCapture={stopPropagation}
-        onPointerUpCapture={stopPropagation}
-        onClickCapture={stopPropagation}
-        onClick={stopPropagation}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (consumeMediaClickSuppression?.()) {
+            event.preventDefault();
+            return;
+          }
+          void handleTogglePlayback();
+        }}
       >
         <video
           ref={videoRef}
-          className={mediaClassName}
+          className={[mediaClassName, mediaStyles.mediaVideo].join(" ")}
           src={src}
           title={fileName}
           aria-label={fileName}
           playsInline
           preload="metadata"
           autoPlay
-          onPointerDownCapture={stopPropagation}
-          onPointerUpCapture={stopPropagation}
-          onClickCapture={stopPropagation}
-          onClick={handleVideoClick}
-          onDoubleClick={stopPropagation}
+          tabIndex={-1}
           onLoadedMetadata={(event) => {
-            setDuration(
-              Number.isFinite(event.currentTarget.duration)
-                ? event.currentTarget.duration
-                : 0,
-            );
-            setCurrentTime(
-              Number.isFinite(event.currentTarget.currentTime)
-                ? event.currentTarget.currentTime
-                : 0,
-            );
+            const nextDuration = normalizePlaybackTime(event.currentTarget.duration);
+            setDuration(nextDuration);
+            clearSeekDraft();
+            syncMeasuredCurrentTime(event.currentTarget.currentTime);
             setPlaybackRate(event.currentTarget.playbackRate || 1);
             setIsReady(true);
             setVolume(event.currentTarget.volume);
@@ -355,24 +549,29 @@ function LightboxVideoPlayerSession({
             syncPictureInPictureCapability();
           }}
           onTimeUpdate={(event) => {
-            setCurrentTime(
-              Number.isFinite(event.currentTarget.currentTime)
-                ? event.currentTarget.currentTime
-                : 0,
-            );
+            markSeekSettled(event.currentTarget.currentTime);
+          }}
+          onSeeked={(event) => {
+            markSeekSettled(event.currentTarget.currentTime);
           }}
           onDurationChange={(event) => {
             setDuration(
-              Number.isFinite(event.currentTarget.duration)
-                ? event.currentTarget.duration
-                : 0,
+              normalizePlaybackTime(event.currentTarget.duration),
             );
           }}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
+          onPlay={() => {
+            setIsPlaying(true);
+            markControlsActive();
+          }}
+          onPause={() => {
+            setIsPlaying(false);
+            setIsControlsVisible(true);
+          }}
           onEnded={(event) => {
             setIsPlaying(false);
-            setCurrentTime(
+            setIsControlsVisible(true);
+            clearSeekDraft();
+            syncMeasuredCurrentTime(
               Number.isFinite(event.currentTarget.duration)
                 ? event.currentTarget.duration
                 : duration,
@@ -404,12 +603,13 @@ function LightboxVideoPlayerSession({
     mediaViewport,
     isReady,
     isPlaying,
+    isControlsVisible: resolvedControlsVisible,
     duration,
-    currentTime,
+    displayTime,
     volume,
     isMuted,
     playbackRate,
-    isRateMenuOpen,
+    activeMenuId,
     canUsePictureInPicture,
     isInPictureInPicture,
     progressStyle,
@@ -418,21 +618,36 @@ function LightboxVideoPlayerSession({
     onTogglePlayback: () => {
       void handleTogglePlayback();
     },
-    onSeek: handleSeek,
+    onSeekPreview: handleSeekPreview,
+    onSeekCommit: handleSeekCommit,
+    onSeekInteractionStart: handleSeekInteractionStart,
+    onSeekInteractionEnd: handleSeekInteractionEnd,
     onVolumeChange: handleVolumeChange,
     onToggleMute: handleToggleMute,
     onSetPlaybackRate: handleSetPlaybackRate,
-    onToggleRateMenu: () => {
-      setIsRateMenuOpen((previousValue) => !previousValue);
+    onToggleMenu: (menuId) => {
+      markControlsActive();
+      toggleMenu(menuId);
+    },
+    onCloseMenu: () => {
+      markControlsActive();
+      closeActiveMenu();
     },
     onTogglePictureInPicture: () => {
       void handleTogglePictureInPicture();
     },
-    onControlsInteraction: stopPropagation,
+    onRequestFullscreen,
+    onControlsInteraction: (event) => {
+      stopPropagation(event);
+      markControlsActive();
+    },
+    onSurfaceInteraction: markControlsActive,
   };
 
   return (
-    <Suspense fallback={<LightboxVideoPlayerFallback mediaViewport={mediaViewport} />}>
+    <Suspense
+      fallback={<LightboxVideoPlayerFallback mediaViewport={mediaViewport} />}
+    >
       <SelectedView {...viewProps} />
     </Suspense>
   );

@@ -321,7 +321,7 @@ describe("MessageBubble", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens image preview modal with metadata", () => {
+  it("opens image preview modal with metadata", async () => {
     const message: Message = {
       ...baseMessage,
       attachments: [createImageAttachment(90, "preview.png")],
@@ -342,14 +342,14 @@ describe("MessageBubble", () => {
     expect(
       screen.getByRole("dialog", { name: "Просмотр изображения" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("preview.png")).toBeInTheDocument();
-    expect(screen.getByText(/ID: 90/i)).toBeInTheDocument();
-    expect(screen.getByText(/1\.0 KB/i)).toBeInTheDocument();
-    expect(screen.getByText(/1280x720/i)).toBeInTheDocument();
+    expect(await screen.findByText("preview.png")).toBeInTheDocument();
+    expect(await screen.findByText(/ID: 90/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1\.0 KB/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1280x720/i)).toBeInTheDocument();
     expect(screen.getByText(/Отправлено:/i)).toBeInTheDocument();
   });
 
-  it("opens video preview modal with metadata", () => {
+  it("opens video preview modal with metadata", async () => {
     const message: Message = {
       ...baseMessage,
       attachments: [
@@ -381,13 +381,13 @@ describe("MessageBubble", () => {
     expect(
       screen.getByRole("dialog", { name: "Просмотр видео" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("video.mp4")).toBeInTheDocument();
-    expect(screen.getByText(/ID: 91/i)).toBeInTheDocument();
-    expect(screen.getByText(/5\.0 MB/i)).toBeInTheDocument();
-    expect(screen.getByText(/1920x1080/i)).toBeInTheDocument();
+    expect(await screen.findByText("video.mp4")).toBeInTheDocument();
+    expect(await screen.findByText(/ID: 91/i)).toBeInTheDocument();
+    expect(await screen.findByText(/5\.0 MB/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1920x1080/i)).toBeInTheDocument();
   });
 
-  it("treats known video extensions as video preview even with generic content type", () => {
+  it("treats known video extensions as video preview even with generic content type", async () => {
     const message: Message = {
       ...baseMessage,
       attachments: [
@@ -419,7 +419,7 @@ describe("MessageBubble", () => {
     expect(
       screen.getByRole("dialog", { name: "Просмотр видео" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("clip.mkv")).toBeInTheDocument();
+    expect(await screen.findByText("clip.mkv")).toBeInTheDocument();
   });
 
   it("opens full own-message action menu on tap for touch devices", () => {

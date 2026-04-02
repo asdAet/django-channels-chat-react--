@@ -2,8 +2,13 @@ import controlsStyles from "../../styles/ui/ImageLightbox.controls.module.css";
 import mobileStyles from "../../styles/ui/ImageLightbox.mobile.module.css";
 import shellStyles from "../../styles/ui/ImageLightbox.module.css";
 import type { ImageLightboxViewProps } from "./ImageLightbox.types";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "./lightboxControls/LightboxIcons";
 
 export default function ImageLightboxMobileView({
+  chrome,
   mediaItems,
   normalizedCurrentIndex,
   normalizedDisplayIndex,
@@ -15,14 +20,12 @@ export default function ImageLightboxMobileView({
   hasNavigation,
   canGoPrevious,
   canGoNext,
-  showExpandButton,
   overlayRef,
   frameRef,
   viewportRef,
   mobileTrackRef,
   mobileTrackStyle,
   onMobileTrackTransitionEnd,
-  onStopClickPropagation,
   onViewportWheel,
   onPointerDown,
   onPointerMove,
@@ -34,8 +37,6 @@ export default function ImageLightboxMobileView({
   onTouchEnd,
   onPreviousClick,
   onNextClick,
-  onCloseClick,
-  onExpandClick,
   renderActiveMediaElement,
   renderPreviewMediaElement,
 }: ImageLightboxViewProps) {
@@ -51,6 +52,8 @@ export default function ImageLightboxMobileView({
       style={overlayStyle}
       data-testid="image-lightbox-mobile-view"
     >
+      {chrome}
+
       {hasNavigation && (
         <button
           type="button"
@@ -72,7 +75,7 @@ export default function ImageLightboxMobileView({
               .join(" ")}
             aria-hidden="true"
           >
-            {"\u2039"}
+            <ChevronLeftIcon layout="mobile" />
           </span>
         </button>
       )}
@@ -98,7 +101,7 @@ export default function ImageLightboxMobileView({
               .join(" ")}
             aria-hidden="true"
           >
-            {"\u203A"}
+            <ChevronRightIcon layout="mobile" />
           </span>
         </button>
       )}
@@ -110,31 +113,6 @@ export default function ImageLightboxMobileView({
         style={resolvedFrameStyle}
         ref={frameRef}
       >
-        <div className={controlsStyles.actions} onClick={onStopClickPropagation}>
-          {showExpandButton && (
-            <button
-              type="button"
-              className={[controlsStyles.actionBtn, mobileStyles.actionBtnMobile]
-                .filter(Boolean)
-                .join(" ")}
-              onClick={onExpandClick}
-              aria-label="Развернуть"
-            >
-              {"\u26F6"}
-            </button>
-          )}
-          <button
-            type="button"
-            className={[controlsStyles.actionBtn, mobileStyles.actionBtnMobile]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={onCloseClick}
-            aria-label="Закрыть"
-          >
-            {"\u00D7"}
-          </button>
-        </div>
-
         <div
           ref={viewportRef}
           className={[shellStyles.mediaViewport, mobileStyles.mediaViewportMobile]

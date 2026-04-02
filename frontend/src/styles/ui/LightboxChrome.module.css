@@ -1,0 +1,83 @@
+.chrome {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  z-index: 12;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: auto;
+}
+
+.chromeDesktop {
+  top: 18px;
+}
+
+.chromeMobile {
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  gap: 10px;
+}
+
+.chromeTitleBlock {
+  min-width: 0;
+  max-width: min(58vw, 560px);
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(24, 24, 24, 0.9);
+  border: 1px solid var(--tg-border, #303030);
+  box-shadow: var(--tg-shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.35));
+  backdrop-filter: blur(18px);
+}
+
+.chromeTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chromeTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tg-text-primary, #fff);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.chromeSubtitle {
+  margin-top: 5px;
+  color: var(--tg-text-secondary, #aaa);
+  font-size: 12px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.chromeCounter {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--tg-hover, rgba(255, 255, 255, 0.05));
+  color: var(--tg-text-primary, #fff);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.chromeActions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.menuWrap {
+  position: relative;
+}

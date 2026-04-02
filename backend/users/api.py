@@ -45,6 +45,13 @@ from users.application.media_access_service import (
     resolve_attachment_media_access,
     resolve_media_content_type,
 )
+from users.application.media_range_service import (
+    InvalidByteRangeError,
+    build_invalid_range_response,
+    build_partial_media_response,
+    open_protected_media_source,
+    parse_single_byte_range_header,
+)
 from users.avatar_service import (
     resolve_bundled_default_avatar_file,
     resolve_user_avatar_url_from_request,
@@ -100,6 +107,7 @@ def _build_guest_presence_payload(request) -> dict[str, object]:
 
 
 def _protected_media_response(
+    request,
     normalized_path: str,
     cache_control: str,
     *,
@@ -121,19 +129,45 @@ def _protected_media_response(
         normalized_path,
         preferred_content_type=preferred_content_type,
     )
-    if file_path_override is not None:
-        response: FileResponse | HttpResponse = FileResponse(
-            file_path_override.open("rb"),
-            content_type=content_type,
-        )
-    elif settings.DEBUG:
-        response: FileResponse | HttpResponse = FileResponse(
-            default_storage.open(normalized_path, "rb"),
-            content_type=content_type,
-        )
-    else:
+
+    if not settings.DEBUG and file_path_override is None:
         response = HttpResponse(content_type=content_type)
         response["X-Accel-Redirect"] = f"/_protected_media/{quote(normalized_path, safe='/')}"
+    else:
+        file_obj = None
+        file_size = 0
+        try:
+            file_obj, file_size = open_protected_media_source(
+                normalized_path,
+                file_path_override=file_path_override,
+            )
+            requested_range = parse_single_byte_range_header(
+                request.headers.get("Range") or request.META.get("HTTP_RANGE"),
+                file_size=file_size,
+            )
+            if requested_range is not None:
+                response = build_partial_media_response(
+                    file_obj,
+                    byte_range=requested_range,
+                    content_type=content_type,
+                    cache_control=cache_control,
+                )
+                file_obj.close()
+                file_obj = None
+                return response
+
+            response = FileResponse(file_obj, content_type=content_type)
+            file_obj = None
+        except InvalidByteRangeError:
+            if file_obj is not None:
+                file_obj.close()
+            return build_invalid_range_response(
+                file_size=file_size,
+                content_type=content_type,
+                cache_control=cache_control,
+            )
+
+    response["Accept-Ranges"] = "bytes"
     response["Cache-Control"] = cache_control
     return response
 
@@ -496,6 +530,7 @@ def media_view(request, file_path: str):
             return Response({"error": "Не найдено"}, status=404)
 
         return _protected_media_response(
+            request,
             normalized_path,
             cache_control="private, no-store",
             preferred_content_type=access.preferred_content_type,
@@ -525,6 +560,7 @@ def media_view(request, file_path: str):
 
     cache_seconds = max(0, expires_at - now)
     return _protected_media_response(
+        request,
         normalized_path,
         cache_control=f"private, max-age={cache_seconds}",
         file_path_override=bundled_default_avatar,

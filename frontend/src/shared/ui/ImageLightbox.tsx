@@ -18,6 +18,7 @@ import { flushSync } from "react-dom";
 import mediaStyles from "../../styles/ui/ImageLightbox.media.module.css";
 import shellStyles from "../../styles/ui/ImageLightbox.module.css";
 import { useDevice } from "../lib/device";
+import { consumePendingDesktopMediaDragRelease } from "./ImageLightbox.dragRelease";
 import {
   loadImageLightboxDesktopView,
   loadImageLightboxMobileView,
@@ -29,7 +30,24 @@ import type {
   ImageLightboxViewProps,
   SingleMediaProps,
 } from "./ImageLightbox.types";
+import { LightboxChrome } from "./lightboxControls/LightboxChrome";
+import {
+  CopyLinkIcon,
+  DownloadIcon,
+  ExpandIcon,
+  OpenInBrowserIcon,
+  ResetZoomIcon,
+  RotateIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from "./lightboxControls/LightboxIcons";
+import type {
+  LightboxActionItem,
+  LightboxDropdownMenuController,
+  LightboxDropdownMenuId,
+} from "./lightboxControls/types";
 import { LightboxVideoPlayer } from "./LightboxVideoPlayer";
+import type { LightboxVideoPlayerHandle } from "./LightboxVideoPlayer.types";
 
 export type {
   GalleryMediaProps,
@@ -143,6 +161,16 @@ const DEFAULT_GESTURE_PREVIEW: GesturePreview = {
 
 const clampNumber = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
+
+const isPointInsideRect = (
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+): boolean =>
+  clientX >= rect.left &&
+  clientX <= rect.right &&
+  clientY >= rect.top &&
+  clientY <= rect.bottom;
 
 const resolveFrameExpandProgress = (scale: number): number =>
   clampNumber(
@@ -271,12 +299,17 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const [displayIndex, setDisplayIndex] = useState(initialIndex);
   const [isClosing, setIsClosing] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isMediaFullscreen, setIsMediaFullscreen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [zoomScale, setZoomScale] = useState(MIN_ZOOM_SCALE);
+  const [rotationDeg, setRotationDeg] = useState(0);
   const [frameExpandProgress, setFrameExpandProgress] = useState(0);
   const [gesturePreview, setGesturePreview] = useState(DEFAULT_GESTURE_PREVIEW);
   const [verticalDismissDirection, setVerticalDismissDirection] = useState<
     -1 | 1 | null
   >(null);
+  const [activeMenuId, setActiveMenuId] =
+    useState<LightboxDropdownMenuId | null>(null);
   const isMobileLayout = isMobileViewport;
 
   const closeTimerRef = useRef<number | null>(null);
@@ -284,6 +317,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const transformRef = useRef<HTMLDivElement | null>(null);
+  const videoPlayerRef = useRef<LightboxVideoPlayerHandle | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const mobileTrackRef = useRef<HTMLDivElement | null>(null);
   const mobileTrackFrameRef = useRef<number | null>(null);
@@ -311,14 +345,30 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const hasNavigation = mediaItems.length > 1;
   const canGoPrevious = normalizedDisplayIndex > 0;
   const canGoNext = normalizedDisplayIndex < mediaItems.length - 1;
+  const closeActiveMenu = useCallback(() => {
+    setActiveMenuId(null);
+  }, []);
+  const toggleActiveMenu = useCallback((menuId: LightboxDropdownMenuId) => {
+    setActiveMenuId((previousValue) =>
+      previousValue === menuId ? null : menuId,
+    );
+  }, []);
+  const menuController = useMemo<LightboxDropdownMenuController>(
+    () => ({
+      activeMenuId,
+      onToggleMenu: toggleActiveMenu,
+      onCloseMenu: closeActiveMenu,
+    }),
+    [activeMenuId, closeActiveMenu, toggleActiveMenu],
+  );
 
   const applyTransform = useCallback(() => {
     const transformElement = transformRef.current;
     if (!transformElement) return;
 
     const { scale, offsetX, offsetY } = viewStateRef.current;
-    transformElement.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale})`;
-  }, []);
+    transformElement.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scale}) rotate(${rotationDeg}deg)`;
+  }, [rotationDeg]);
 
   const applyTransformOnFrame = useCallback(() => {
     if (animationFrameRef.current !== null) return;
@@ -329,6 +379,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
   }, [applyTransform]);
 
   const syncScaleUi = useCallback((scale: number) => {
+    setZoomScale(scale);
     setIsZoomed(scale > MIN_ZOOM_SCALE);
     setFrameExpandProgress(
       isMobileLayout ? 0 : resolveFrameExpandProgress(scale),
@@ -386,6 +437,8 @@ export function ImageLightbox(props: ImageLightboxProps) {
     dragStateRef.current = null;
     pinchStateRef.current = null;
     touchGestureRef.current = null;
+    setIsMediaFullscreen(false);
+    setRotationDeg(0);
     setVerticalDismissDirection(null);
     setIsDragging(false);
     syncScaleUi(MIN_ZOOM_SCALE);
@@ -508,6 +561,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
   );
 
   const beginClose = useCallback(() => {
+    closeActiveMenu();
     mobileTrackAnimationRef.current = null;
     mobileTrackOffsetRef.current = 0;
     if (historyEntryActiveRef.current && !historyBackPendingRef.current) {
@@ -517,7 +571,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
     }
 
     startCloseAnimation();
-  }, [startCloseAnimation]);
+  }, [closeActiveMenu, startCloseAnimation]);
 
   const goToPrevious = useCallback(() => {
     if (!canGoPrevious) return;
@@ -565,6 +619,18 @@ export function ImageLightbox(props: ImageLightboxProps) {
     setCurrentIndex(initialIndex);
     setDisplayIndex(initialIndex);
   }, [initialIndex]);
+
+  useEffect(() => {
+    setRotationDeg(0);
+  }, [currentItem?.metadata.attachmentId]);
+
+  useEffect(() => {
+    closeActiveMenu();
+  }, [closeActiveMenu, currentItem?.metadata.attachmentId]);
+
+  useEffect(() => {
+    applyTransform();
+  }, [applyTransform]);
 
   useEffect(() => {
     if (!isMobileLayout) {
@@ -637,37 +703,20 @@ export function ImageLightbox(props: ImageLightboxProps) {
       event.preventDefault();
     };
 
-    window.addEventListener("wheel", preventPageZoom, {
+    overlayElement.addEventListener("wheel", preventPageZoom, {
+      passive: false,
+      capture: true,
+    });
+    document.addEventListener("wheel", preventPageZoom, {
       passive: false,
       capture: true,
     });
     return () => {
-      window.removeEventListener("wheel", preventPageZoom, true);
+      overlayElement.removeEventListener("wheel", preventPageZoom, true);
+      document.removeEventListener("wheel", preventPageZoom, true);
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        beginClose();
-        return;
-      }
-      if (!hasNavigation) return;
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        goToPrevious();
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        goToNext();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [beginClose, goToNext, goToPrevious, hasNavigation]);
   const handleViewportWheel = useCallback(
     (event: ReactWheelEvent<HTMLDivElement>) => {
       if (!event.ctrlKey) return;
@@ -708,7 +757,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const dragState = dragStateRef.current;
-      if (!dragState || !isDragging) return;
+      if (!dragState) return;
       if (dragState.pointerId !== event.pointerId) return;
 
       if (
@@ -724,13 +773,19 @@ export function ImageLightbox(props: ImageLightboxProps) {
         dragState.startOffsetY + (event.clientY - dragState.startClientY);
       applyTransformOnFrame();
     },
-    [applyTransformOnFrame, isDragging],
+    [applyTransformOnFrame],
   );
 
   const endPointerDrag = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const dragState = dragStateRef.current;
       if (!dragState || dragState.pointerId !== event.pointerId) return;
+      if (
+        Math.abs(event.clientX - dragState.startClientX) > 2 ||
+        Math.abs(event.clientY - dragState.startClientY) > 2
+      ) {
+        pointerMovedRef.current = true;
+      }
       dragStateRef.current = null;
       setIsDragging(false);
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -989,98 +1044,293 @@ export function ImageLightbox(props: ImageLightboxProps) {
       resetGesturePreview,
     ],
   );
-  const handleOpenFullscreen = useCallback(async () => {
-    if (!currentItem) return;
-    const frameElement = frameRef.current;
-    const fullscreenDocument = document as Document & {
-      webkitExitFullscreen?: () => Promise<void> | void;
-      webkitFullscreenElement?: Element | null;
-    };
-    const fullscreenFrame = frameElement as HTMLDivElement & {
-      webkitRequestFullscreen?: () => Promise<void> | void;
-    };
+  const resetMediaPositionToDefault = useCallback(() => {
+    viewStateRef.current = { ...DEFAULT_VIEW_STATE };
+    dragStateRef.current = null;
+    pinchStateRef.current = null;
+    touchGestureRef.current = null;
+    setIsDragging(false);
+    setVerticalDismissDirection(null);
+    resetGesturePreview();
+    syncScaleUi(MIN_ZOOM_SCALE);
+    applyTransform();
+  }, [applyTransform, resetGesturePreview, syncScaleUi]);
 
-    const openInNewTab = () => {
-      window.open(currentItem.src, "_blank", "noopener,noreferrer");
-    };
+  const handleOpenFullscreen = useCallback(() => {
+    resetMediaPositionToDefault();
+    setIsMediaFullscreen((previousValue) => !previousValue);
+  }, [resetMediaPositionToDefault]);
 
-    if (!frameElement) {
-      openInNewTab();
+  const getViewportCenterPoint = useCallback(() => {
+    const fallbackX =
+      typeof window === "undefined" ? 0 : (window.innerWidth || 0) / 2;
+    const fallbackY =
+      typeof window === "undefined" ? 0 : (window.innerHeight || 0) / 2;
+    const rect = viewportRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return { x: fallbackX, y: fallbackY };
+    }
+
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+  }, []);
+
+  const handleOpenOriginal = useCallback(() => {
+    if (!currentItem) {
       return;
     }
 
-    const activeFullscreenElement =
-      fullscreenDocument.fullscreenElement ??
-      fullscreenDocument.webkitFullscreenElement ??
-      null;
+    window.open(currentItem.src, "_blank", "noopener,noreferrer");
+  }, [currentItem]);
 
-    if (activeFullscreenElement === frameElement) {
-      try {
-        if (fullscreenDocument.exitFullscreen) {
-          await fullscreenDocument.exitFullscreen();
-          return;
-        }
-        if (fullscreenDocument.webkitExitFullscreen) {
-          await fullscreenDocument.webkitExitFullscreen();
-          return;
-        }
-      } catch {
-        return;
-      }
-    }
-
-    const requestFullscreen =
-      frameElement.requestFullscreen?.bind(frameElement) ??
-      fullscreenFrame.webkitRequestFullscreen?.bind(frameElement);
-
-    if (!requestFullscreen) {
-      openInNewTab();
+  const handleDownloadCurrentItem = useCallback(async () => {
+    if (!currentItem) {
       return;
     }
+
+    const absoluteUrl = new URL(
+      currentItem.src,
+      window.location.origin,
+    ).toString();
+    const anchor = document.createElement("a");
 
     try {
-      await requestFullscreen();
+      const response = await fetch(absoluteUrl, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("download_failed");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      anchor.href = objectUrl;
+      anchor.download = currentItem.metadata.fileName;
+      anchor.click();
+      window.setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+      }, 0);
     } catch {
-      openInNewTab();
+      anchor.href = absoluteUrl;
+      anchor.download = currentItem.metadata.fileName;
+      anchor.rel = "noopener";
+      anchor.target = "_blank";
+      anchor.click();
     }
   }, [currentItem]);
 
-  const stopClickPropagation = useCallback(
-    (event: ReactMouseEvent<HTMLElement>) => {
-      event.stopPropagation();
-    },
-    [],
-  );
+  const handleCopyCurrentItemLink = useCallback(async () => {
+    if (!currentItem || !navigator.clipboard?.writeText) {
+      return;
+    }
+
+    const absoluteUrl = new URL(
+      currentItem.src,
+      window.location.origin,
+    ).toString();
+
+    try {
+      await navigator.clipboard.writeText(absoluteUrl);
+    } catch {
+      return;
+    }
+  }, [currentItem]);
+
+  const handleRotateCurrentItem = useCallback(() => {
+    setRotationDeg((previousValue) => previousValue - 90);
+  }, []);
+
+  const handleZoomInAction = useCallback(() => {
+    const center = getViewportCenterPoint();
+    applyScaleAtPoint(
+      center.x,
+      center.y,
+      viewStateRef.current.scale + ZOOM_STEP,
+    );
+  }, [applyScaleAtPoint, getViewportCenterPoint]);
+
+  const handleZoomOutAction = useCallback(() => {
+    const center = getViewportCenterPoint();
+    applyScaleAtPoint(
+      center.x,
+      center.y,
+      viewStateRef.current.scale - ZOOM_STEP,
+    );
+  }, [applyScaleAtPoint, getViewportCenterPoint]);
+
+  const handleResetZoomAction = useCallback(() => {
+    const center = getViewportCenterPoint();
+    dragStateRef.current = null;
+    pinchStateRef.current = null;
+    touchGestureRef.current = null;
+    setIsDragging(false);
+    setVerticalDismissDirection(null);
+    resetGesturePreview();
+    applyScaleAtPoint(center.x, center.y, MIN_ZOOM_SCALE);
+  }, [applyScaleAtPoint, getViewportCenterPoint, resetGesturePreview]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        beginClose();
+        return;
+      }
+      if (event.key === "ArrowLeft" && hasNavigation) {
+        event.preventDefault();
+        goToPrevious();
+        return;
+      }
+      if (event.key === "ArrowRight" && hasNavigation) {
+        event.preventDefault();
+        goToNext();
+        return;
+      }
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        handleZoomInAction();
+        return;
+      }
+      if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        handleZoomOutAction();
+        return;
+      }
+      if (event.key === "0") {
+        event.preventDefault();
+        handleResetZoomAction();
+        return;
+      }
+      if (event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        handleRotateCurrentItem();
+        return;
+      }
+      if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        handleOpenFullscreen();
+        return;
+      }
+      if (event.key.toLowerCase() === "d") {
+        event.preventDefault();
+        void handleDownloadCurrentItem();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    beginClose,
+    goToNext,
+    goToPrevious,
+    handleDownloadCurrentItem,
+    handleOpenFullscreen,
+    handleResetZoomAction,
+    handleRotateCurrentItem,
+    handleZoomInAction,
+    handleZoomOutAction,
+    hasNavigation,
+  ]);
 
   const handleViewportBackgroundClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (pointerMovedRef.current) {
-        pointerMovedRef.current = false;
+      const mediaRect = transformRef.current?.getBoundingClientRect();
+      const clickedInsideMedia = Boolean(
+        mediaRect &&
+          isPointInsideRect(event.clientX, event.clientY, mediaRect),
+      );
+
+      if (isMobileLayout) {
+        if (pointerMovedRef.current) {
+          pointerMovedRef.current = false;
+          event.preventDefault();
+          return;
+        }
+
+        if (event.target !== event.currentTarget) {
+          return;
+        }
+
+        if (clickedInsideMedia) {
+          return;
+        }
+
+        beginClose();
+        return;
+      }
+
+      if (
+        consumePendingDesktopMediaDragRelease({
+          isMobileLayout,
+          currentKind: currentItem?.kind,
+          pointerMovedRef,
+        })
+      ) {
         event.preventDefault();
         return;
       }
 
-      if (event.target !== event.currentTarget) {
+      pointerMovedRef.current = false;
+
+      if (currentItem?.kind === "image") {
+        beginClose();
+        return;
+      }
+
+      if (currentItem?.kind === "video") {
+        if (clickedInsideMedia) {
+          videoPlayerRef.current?.togglePlayback();
+          return;
+        }
+
+        beginClose();
         return;
       }
 
       beginClose();
     },
-    [beginClose],
+    [beginClose, currentItem?.kind, isMobileLayout],
   );
+
+  const consumeDesktopVideoClickSuppression = useCallback(() => {
+    return consumePendingDesktopMediaDragRelease({
+      isMobileLayout,
+      currentKind: currentItem?.kind,
+      pointerMovedRef,
+    });
+  }, [currentItem?.kind, isMobileLayout]);
 
   const handleImageClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       event.stopPropagation();
-      if (pointerMovedRef.current) {
-        pointerMovedRef.current = false;
+
+      if (isMobileLayout) {
+        if (pointerMovedRef.current) {
+          pointerMovedRef.current = false;
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (
+        consumePendingDesktopMediaDragRelease({
+          isMobileLayout,
+          currentKind: currentItem?.kind,
+          pointerMovedRef,
+        })
+      ) {
         event.preventDefault();
         return;
       }
 
+      pointerMovedRef.current = false;
       beginClose();
     },
-    [beginClose],
+    [beginClose, currentItem?.kind, isMobileLayout],
   );
 
   const handlePreviousClick = useCallback(
@@ -1097,22 +1347,6 @@ export function ImageLightbox(props: ImageLightboxProps) {
       goToNext();
     },
     [goToNext],
-  );
-
-  const handleCloseClick = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      beginClose();
-    },
-    [beginClose],
-  );
-
-  const handleExpandClick = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      void handleOpenFullscreen();
-    },
-    [handleOpenFullscreen],
   );
 
   const handleViewportDoubleClick = useCallback(
@@ -1184,20 +1418,28 @@ export function ImageLightbox(props: ImageLightboxProps) {
       extraTransformClassName?: string,
     ) => {
       const transformClassName =
-        buildTransformClassName(extraTransformClassName);
+        buildTransformClassName(
+          [
+            extraTransformClassName,
+            isMediaFullscreen ? mediaStyles.mediaTransformFullscreen : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
 
       if (item.kind === "video") {
         return (
           <LightboxVideoPlayer
+            ref={videoPlayerRef}
             src={item.src}
             fileName={item.metadata.fileName}
             mediaClassName={mediaStyles.media}
             mediaTransformClassName={transformClassName}
             mediaTransformRef={transformRef}
+            consumeMediaClickSuppression={consumeDesktopVideoClickSuppression}
+            menuController={menuController}
             layout={isMobileLayout ? "mobile" : "desktop"}
-            onRequestFullscreen={() => {
-              void handleOpenFullscreen();
-            }}
+            onRequestFullscreen={handleOpenFullscreen}
           />
         );
       }
@@ -1207,6 +1449,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
           className={transformClassName}
           style={{ transform: "translate3d(0px, 0px, 0) scale(1)" }}
           data-testid="lightbox-media-transform"
+          data-media-fullscreen={isMediaFullscreen ? "true" : "false"}
           ref={transformRef}
           onClick={handleImageClick}
         >
@@ -1218,7 +1461,10 @@ export function ImageLightbox(props: ImageLightboxProps) {
       buildTransformClassName,
       handleImageClick,
       handleOpenFullscreen,
+      consumeDesktopVideoClickSuppression,
+      isMediaFullscreen,
       isMobileLayout,
+      menuController,
       renderMediaElement,
     ],
   );
@@ -1251,11 +1497,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
       detailParts.push(`${metadata.width}x${metadata.height}`);
     }
 
-    return [
-      metadata.fileName,
-      detailParts.join(" • "),
-      `${SENT_PREFIX}: ${formatSentAt(metadata.sentAt)}`,
-    ];
+    return [`${SENT_PREFIX}: ${formatSentAt(metadata.sentAt)}`];
   }, [currentItem]);
 
   const frameStyle = useMemo(() => {
@@ -1343,6 +1585,162 @@ export function ImageLightbox(props: ImageLightboxProps) {
     } satisfies CSSProperties;
   }, [gesturePreview.axis, gesturePreview.y, verticalDismissDirection]);
 
+  const currentDetailLine = useMemo(() => {
+    if (!currentItem) {
+      return "";
+    }
+
+    const detailParts = [formatFileSize(currentItem.metadata.fileSize)];
+    if (currentItem.metadata.width && currentItem.metadata.height) {
+      detailParts.push(
+        `${currentItem.metadata.width}x${currentItem.metadata.height}`,
+      );
+    }
+    detailParts.push(`ID: ${currentItem.metadata.attachmentId}`);
+    return detailParts.join(" | ");
+  }, [currentItem]);
+
+  const counterLabel = hasNavigation
+    ? `${normalizedDisplayIndex + 1} / ${mediaItems.length}`
+    : undefined;
+
+  const chromeDirectActions = useMemo<LightboxActionItem[]>(() => {
+    if (!currentItem) {
+      return [];
+    }
+
+    const actions: LightboxActionItem[] = [
+      {
+        key: "fullscreen",
+        label: "Развернуть",
+        icon: <ExpandIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        active: isMediaFullscreen,
+        onSelect: handleOpenFullscreen,
+        testId: "lightbox-fullscreen-button",
+      },
+      {
+        key: "download",
+        label: "Скачать",
+        icon: <DownloadIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        onSelect: () => {
+          void handleDownloadCurrentItem();
+        },
+        testId: "lightbox-download-button",
+      },
+    ];
+
+    if (!isMobileLayout) {
+      actions.push({
+        key: "rotate",
+        label: "Повернуть",
+        icon: <RotateIcon />,
+        onSelect: handleRotateCurrentItem,
+        active: rotationDeg % 360 !== 0,
+        testId: "lightbox-rotate-button",
+      });
+    }
+
+    return actions;
+  }, [
+    currentItem,
+    handleDownloadCurrentItem,
+    handleOpenFullscreen,
+    handleRotateCurrentItem,
+    isMediaFullscreen,
+    isMobileLayout,
+    rotationDeg,
+  ]);
+
+  const chromeMenuActions = useMemo<LightboxActionItem[]>(() => {
+    if (!currentItem) {
+      return [];
+    }
+
+    return [
+      {
+        key: "fullscreen",
+        label: "Полный экран",
+        icon: <ExpandIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        active: isMediaFullscreen,
+        onSelect: handleOpenFullscreen,
+      },
+      {
+        key: "open-original",
+        label: "Открыть оригинал",
+        icon: (
+          <OpenInBrowserIcon layout={isMobileLayout ? "mobile" : "desktop"} />
+        ),
+        onSelect: handleOpenOriginal,
+      },
+      {
+        key: "copy-link",
+        label: "Скопировать ссылку",
+        icon: <CopyLinkIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        onSelect: () => {
+          void handleCopyCurrentItemLink();
+        },
+      },
+      {
+        key: "zoom-in",
+        label: "Увеличить",
+        icon: <ZoomInIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        onSelect: handleZoomInAction,
+        disabled: zoomScale >= MAX_ZOOM_SCALE,
+        description: `Масштаб ${zoomScale.toFixed(1)}x`,
+      },
+      {
+        key: "zoom-out",
+        label: "Уменьшить",
+        icon: <ZoomOutIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        onSelect: handleZoomOutAction,
+        disabled: zoomScale <= MIN_ZOOM_SCALE,
+      },
+      {
+        key: "zoom-reset",
+        label: "Сбросить масштаб",
+        icon: <ResetZoomIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        onSelect: handleResetZoomAction,
+        disabled: zoomScale === MIN_ZOOM_SCALE,
+      },
+      {
+        key: "rotate",
+        label: "Повернуть на 90°",
+        icon: <RotateIcon layout={isMobileLayout ? "mobile" : "desktop"} />,
+        onSelect: handleRotateCurrentItem,
+        description:
+          rotationDeg % 360 === 0
+            ? "Без поворота"
+            : `Текущий угол ${Math.abs(rotationDeg % 360)} deg`,
+      },
+    ];
+  }, [
+    currentItem,
+    handleCopyCurrentItemLink,
+    handleOpenFullscreen,
+    handleOpenOriginal,
+    handleResetZoomAction,
+    handleRotateCurrentItem,
+    handleZoomInAction,
+    handleZoomOutAction,
+    isMediaFullscreen,
+    isMobileLayout,
+    rotationDeg,
+    zoomScale,
+  ]);
+
+  const chromeNode = (
+    <LightboxChrome
+      layout={isMobileLayout ? "mobile" : "desktop"}
+      title={currentItem?.metadata.fileName ?? ""}
+      subtitle={currentDetailLine}
+      counterLabel={counterLabel}
+      directActions={chromeDirectActions}
+      menuActions={chromeMenuActions}
+      menuController={menuController}
+      onClose={beginClose}
+    />
+  );
+
   const handleMobileTrackTransitionEnd = useCallback(
     (event: ReactTransitionEvent<HTMLDivElement>) => {
       if (
@@ -1390,6 +1788,8 @@ export function ImageLightbox(props: ImageLightboxProps) {
     transform: `translate3d(calc(-${normalizedCurrentIndex} * (100vw + ${MOBILE_TRACK_GAP_PX}px)), 0px, 0px)`,
   } satisfies CSSProperties;
   const viewProps: ImageLightboxViewProps = {
+    layout: isMobileLayout ? "mobile" : "desktop",
+    chrome: chromeNode,
     currentItem,
     mediaItems,
     normalizedCurrentIndex,
@@ -1402,14 +1802,12 @@ export function ImageLightbox(props: ImageLightboxProps) {
     hasNavigation,
     canGoPrevious,
     canGoNext,
-    showExpandButton: currentItem.kind !== "video",
     overlayRef,
     frameRef,
     viewportRef,
     mobileTrackRef,
     mobileTrackStyle,
     onMobileTrackTransitionEnd: handleMobileTrackTransitionEnd,
-    onStopClickPropagation: stopClickPropagation,
     onViewportWheel: handleViewportWheel,
     onPointerDown: handlePointerDown,
     onPointerMove: handlePointerMove,
@@ -1421,8 +1819,6 @@ export function ImageLightbox(props: ImageLightboxProps) {
     onTouchEnd: handleTouchEnd,
     onPreviousClick: handlePreviousClick,
     onNextClick: handleNextClick,
-    onCloseClick: handleCloseClick,
-    onExpandClick: handleExpandClick,
     renderActiveMediaElement,
     renderPreviewMediaElement,
   };

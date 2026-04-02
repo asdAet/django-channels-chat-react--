@@ -1,6 +1,12 @@
 import type { CSSProperties, ReactNode, RefObject, SyntheticEvent } from "react";
 
+import type { LightboxDropdownMenuId } from "./lightboxControls/types";
+
 export type LightboxVideoPlayerLayout = "desktop" | "mobile";
+
+export type LightboxVideoPlayerHandle = {
+  togglePlayback: () => void;
+};
 
 export type PlaybackRateOption = {
   value: number;
@@ -12,23 +18,30 @@ export type LightboxVideoPlayerViewProps = {
   mediaViewport: ReactNode;
   isReady: boolean;
   isPlaying: boolean;
+  isControlsVisible: boolean;
   duration: number;
-  currentTime: number;
+  displayTime: number;
   volume: number;
   isMuted: boolean;
   playbackRate: number;
-  isRateMenuOpen: boolean;
+  activeMenuId: LightboxDropdownMenuId | null;
   canUsePictureInPicture: boolean;
   isInPictureInPicture: boolean;
   progressStyle: CSSProperties;
   volumeStyle: CSSProperties;
   remainingLabel: string;
   onTogglePlayback: () => void;
-  onSeek: (nextValue: number) => void;
+  onSeekPreview: (nextValue: number) => void;
+  onSeekCommit: (nextValue: number) => void;
+  onSeekInteractionStart: () => void;
+  onSeekInteractionEnd: () => void;
   onVolumeChange: (nextValue: number) => void;
   onToggleMute: () => void;
   onSetPlaybackRate: (nextRate: number) => void;
-  onToggleRateMenu: () => void;
+  onToggleMenu: (menuId: LightboxDropdownMenuId) => void;
+  onCloseMenu: () => void;
   onTogglePictureInPicture: () => void;
+  onRequestFullscreen: () => void;
   onControlsInteraction: (event: SyntheticEvent<HTMLElement>) => void;
+  onSurfaceInteraction: () => void;
 };

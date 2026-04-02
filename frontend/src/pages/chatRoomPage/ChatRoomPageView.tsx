@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import { friendsController } from "../../controllers/FriendsController";
 import { formatTimestamp } from "../../shared/lib/format";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
@@ -14,6 +16,7 @@ import { MessageBubble } from "../../widgets/chat/MessageBubble";
 import { MessageInput } from "../../widgets/chat/MessageInput";
 import { ReadersMenu } from "../../widgets/chat/ReadersMenu";
 import { TypingIndicator } from "../../widgets/chat/TypingIndicator";
+import { ChatHeaderSearchPopover } from "./ChatHeaderSearchPopover";
 import type { ChatRoomPageViewProps } from "./ChatRoomPageView.types";
 import {
   isOwnMessage,
@@ -49,7 +52,8 @@ export function ChatRoomPageView({
     currentActorRef,
   } = room;
   const {
-    searchWrapRef,
+    searchAnchorRef,
+    searchLayerRef,
     headerSearchInputRef,
     isHeaderSearchOpen,
     headerSearchQuery,
@@ -125,6 +129,78 @@ export function ChatRoomPageView({
     readersMenuEntries,
   } = view;
   const { isDropTargetActive, fileDropBindings } = fileDrop;
+  const searchPopoverContent = useMemo(
+    () => (
+      <>
+        <div className={styles.headerSearchInputRow}>
+          <input
+            ref={headerSearchInputRef}
+            type="text"
+            className={styles.headerSearchInput}
+            value={headerSearchQuery}
+            onChange={(event) => setHeaderSearchQuery(event.target.value)}
+            placeholder="Поиск в этом чате"
+          />
+          <button
+            type="button"
+            className={styles.headerSearchClose}
+            onClick={closeRoomSearch}
+            aria-label="Закрыть поиск"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className={styles.headerSearchResults}>
+          {headerSearchLoading && (
+            <div className={styles.headerSearchState}>Ищем...</div>
+          )}
+          {!headerSearchLoading &&
+            headerSearchQuery.trim().length >= 2 &&
+            headerSearchResults.length === 0 && (
+              <div className={styles.headerSearchState}>Ничего не найдено</div>
+            )}
+          {!headerSearchLoading &&
+            headerSearchResults.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                className={styles.headerSearchResult}
+                onClick={() => onHeaderSearchResultClick(item.id)}
+              >
+                <span className={styles.headerSearchResultTop}>
+                  <strong>{resolveIdentityLabel(item)}</strong>
+                  <time>{formatTimestamp(item.createdAt)}</time>
+                </span>
+                <span className={styles.headerSearchResultText}>
+                  {item.content || "Вложение"}
+                </span>
+              </button>
+            ))}
+        </div>
+      </>
+    ),
+    [
+      closeRoomSearch,
+      headerSearchInputRef,
+      headerSearchLoading,
+      headerSearchQuery,
+      headerSearchResults,
+      onHeaderSearchResultClick,
+      setHeaderSearchQuery,
+    ],
+  );
 
   if (!user && !isPublicRoom) {
     return (
@@ -249,8 +325,9 @@ export function ChatRoomPageView({
             <p className={styles.muted}>{roomSubtitle}</p>
           </div>
 
-          <div ref={searchWrapRef} className={styles.directHeaderActions}>
+          <div className={styles.directHeaderActions} data-testid="chat-header-actions">
             <button
+              ref={searchAnchorRef}
               type="button"
               className={[
                 styles.headerIconBtn,
@@ -262,6 +339,7 @@ export function ChatRoomPageView({
               aria-label="Поиск по чату"
               title="Поиск по чату"
               aria-expanded={isHeaderSearchOpen}
+              data-testid="chat-header-search-anchor"
             >
               <svg
                 width="18"
@@ -324,78 +402,24 @@ export function ChatRoomPageView({
               </button>
             )}
 
-            <div
-              className={[
-                styles.headerSearch,
-                isHeaderSearchOpen ? styles.headerSearchOpen : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              aria-hidden={!isHeaderSearchOpen}
-            >
-              <div className={styles.headerSearchInputRow}>
-                <input
-                  ref={headerSearchInputRef}
-                  type="text"
-                  className={styles.headerSearchInput}
-                  value={headerSearchQuery}
-                  onChange={(event) => setHeaderSearchQuery(event.target.value)}
-                  placeholder="Поиск в этом чате"
-                />
-                <button
-                  type="button"
-                  className={styles.headerSearchClose}
-                  onClick={closeRoomSearch}
-                  aria-label="Закрыть поиск"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className={styles.headerSearchResults}>
-                {headerSearchLoading && (
-                  <div className={styles.headerSearchState}>Ищем...</div>
-                )}
-                {!headerSearchLoading &&
-                  headerSearchQuery.trim().length >= 2 &&
-                  headerSearchResults.length === 0 && (
-                    <div className={styles.headerSearchState}>
-                      Ничего не найдено
-                    </div>
-                  )}
-                {!headerSearchLoading &&
-                  headerSearchResults.map((item) => (
-                    <button
-                      type="button"
-                      key={item.id}
-                      className={styles.headerSearchResult}
-                      onClick={() => onHeaderSearchResultClick(item.id)}
-                    >
-                      <span className={styles.headerSearchResultTop}>
-                        <strong>{resolveIdentityLabel(item)}</strong>
-                        <time>{formatTimestamp(item.createdAt)}</time>
-                      </span>
-                      <span className={styles.headerSearchResultText}>
-                        {item.content || "Вложение"}
-                      </span>
-                    </button>
-                  ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
+
+      <ChatHeaderSearchPopover
+        anchorRef={searchAnchorRef}
+        layerRef={searchLayerRef}
+        isOpen={isHeaderSearchOpen}
+        className={[
+          styles.headerSearch,
+          styles.headerSearchLayer,
+          styles.headerSearchOpen,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {searchPopoverContent}
+      </ChatHeaderSearchPopover>
 
       {visibleError && <Toast variant="danger">{visibleError}</Toast>}
 

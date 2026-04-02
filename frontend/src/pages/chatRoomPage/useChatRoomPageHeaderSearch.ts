@@ -22,7 +22,8 @@ export function useChatRoomPageHeaderSearch({
   jumpToMessageById,
   setRoomError,
 }: UseChatRoomPageHeaderSearchOptions): UseChatRoomPageHeaderSearchResult {
-  const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  const searchAnchorRef = useRef<HTMLButtonElement | null>(null);
+  const searchLayerRef = useRef<HTMLDivElement | null>(null);
   const headerSearchInputRef = useRef<HTMLInputElement | null>(null);
   const headerSearchTimerRef = useRef<number | null>(null);
   const headerSearchRequestSeqRef = useRef(0);
@@ -112,11 +113,17 @@ export function useChatRoomPageHeaderSearch({
     };
 
     const onMouseDown = (event: MouseEvent) => {
-      if (!searchWrapRef.current) {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        closeRoomSearch();
         return;
       }
 
-      if (searchWrapRef.current.contains(event.target as Node)) {
+      if (searchAnchorRef.current?.contains(target)) {
+        return;
+      }
+
+      if (searchLayerRef.current?.contains(target)) {
         return;
       }
 
@@ -191,7 +198,8 @@ export function useChatRoomPageHeaderSearch({
       : EMPTY_SEARCH_RESULTS;
 
   return {
-    searchWrapRef,
+    searchAnchorRef,
+    searchLayerRef,
     headerSearchInputRef,
     isHeaderSearchOpen,
     headerSearchQuery,

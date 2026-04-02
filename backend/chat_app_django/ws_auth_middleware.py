@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import MutableMapping
+from typing import Any, cast
 from urllib.parse import parse_qs
 
 from asgiref.sync import sync_to_async
@@ -40,14 +42,17 @@ class WebSocketTokenAuthMiddleware(BaseMiddleware):
     """Restores websocket auth from an opaque token when cookies are unavailable."""
 
     async def __call__(self, scope, receive, send):
-        query_string = (scope.get("query_string") or b"").decode(
-            "utf-8",
-            errors="ignore",
+        scope_map = cast(MutableMapping[str, Any], scope)
+        query_string_value = scope_map.get("query_string")
+        query_string = (
+            query_string_value.decode("utf-8", errors="ignore")
+            if isinstance(query_string_value, (bytes, bytearray))
+            else ""
         )
         token = parse_qs(query_string).get(WS_AUTH_QUERY_PARAM, [None])[0]
         claims = resolve_ws_auth_claims(token)
         if claims is not None:
-            current_user = scope.get("user")
+            current_user = scope_map.get("user")
             if (
                 claims.kind == "auth"
                 and claims.user_id is not None
@@ -62,13 +67,13 @@ class WebSocketTokenAuthMiddleware(BaseMiddleware):
                         _load_authenticated_user,
                         thread_sensitive=True,
                     )(claims.user_id)
-                    scope["user"] = user if user is not None else AnonymousUser()
-            elif claims.kind == "guest" and not scope.get("ws_guest_session_key"):
+                    scope_map["user"] = user if user is not None else AnonymousUser()
+            elif claims.kind == "guest" and not scope_map.get("ws_guest_session_key"):
                 session_exists = await sync_to_async(
                     _session_exists,
                     thread_sensitive=True,
                 )(claims.session_key)
                 if session_exists:
-                    scope["ws_guest_session_key"] = claims.session_key
+                    scope_map["ws_guest_session_key"] = claims.session_key
 
         return await super().__call__(scope, receive, send)

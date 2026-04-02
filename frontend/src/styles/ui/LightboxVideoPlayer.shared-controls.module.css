@@ -1,0 +1,23 @@
+.centerPlayOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.centerPlayButton {
+  pointer-events: auto;
+  border-color: rgba(47, 179, 163, 0.34);
+  background: rgba(24, 24, 24, 0.9);
+  color: var(--tg-text-primary, #fff);
+  width: 72px;
+  height: 72px;
+}
+
+.centerPlayButton svg {
+  width: 30px;
+  height: 30px;
+}
