@@ -187,6 +187,15 @@ export function MessageInput({
   );
 
   const uploading = uploadProgress !== null && uploadProgress !== undefined;
+  const uploadPercent = uploading
+    ? Math.max(0, Math.min(100, Math.round(uploadProgress ?? 0)))
+    : null;
+  const uploadIsIndeterminate = uploading && (uploadPercent ?? 0) <= 0;
+  const uploadLabel = !uploading
+    ? ""
+    : uploadPercent && uploadPercent > 0
+      ? `Загрузка файлов: ${uploadPercent}%`
+      : "Загрузка файлов...";
   const hasQueuedFiles = pendingFiles.length > 0;
   const canSend = Boolean(draft.trim() || hasQueuedFiles);
 
@@ -240,17 +249,30 @@ export function MessageInput({
 
       {uploading && (
         <div className={styles.uploadBar}>
-          <div
-            className={styles.uploadBarTrack}
-            role="progressbar"
-            aria-valuenow={uploadProgress ?? 0}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
+          <div className={styles.uploadBarBody}>
+            <span className={styles.uploadBarLabel}>{uploadLabel}</span>
             <div
-              className={styles.uploadBarFill}
-              style={{ width: `${uploadProgress}%` }}
-            />
+              className={styles.uploadBarTrack}
+              role="progressbar"
+              aria-valuenow={uploadPercent ?? 0}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuetext={uploadLabel}
+            >
+              <div
+                className={[
+                  styles.uploadBarFill,
+                  uploadIsIndeterminate ? styles.uploadBarFillIndeterminate : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                style={
+                  uploadIsIndeterminate
+                    ? undefined
+                    : { width: `${uploadPercent ?? 0}%` }
+                }
+              />
+            </div>
           </div>
           {onCancelUpload && (
             <button
