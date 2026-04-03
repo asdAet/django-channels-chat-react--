@@ -1,6 +1,6 @@
+import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type { Message } from "../../entities/message/types";
 import type { UserProfile } from "../../entities/user/types";
-import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type {
   JumpToMessageById,
   ReadersMenuState,

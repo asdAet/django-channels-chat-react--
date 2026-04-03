@@ -17,6 +17,7 @@ from chat_app_django.media_utils import build_profile_url, serialize_avatar_crop
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter, RateLimitPolicy
 from chat_app_django.security.rate_limit_config import (
+    chat_message_rate_limit_disabled,
     chat_message_rate_limit_policy,
     ws_connect_rate_limit_disabled,
     ws_connect_rate_limit_policy,
@@ -559,6 +560,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         Returns:
             Логическое значение результата проверки.
         """
+        if chat_message_rate_limit_disabled():
+            return False
         if bool(getattr(user, "is_superuser", False)):
             return False
         scope_key = self._chat_message_rate_limit_scope_key(user)
@@ -575,6 +578,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         Returns:
             Объект типа int | None, полученный при выполнении операции.
         """
+        if chat_message_rate_limit_disabled():
+            return None
         if bool(getattr(user, "is_superuser", False)):
             return None
         scope_key = self._chat_message_rate_limit_scope_key(user)

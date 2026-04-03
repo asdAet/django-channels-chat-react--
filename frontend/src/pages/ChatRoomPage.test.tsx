@@ -301,6 +301,7 @@ describe("ChatRoomPage", () => {
     permissionsMock.isAdmin = false;
     permissionsMock.refresh.mockReset().mockResolvedValue(undefined);
     groupControllerMock.joinGroup.mockReset().mockResolvedValue(undefined);
+    chatControllerMock.uploadAttachments.mockReset().mockResolvedValue({});
     chatControllerMock.markRead.mockReset().mockResolvedValue({});
     chatControllerMock.searchMessages.mockReset().mockResolvedValue({
       results: [],
@@ -1079,6 +1080,147 @@ describe("ChatRoomPage", () => {
     expect(
       screen.getByText("Тип файла не поддерживается. Разрешены: text/plain."),
     ).toBeInTheDocument();
+  });
+
+
+  it("renders chunk upload progress states in composer", async () => {
+    type ProgressPayload = {
+      phase: "uploading" | "processing";
+      percent: number;
+      uploadedBytes: number;
+      totalBytes: number;
+    };
+    const preparingLabel =
+      "\u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u043a\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438...";
+    const uploadingLabel =
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0444\u0430\u0439\u043b\u043e\u0432:";
+    const processingLabel =
+      "\u041f\u0443\u0431\u043b\u0438\u043a\u0443\u0435\u043c \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435";
+    const cancelLabel =
+      "\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0443";
+
+    let resolveUpload: ((value: unknown) => void) | null = null;
+    let capturedOptions:
+      | {
+          onProgress?: (progress: ProgressPayload) => void;
+          signal?: AbortSignal;
+        }
+      | null = null;
+
+    chatControllerMock.uploadAttachments.mockImplementationOnce(
+      (_roomId, _files, options) =>
+        new Promise((resolve) => {
+          capturedOptions = options as typeof capturedOptions;
+          resolveUpload = resolve;
+        }),
+    );
+
+    const { container } = render(
+      <ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />,
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const file = new File(["12345678"], "chunked.bin", {
+      type: "application/octet-stream",
+    });
+    fireEvent.change(fileInput, {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByTestId("chat-send-button"));
+
+    await waitFor(() => {
+      expect(chatControllerMock.uploadAttachments).toHaveBeenCalled();
+    });
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      `${preparingLabel} • 0 B / 8 B`,
+    );
+
+    act(() => {
+      capturedOptions?.onProgress?.({
+        phase: "uploading",
+        percent: 25,
+        uploadedBytes: 2,
+        totalBytes: 8,
+      });
+    });
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      `${uploadingLabel} 25.0% • 2 B / 8 B`,
+    );
+
+    act(() => {
+      capturedOptions?.onProgress?.({
+        phase: "processing",
+        percent: 100,
+        uploadedBytes: 8,
+        totalBytes: 8,
+      });
+    });
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuetext",
+      `${processingLabel} • 8 B / 8 B`,
+    );
+    expect(
+      screen.getByRole("button", { name: cancelLabel }),
+    ).toBeInTheDocument();
+
+    act(() => {
+      resolveUpload?.({ id: 11, content: "", attachments: [] });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("progressbar")).toBeNull();
+    });
+  });
+
+  it("cancels chunk upload from composer without surfacing an error", async () => {
+    const cancelLabel =
+      "\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0443";
+    const uploadFailureLabel =
+      "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u0430\u0439\u043b\u044b";
+    let capturedSignal: AbortSignal | null = null;
+
+    chatControllerMock.uploadAttachments.mockImplementationOnce(
+      (_roomId, _files, options) =>
+        new Promise((_resolve, reject) => {
+          capturedSignal = options?.signal ?? null;
+          capturedSignal?.addEventListener(
+            "abort",
+            () => reject(new Error("aborted")),
+            { once: true },
+          );
+        }),
+    );
+
+    const { container } = render(
+      <ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />,
+    );
+
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const file = new File(["1234"], "cancel.txt", { type: "text/plain" });
+    fireEvent.change(fileInput, {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByTestId("chat-send-button"));
+
+    await waitFor(() => {
+      expect(chatControllerMock.uploadAttachments).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: cancelLabel }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: cancelLabel })).toBeNull();
+    });
+    const uploadWasAborted =
+      (capturedSignal as AbortSignal | null)?.aborted ?? false;
+    expect(uploadWasAborted).toBe(true);
+    expect(screen.queryByText(uploadFailureLabel)).toBeNull();
   });
 
   it("keeps unread divider anchored while partially reading and after full read in current chat", async () => {

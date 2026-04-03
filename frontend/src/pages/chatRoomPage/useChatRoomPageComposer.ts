@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 
 import { chatController } from "../../controllers/ChatController";
-import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import { groupController } from "../../controllers/GroupController";
+import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type { Message } from "../../entities/message/types";
 import { debugLog } from "../../shared/lib/debug";
 import { sanitizeText } from "../../shared/lib/sanitize";

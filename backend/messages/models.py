@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from typing import Optional
+import uuid
 
 from rooms.models import Room
 
@@ -119,7 +120,7 @@ class MessageAttachment(models.Model):
     file = models.FileField(upload_to="chat_attachments/%Y/%m/")
     original_filename = models.CharField(max_length=255)
     content_type = models.CharField(max_length=100)
-    file_size = models.PositiveIntegerField()
+    file_size = models.PositiveBigIntegerField()
     thumbnail = models.ImageField(
         upload_to="chat_thumbnails/%Y/%m/",
         null=True,
@@ -145,6 +146,54 @@ class MessageAttachment(models.Model):
             Функция не возвращает значение.
         """
         return f"{self.message_id}:{self.original_filename}"
+
+
+class MessageAttachmentUpload(models.Model):
+    """Tracks an in-progress chunked attachment upload before message creation."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        UPLOADING = "uploading", "Uploading"
+        COMPLETE = "complete", "Complete"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        related_name="attachment_uploads",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="message_attachment_uploads",
+    )
+    original_filename = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=100)
+    file_size = models.PositiveBigIntegerField()
+    received_bytes = models.PositiveBigIntegerField(default=0)
+    storage_name = models.CharField(max_length=500, unique=True)
+    chunk_size = models.PositiveIntegerField()
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    expires_at = models.DateTimeField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    room_id: int
+    user_id: int
+
+    class Meta:
+        db_table = "messages_attachment_upload"
+        indexes = [
+            models.Index(fields=["user", "room", "status"], name="att_upl_user_room_st_idx"),
+            models.Index(fields=["expires_at"], name="attachment_upload_exp_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.room_id}:{self.original_filename}"
 
 
 class MessageReadState(models.Model):

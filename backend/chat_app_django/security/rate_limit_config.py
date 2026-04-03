@@ -63,6 +63,17 @@ def _section(name: str) -> Mapping[str, Any]:
     return {}
 
 
+def _section_disabled(name: str) -> bool:
+    """Returns a normalized disabled flag for a rate-limit section."""
+
+    raw_value = _section(name).get("disabled")
+    if isinstance(raw_value, bool):
+        return raw_value
+    if isinstance(raw_value, str):
+        return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+    return False
+
+
 def _section_policy(
     *,
     section_name: str,
@@ -98,6 +109,12 @@ def auth_rate_limit_policy() -> RateLimitPolicy:
     )
 
 
+def auth_rate_limit_disabled() -> bool:
+    """Returns whether auth attempt throttling is disabled."""
+
+    return _section_disabled("auth_attempts")
+
+
 def chat_message_rate_limit_policy() -> RateLimitPolicy:
     """Вспомогательная функция `chat_message_rate_limit_policy` реализует внутренний шаг бизнес-логики.
     
@@ -109,6 +126,12 @@ def chat_message_rate_limit_policy() -> RateLimitPolicy:
         default_limit=20,
         default_window=10,
     )
+
+
+def chat_message_rate_limit_disabled() -> bool:
+    """Returns whether chat message throttling is disabled."""
+
+    return _section_disabled("chat_message_send")
 
 
 def ws_connect_rate_limit_policy(endpoint: str) -> RateLimitPolicy:
@@ -139,10 +162,4 @@ def ws_connect_rate_limit_disabled() -> bool:
     Returns:
         Логическое значение результата проверки.
     """
-    section = _section("ws_connect")
-    section_disabled = section.get("disabled")
-    if isinstance(section_disabled, bool):
-        return section_disabled
-    if isinstance(section_disabled, str):
-        return section_disabled.strip().lower() in {"1", "true", "yes", "on"}
-    return False
+    return _section_disabled("ws_connect")

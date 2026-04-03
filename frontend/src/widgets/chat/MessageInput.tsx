@@ -219,7 +219,7 @@ export function MessageInput({
   const uploadTotalBytes = uploadProgress?.totalBytes ?? 0;
   const uploadStageLabel =
     uploadPhase === "processing"
-      ? "Сервер обрабатывает файлы"
+      ? "Публикуем сообщение"
       : uploadPercent !== null && uploadPercent > 0
         ? `Загрузка файлов: ${formatUploadPercent(uploadPercent)}%`
         : "Подготовка загрузки...";

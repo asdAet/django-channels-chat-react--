@@ -12,6 +12,17 @@ from django.core.files.base import ContentFile
 logger = logging.getLogger(__name__)
 
 
+def _resolve_source_size(source_field) -> int | None:
+    """Возвращает размер исходного файла, если его можно получить без чтения."""
+    for candidate in (
+        getattr(source_field, "size", None),
+        getattr(getattr(source_field, "file", None), "size", None),
+    ):
+        if isinstance(candidate, int) and candidate >= 0:
+            return candidate
+    return None
+
+
 def generate_thumbnail(source_field) -> dict | None:
     """Генерирует thumbnail по заданным правилам.
     
@@ -28,6 +39,21 @@ def generate_thumbnail(source_field) -> dict | None:
         return None
 
     max_side = int(getattr(settings, "CHAT_THUMBNAIL_MAX_SIDE", 400))
+    max_source_size_bytes = (
+        int(getattr(settings, "CHAT_THUMBNAIL_MAX_SOURCE_SIZE_MB", 25)) * 1024 * 1024
+    )
+    max_source_pixels = int(
+        getattr(settings, "CHAT_THUMBNAIL_MAX_SOURCE_PIXELS", 50_000_000)
+    )
+    source_size = _resolve_source_size(source_field)
+    if source_size is not None and source_size > max_source_size_bytes:
+        logger.info(
+            "Skipping thumbnail generation for %s: source size %s exceeds %s bytes",
+            getattr(source_field, "name", "file"),
+            source_size,
+            max_source_size_bytes,
+        )
+        return None
 
     try:
         source_field.seek(0)
@@ -40,6 +66,16 @@ def generate_thumbnail(source_field) -> dict | None:
         return None
 
     original_width, original_height = img.size
+    total_pixels = original_width * original_height
+    if total_pixels > max_source_pixels:
+        logger.info(
+            "Skipping thumbnail generation for %s: %s pixels exceeds %s",
+            getattr(source_field, "name", "file"),
+            total_pixels,
+            max_source_pixels,
+        )
+        return None
+
     if original_width <= max_side and original_height <= max_side:
         return {
             "path": None,

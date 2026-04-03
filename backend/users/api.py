@@ -32,7 +32,10 @@ from chat_app_django.media_utils import (
 )
 from chat_app_django.security.audit import audit_http_event
 from chat_app_django.security.rate_limit import DbRateLimiter
-from chat_app_django.security.rate_limit_config import auth_rate_limit_policy
+from chat_app_django.security.rate_limit_config import (
+    auth_rate_limit_disabled,
+    auth_rate_limit_policy,
+)
 from chat_app_django.ws_auth import (
     issue_authenticated_ws_auth_token,
     issue_guest_ws_auth_token,
@@ -276,6 +279,9 @@ def _rate_limited(request, action: str) -> bool:
     Returns:
         Логическое значение результата проверки.
     """
+    if auth_rate_limit_disabled():
+        return False
+
     ip = _get_client_ip(request) or "unknown"
     scope_key = f"rl:auth:{action}:{ip}"
     policy = auth_rate_limit_policy()
