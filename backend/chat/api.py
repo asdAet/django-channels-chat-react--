@@ -1,7 +1,8 @@
 """API endpoints for the chat subsystem."""
 
-import mimetypes
+import json
 import time
+from uuid import UUID
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -11,19 +12,27 @@ from django.db import IntegrityError, OperationalError, ProgrammingError, transa
 from django.db.models import Q
 from django.http import Http404
 from rest_framework import serializers, status as http_status
-from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.generics import GenericAPIView
-from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from messages.models import Message, MessageAttachment, MessageReadState
+from messages.models import Message, MessageAttachment, MessageAttachmentUpload, MessageReadState
 from messages.serializers import MessageSerializer
 from roles.access import ensure_can_read_or_404, has_permission
 from roles.models import Membership
 from roles.permissions import Perm
 from rooms.models import Room
 
+from .attachment_uploads import (
+    AttachmentUploadError,
+    abort_attachment_upload,
+    append_attachment_upload_chunk,
+    cleanup_expired_attachment_uploads,
+    create_attachment_upload,
+    ensure_attachment_upload_not_expired,
+    finalize_attachment_uploads,
+)
 from .services import (
     MessageForbiddenError,
     MessageNotFoundError,
@@ -360,6 +369,31 @@ def _parse_positive_int(raw_value: str | None, param_name: str) -> int:
         raise ValueError(f"Некорректный параметр '{param_name}': должно быть целое число")
     if parsed < 1:
         raise ValueError(f"Некорректный параметр '{param_name}': должно быть >= 1")
+    return parsed
+
+
+def _parse_nonnegative_int(raw_value: str | None, param_name: str) -> int:
+    """Parses an integer query/body parameter that may be zero."""
+
+    if raw_value is None:
+        raise ValueError(
+            f"Некорректный параметр '{param_name}': должно быть целое число"
+        )
+
+    candidate = raw_value.strip()
+    if not candidate:
+        raise ValueError(
+            f"Некорректный параметр '{param_name}': должно быть целое число"
+        )
+
+    try:
+        parsed = int(candidate)
+    except ValueError as exc:
+        raise ValueError(
+            f"Некорректный параметр '{param_name}': должно быть целое число"
+        ) from exc
+    if parsed < 0:
+        raise ValueError(f"Некорректный параметр '{param_name}': должно быть >= 0")
     return parsed
 
 
@@ -962,29 +996,320 @@ def message_reaction_remove(request, room_id: int, message_id, emoji):
 
 # ── File Attachments ──────────────────────────────────────────────────
 
-@api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
-@parser_classes([MultiPartParser])
-def upload_attachments(request, room_id: int):
-    """Загружает вложения сообщения и возвращает их метаданные.
-    
-    Args:
-        request: HTTP-запрос с контекстом пользователя и входными данными.
-        room_id: Идентификатор комнаты.
-    
-    Returns:
-        Результат вычислений, сформированный в ходе выполнения функции.
-    """
+
+def _attachment_error_response(
+    message: str,
+    *,
+    code: str,
+    details: dict[str, object] | None = None,
+    status_code: int = http_status.HTTP_400_BAD_REQUEST,
+) -> Response:
+    """Builds a structured error payload for attachment endpoints."""
+
+    payload: dict[str, object] = {"error": message, "code": code}
+    if details:
+        payload["details"] = details
+    return Response(payload, status=status_code)
+
+
+def _resolve_attachment_room(request, room_id: int) -> tuple[Room | None, Response | None]:
+    """Resolves a room and enforces read access for attachment operations."""
+
     room, error_response = _resolve_room(room_id)
     if error_response:
-        return error_response
+        return None, error_response
     if room is None:
-        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+        return None, Response(
+            {"error": "Не найдено"},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
 
     try:
         _ensure_room_read_access(request, room)
     except Http404:
-        return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+        return None, Response(
+            {"error": "Не найдено"},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+    return room, None
+
+
+def _ensure_attachment_write_access(room: Room, user) -> Response | None:
+    """Ensures the caller may upload attachments into the room."""
+
+    if has_permission(room, user, Perm.ATTACH_FILES):
+        return None
+    return Response(
+        {"error": "Отсутствует разрешение ATTACH_FILES"},
+        status=http_status.HTTP_403_FORBIDDEN,
+    )
+
+
+def _parse_attachment_reply_to(
+    room: Room,
+    raw_reply_to,
+) -> tuple[int | None, Response | None]:
+    """Validates an optional reply target inside the same room."""
+
+    if raw_reply_to in (None, ""):
+        return None, None
+
+    try:
+        reply_to_id = _parse_positive_int(str(raw_reply_to), "replyTo")
+    except ValueError as exc:
+        return None, _attachment_error_response(
+            str(exc),
+            code="invalid_reply_to",
+            details={"replyTo": raw_reply_to},
+        )
+
+    if not Message.objects.filter(pk=reply_to_id, room=room, is_deleted=False).exists():
+        return None, _attachment_error_response(
+            "Сообщение для ответа не найдено",
+            code="invalid_reply_to",
+            details={"replyTo": reply_to_id},
+        )
+    return reply_to_id, None
+
+
+def _serialize_attachment_upload_session(
+    upload: MessageAttachmentUpload,
+) -> dict[str, object]:
+    """Serializes chunked-upload session metadata."""
+
+    return {
+        "uploadId": str(upload.pk),
+        "originalFilename": upload.original_filename,
+        "contentType": upload.content_type,
+        "fileSize": upload.file_size,
+        "receivedBytes": upload.received_bytes,
+        "chunkSize": upload.chunk_size,
+        "status": upload.status,
+        "expiresAt": upload.expires_at.isoformat(),
+    }
+
+
+def _get_attachment_upload(
+    *,
+    room: Room,
+    user,
+    upload_id: UUID,
+    for_update: bool = False,
+) -> MessageAttachmentUpload:
+    """Loads an upload session visible to the current user."""
+
+    queryset = MessageAttachmentUpload.objects.filter(pk=upload_id, room=room)
+    if for_update:
+        queryset = queryset.select_for_update()
+    upload = queryset.first()
+    if upload is None:
+        raise AttachmentUploadError(
+            "Upload-сессия не найдена",
+            code="upload_not_found",
+            status_code=http_status.HTTP_404_NOT_FOUND,
+        )
+    if upload.user_id != user.pk and not getattr(user, "is_superuser", False):
+        raise AttachmentUploadError(
+            "Чужая upload-сессия недоступна",
+            code="upload_forbidden",
+            status_code=http_status.HTTP_403_FORBIDDEN,
+        )
+    return ensure_attachment_upload_not_expired(upload)
+
+
+def _parse_attachment_upload_ids(raw_upload_ids) -> list[UUID]:
+    """Parses a JSON list of upload IDs."""
+
+    if not isinstance(raw_upload_ids, list) or not raw_upload_ids:
+        raise AttachmentUploadError(
+            "Файлы не переданы",
+            code="no_uploads",
+        )
+
+    upload_ids: list[UUID] = []
+    for raw_upload_id in raw_upload_ids:
+        try:
+            upload_ids.append(UUID(str(raw_upload_id)))
+        except (TypeError, ValueError) as exc:
+            raise AttachmentUploadError(
+                "Некорректный uploadId",
+                code="invalid_upload_id",
+                details={"uploadId": raw_upload_id},
+            ) from exc
+    return upload_ids
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def attachment_uploads_collection(request, room_id: int):
+    """Creates a chunked upload session for a single attachment."""
+
+    room, error_response = _resolve_attachment_room(request, room_id)
+    if error_response:
+        return error_response
+    if room is None:
+        return Response(
+            {"error": "Не найдено"},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+
+    permission_error = _ensure_attachment_write_access(room, request.user)
+    if permission_error:
+        return permission_error
+
+    original_filename = request.data.get("originalFilename")
+    if not isinstance(original_filename, str) or not original_filename.strip():
+        return _attachment_error_response(
+            "Имя файла обязательно",
+            code="invalid_file_name",
+        )
+
+    raw_file_size = request.data.get("fileSize")
+    try:
+        file_size = _parse_nonnegative_int(
+            str(raw_file_size) if raw_file_size is not None else None,
+            "fileSize",
+        )
+    except ValueError as exc:
+        return _attachment_error_response(
+            str(exc),
+            code="invalid_file_size",
+        )
+
+    content_type = request.data.get("contentType")
+    if content_type is not None and not isinstance(content_type, str):
+        content_type = str(content_type)
+
+    try:
+        cleanup_expired_attachment_uploads(limit=20)
+        upload = create_attachment_upload(
+            room=room,
+            user=request.user,
+            original_filename=original_filename,
+            content_type=content_type,
+            file_size=file_size,
+        )
+    except AttachmentUploadError as exc:
+        return _attachment_error_response(
+            exc.message,
+            code=exc.code,
+            details=exc.details,
+            status_code=exc.status_code,
+        )
+
+    return Response(
+        _serialize_attachment_upload_session(upload),
+        status=http_status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["GET", "DELETE"])
+@permission_classes([IsAuthenticated])
+def attachment_upload_detail(request, room_id: int, upload_id: UUID):
+    """Returns upload-session state or aborts it."""
+
+    room, error_response = _resolve_attachment_room(request, room_id)
+    if error_response:
+        return error_response
+    if room is None:
+        return Response(
+            {"error": "Не найдено"},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        if request.method == "DELETE":
+            with transaction.atomic():
+                upload = _get_attachment_upload(
+                    room=room,
+                    user=request.user,
+                    upload_id=upload_id,
+                    for_update=True,
+                )
+                abort_attachment_upload(upload)
+            return Response(status=http_status.HTTP_204_NO_CONTENT)
+
+        upload = _get_attachment_upload(
+            room=room,
+            user=request.user,
+            upload_id=upload_id,
+        )
+    except AttachmentUploadError as exc:
+        return _attachment_error_response(
+            exc.message,
+            code=exc.code,
+            details=exc.details,
+            status_code=exc.status_code,
+        )
+
+    return Response(_serialize_attachment_upload_session(upload))
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def attachment_upload_chunk(request, room_id: int, upload_id: UUID):
+    """Appends a binary chunk into an existing upload session."""
+
+    room, error_response = _resolve_attachment_room(request, room_id)
+    if error_response:
+        return error_response
+    if room is None:
+        return Response(
+            {"error": "Не найдено"},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+
+    permission_error = _ensure_attachment_write_access(room, request.user)
+    if permission_error:
+        return permission_error
+
+    try:
+        offset = _parse_nonnegative_int(request.query_params.get("offset"), "offset")
+    except ValueError as exc:
+        return _attachment_error_response(
+            str(exc),
+            code="invalid_offset",
+        )
+
+    chunk = bytes(request.body or b"")
+    try:
+        with transaction.atomic():
+            upload = _get_attachment_upload(
+                room=room,
+                user=request.user,
+                upload_id=upload_id,
+                for_update=True,
+            )
+            updated_upload = append_attachment_upload_chunk(
+                upload,
+                offset=offset,
+                chunk=chunk,
+            )
+    except AttachmentUploadError as exc:
+        return _attachment_error_response(
+            exc.message,
+            code=exc.code,
+            details=exc.details,
+            status_code=exc.status_code,
+        )
+
+    return Response(_serialize_attachment_upload_session(updated_upload))
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def upload_attachments(request, room_id: int):
+    """Lists room attachments or finalizes chunk-upload sessions into a message."""
+
+    room, error_response = _resolve_room(room_id)
+    if error_response:
+        return error_response
+    if room is None:
+        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
+
+    try:
+        _ensure_room_read_access(request, room)
+    except Http404:
+        return Response({"error": "Not found"}, status=http_status.HTTP_404_NOT_FOUND)
 
     if request.method == "GET":
         limit_raw = request.query_params.get("limit")
@@ -1048,263 +1373,76 @@ def upload_attachments(request, room_id: int):
             }
         )
 
-    if not has_permission(room, request.user, Perm.ATTACH_FILES):
-        return Response({"error": "Отсутствует разрешение ATTACH_FILES"}, status=http_status.HTTP_403_FORBIDDEN)
+    permission_error = _ensure_attachment_write_access(room, request.user)
+    if permission_error:
+        return permission_error
 
-    # Keep attachment-media access consistent with room-scoped membership checks.
-    # For PUBLIC rooms, a user may have @everyone write permissions without an explicit Membership row.
-    # Persisting membership on successful upload marks the user as a concrete room participant.
-    if not Membership.objects.filter(room=room, user=request.user, is_banned=False).exists():
-        ensure_membership(room, request.user)
+    raw_upload_ids = request.data.get("uploadIds")
+    if raw_upload_ids is None and hasattr(request.data, "getlist"):
+        upload_id_values = [
+            item for item in request.data.getlist("uploadIds") if item not in (None, "")
+        ]
+        if upload_id_values:
+            raw_upload_ids = upload_id_values
 
-    def _error_response(
-        message: str,
-        *,
-        code: str,
-        details: dict[str, object] | None = None,
-        status_code: int = http_status.HTTP_400_BAD_REQUEST,
-    ) -> Response:
-        """Формирует структуру ошибки response для API-ответа.
-        
-        Args:
-            message: Сообщение, участвующее в обработке.
-            code: Параметр code, используемый в логике функции.
-            details: Подробности ошибки или диагностические данные ответа.
-            status_code: HTTP-код результата операции.
-        
-        Returns:
-            HTTP-ответ с результатом обработки.
-        """
-        payload: dict[str, object] = {"error": message, "code": code}
-        if details:
-            payload["details"] = details
-        return Response(payload, status=status_code)
+    if isinstance(raw_upload_ids, str):
+        try:
+            raw_upload_ids = json.loads(raw_upload_ids)
+        except json.JSONDecodeError:
+            raw_upload_ids = [raw_upload_ids]
 
-    def _collect_uploaded_files() -> list:
-        """Выполняет вспомогательную обработку для collect uploaded files.
-        
-        Returns:
-            Список типа list с результатами операции.
-        """
-        keys = ("files", "file", "attachments", "attachments[]")
-        collected: list = []
-        seen_ids: set[int] = set()
-
-        for key in keys:
-            for uploaded in request.FILES.getlist(key):
-                marker = id(uploaded)
-                if marker in seen_ids:
-                    continue
-                seen_ids.add(marker)
-                collected.append(uploaded)
-
-        if collected or not request.FILES:
-            return collected
-
-        for key in request.FILES.keys():
-            for uploaded in request.FILES.getlist(key):
-                marker = id(uploaded)
-                if marker in seen_ids:
-                    continue
-                seen_ids.add(marker)
-                collected.append(uploaded)
-        return collected
-
-    files = _collect_uploaded_files()
-    if not files:
-        return _error_response(
-            "Файлы не переданы",
-            code="no_files",
-            details={"expectedKeys": ["files", "file", "attachments", "attachments[]"]},
+    try:
+        upload_ids = _parse_attachment_upload_ids(raw_upload_ids)
+    except AttachmentUploadError as exc:
+        return _attachment_error_response(
+            exc.message,
+            code=exc.code,
+            details=exc.details,
+            status_code=exc.status_code,
         )
-
-    actor_is_superuser = bool(getattr(request.user, "is_superuser", False))
-    max_per_msg = int(getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 10))
-    if (not actor_is_superuser) and len(files) > max_per_msg:
-        return _error_response(
-            f"Максимум {max_per_msg} файлов на сообщение",
-            code="too_many_files",
-            details={"maxPerMessage": max_per_msg, "received": len(files)},
-        )
-
-    max_size = int(getattr(settings, "CHAT_ATTACHMENT_MAX_SIZE_MB", 10)) * 1024 * 1024
-    allow_any_type = bool(getattr(settings, "CHAT_ATTACHMENT_ALLOW_ANY_TYPE", True))
-    allowed_types = (
-        set()
-        if allow_any_type
-        else {
-            str(item).strip().lower()
-            for item in getattr(settings, "CHAT_ATTACHMENT_ALLOWED_TYPES", [])
-            if str(item).strip()
-        }
-    )
-    alias_map = {
-        "audio/mp3": "audio/mpeg",
-        "audio/x-mp3": "audio/mpeg",
-        "audio/x-mpeg": "audio/mpeg",
-        "application/x-zip-compressed": "application/zip",
-        "application/x-rar-compressed": "application/vnd.rar",
-    }
-    extension_content_type_overrides = {
-        ".jar": "application/java-archive",
-        ".zip": "application/zip",
-        ".rar": "application/vnd.rar",
-        ".7z": "application/x-7z-compressed",
-    }
-    generic_content_types = {
-        "",
-        "application/octet-stream",
-        "application/x-compressed",
-    }
-
-    def _canonical_content_type(content_type: str, *, file_name: str = "") -> str:
-        """Определяет канонический MIME-тип загруженного файла.
-        
-        Args:
-            content_type: MIME-тип файла или ответа.
-            file_name: Имя файла, используемое для определения формата.
-        
-        Returns:
-            Строковое значение, сформированное функцией.
-        """
-        normalized = content_type.strip().lower()
-        aliased = alias_map.get(normalized, normalized)
-
-        lower_name = (file_name or "").strip().lower()
-        if lower_name.endswith((".svg", ".svgz")):
-            if aliased in {
-                "",
-                "application/octet-stream",
-                "text/plain",
-                "text/xml",
-                "application/xml",
-                "image/svg",
-            }:
-                return "image/svg+xml"
-
-        return aliased or "application/octet-stream"
-
-    if not actor_is_superuser:
-        for f in files:
-            if f.size > max_size:
-                return _error_response(
-                    f"Файл '{f.name}' превышает максимальный размер",
-                    code="file_too_large",
-                    details={
-                        "fileName": f.name,
-                        "fileSize": f.size,
-                        "maxSize": max_size,
-                    },
-                )
-
-    def _resolve_content_type(uploaded_file) -> str:
-        """Определяет content type на основе доступного контекста.
-        
-        Args:
-            uploaded_file: Файл, полученный из multipart-запроса.
-        
-        Returns:
-            Строковое значение, сформированное функцией.
-        """
-        file_name = getattr(uploaded_file, "name", "") or ""
-        raw_content_type = (getattr(uploaded_file, "content_type", "") or "").strip().lower()
-        lower_name = file_name.strip().lower()
-        guessed_content_type = ""
-        for extension, mapped_content_type in extension_content_type_overrides.items():
-            if lower_name.endswith(extension):
-                guessed_content_type = mapped_content_type
-                break
-        if not guessed_content_type:
-            guessed_content_type, _ = mimetypes.guess_type(file_name)
-            guessed_content_type = (guessed_content_type or "").strip().lower()
-
-        if raw_content_type:
-            canonical_raw_content_type = _canonical_content_type(raw_content_type, file_name=file_name)
-            if canonical_raw_content_type not in generic_content_types:
-                return canonical_raw_content_type
-        if guessed_content_type:
-            return _canonical_content_type(guessed_content_type, file_name=file_name)
-        if raw_content_type:
-            return _canonical_content_type(raw_content_type, file_name=file_name)
-        return _canonical_content_type("application/octet-stream", file_name=file_name)
-
-    resolved_files = []
-    for f in files:
-        resolved_content_type = _resolve_content_type(f)
-        if (not allow_any_type) and allowed_types and resolved_content_type not in allowed_types:
-            return _error_response(
-                f"Тип файла '{resolved_content_type}' не поддерживается",
-                code="unsupported_type",
-                details={
-                    "fileName": getattr(f, "name", "file"),
-                    "contentType": resolved_content_type,
-                    "allowedTypes": sorted(allowed_types),
-                },
-            )
-        resolved_files.append((f, resolved_content_type))
 
     message_content = request.data.get("messageContent", "")
     if not isinstance(message_content, str):
         message_content = ""
 
-    reply_to_raw = request.data.get("replyTo")
-    reply_to_id = None
-    if reply_to_raw not in (None, ""):
-        try:
-            reply_to_id = _parse_positive_int(str(reply_to_raw), "replyTo")
-        except ValueError as exc:
-            return _error_response(
-                str(exc),
-                code="invalid_reply_to",
-                details={"replyTo": reply_to_raw},
-            )
-        if not Message.objects.filter(pk=reply_to_id, room=room, is_deleted=False).exists():
-            return _error_response(
-                "Сообщение для ответа не найдено",
-                code="invalid_reply_to",
-                details={"replyTo": reply_to_id},
-            )
+    reply_to_id, reply_to_error = _parse_attachment_reply_to(
+        room,
+        request.data.get("replyTo"),
+    )
+    if reply_to_error:
+        return reply_to_error
+
+    if not Membership.objects.filter(room=room, user=request.user, is_banned=False).exists():
+        ensure_membership(room, request.user)
 
     user = request.user
     profile = getattr(user, "profile", None)
     avatar_source = (resolve_user_avatar_source(user) or "").strip()
     if len(avatar_source) > 255:
         avatar_source = ""
-    message_kwargs = {
-        "message_content": message_content,
-        "username": user_public_username(user),
-        "user": user,
-        "profile_pic": avatar_source,
-        "room": room,
-    }
-    if reply_to_id:
-        message_kwargs["reply_to_id"] = reply_to_id
 
-    msg = Message.objects.create(**message_kwargs)
-
-    from messages.thumbnail import generate_thumbnail
-
-    attachments_data = []
-    for f, resolved_content_type in resolved_files:
-        attachment = MessageAttachment.objects.create(
-            message=msg,
-            file=f,
-            original_filename=f.name or "file",
-            content_type=resolved_content_type,
-            file_size=f.size,
+    try:
+        message, attachments = finalize_attachment_uploads(
+            room=room,
+            user=user,
+            upload_ids=upload_ids,
+            message_content=message_content,
+            reply_to_id=reply_to_id,
+            message_username=user_public_username(user),
+            profile_pic=avatar_source,
+        )
+    except AttachmentUploadError as exc:
+        return _attachment_error_response(
+            exc.message,
+            code=exc.code,
+            details=exc.details,
+            status_code=exc.status_code,
         )
 
-        attachment_content_type = attachment.content_type or ""
-        if attachment_content_type.startswith("image/"):
-            thumb_info = generate_thumbnail(attachment.file)
-            if thumb_info:
-                attachment.thumbnail = thumb_info["path"]
-                attachment.width = thumb_info.get("width")
-                attachment.height = thumb_info.get("height")
-                attachment.save(update_fields=["thumbnail", "width", "height"])
-
-        attachments_data.append(_serialize_attachment_item(request, attachment, room_id=room.pk))
-
+    attachments_data = [
+        _serialize_attachment_item(request, attachment, room_id=room.pk)
+        for attachment in attachments
+    ]
     profile_url = _build_profile_pic_url(request, avatar_source) if avatar_source else None
     _broadcast_to_room(room, {
         "type": "chat_message",
@@ -1315,17 +1453,21 @@ def upload_attachments(request, room_id: int):
         "profile_pic": profile_url,
         "avatar_crop": serialize_avatar_crop(profile),
         "roomId": room.pk,
-        "id": msg.pk,
-        "createdAt": msg.date_added.isoformat(),
-        "replyTo": _serialize_reply_to(msg.reply_to),
+        "id": message.pk,
+        "createdAt": message.date_added.isoformat(),
+        "replyTo": _serialize_reply_to(message.reply_to),
         "attachments": attachments_data,
     })
 
-    return Response({
-        "id": msg.pk,
-        "content": message_content,
-        "attachments": attachments_data,
-    }, status=http_status.HTTP_201_CREATED)
+    return Response(
+        {
+            "id": message.pk,
+            "content": message_content,
+            "attachments": attachments_data,
+        },
+        status=http_status.HTTP_201_CREATED,
+    )
+
 # ── Message Search ────────────────────────────────────────────────────
 
 @api_view(["GET"])

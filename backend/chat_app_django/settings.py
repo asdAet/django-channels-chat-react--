@@ -81,7 +81,13 @@ if not IS_PYTEST_RUN:
                 "CHAT_ATTACHMENT_ALLOW_ANY_TYPE",
                 "CHAT_ATTACHMENT_ALLOWED_TYPES",
                 "CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE",
+                "CHAT_ATTACHMENT_UPLOAD_TTL_SECONDS",
+                "CHAT_ATTACHMENT_CHUNK_MIN_SIZE_KB",
+                "CHAT_ATTACHMENT_CHUNK_MAX_SIZE_MB",
+                "CHAT_ATTACHMENT_TARGET_CHUNKS",
                 "CHAT_THUMBNAIL_MAX_SIDE",
+                "CHAT_THUMBNAIL_MAX_SOURCE_SIZE_MB",
+                "CHAT_THUMBNAIL_MAX_SOURCE_PIXELS",
                 "USER_PASSWORD_DEFAULT_AVATAR",
                 "USER_OAUTH_DEFAULT_AVATAR",
                 "GROUP_DEFAULT_AVATAR",
@@ -157,6 +163,15 @@ def env_int(name: str, default: int, minimum: int | None = None) -> int:
     if minimum is not None and value < minimum:
         raise ImproperlyConfigured(f"{name} должно быть >= {minimum}.")
     return value
+
+
+DEFAULT_FILE_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
+
+
+def resolve_upload_memory_limits(max_upload_mb: int) -> tuple[int | None, int]:
+    """Разделяет лимит размера запроса и порог буферизации файлов в памяти."""
+    data_upload_limit = None if max_upload_mb == 0 else max_upload_mb * 1024 * 1024
+    return data_upload_limit, DEFAULT_FILE_UPLOAD_MAX_MEMORY_SIZE
 
 
 DEBUG = env_bool("DJANGO_DEBUG", True)
@@ -461,14 +476,9 @@ SECURE_CROSS_ORIGIN_OPENER_POLICY = (
 )
 
 MAX_UPLOAD_SIZE_MB = env_int("DJANGO_UPLOAD_MAX_MB", 0, minimum=0)
-if MAX_UPLOAD_SIZE_MB == 0:
-    # 0 = disable Django request-size gate.
-    # Keep file upload buffering behavior unchanged from Django defaults.
-    DATA_UPLOAD_MAX_MEMORY_SIZE = None
-    FILE_UPLOAD_MAX_MEMORY_SIZE = 2_621_440
-else:
-    DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
-    FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE, FILE_UPLOAD_MAX_MEMORY_SIZE = resolve_upload_memory_limits(
+    MAX_UPLOAD_SIZE_MB
+)
 
 
 # -- Unified rate-limit configuration -----------------------------------------
@@ -484,11 +494,13 @@ RATE_LIMITS = {
     "auth_attempts": {
         "limit": env_int("AUTH_RATE_LIMIT", 10, minimum=1),
         "window_seconds": env_int("AUTH_RATE_WINDOW", 60, minimum=1),
+        "disabled": env_bool("AUTH_RATE_LIMIT_DISABLED", False),
     },
     # Chat message send throttle per authenticated user.
     "chat_message_send": {
         "limit": env_int("CHAT_MESSAGE_RATE_LIMIT", 20, minimum=1),
         "window_seconds": env_int("CHAT_MESSAGE_RATE_WINDOW", 10, minimum=1),
+        "disabled": env_bool("CHAT_MESSAGE_RATE_LIMIT_DISABLED", False),
     },
     # Default websocket connect throttle per endpoint/IP pair.
     "ws_connect_default": {
@@ -529,7 +541,37 @@ CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE = env_bool(
     "CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE",
     True,
 )
+CHAT_ATTACHMENT_UPLOAD_TTL_SECONDS = env_int(
+    "CHAT_ATTACHMENT_UPLOAD_TTL_SECONDS",
+    21600,
+    minimum=60,
+)
+CHAT_ATTACHMENT_CHUNK_MIN_SIZE_KB = env_int(
+    "CHAT_ATTACHMENT_CHUNK_MIN_SIZE_KB",
+    512,
+    minimum=64,
+)
+CHAT_ATTACHMENT_CHUNK_MAX_SIZE_MB = env_int(
+    "CHAT_ATTACHMENT_CHUNK_MAX_SIZE_MB",
+    8,
+    minimum=1,
+)
+CHAT_ATTACHMENT_TARGET_CHUNKS = env_int(
+    "CHAT_ATTACHMENT_TARGET_CHUNKS",
+    256,
+    minimum=1,
+)
 CHAT_THUMBNAIL_MAX_SIDE = env_int("CHAT_THUMBNAIL_MAX_SIDE", 400, minimum=50)
+CHAT_THUMBNAIL_MAX_SOURCE_SIZE_MB = env_int(
+    "CHAT_THUMBNAIL_MAX_SOURCE_SIZE_MB",
+    25,
+    minimum=1,
+)
+CHAT_THUMBNAIL_MAX_SOURCE_PIXELS = env_int(
+    "CHAT_THUMBNAIL_MAX_SOURCE_PIXELS",
+    50_000_000,
+    minimum=1,
+)
 PRESENCE_TTL = int(os.getenv("PRESENCE_TTL", "40"))
 PRESENCE_GRACE = int(os.getenv("PRESENCE_GRACE", "5"))
 PRESENCE_HEARTBEAT = int(os.getenv("PRESENCE_HEARTBEAT", "20"))

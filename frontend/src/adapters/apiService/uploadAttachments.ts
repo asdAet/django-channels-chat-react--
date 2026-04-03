@@ -1,4 +1,4 @@
-import type { AxiosInstance, AxiosProgressEvent } from "axios";
+import axios, { type AxiosInstance, type AxiosProgressEvent } from "axios";
 
 import type {
   UploadAttachmentsOptions,
@@ -11,6 +11,22 @@ import { resolveRoomId } from "./resolveRoomId";
 
 export const ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS = 120_000;
 export const ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS = 300_000;
+export const ATTACHMENT_UPLOAD_MAX_RECOVERY_ATTEMPTS = 2;
+
+type UploadSessionDto = {
+  uploadId: string;
+  originalFilename: string;
+  contentType: string;
+  fileSize: number;
+  receivedBytes: number;
+  chunkSize: number;
+  status: "pending" | "uploading" | "complete";
+  expiresAt: string;
+};
+
+type UploadSessionState = UploadSessionDto & {
+  file: File;
+};
 
 const createUploadIdleTimeoutError = (): ApiError => ({
   status: 408,
@@ -23,6 +39,9 @@ const createUploadProcessingTimeoutError = (): ApiError => ({
   message:
     "Сервер слишком долго обрабатывает загруженные файлы. Попробуйте еще раз чуть позже.",
 });
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
 const getTotalFileBytes = (files: File[]): number =>
   files.reduce((total, file) => total + file.size, 0);
@@ -40,29 +59,144 @@ const clampRatio = (value: number): number => {
   return value;
 };
 
+const clampUploadedBytes = (value: number, totalBytes: number): number => {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+  if (value >= totalBytes) {
+    return totalBytes;
+  }
+  return Math.round(value);
+};
+
 const buildUploadProgress = (
   phase: UploadProgress["phase"],
-  ratio: number,
+  uploadedBytes: number,
   totalBytes: number,
-): UploadProgress => {
-  const normalizedRatio = clampRatio(ratio);
+): UploadProgress => ({
+  phase,
+  uploadedBytes: clampUploadedBytes(uploadedBytes, totalBytes),
+  totalBytes,
+  percent:
+    totalBytes > 0
+      ? clampRatio(uploadedBytes / totalBytes) * 100
+      : phase === "processing"
+        ? 100
+        : 0,
+});
+
+const parseUploadSession = (input: unknown): UploadSessionDto => {
+  if (!isRecord(input)) {
+    throw new Error("Invalid attachment upload session payload");
+  }
+
+  const {
+    uploadId,
+    originalFilename,
+    contentType,
+    fileSize,
+    receivedBytes,
+    chunkSize,
+    status,
+    expiresAt,
+  } = input;
+
+  if (
+    typeof uploadId !== "string" ||
+    typeof originalFilename !== "string" ||
+    typeof contentType !== "string" ||
+    typeof expiresAt !== "string" ||
+    typeof fileSize !== "number" ||
+    typeof receivedBytes !== "number" ||
+    typeof chunkSize !== "number" ||
+    (status !== "pending" && status !== "uploading" && status !== "complete")
+  ) {
+    throw new Error("Invalid attachment upload session payload");
+  }
+
   return {
-    phase,
-    percent: normalizedRatio * 100,
-    uploadedBytes:
-      totalBytes > 0 ? Math.round(totalBytes * normalizedRatio) : 0,
-    totalBytes,
+    uploadId,
+    originalFilename,
+    contentType,
+    fileSize,
+    receivedBytes,
+    chunkSize,
+    status,
+    expiresAt,
   };
 };
 
-/**
- * Uploads message attachments for the selected room.
- * @param apiClient Configured HTTP client.
- * @param roomId Room identifier.
- * @param files Files to upload.
- * @param options Optional upload settings.
- * @returns Upload result payload.
- */
+const getAcknowledgedUploadedBytes = (sessions: UploadSessionState[]): number =>
+  sessions.reduce(
+    (total, session) => total + Math.min(session.file.size, session.receivedBytes),
+    0,
+  );
+
+const updateSessionState = (
+  session: UploadSessionState,
+  payload: UploadSessionDto,
+): void => {
+  session.originalFilename = payload.originalFilename;
+  session.contentType = payload.contentType;
+  session.fileSize = payload.fileSize;
+  session.receivedBytes = payload.receivedBytes;
+  session.chunkSize = payload.chunkSize;
+  session.status = payload.status;
+  session.expiresAt = payload.expiresAt;
+};
+
+const isRetryableChunkError = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+  const status = error.response?.status ?? 0;
+  return status === 0 || status === 409 || status >= 500;
+};
+
+const emitUploadProgress = (
+  options: UploadAttachmentsOptions | undefined,
+  phase: UploadProgress["phase"],
+  uploadedBytes: number,
+  totalBytes: number,
+): void => {
+  options?.onProgress?.(buildUploadProgress(phase, uploadedBytes, totalBytes));
+};
+
+const syncUploadSession = async (
+  apiClient: AxiosInstance,
+  roomId: string,
+  session: UploadSessionState,
+  signal: AbortSignal,
+): Promise<UploadSessionDto | null> => {
+  try {
+    const response = await apiClient.get<unknown>(
+      `/chat/${encodeURIComponent(roomId)}/attachments/uploads/${encodeURIComponent(session.uploadId)}/`,
+      {
+        signal,
+        timeout: 0,
+      },
+    );
+    return parseUploadSession(response.data);
+  } catch {
+    return null;
+  }
+};
+
+const abortUploadSessions = async (
+  apiClient: AxiosInstance,
+  roomId: string,
+  sessions: UploadSessionState[],
+): Promise<void> => {
+  await Promise.allSettled(
+    sessions.map((session) =>
+      apiClient.delete(
+        `/chat/${encodeURIComponent(roomId)}/attachments/uploads/${encodeURIComponent(session.uploadId)}/`,
+        { timeout: 0 },
+      ),
+    ),
+  );
+};
+
 export async function uploadAttachments(
   apiClient: AxiosInstance,
   roomId: string,
@@ -72,22 +206,12 @@ export async function uploadAttachments(
   const apiRoomId = await resolveRoomId(apiClient, roomId);
   const encodedRoomId = encodeURIComponent(apiRoomId);
   const totalFileBytes = getTotalFileBytes(files);
-  const formData = new FormData();
-  for (const file of files) {
-    formData.append("files", file);
-  }
-  if (typeof options?.messageContent === "string") {
-    formData.append("messageContent", options.messageContent);
-  }
-  if (typeof options?.replyTo === "number") {
-    formData.append("replyTo", String(options.replyTo));
-  }
+  const sessions: UploadSessionState[] = [];
 
   const uploadController = new AbortController();
   let stalledByInactivity = false;
   let stalledWhileProcessing = false;
-  let uploadCompleted = false;
-  let lastProgressRatio = 0;
+  let finalized = false;
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
   let processingTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -121,13 +245,6 @@ export async function uploadAttachments(
     }, ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS);
   };
 
-  const emitProgress = (
-    phase: UploadProgress["phase"],
-    ratio: number,
-  ): void => {
-    options?.onProgress?.(buildUploadProgress(phase, ratio, totalFileBytes));
-  };
-
   const handleExternalAbort = () => {
     uploadController.abort();
   };
@@ -142,43 +259,134 @@ export async function uploadAttachments(
     }
   }
 
-  emitProgress("uploading", 0);
-  refreshIdleTimer();
+  emitUploadProgress(options, "uploading", 0, totalFileBytes);
 
   try {
+    for (const file of files) {
+      const response = await apiClient.post<unknown>(
+        `/chat/${encodedRoomId}/attachments/uploads/`,
+        {
+          originalFilename: file.name,
+          contentType: file.type || "application/octet-stream",
+          fileSize: file.size,
+        },
+        {
+          signal: uploadController.signal,
+          timeout: 0,
+        },
+      );
+      const session = parseUploadSession(response.data);
+      sessions.push({ ...session, file });
+    }
+
+    for (const session of sessions) {
+      while (session.receivedBytes < session.file.size) {
+        const chunkStartOffset = session.receivedBytes;
+        const chunk = session.file.slice(
+          chunkStartOffset,
+          chunkStartOffset + session.chunkSize,
+        );
+
+        let uploadedThisChunk = 0;
+        let completedChunk = false;
+
+        for (
+          let attempt = 0;
+          attempt <= ATTACHMENT_UPLOAD_MAX_RECOVERY_ATTEMPTS && !completedChunk;
+          attempt += 1
+        ) {
+          const progressBaseBytes = getAcknowledgedUploadedBytes(sessions);
+          refreshIdleTimer();
+
+          try {
+            const response = await apiClient.put<unknown>(
+              `/chat/${encodedRoomId}/attachments/uploads/${encodeURIComponent(session.uploadId)}/chunk/`,
+              chunk,
+              {
+                params: { offset: chunkStartOffset },
+                headers: {
+                  "Content-Type": "application/octet-stream",
+                },
+                onUploadProgress: (event: AxiosProgressEvent) => {
+                  const total = event.total && event.total > 0 ? event.total : chunk.size;
+                  uploadedThisChunk = Math.max(
+                    uploadedThisChunk,
+                    Math.min(chunk.size, Math.round((event.loaded / total) * chunk.size)),
+                  );
+                  refreshIdleTimer();
+                  emitUploadProgress(
+                    options,
+                    "uploading",
+                    progressBaseBytes + uploadedThisChunk,
+                    totalFileBytes,
+                  );
+                },
+                signal: uploadController.signal,
+                timeout: 0,
+              },
+            );
+
+            clearIdleTimer();
+            updateSessionState(session, parseUploadSession(response.data));
+            emitUploadProgress(
+              options,
+              "uploading",
+              getAcknowledgedUploadedBytes(sessions),
+              totalFileBytes,
+            );
+            completedChunk = true;
+          } catch (error) {
+            clearIdleTimer();
+            if (uploadController.signal.aborted) {
+              throw error;
+            }
+
+            const syncedSession = await syncUploadSession(
+              apiClient,
+              apiRoomId,
+              session,
+              uploadController.signal,
+            );
+            if (syncedSession) {
+              updateSessionState(session, syncedSession);
+              emitUploadProgress(
+                options,
+                "uploading",
+                getAcknowledgedUploadedBytes(sessions),
+                totalFileBytes,
+              );
+              if (session.receivedBytes > chunkStartOffset) {
+                completedChunk = true;
+                break;
+              }
+            }
+
+            if (
+              attempt >= ATTACHMENT_UPLOAD_MAX_RECOVERY_ATTEMPTS ||
+              !isRetryableChunkError(error)
+            ) {
+              throw error;
+            }
+          }
+        }
+      }
+    }
+
+    emitUploadProgress(options, "processing", totalFileBytes, totalFileBytes);
+    startProcessingTimer();
     const response = await apiClient.post<unknown>(
       `/chat/${encodedRoomId}/attachments/`,
-      formData,
       {
-        onUploadProgress: (event: AxiosProgressEvent) => {
-          const referenceTotal =
-            event.total && event.total > 0
-              ? event.total
-              : totalFileBytes > 0
-                ? totalFileBytes
-                : 1;
-          lastProgressRatio = Math.max(
-            lastProgressRatio,
-            clampRatio(event.loaded / referenceTotal),
-          );
-
-          if (lastProgressRatio >= 1) {
-            if (!uploadCompleted) {
-              uploadCompleted = true;
-              clearIdleTimer();
-              startProcessingTimer();
-            }
-            emitProgress("processing", 1);
-            return;
-          }
-
-          refreshIdleTimer();
-          emitProgress("uploading", lastProgressRatio);
-        },
+        uploadIds: sessions.map((session) => session.uploadId),
+        messageContent: options?.messageContent ?? "",
+        replyTo: options?.replyTo ?? null,
+      },
+      {
         signal: uploadController.signal,
         timeout: 0,
       },
     );
+    finalized = true;
     return decodeUploadResponse(response.data);
   } catch (error) {
     if (stalledByInactivity) {
@@ -192,5 +400,8 @@ export async function uploadAttachments(
     clearIdleTimer();
     clearProcessingTimer();
     options?.signal?.removeEventListener("abort", handleExternalAbort);
+    if (!finalized && sessions.length > 0) {
+      await abortUploadSessions(apiClient, apiRoomId, sessions);
+    }
   }
 }

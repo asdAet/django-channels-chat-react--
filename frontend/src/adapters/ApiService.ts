@@ -3,9 +3,9 @@ import axios, { AxiosHeaders } from "axios";
 
 import type {
   IApiService,
-  UploadAttachmentsOptions,
   UpdateGroupInput,
   UpdateProfileInput,
+  UploadAttachmentsOptions,
 } from "../domain/interfaces/IApiService";
 import { decodeAuthErrorPayload } from "../dto";
 import { DtoDecodeError, parseJson } from "../dto";

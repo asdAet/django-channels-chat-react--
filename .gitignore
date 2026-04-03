@@ -177,6 +177,7 @@ frontend/dist/
 
 # Backend runtime artifacts
 backend/media/profile_pics/
+backend/media/chat_upload_sessions/
 backend/.venv_fresh/
 
 trash/

@@ -13,10 +13,17 @@ from django.db import OperationalError
 from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
-from chat import api
+from chat import api, attachment_uploads
 from chat.services import MessageForbiddenError
 from chat.tests.media_utils import workspace_media_root
-from messages.models import Message, MessageAttachment, MessageReadReceipt, MessageReadState, Reaction
+from messages.models import (
+    Message,
+    MessageAttachment,
+    MessageAttachmentUpload,
+    MessageReadReceipt,
+    MessageReadState,
+    Reaction,
+)
 from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
@@ -46,6 +53,135 @@ class ChatMessageFeatureApiTests(TestCase):
         )
         ensure_membership(self.direct_room, self.owner)
         ensure_membership(self.direct_room, self.peer)
+
+    def _create_attachment_upload_session(
+        self,
+        room_id: int,
+        *,
+        filename: str,
+        content_type: str,
+        file_size: int,
+        client: Client | None = None,
+    ):
+        active_client = client or self.client
+        return active_client.post(
+            f"/api/chat/{room_id}/attachments/uploads/",
+            data=json.dumps(
+                {
+                    "originalFilename": filename,
+                    "contentType": content_type,
+                    "fileSize": file_size,
+                }
+            ),
+            content_type="application/json",
+        )
+
+    def _upload_attachment_chunks(
+        self,
+        room_id: int,
+        *,
+        upload_id: str,
+        content: bytes,
+        chunk_size: int,
+        client: Client | None = None,
+    ):
+        active_client = client or self.client
+        last_response = None
+        offset = 0
+        while offset < len(content):
+            chunk = content[offset : offset + chunk_size]
+            last_response = active_client.put(
+                f"/api/chat/{room_id}/attachments/uploads/{upload_id}/chunk/?offset={offset}",
+                data=chunk,
+                content_type="application/octet-stream",
+            )
+            offset += len(chunk)
+        return last_response
+
+    def _complete_attachment_upload(
+        self,
+        room_id: int,
+        *,
+        filename: str,
+        content: bytes,
+        content_type: str,
+        client: Client | None = None,
+    ) -> str:
+        session_response = self._create_attachment_upload_session(
+            room_id,
+            filename=filename,
+            content_type=content_type,
+            file_size=len(content),
+            client=client,
+        )
+        self.assertEqual(session_response.status_code, 201)
+        session_payload = session_response.json()
+        upload_id = session_payload["uploadId"]
+        chunk_size = session_payload["chunkSize"]
+
+        if content:
+            chunk_response = self._upload_attachment_chunks(
+                room_id,
+                upload_id=upload_id,
+                content=content,
+                chunk_size=chunk_size,
+                client=client,
+            )
+            self.assertIsNotNone(chunk_response)
+            self.assertEqual(chunk_response.status_code, 200)
+            self.assertEqual(chunk_response.json()["receivedBytes"], len(content))
+            self.assertEqual(chunk_response.json()["status"], "complete")
+
+        return upload_id
+
+    def _finalize_attachment_uploads(
+        self,
+        room_id: int,
+        *,
+        upload_ids: list[str],
+        message_content: str = "",
+        reply_to: int | None = None,
+        client: Client | None = None,
+    ):
+        active_client = client or self.client
+        return active_client.post(
+            f"/api/chat/{room_id}/attachments/",
+            data=json.dumps(
+                {
+                    "uploadIds": upload_ids,
+                    "messageContent": message_content,
+                    "replyTo": reply_to,
+                }
+            ),
+            content_type="application/json",
+        )
+
+    def _upload_and_finalize_attachments(
+        self,
+        room_id: int,
+        files: list[tuple[str, bytes, str]],
+        *,
+        message_content: str = "",
+        reply_to: int | None = None,
+        client: Client | None = None,
+    ):
+        upload_ids = [
+            self._complete_attachment_upload(
+                room_id,
+                filename=filename,
+                content=content,
+                content_type=attachment_content_type,
+                client=client,
+            )
+            for filename, content, attachment_content_type in files
+        ]
+        return self._finalize_attachment_uploads(
+            room_id,
+            upload_ids=upload_ids,
+            message_content=message_content,
+            reply_to=reply_to,
+            client=client,
+        )
 
     def test_reactions_allowed_in_direct_room(self):
         message = Message.objects.create(
@@ -308,18 +444,11 @@ class ChatMessageFeatureApiTests(TestCase):
         )
         self.client.force_login(self.owner)
 
-        upload_file = SimpleUploadedFile(
-            "note.txt",
-            b"hello attachment",
-            content_type="text/plain",
-        )
-        post_response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={
-                "files": [upload_file],
-                "messageContent": "file message",
-                "replyTo": str(reply_target.pk),
-            },
+        post_response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [("note.txt", b"hello attachment", "text/plain")],
+            message_content="file message",
+            reply_to=reply_target.pk,
         )
         self.assertEqual(post_response.status_code, 201)
         created_id = post_response.json()["id"]
@@ -342,14 +471,9 @@ class ChatMessageFeatureApiTests(TestCase):
         )
 
         self.client.force_login(self.outsider)
-        upload_file = SimpleUploadedFile(
-            "public-note.txt",
-            b"public room attachment",
-            content_type="text/plain",
-        )
-        post_response = self.client.post(
-            f"/api/chat/{public_room.pk}/attachments/",
-            data={"files": [upload_file]},
+        post_response = self._upload_and_finalize_attachments(
+            public_room.pk,
+            [("public-note.txt", b"public room attachment", "text/plain")],
         )
         self.assertEqual(post_response.status_code, 201)
         self.assertTrue(
@@ -365,14 +489,9 @@ class ChatMessageFeatureApiTests(TestCase):
     def test_attachment_urls_are_room_scoped_without_signed_query(self):
         self.client.force_login(self.owner)
 
-        upload_file = SimpleUploadedFile(
-            "scoped.txt",
-            b"room scoped attachment",
-            content_type="text/plain",
-        )
-        post_response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
+        post_response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [("scoped.txt", b"room scoped attachment", "text/plain")],
         )
         self.assertEqual(post_response.status_code, 201)
         attachment_payload = post_response.json()["attachments"][0]
@@ -402,16 +521,13 @@ class ChatMessageFeatureApiTests(TestCase):
         CHAT_ATTACHMENT_ALLOW_ANY_TYPE=False,
         CHAT_ATTACHMENT_ALLOWED_TYPES=["text/plain"],
     )
-    def test_attachment_upload_rejects_unsupported_content_type_with_code(self):
+    def test_attachment_upload_session_rejects_unsupported_content_type_with_code(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "archive.bin",
-            b"\x00\x01\x02\x03",
+        post_response = self._create_attachment_upload_session(
+            self.direct_room.pk,
+            filename="archive.bin",
             content_type="application/x-custom-binary",
-        )
-        post_response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
+            file_size=4,
         )
 
         self.assertEqual(post_response.status_code, 400)
@@ -419,65 +535,166 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertEqual(payload["code"], "unsupported_type")
         self.assertIn("allowedTypes", payload["details"])
 
-    def test_attachment_upload_accepts_file_key_compat(self):
+    def test_attachment_upload_chunk_reports_progress_and_rejects_offset_mismatch(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "note.txt",
-            b"compat key file",
-            content_type="text/plain",
-        )
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"file": upload_file},
-        )
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(response.json()["attachments"]), 1)
 
-    def test_attachment_upload_accepts_attachments_array_key_compat(self):
-        self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "note-array.txt",
-            b"compat array key file",
-            content_type="text/plain",
+        session_response = self._create_attachment_upload_session(
+            self.direct_room.pk,
+            filename="chunked.bin",
+            content_type="application/octet-stream",
+            file_size=8,
         )
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"attachments[]": [upload_file]},
-        )
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(response.json()["attachments"]), 1)
+        self.assertEqual(session_response.status_code, 201)
+        upload_id = session_response.json()["uploadId"]
 
-    def test_attachment_upload_accepts_attachments_key_compat(self):
-        self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "note-compat.txt",
-            b"compat attachments key file",
-            content_type="text/plain",
+        first_chunk = self.client.put(
+            f"/api/chat/{self.direct_room.pk}/attachments/uploads/{upload_id}/chunk/?offset=0",
+            data=b"1234",
+            content_type="application/octet-stream",
         )
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"attachments": [upload_file]},
-        )
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(response.json()["attachments"]), 1)
+        self.assertEqual(first_chunk.status_code, 200)
+        self.assertEqual(first_chunk.json()["receivedBytes"], 4)
+        self.assertEqual(first_chunk.json()["status"], "uploading")
 
-    def test_attachment_upload_returns_code_when_files_missing(self):
+        wrong_offset = self.client.put(
+            f"/api/chat/{self.direct_room.pk}/attachments/uploads/{upload_id}/chunk/?offset=1",
+            data=b"5678",
+            content_type="application/octet-stream",
+        )
+        self.assertEqual(wrong_offset.status_code, 409)
+        self.assertEqual(wrong_offset.json()["code"], "offset_mismatch")
+
+    @override_settings(
+        CHAT_ATTACHMENT_CHUNK_MIN_SIZE_KB=1,
+        CHAT_ATTACHMENT_CHUNK_MAX_SIZE_MB=1,
+        CHAT_ATTACHMENT_TARGET_CHUNKS=1024,
+    )
+    def test_attachment_upload_chunk_rejects_payload_larger_than_session_chunk_size(self):
         self.client.force_login(self.owner)
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={},
+
+        session_response = self._create_attachment_upload_session(
+            self.direct_room.pk,
+            filename="oversized.bin",
+            content_type="application/octet-stream",
+            file_size=2048,
+        )
+        self.assertEqual(session_response.status_code, 201)
+        payload = session_response.json()
+        self.assertEqual(payload["chunkSize"], 1024)
+
+        oversized_chunk = self.client.put(
+            f"/api/chat/{self.direct_room.pk}/attachments/uploads/{payload['uploadId']}/chunk/?offset=0",
+            data=b"x" * 1500,
+            content_type="application/octet-stream",
+        )
+
+        self.assertEqual(oversized_chunk.status_code, 413)
+        self.assertEqual(
+            oversized_chunk.json()["code"],
+            "chunk_exceeds_session_limit",
+        )
+
+    def test_attachment_upload_detail_delete_aborts_session(self):
+        self.client.force_login(self.owner)
+
+        session_response = self._create_attachment_upload_session(
+            self.direct_room.pk,
+            filename="abort.bin",
+            content_type="application/octet-stream",
+            file_size=3,
+        )
+        self.assertEqual(session_response.status_code, 201)
+        upload_id = session_response.json()["uploadId"]
+
+        delete_response = self.client.delete(
+            f"/api/chat/{self.direct_room.pk}/attachments/uploads/{upload_id}/"
+        )
+        self.assertEqual(delete_response.status_code, 204)
+
+        detail_response = self.client.get(
+            f"/api/chat/{self.direct_room.pk}/attachments/uploads/{upload_id}/"
+        )
+        self.assertEqual(detail_response.status_code, 404)
+        self.assertEqual(detail_response.json()["code"], "upload_not_found")
+
+    def test_attachment_upload_finalize_reuses_temp_blob_without_second_read_copy(self):
+        self.client.force_login(self.owner)
+
+        with workspace_media_root():
+            upload_id = self._complete_attachment_upload(
+                self.direct_room.pk,
+                filename="fast-path.txt",
+                content=b"fast finalize path",
+                content_type="text/plain",
+            )
+            upload = MessageAttachmentUpload.objects.get(pk=upload_id)
+            temp_storage_name = upload.storage_name
+
+            with patch.object(
+                attachment_uploads.default_storage,
+                "open",
+                wraps=attachment_uploads.default_storage.open,
+            ) as storage_open:
+                with self.captureOnCommitCallbacks(execute=True):
+                    response = self._finalize_attachment_uploads(
+                        self.direct_room.pk,
+                        upload_ids=[upload_id],
+                    )
+
+            self.assertEqual(response.status_code, 201)
+            self.assertFalse(
+                any(
+                    call.args
+                    and call.args[0] == temp_storage_name
+                    and (
+                        (call.args[1] if len(call.args) > 1 else call.kwargs.get("mode", ""))
+                        == "rb"
+                    )
+                    for call in storage_open.mock_calls
+                )
+            )
+            self.assertFalse(
+                MessageAttachmentUpload.objects.filter(pk=upload_id).exists()
+            )
+
+    def test_attachment_upload_returns_code_when_upload_ids_missing(self):
+        self.client.force_login(self.owner)
+        response = self._finalize_attachment_uploads(
+            self.direct_room.pk,
+            upload_ids=[],
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["code"], "no_files")
+        self.assertEqual(response.json()["code"], "no_uploads")
+
+    def test_attachment_upload_returns_code_for_invalid_upload_id(self):
+        self.client.force_login(self.owner)
+        response = self._finalize_attachment_uploads(
+            self.direct_room.pk,
+            upload_ids=["not-a-uuid"],
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "invalid_upload_id")
 
     @override_settings(CHAT_ATTACHMENT_MAX_PER_MESSAGE=1)
     def test_attachment_upload_returns_code_when_too_many_files(self):
         self.client.force_login(self.owner)
-        file_one = SimpleUploadedFile("one.txt", b"1", content_type="text/plain")
-        file_two = SimpleUploadedFile("two.txt", b"2", content_type="text/plain")
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [file_one, file_two]},
+        upload_ids = [
+            self._complete_attachment_upload(
+                self.direct_room.pk,
+                filename="one.txt",
+                content=b"1",
+                content_type="text/plain",
+            ),
+            self._complete_attachment_upload(
+                self.direct_room.pk,
+                filename="two.txt",
+                content=b"2",
+                content_type="text/plain",
+            ),
+        ]
+        response = self._finalize_attachment_uploads(
+            self.direct_room.pk,
+            upload_ids=upload_ids,
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "too_many_files")
@@ -493,11 +710,23 @@ class ChatMessageFeatureApiTests(TestCase):
         ensure_user_identity_core(superuser)
 
         self.client.force_login(superuser)
-        file_one = SimpleUploadedFile("one.txt", b"1", content_type="text/plain")
-        file_two = SimpleUploadedFile("two.txt", b"2", content_type="text/plain")
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [file_one, file_two]},
+        upload_ids = [
+            self._complete_attachment_upload(
+                self.direct_room.pk,
+                filename="one.txt",
+                content=b"1",
+                content_type="text/plain",
+            ),
+            self._complete_attachment_upload(
+                self.direct_room.pk,
+                filename="two.txt",
+                content=b"2",
+                content_type="text/plain",
+            ),
+        ]
+        response = self._finalize_attachment_uploads(
+            self.direct_room.pk,
+            upload_ids=upload_ids,
         )
         self.assertEqual(response.status_code, 201)
         payload = response.json()
@@ -505,26 +734,28 @@ class ChatMessageFeatureApiTests(TestCase):
 
     def test_attachment_upload_returns_code_for_invalid_reply(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile("reply.txt", b"file", content_type="text/plain")
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file], "replyTo": "999999"},
+        upload_id = self._complete_attachment_upload(
+            self.direct_room.pk,
+            filename="reply.txt",
+            content=b"file",
+            content_type="text/plain",
+        )
+        response = self._finalize_attachment_uploads(
+            self.direct_room.pk,
+            upload_ids=[upload_id],
+            reply_to=999999,
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "invalid_reply_to")
 
     @override_settings(CHAT_ATTACHMENT_MAX_SIZE_MB=1)
-    def test_attachment_upload_returns_code_when_file_too_large(self):
+    def test_attachment_upload_session_returns_code_when_file_too_large(self):
         self.client.force_login(self.owner)
-        large_payload = b"x" * (2 * 1024 * 1024)
-        upload_file = SimpleUploadedFile(
-            "large.txt",
-            large_payload,
+        response = self._create_attachment_upload_session(
+            self.direct_room.pk,
+            filename="large.txt",
             content_type="text/plain",
-        )
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
+            file_size=2 * 1024 * 1024,
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["code"], "file_too_large")
@@ -541,14 +772,9 @@ class ChatMessageFeatureApiTests(TestCase):
 
         self.client.force_login(superuser)
         large_payload = b"x" * (2 * 1024 * 1024)
-        upload_file = SimpleUploadedFile(
-            "large-superuser.txt",
-            large_payload,
-            content_type="text/plain",
-        )
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
+        response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [("large-superuser.txt", large_payload, "text/plain")],
         )
         self.assertEqual(response.status_code, 201)
         payload = response.json()
@@ -561,14 +787,9 @@ class ChatMessageFeatureApiTests(TestCase):
     )
     def test_attachment_upload_normalizes_audio_mp3_alias(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "voice.mp3",
-            b"ID3\x03\x00\x00\x00\x00\x00\x00",
-            content_type="audio/mp3",
-        )
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
+        response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [("voice.mp3", b"ID3\x03\x00\x00\x00\x00\x00\x00", "audio/mp3")],
         )
         self.assertEqual(response.status_code, 201)
         payload = response.json()
@@ -580,17 +801,16 @@ class ChatMessageFeatureApiTests(TestCase):
     )
     def test_attachment_upload_normalizes_svg_content_type_from_generic_mime(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "pizza.svg",
-            b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'></svg>",
-            content_type="text/plain",
+        response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [
+                (
+                    "pizza.svg",
+                    b"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'></svg>",
+                    "text/plain",
+                )
+            ],
         )
-
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
-        )
-
         self.assertEqual(response.status_code, 201)
         payload = response.json()
         self.assertEqual(payload["attachments"][0]["contentType"], "image/svg+xml")
@@ -601,17 +821,10 @@ class ChatMessageFeatureApiTests(TestCase):
     )
     def test_attachment_upload_normalizes_zip_alias_from_windows_mime(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "mods.zip",
-            b"PK\x03\x04",
-            content_type="application/x-zip-compressed",
+        response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [("mods.zip", b"PK\x03\x04", "application/x-zip-compressed")],
         )
-
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
-        )
-
         self.assertEqual(response.status_code, 201)
         payload = response.json()
         self.assertEqual(payload["attachments"][0]["contentType"], "application/zip")
@@ -622,17 +835,10 @@ class ChatMessageFeatureApiTests(TestCase):
     )
     def test_attachment_upload_guesses_rar_from_extension_for_x_compressed(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "modpack.rar",
-            b"Rar!\x1a\x07\x00",
-            content_type="application/x-compressed",
+        response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [("modpack.rar", b"Rar!\x1a\x07\x00", "application/x-compressed")],
         )
-
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
-        )
-
         self.assertEqual(response.status_code, 201)
         payload = response.json()
         self.assertEqual(payload["attachments"][0]["contentType"], "application/vnd.rar")
@@ -643,17 +849,10 @@ class ChatMessageFeatureApiTests(TestCase):
     )
     def test_attachment_upload_guesses_jar_from_extension_for_octet_stream(self):
         self.client.force_login(self.owner)
-        upload_file = SimpleUploadedFile(
-            "cannedgoods-1.20.1-1.jar",
-            b"PK\x03\x04",
-            content_type="application/octet-stream",
+        response = self._upload_and_finalize_attachments(
+            self.direct_room.pk,
+            [("cannedgoods-1.20.1-1.jar", b"PK\x03\x04", "application/octet-stream")],
         )
-
-        response = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/attachments/",
-            data={"files": [upload_file]},
-        )
-
         self.assertEqual(response.status_code, 201)
         payload = response.json()
         self.assertEqual(

@@ -18,7 +18,21 @@ def populate_room_fk(apps, schema_editor):
     Message = apps.get_model("chat_messages", "Message")
     Room = apps.get_model("rooms", "Room")
 
-    room_map = dict(Room.objects.values_list("slug", "id"))
+    room_field_names = {field.name for field in Room._meta.get_fields()}
+    if "slug" in room_field_names:
+        room_lookup_field = "slug"
+    elif "public_id" in room_field_names:
+        room_lookup_field = "public_id"
+    elif "name" in room_field_names:
+        room_lookup_field = "name"
+    else:
+        return
+
+    room_map = {
+        room_key: room_id
+        for room_key, room_id in Room.objects.values_list(room_lookup_field, "id")
+        if room_key
+    }
 
     batch = []
     for msg in Message.objects.all().iterator(chunk_size=1000):
