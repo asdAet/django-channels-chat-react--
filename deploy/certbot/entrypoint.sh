@@ -12,8 +12,8 @@ normalize_domains() {
 }
 
 domains="$(normalize_domains)"
-if [ -z "${domains}" ] || [ -z "${CERTBOT_EMAIL}" ]; then
-  echo "certbot-entrypoint: TLS_LETSENCRYPT_EMAIL or TLS_DOMAINS is empty, automatic certificate issuance is disabled" >&2
+if [ -z "${domains}" ]; then
+  echo "certbot-entrypoint: TLS_DOMAINS is empty, automatic certificate issuance is disabled" >&2
   exec tail -f /dev/null
 fi
 
@@ -54,17 +54,24 @@ if [ "${CERTBOT_STAGING}" = "1" ]; then
   staging_arg="--staging"
 fi
 
+email_args="--register-unsafely-without-email"
+if [ -n "${CERTBOT_EMAIL}" ]; then
+  email_args="--email ${CERTBOT_EMAIL}"
+else
+  echo "certbot-entrypoint: TLS_LETSENCRYPT_EMAIL is empty, requesting certificate without registration email" >&2
+fi
+
 request_certificate() {
   certbot certonly \
     --webroot \
     -w /var/www/certbot \
     --cert-name "${primary_domain}" \
-    --email "${CERTBOT_EMAIL}" \
     --agree-tos \
     --no-eff-email \
     --non-interactive \
     --keep-until-expiring \
     --rsa-key-size 4096 \
+    ${email_args} \
     ${staging_arg} \
     "$@"
 }

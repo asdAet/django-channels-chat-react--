@@ -75,6 +75,7 @@ services:
       dockerfile: deploy/nginx.Dockerfile
       args:
         VITE_GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-}"
+        VITE_ENABLE_PWA: "${ENABLE_PWA:-0}"
     environment:
       NGINX_CLIENT_MAX_BODY_SIZE: "${NGINX_CLIENT_MAX_BODY_SIZE:-0}"
       NGINX_SERVER_NAMES: "${NGINX_SERVER_NAMES:-slowed.sbs proxy.slowed.sbs 80.253.249.107}"
