@@ -99,13 +99,29 @@ class ChatConsumer(AsyncWebsocketConsumer):
     chat_idle_timeout = int(settings.CHAT_WS_IDLE_TIMEOUT)
     direct_inbox_unread_ttl = int(settings.DIRECT_INBOX_UNREAD_TTL)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._connection_closed = False
+        self._metrics_connected = False
+        self._metrics_auth_state = "unknown"
+        self._metrics_room_kind = "unknown"
+        self._last_activity = 0.0
+        self._last_typing_broadcast = 0.0
+        self._idle_task = None
+
+    def _refresh_metrics_context(self) -> None:
+        scope = getattr(self, "scope", None)
+        user = scope.get("user") if isinstance(scope, dict) else None
+        self._metrics_auth_state = normalize_ws_auth_state(user)
+        room = getattr(self, "room", None)
+        self._metrics_room_kind = normalize_room_kind(getattr(room, "kind", None))
+
     async def connect(self):
         """Устанавливает соединение и выполняет проверки доступа."""
         self._connection_closed = False
-        user = self.scope.get("user")
         self._metrics_connected = False
-        self._metrics_auth_state = normalize_ws_auth_state(user)
-        self._metrics_room_kind = "unknown"
+        self._refresh_metrics_context()
+        user = self.scope.get("user")
         if user is None:
             observe_ws_connect(
                 "chat",
@@ -177,7 +193,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4404)
             return
 
-        self._metrics_room_kind = normalize_room_kind(getattr(room, "kind", None))
+        self.room = room
+        self._refresh_metrics_context()
         if not await self._can_read(room, user):
             observe_ws_connect(
                 "chat",
@@ -206,7 +223,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.actor_username = ""
             self.actor_public_ref = ""
             self.actor_display_name = ""
-        self.room = room
         self.room_id = int(room.pk)
         self.room_name = str(self.room_id)
         self.room_group_name = f"chat_room_{self.room_id}"
@@ -240,6 +256,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             code: Код ошибки или состояния.
         """
         self._connection_closed = True
+        self._refresh_metrics_context()
         idle_task = getattr(self, "_idle_task", None)
         if idle_task:
             idle_task.cancel()
@@ -303,6 +320,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             bytes_data: Параметр bytes data, используемый в логике функции.
         """
         self._last_activity = time.monotonic()
+        self._refresh_metrics_context()
         if text_data is None and bytes_data is not None:
             try:
                 text_data = bytes_data.decode("utf-8")
