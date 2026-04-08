@@ -12,7 +12,7 @@ if [ -n "${ALERTMANAGER_TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${ALERTMANAGER_TELEGRA
       - bot_token: "${ALERTMANAGER_TELEGRAM_BOT_TOKEN}"
         chat_id: ${ALERTMANAGER_TELEGRAM_CHAT_ID}
         send_resolved: true
-        message: '{{ range .Alerts }}[{{ .Status | toUpper }}] {{ .Annotations.summary }}{{ "\n" }}{{ .Annotations.description }}{{ "\n\n" }}{{ end }}'
+        message: '{{ template "telegram.devils.message" . }}'
 EOF
 )
 fi
@@ -20,6 +20,9 @@ fi
 cat > /etc/alertmanager/alertmanager.yml <<EOF
 global:
   resolve_timeout: 5m
+
+templates:
+  - "/etc/alertmanager/templates/*.tmpl"
 
 route:
   receiver: "${receiver_name}"

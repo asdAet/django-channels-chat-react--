@@ -6,5 +6,6 @@ COPY --from=busybox /bin/busybox /bin/busybox
 RUN ["/bin/busybox", "--install", "-s", "/bin"]
 
 COPY deploy/observability/alertmanager/entrypoint.sh /entrypoint.sh
+COPY deploy/observability/alertmanager/telegram.tmpl /etc/alertmanager/templates/telegram.tmpl
 
 ENTRYPOINT ["/bin/sh", "/entrypoint.sh"]

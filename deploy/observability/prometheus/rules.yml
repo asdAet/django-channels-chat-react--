@@ -35,8 +35,8 @@ groups:
           severity: critical
           service: backend
         annotations:
-          summary: "Backend metrics target is down"
-          description: "Prometheus cannot scrape backend:8000/metrics/ for more than 2 minutes."
+          summary: "Метрики backend недоступны"
+          description: "Prometheus не может опрашивать backend:8000/metrics/ дольше 2 минут."
 
       - alert: NginxExporterDown
         expr: up{job="nginx_exporter"} == 0
@@ -45,8 +45,8 @@ groups:
           severity: critical
           service: edge
         annotations:
-          summary: "Nginx exporter is down"
-          description: "Nginx exporter is unavailable for more than 2 minutes."
+          summary: "Экспортер Nginx недоступен"
+          description: "Prometheus не может получать метрики из Nginx exporter дольше 2 минут."
 
       - alert: PostgresExporterDown
         expr: up{job="postgres_exporter"} == 0
@@ -55,8 +55,8 @@ groups:
           severity: critical
           service: postgres
         annotations:
-          summary: "PostgreSQL exporter is down"
-          description: "PostgreSQL exporter has not been scraped successfully for more than 2 minutes."
+          summary: "Экспортер PostgreSQL недоступен"
+          description: "Prometheus не может успешно опрашивать PostgreSQL exporter дольше 2 минут."
 
       - alert: RedisExporterDown
         expr: up{job="redis_exporter"} == 0
@@ -65,8 +65,8 @@ groups:
           severity: critical
           service: redis
         annotations:
-          summary: "Redis exporter is down"
-          description: "Redis exporter has not been scraped successfully for more than 2 minutes."
+          summary: "Экспортер Redis недоступен"
+          description: "Prometheus не может успешно опрашивать Redis exporter дольше 2 минут."
 
       - alert: NodeExporterDown
         expr: up{job="node_exporter"} == 0
@@ -75,8 +75,8 @@ groups:
           severity: critical
           service: host
         annotations:
-          summary: "Node exporter is down"
-          description: "Host metrics are unavailable for more than 2 minutes."
+          summary: "Экспортер метрик хоста недоступен"
+          description: "Метрики хоста недоступны дольше 2 минут."
 
       - alert: CadvisorDown
         expr: up{job="cadvisor"} == 0
@@ -85,8 +85,8 @@ groups:
           severity: critical
           service: containers
         annotations:
-          summary: "cAdvisor is down"
-          description: "Container metrics are unavailable for more than 2 minutes."
+          summary: "cAdvisor недоступен"
+          description: "Метрики контейнеров недоступны дольше 2 минут."
 
       - alert: BlackboxProbeFailed
         expr: probe_success{job="blackbox_https"} == 0
@@ -95,8 +95,8 @@ groups:
           severity: critical
           service: edge
         annotations:
-          summary: "HTTPS probe failed"
-          description: "Blackbox probing failed for {{ $labels.instance }} for more than 2 minutes."
+          summary: "Проверка HTTPS не проходит"
+          description: "Blackbox не может успешно проверить {{ $labels.instance }} дольше 2 минут."
 
       - alert: HighHttpP95Latency
         expr: devils:http_request_latency:p95_5m > 1
@@ -105,8 +105,8 @@ groups:
           severity: warning
           service: backend
         annotations:
-          summary: "HTTP p95 latency is high"
-          description: "p95 HTTP latency has been above 1 second for more than 10 minutes."
+          summary: "Высокая p95 задержка HTTP"
+          description: "p95 HTTP-задержка держится выше 1 секунды дольше 10 минут."
 
       - alert: Api5xxSpike
         expr: sum(rate(devils_http_requests_total{route=~"/api/.*", status_class="5xx"}[5m])) / clamp_min(sum(rate(devils_http_requests_total{route=~"/api/.*"}[5m])), 0.1) > 0.05
@@ -115,8 +115,8 @@ groups:
           severity: critical
           service: backend
         annotations:
-          summary: "API 5xx rate is elevated"
-          description: "More than 5% of API requests returned 5xx over the last 5 minutes."
+          summary: "Повышена доля API-ошибок 5xx"
+          description: "Более 5% API-запросов возвращают 5xx за последние 5 минут."
 
       - alert: RedisEvictionsDetected
         expr: rate(redis_evicted_keys_total[5m]) > 0
@@ -125,8 +125,8 @@ groups:
           severity: warning
           service: redis
         annotations:
-          summary: "Redis is evicting keys"
-          description: "Redis evictions are greater than zero for more than 10 minutes."
+          summary: "Redis вытесняет ключи"
+          description: "В Redis происходят eviction-операции дольше 10 минут."
 
       - alert: RedisBlockedClients
         expr: redis_blocked_clients > 0
@@ -135,8 +135,8 @@ groups:
           severity: warning
           service: redis
         annotations:
-          summary: "Redis has blocked clients"
-          description: "Redis blocked client count is non-zero for more than 5 minutes."
+          summary: "В Redis есть заблокированные клиенты"
+          description: "Количество blocked clients в Redis остается больше нуля дольше 5 минут."
 
       - alert: PostgresUnavailable
         expr: pg_up == 0
@@ -145,8 +145,8 @@ groups:
           severity: critical
           service: postgres
         annotations:
-          summary: "PostgreSQL is unavailable"
-          description: "postgres_exporter reports pg_up == 0 for more than 2 minutes."
+          summary: "PostgreSQL недоступен"
+          description: "postgres_exporter сообщает pg_up == 0 дольше 2 минут."
 
       - alert: PostgresDeadlocksDetected
         expr: increase(pg_stat_database_deadlocks[10m]) > 0
@@ -155,8 +155,8 @@ groups:
           severity: critical
           service: postgres
         annotations:
-          summary: "PostgreSQL deadlocks detected"
-          description: "PostgreSQL deadlocks were observed in the last 10 minutes."
+          summary: "Обнаружены deadlock в PostgreSQL"
+          description: "За последние 10 минут в PostgreSQL были зафиксированы deadlock."
 
       - alert: PostgresLongTransactions
         expr: pg_stat_activity_max_tx_duration > 300
@@ -165,8 +165,8 @@ groups:
           severity: warning
           service: postgres
         annotations:
-          summary: "Long-running PostgreSQL transaction"
-          description: "A PostgreSQL transaction has been open for more than 5 minutes."
+          summary: "Долгая транзакция PostgreSQL"
+          description: "Одна из транзакций PostgreSQL открыта дольше 5 минут."
 
       - alert: HostDiskSpaceLow
         expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} < 0.10
@@ -175,8 +175,8 @@ groups:
           severity: critical
           service: host
         annotations:
-          summary: "Host disk space is low"
-          description: "Filesystem {{ $labels.mountpoint }} has less than 10% free space."
+          summary: "На хосте мало места на диске"
+          description: "На файловой системе {{ $labels.mountpoint }} осталось меньше 10% свободного места."
 
       - alert: HostMemoryPressure
         expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
@@ -185,8 +185,8 @@ groups:
           severity: warning
           service: host
         annotations:
-          summary: "Host memory pressure is high"
-          description: "Available memory is below 10% for more than 10 minutes."
+          summary: "На хосте сильное давление по памяти"
+          description: "Доля доступной памяти ниже 10% дольше 10 минут."
 
       - alert: HostInodesLow
         expr: node_filesystem_files_free{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} / node_filesystem_files{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} < 0.10
@@ -195,8 +195,8 @@ groups:
           severity: warning
           service: host
         annotations:
-          summary: "Host inode space is low"
-          description: "Filesystem {{ $labels.mountpoint }} has less than 10% free inodes."
+          summary: "На хосте заканчиваются inode"
+          description: "На файловой системе {{ $labels.mountpoint }} осталось меньше 10% свободных inode."
 
       - alert: ContainerRestartSpike
         expr: sum(changes(container_start_time_seconds{name!=""}[15m])) > 3
@@ -205,8 +205,8 @@ groups:
           severity: warning
           service: containers
         annotations:
-          summary: "Container restart spike detected"
-          description: "More than 3 container restarts were detected over the last 15 minutes."
+          summary: "Обнаружен всплеск перезапусков контейнеров"
+          description: "За последние 15 минут зафиксировано больше 3 перезапусков контейнеров."
 
       - alert: WebSocketConnectFailureSpike
         expr: sum(rate(devils_ws_connect_total{result="rejected"}[5m])) > 1
@@ -215,8 +215,8 @@ groups:
           severity: warning
           service: websocket
         annotations:
-          summary: "WebSocket connect failures are elevated"
-          description: "Rejected WebSocket connections exceed 1 request per second over the last 5 minutes."
+          summary: "Увеличилось число отказов WebSocket-подключений"
+          description: "Число отклоненных WebSocket-подключений превышает 1 запрос в секунду за последние 5 минут."
 
       - alert: ChatMessageRejectSpike
         expr: sum(rate(devils_chat_message_rejected_total[5m])) > 0.5
@@ -225,5 +225,5 @@ groups:
           severity: warning
           service: chat
         annotations:
-          summary: "Chat message rejects are elevated"
-          description: "Rejected chat submissions exceed 0.5 requests per second over the last 5 minutes."
+          summary: "Увеличилось число отклоненных сообщений чата"
+          description: "Число отклоненных отправок в чат превышает 0.5 запроса в секунду за последние 5 минут."
