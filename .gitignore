@@ -193,6 +193,7 @@ presentation/
 
 db.*
 .tmp*
+tmp*
 backend/pytest.out
 
 users/
