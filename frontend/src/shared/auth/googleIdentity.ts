@@ -420,44 +420,51 @@ export const signInWithGoogle = async (
 
   await loadGoogleIdentitySdk();
 
-  const oauth2Api = getGoogleOauth2Api();
-  let oauth2Error: GoogleOAuthError | null = null;
-  if (oauth2Api) {
+  const idApi = getGoogleIdApi();
+  let idError: GoogleOAuthError | null = null;
+  if (idApi) {
     try {
-      const accessToken = await requestGoogleAccessToken(
-        oauth2Api,
-        normalizedClientId,
-      );
-      return { token: accessToken, tokenType: "accessToken" };
+      const idToken = await requestGoogleIdToken(idApi, normalizedClientId);
+      return { token: idToken, tokenType: "idToken" };
     } catch (error) {
-      oauth2Error =
+      idError =
         error instanceof GoogleOAuthError
           ? error
           : new GoogleOAuthError(
               "oauth_request_failed",
               "Не удалось выполнить вход через Google.",
             );
-      if (oauth2Error.code === "oauth_popup_closed") {
-        throw oauth2Error;
+      if (idError.code === "oauth_popup_closed") {
+        throw idError;
       }
     }
   }
 
-  const idApi = getGoogleIdApi();
-  if (!idApi) {
-    if (oauth2Error) {
-      throw oauth2Error;
+  const oauth2Api = getGoogleOauth2Api();
+  if (!oauth2Api) {
+    if (idError) {
+      throw idError;
     }
     throw new GoogleOAuthError("oauth_sdk_unavailable", "Google OAuth SDK недоступен.");
   }
 
   try {
-    const idToken = await requestGoogleIdToken(idApi, normalizedClientId);
-    return { token: idToken, tokenType: "idToken" };
-  } catch (idError) {
-    if (oauth2Error) {
+    const accessToken = await requestGoogleAccessToken(
+      oauth2Api,
+      normalizedClientId,
+    );
+    return { token: accessToken, tokenType: "accessToken" };
+  } catch (error) {
+    const oauth2Error =
+      error instanceof GoogleOAuthError
+        ? error
+        : new GoogleOAuthError(
+            "oauth_request_failed",
+            "Не удалось выполнить вход через Google.",
+          );
+    if (oauth2Error.code === "oauth_popup_closed") {
       throw oauth2Error;
     }
-    throw idError;
+    throw idError ?? oauth2Error;
   }
 };
