@@ -362,7 +362,7 @@ describe("ChatRoomPage", () => {
     expect(wsState.options?.url).toContain("wst=auth-token");
   });
 
-  it("uses resolved numeric room id for websocket even if initial room target is legacy text", () => {
+  it("uses resolved numeric room id for websocket even if initial route target is text", () => {
     chatRoomMock.details = {
       roomId: 7,
       name: "General",

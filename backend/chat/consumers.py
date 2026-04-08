@@ -71,8 +71,8 @@ def _ws_connect_rate_limited(scope, endpoint: str) -> bool:
     return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
 
 
-class ObsoleteChatRouteConsumer(AsyncWebsocketConsumer):
-    """Rejects legacy text websocket chat routes without surfacing Daphne route errors."""
+class NonCanonicalChatRouteConsumer(AsyncWebsocketConsumer):
+    """Rejects non-canonical text websocket chat routes without surfacing Daphne route errors."""
 
     async def connect(self):
         user = self.scope.get("user")
@@ -81,13 +81,13 @@ class ObsoleteChatRouteConsumer(AsyncWebsocketConsumer):
             auth_state=normalize_ws_auth_state(user),
             room_kind="unknown",
             result="rejected",
-            reason="obsolete_route",
+            reason="non_canonical_route",
         )
         audit_ws_event(
             "ws.connect.denied",
             self.scope,
             endpoint="chat",
-            reason="obsolete_route",
+            reason="non_canonical_route",
             code=4404,
         )
         await self.close(code=4404)

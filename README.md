@@ -29,13 +29,10 @@
 
 ### Публичные идентификаторы
 - Пользователи и группы открываются по внешним `publicRef` / `publicId`.
-- `room.slug` удалён из рабочей модели и не используется для навигации.
 - `roomId` — внутренний идентификатор транспорта и API.
 - `publicRef/publicId` — внешний адрес для навигации и resolve.
 
 ### Prefixless chat routing
-Frontend больше не использует `/direct/*` и `/rooms/*`.
-
 Канонические chat routes:
 - `/public` — публичный чат
 - `/@username` — direct по handle пользователя
@@ -286,16 +283,5 @@ docker compose -f docker-compose.prod.yml -f deploy/observability/compose.yml up
 - `/nginx_status` доступен только по внутреннему `http://nginx:8080/nginx_status`
 - остальные observability-сервисы остаются внутри Docker-сети
 
-Provisioned dashboards:
-- `Platform Overview`
-- `Edge And Runtime`
-- `Data Services`
-- `Application And Realtime`
-- `Logs Overview`
-
-## Важные замечания
-- Внутренний транспорт чатов строго `roomId`-based.
-- Внешняя навигация строится только через `publicRef/publicId` и `/api/chat/resolve/`.
-- Старые `/direct/*` и `/rooms/*` считаются legacy и больше не являются каноническими путями.
-- `ws/inbox` заменил старый direct inbox path.
-- Для медиа используются подписанные URL с TTL.
+Provisioned dashboard:
+- `Devils Resting Unified Observability`

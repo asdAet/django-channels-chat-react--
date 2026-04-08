@@ -121,7 +121,7 @@ class ChatConsumerTests(TransactionTestCase):
 
         async_to_sync(run)()
 
-    def test_obsolete_text_route_rejected(self):
+    def test_non_canonical_text_route_rejected(self):
         """Отклоняет устаревший text-route без no-route ошибки на уровне Daphne."""
         async def run():
             _communicator, connected, close_code = await self._connect('/ws/chat/general/')
