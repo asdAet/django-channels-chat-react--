@@ -362,6 +362,30 @@ describe("ChatRoomPage", () => {
     expect(wsState.options?.url).toContain("wst=auth-token");
   });
 
+  it("uses resolved numeric room id for websocket even if initial room target is legacy text", () => {
+    chatRoomMock.details = {
+      roomId: 7,
+      name: "General",
+      kind: "public",
+      created: false,
+      createdBy: null,
+    } as RoomDetails;
+
+    render(
+      <WsAuthProvider token="auth-token">
+        <ChatRoomPage
+          roomId="general"
+          initialRoomKind="public"
+          user={user}
+          onNavigate={vi.fn()}
+        />
+      </WsAuthProvider>,
+    );
+
+    expect(wsState.options?.url).toContain("/ws/chat/7/");
+    expect(wsState.options?.url).not.toContain("/ws/chat/general/");
+  });
+
   it("opens the mobile drawer from room chats", () => {
     locationMock.pathname = "/public";
 
