@@ -15,59 +15,24 @@ describe("googleIdentity", () => {
     delete window.google;
   });
 
-  it("prefers idToken flow when both google auth APIs are available", async () => {
-    let idConfig: GoogleIdClientConfig | null = null;
-    let accessTokenRequested = false;
-
-    window.google = {
-      accounts: {
-        id: {
-          initialize: (config) => {
-            idConfig = config;
-          },
-          prompt: () => {
-            idConfig?.callback({ credential: "id-token-123" });
-          },
-        },
-        oauth2: {
-          initTokenClient: () => ({
-            requestAccessToken: () => {
-              accessTokenRequested = true;
-            },
-          }),
-        },
-      },
-    };
-
-    const result = await signInWithGoogle("client-id");
-
-    expect(result).toEqual({
-      token: "id-token-123",
-      tokenType: "idToken",
-    });
-    expect(accessTokenRequested).toBe(false);
-  });
-
-  it("falls back to accessToken when idToken flow does not return a credential", async () => {
-    let idConfig: GoogleIdClientConfig | null = null;
+  it("prefers accessToken flow when both google auth APIs are available", async () => {
+    let idInitialized = false;
     let oauth2Config: GoogleTokenClientConfig | null = null;
 
     window.google = {
       accounts: {
         id: {
-          initialize: (config) => {
-            idConfig = config;
+          initialize: () => {
+            idInitialized = true;
           },
-          prompt: () => {
-            idConfig?.callback({});
-          },
+          prompt: () => undefined,
         },
         oauth2: {
           initTokenClient: (config) => {
             oauth2Config = config;
             return {
               requestAccessToken: () => {
-                oauth2Config?.callback({ access_token: "access-token-456" });
+                oauth2Config?.callback({ access_token: "access-token-123" });
               },
             };
           },
@@ -78,8 +43,61 @@ describe("googleIdentity", () => {
     const result = await signInWithGoogle("client-id");
 
     expect(result).toEqual({
-      token: "access-token-456",
+      token: "access-token-123",
       tokenType: "accessToken",
     });
+    expect(idInitialized).toBe(false);
+  });
+
+  it("falls back to idToken when oauth2 flow is unavailable", async () => {
+    let idConfig: GoogleIdClientConfig | null = null;
+
+    window.google = {
+      accounts: {
+        id: {
+          initialize: (config) => {
+            idConfig = config;
+          },
+          prompt: () => {
+            idConfig?.callback({ credential: "id-token-456" });
+          },
+        },
+        oauth2: undefined,
+      },
+    };
+
+    const result = await signInWithGoogle("client-id");
+
+    expect(result).toEqual({
+      token: "id-token-456",
+      tokenType: "idToken",
+    });
+  });
+
+  it("uses popup-closed error from accessToken flow without switching back to FedCM", async () => {
+    let idInitialized = false;
+
+    window.google = {
+      accounts: {
+        id: {
+          initialize: () => {
+            idInitialized = true;
+          },
+          prompt: () => undefined,
+        },
+        oauth2: {
+          initTokenClient: (config) => ({
+            requestAccessToken: () => {
+              config.callback({ error: "popup_closed_by_user" });
+            },
+          }),
+        },
+      },
+    };
+
+    await expect(signInWithGoogle("client-id")).rejects.toMatchObject({
+      code: "oauth_popup_closed",
+    });
+    expect(idInitialized).toBe(false);
   });
 });

@@ -420,51 +420,42 @@ export const signInWithGoogle = async (
 
   await loadGoogleIdentitySdk();
 
-  const idApi = getGoogleIdApi();
-  let idError: GoogleOAuthError | null = null;
-  if (idApi) {
+  const oauth2Api = getGoogleOauth2Api();
+  if (oauth2Api) {
     try {
-      const idToken = await requestGoogleIdToken(idApi, normalizedClientId);
-      return { token: idToken, tokenType: "idToken" };
+      const accessToken = await requestGoogleAccessToken(
+        oauth2Api,
+        normalizedClientId,
+      );
+      return { token: accessToken, tokenType: "accessToken" };
     } catch (error) {
-      idError =
+      const oauth2Error =
         error instanceof GoogleOAuthError
           ? error
           : new GoogleOAuthError(
               "oauth_request_failed",
               "Не удалось выполнить вход через Google.",
             );
-      if (idError.code === "oauth_popup_closed") {
-        throw idError;
-      }
+      throw oauth2Error;
     }
   }
 
-  const oauth2Api = getGoogleOauth2Api();
-  if (!oauth2Api) {
-    if (idError) {
-      throw idError;
-    }
+  const idApi = getGoogleIdApi();
+  if (!idApi) {
     throw new GoogleOAuthError("oauth_sdk_unavailable", "Google OAuth SDK недоступен.");
   }
 
   try {
-    const accessToken = await requestGoogleAccessToken(
-      oauth2Api,
-      normalizedClientId,
-    );
-    return { token: accessToken, tokenType: "accessToken" };
+    const idToken = await requestGoogleIdToken(idApi, normalizedClientId);
+    return { token: idToken, tokenType: "idToken" };
   } catch (error) {
-    const oauth2Error =
+    const idError =
       error instanceof GoogleOAuthError
         ? error
         : new GoogleOAuthError(
             "oauth_request_failed",
             "Не удалось выполнить вход через Google.",
           );
-    if (oauth2Error.code === "oauth_popup_closed") {
-      throw oauth2Error;
-    }
-    throw idError ?? oauth2Error;
+    throw idError;
   }
 };
