@@ -6,14 +6,12 @@ set -euf
 : "${NGINX_PRIMARY_DOMAIN:=}"
 : "${NGINX_SSL_CERT_PATH:=/etc/nginx/certs/fullchain.pem}"
 : "${NGINX_SSL_KEY_PATH:=/etc/nginx/certs/privkey.pem}"
-: "${NGINX_TLS_SYNC_INTERVAL_SECONDS:=60}"
 
 tls_root="/var/lib/nginx/tls"
 fallback_dir="${tls_root}/fallback"
 active_dir="${tls_root}/active"
-acme_dir="/var/www/certbot"
 
-mkdir -p "${fallback_dir}" "${active_dir}" "${acme_dir}"
+mkdir -p "${fallback_dir}" "${active_dir}"
 
 primary_domain="${NGINX_PRIMARY_DOMAIN}"
 if [ -z "${primary_domain}" ]; then
@@ -21,8 +19,6 @@ if [ -z "${primary_domain}" ]; then
   primary_domain="${1:-localhost}"
 fi
 
-letsencrypt_cert_path="/etc/letsencrypt/live/${primary_domain}/fullchain.pem"
-letsencrypt_key_path="/etc/letsencrypt/live/${primary_domain}/privkey.pem"
 fallback_cert_path="${fallback_dir}/fullchain.pem"
 fallback_key_path="${fallback_dir}/privkey.pem"
 active_cert_path="${active_dir}/fullchain.pem"
@@ -87,11 +83,6 @@ choose_tls_source() {
     return
   fi
 
-  if [ -f "${letsencrypt_cert_path}" ] && [ -f "${letsencrypt_key_path}" ]; then
-    printf '%s\n%s\n' "${letsencrypt_cert_path}" "${letsencrypt_key_path}"
-    return
-  fi
-
   ensure_fallback_certificate
   printf '%s\n%s\n' "${fallback_cert_path}" "${fallback_key_path}"
 }
@@ -116,21 +107,9 @@ sync_active_certificate() {
   [ "${changed}" -eq 1 ]
 }
 
-watch_tls_updates() {
-  sleep "${NGINX_TLS_SYNC_INTERVAL_SECONDS}"
-
-  while true; do
-    if sync_active_certificate; then
-      nginx -s reload >/dev/null 2>&1 || true
-    fi
-    sleep "${NGINX_TLS_SYNC_INTERVAL_SECONDS}"
-  done
-}
-
 export NGINX_CLIENT_MAX_BODY_SIZE NGINX_SERVER_NAMES
 envsubst '${NGINX_CLIENT_MAX_BODY_SIZE} ${NGINX_SERVER_NAMES}' \
   < /etc/nginx/nginx.conf.template \
   > /etc/nginx/nginx.conf
 
 sync_active_certificate || true
-watch_tls_updates &
