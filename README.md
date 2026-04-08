@@ -214,13 +214,36 @@ docker compose -f docker-compose.prod.yml up --build -d
 
 Важно:
 - этот compose поднимает основной runtime проекта;
-- публичный `:443` не должен забираться этим compose, он оставлен внешнему TLS-прокси;
-- `nginx` слушает HTTPS только локально на `127.0.0.1:8443` и работает как upstream/fallback для внешнего TLS-контура;
-- если в `./deploy/certs/` нет сертификата, `nginx` поднимает стабильный внутренний self-signed cert для локального upstream, а не для браузера;
+- TLS-режим выбирается через `NGINX_HTTPS_BIND`;
+- `NGINX_HTTPS_BIND=127.0.0.1:8443` — режим внешнего TLS-прокси/Xray;
+- `NGINX_HTTPS_BIND=443` — прямой публичный HTTPS через `nginx`;
+- если в `./deploy/certs/` нет сертификата, `nginx` может временно поднять стабильный self-signed fallback, но браузеры и `Google OAuth` будут считать его недоверенным;
 - backend уже считает HTTP / WebSocket / business metrics;
 - `nginx` уже отдает внутренний `nginx_status`;
 - `postgres` уже стартует с `pg_stat_statements` и slow-query logging;
 - но сам по себе `docker-compose.prod.yml` не поднимает `Prometheus`, `Grafana`, `Loki` и exporters.
+
+### Production HTTPS
+Для production-логина и `Google OAuth` нужен trusted HTTPS.
+
+Обязательные переменные:
+- `NGINX_HTTPS_BIND`
+- `NGINX_SERVER_NAMES`
+- `NGINX_PRIMARY_DOMAIN`
+
+Если используешь прямой публичный HTTPS через `nginx`, также нужны:
+- `TLS_DOMAINS`
+- `TLS_LETSENCRYPT_EMAIL`
+
+Как это работает:
+- `nginx` всегда поднимает `/.well-known/acme-challenge/` на `:80`;
+- `certbot` получает и обновляет сертификат `Let's Encrypt`, если заданы `TLS_DOMAINS` и `TLS_LETSENCRYPT_EMAIL`;
+- `nginx` следит за live-cert и автоматически делает reload после выдачи/renew;
+- если реальные cert/key уже лежат в `./deploy/certs/`, они имеют приоритет над certbot и fallback.
+
+Практически:
+- если на сервере нет внешнего TLS-прокси на `:443`, ставь `NGINX_HTTPS_BIND=443`;
+- если внешний TLS-прокси есть, оставляй `NGINX_HTTPS_BIND=127.0.0.1:8443`.
 
 ### Production observability
 Полный monitoring stack поднимается overlay-файлом:
