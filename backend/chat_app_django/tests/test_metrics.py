@@ -11,7 +11,6 @@ from typing import Any, cast
 from unittest.mock import patch
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
@@ -20,9 +19,10 @@ from chat_app_django import metrics
 from messages.models import Message, MessageAttachment
 from presence.constants import PRESENCE_CACHE_KEY_AUTH, PRESENCE_CACHE_KEY_GUEST
 from rooms.models import Room
+from testsupport.users import typed_user_model
 from users.application import auth_service
 
-User = get_user_model()
+User = typed_user_model()
 
 
 def _capture_on_commit_callbacks(test_case: TestCase, *, execute: bool) -> AbstractContextManager[list[object]]:
@@ -121,6 +121,13 @@ class HttpMetricsTests(TestCase):
             },
         )
         self.assertEqual(metrics_route_count, 0.0)
+
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_metrics_endpoint_bypasses_secure_ssl_redirect(self):
+        metrics_response = cast(Any, self.client.get("/metrics/"))
+
+        self.assertEqual(metrics_response.status_code, 200)
+        self.assertIn("devils_http_requests_total", metrics_response.content.decode("utf-8"))
 
     def test_site_online_users_metric_reads_presence_state(self):
         now = time.time()

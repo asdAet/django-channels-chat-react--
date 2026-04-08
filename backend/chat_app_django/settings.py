@@ -471,6 +471,14 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", not DEBUG)
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
+SECURE_REDIRECT_EXEMPT = env_list(
+    "DJANGO_SECURE_REDIRECT_EXEMPT",
+    [
+        r"^api/health/live/$",
+        r"^api/health/ready/$",
+        r"^metrics/$",
+    ],
+)
 SECURE_CROSS_ORIGIN_OPENER_POLICY = (
     os.getenv("DJANGO_SECURE_COOP", "same-origin-allow-popups").strip()
     or "same-origin-allow-popups"
