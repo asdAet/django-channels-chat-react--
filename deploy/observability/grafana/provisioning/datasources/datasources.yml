@@ -12,7 +12,7 @@ datasources:
       httpMethod: POST
       manageAlerts: false
       prometheusType: Prometheus
-      timeInterval: 15s
+      timeInterval: 5s
 
   - name: Loki
     uid: loki
