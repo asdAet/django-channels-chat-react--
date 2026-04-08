@@ -31,3 +31,8 @@ class HealthApiTests(TestCase):
 
         self.assertEqual(live_response.status_code, 200)
         self.assertEqual(ready_response.status_code, 200)
+
+    def test_live_health_endpoint_accepts_internal_nginx_host(self):
+        response = self.client.get('/api/health/live/', HTTP_HOST='nginx')
+
+        self.assertEqual(response.status_code, 200)

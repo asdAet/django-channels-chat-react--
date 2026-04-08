@@ -13,7 +13,7 @@ RUN npm run build --prefix frontend
 
 FROM nginx:1.25-alpine
 
-RUN apk add --no-cache gettext
+RUN apk add --no-cache gettext openssl
 
 COPY deploy/nginx.conf /etc/nginx/nginx.conf.template
 COPY deploy/nginx-entrypoint.sh /docker-entrypoint.d/99-render-nginx-config.sh

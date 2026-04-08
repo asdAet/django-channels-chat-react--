@@ -194,6 +194,10 @@ if ALLOW_LOCALHOST_DEV_ORIGINS:
         ALLOWED_HOSTS,
         ["localhost", "127.0.0.1", "[::1]", "host.docker.internal"],
     )
+ALLOWED_HOSTS = _extend_unique(
+    ALLOWED_HOSTS,
+    ["backend", "nginx"],
+)
 if not DEBUG and not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS должен быть задан в production.")
 

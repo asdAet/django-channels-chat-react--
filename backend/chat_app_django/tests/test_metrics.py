@@ -129,6 +129,12 @@ class HttpMetricsTests(TestCase):
         self.assertEqual(metrics_response.status_code, 200)
         self.assertIn("devils_http_requests_total", metrics_response.content.decode("utf-8"))
 
+    def test_metrics_endpoint_accepts_internal_backend_host(self):
+        metrics_response = cast(Any, self.client.get("/metrics/", HTTP_HOST="backend:8000"))
+
+        self.assertEqual(metrics_response.status_code, 200)
+        self.assertIn("devils_http_requests_total", metrics_response.content.decode("utf-8"))
+
     def test_site_online_users_metric_reads_presence_state(self):
         now = time.time()
         cache.set(
