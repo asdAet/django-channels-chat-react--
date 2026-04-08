@@ -204,6 +204,7 @@ npm run test:e2e
 Поднимает:
 - `backend`
 - `nginx`
+- `certbot`
 - `redis`
 - `postgres`
 
@@ -214,10 +215,39 @@ docker compose -f docker-compose.prod.yml up --build -d
 
 Важно:
 - этот compose поднимает основной runtime проекта;
+- `certbot` получает и обновляет trusted TLS-сертификат через `Let's Encrypt` по `HTTP-01 webroot`;
+- если `Let's Encrypt` еще не успел выпустить сертификат, `nginx` стартует на постоянном fallback self-signed cert и потом автоматически переключается на real cert после выпуска;
 - backend уже считает HTTP / WebSocket / business metrics;
 - `nginx` уже отдает внутренний `nginx_status`;
 - `postgres` уже стартует с `pg_stat_statements` и slow-query logging;
 - но сам по себе `docker-compose.prod.yml` не поднимает `Prometheus`, `Grafana`, `Loki` и exporters.
+
+### Production HTTPS
+Для нормального production-логина, cookies и `Google OAuth` сайт обязан работать на доверенном `HTTPS`.
+
+Нужны обязательные переменные в `.env`:
+- `NGINX_SERVER_NAMES`
+- `NGINX_PRIMARY_DOMAIN`
+- `TLS_DOMAINS`
+- `TLS_LETSENCRYPT_EMAIL`
+
+Опциональные переменные:
+- `TLS_LETSENCRYPT_STAGING`
+- `TLS_LETSENCRYPT_RENEW_INTERVAL_SECONDS`
+- `NGINX_CLIENT_MAX_BODY_SIZE`
+
+Как это работает:
+- `nginx` всегда стартует и обслуживает `/.well-known/acme-challenge/` на `:80`;
+- `certbot` выпускает сертификат в shared volume `/etc/letsencrypt`;
+- `nginx` копирует активный сертификат в свой внутренний TLS-store и автоматически делает reload, когда появляется или обновляется real cert;
+- если в `./deploy/certs/` уже лежат `fullchain.pem` и `privkey.pem`, они имеют приоритет над `Let's Encrypt`.
+
+Важно:
+- DNS `A/AAAA` для всех доменов из `TLS_DOMAINS` должен смотреть на этот сервер;
+- `NGINX_PRIMARY_DOMAIN` должен входить в список `TLS_DOMAINS`;
+- порты `80` и `443` должны быть открыты снаружи;
+- пока сайт работает на fallback self-signed certificate, браузер будет считать его недоверенным, а `Google OAuth` может падать с `Network Error`;
+- после первого успешного выпуска `Let's Encrypt` сертификат перестает пересоздаваться на каждом рестарте.
 
 ### Production observability
 Полный monitoring stack поднимается overlay-файлом:
