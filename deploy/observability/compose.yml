@@ -90,7 +90,7 @@ services:
     restart: unless-stopped
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.56.2
+    image: ghcr.io/google/cadvisor:0.56.2
     privileged: true
     volumes:
       - /:/rootfs:ro

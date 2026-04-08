@@ -18,7 +18,7 @@
 ## Технологический стек
 - Backend: `Python 3.11+`, `Django`, `Django REST Framework`, `Channels`, `Redis`, `PostgreSQL`
 - Frontend: `React 19`, `TypeScript`, `Vite`, `React Router`, `Zod`, `Vitest`, `Playwright`
-- Infra: `Docker Compose`, `Nginx`
+- Infra: `Docker Compose`, `Nginx`, `Prometheus`, `Grafana`, `Loki`, `Alertmanager`
 
 ## Ключевая модель идентичности и чатов
 
@@ -197,6 +197,8 @@ npm run test:e2e
 ```
 
 ## Production
+
+### Базовый production stack
 Основной compose-файл: `docker-compose.prod.yml`
 
 Поднимает:
@@ -209,6 +211,61 @@ npm run test:e2e
 ```bash
 docker compose -f docker-compose.prod.yml up --build -d
 ```
+
+Важно:
+- этот compose поднимает основной runtime проекта;
+- backend уже считает HTTP / WebSocket / business metrics;
+- `nginx` уже отдает внутренний `nginx_status`;
+- `postgres` уже стартует с `pg_stat_statements` и slow-query logging;
+- но сам по себе `docker-compose.prod.yml` не поднимает `Prometheus`, `Grafana`, `Loki` и exporters.
+
+### Production observability
+Полный monitoring stack поднимается overlay-файлом:
+
+```bash
+docker compose -f docker-compose.prod.yml -f deploy/observability/compose.yml up --build -d
+```
+
+Он добавляет:
+- `Prometheus`
+- `Grafana`
+- `Alertmanager`
+- `Loki`
+- `Grafana Alloy`
+- `node_exporter`
+- `cAdvisor`
+- `blackbox_exporter`
+- `nginx-prometheus-exporter`
+- `postgres_exporter`
+- `redis_exporter`
+
+Обязательные переменные в `.env` для observability:
+- `GRAFANA_ADMIN_PASSWORD`
+- `POSTGRES_MONITORING_PASSWORD`
+
+Полезные дополнительные переменные:
+- `GRAFANA_ADMIN_USER`
+- `GRAFANA_PORT`
+- `GRAFANA_ROOT_URL`
+- `PROMETHEUS_RETENTION_TIME`
+- `PROMETHEUS_RETENTION_SIZE`
+- `POSTGRES_MONITORING_USER`
+- `POSTGRES_LOG_MIN_DURATION_STATEMENT_MS`
+- `ALERTMANAGER_TELEGRAM_BOT_TOKEN`
+- `ALERTMANAGER_TELEGRAM_CHAT_ID`
+
+Ограничения доступа:
+- `Grafana` публикуется только на `127.0.0.1:${GRAFANA_PORT:-3000}`
+- `/metrics/` не проксируется наружу через публичный `nginx`
+- `/nginx_status` доступен только по внутреннему `http://nginx:8080/nginx_status`
+- остальные observability-сервисы остаются внутри Docker-сети
+
+Provisioned dashboards:
+- `Platform Overview`
+- `Edge And Runtime`
+- `Data Services`
+- `Application And Realtime`
+- `Logs Overview`
 
 ## Важные замечания
 - Внутренний транспорт чатов строго `roomId`-based.
