@@ -49,26 +49,26 @@ loki.process "docker" {
 
     stage.logfmt {
       mapping = {
-        method                 = "method"
-        status                 = "status"
-        upstream_status        = "upstream_status"
-        request_time           = "request_time"
-        upstream_response_time = "upstream_response_time"
+        method                 = "method",
+        status                 = "status",
+        upstream_status        = "upstream_status",
+        request_time           = "request_time",
+        upstream_response_time = "upstream_response_time",
       }
     }
 
     stage.labels {
       values = {
-        method          = ""
-        status          = ""
-        upstream_status = ""
+        method          = "",
+        status          = "",
+        upstream_status = "",
       }
     }
   }
 
   stage.static_labels {
     values = {
-      env = "production"
+      env = "production",
     }
   }
 }
