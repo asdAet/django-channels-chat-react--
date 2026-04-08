@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from . import health
+from . import metrics as app_metrics
 from . import meta_api
 from groups.interfaces.urls import invite_urlpatterns as _group_invite_urls
 from users import api as users_api
@@ -193,6 +194,7 @@ urlpatterns = [
     path("api/", api_index, name="api-index"),
     path("api/health/live/", health.live, name="health-live"),
     path("api/health/ready/", health.ready, name="health-ready"),
+    path("metrics/", app_metrics.render_metrics_response, name="metrics"),
     path("api/meta/client-config/", meta_api.client_config_view, name="api-client-config"),
     path("api/auth/", include("users.urls")),
     path("api/profile/", users_api.profile_view, name="api-profile"),

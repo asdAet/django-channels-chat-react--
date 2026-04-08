@@ -1,0 +1,229 @@
+groups:
+  - name: devils-recording
+    interval: 30s
+    rules:
+      - record: devils:http_requests:rate5m
+        expr: sum(rate(devils_http_requests_total[5m]))
+
+      - record: devils:http_request_latency:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(devils_http_request_duration_seconds_bucket[5m])))
+
+      - record: devils:ws_open_connections
+        expr: sum(devils_ws_open_connections)
+
+      - record: devils:chat_messages:rate5m
+        expr: sum(rate(devils_chat_messages_created_total[5m]))
+
+      - record: devils:accounts_created:rate1h
+        expr: sum(rate(devils_accounts_created_total[1h]))
+
+      - record: devils:ws_connect_rejects:rate5m
+        expr: sum(rate(devils_ws_connect_total{result="rejected"}[5m]))
+
+      - record: devils:chat_message_rejects:rate5m
+        expr: sum(rate(devils_chat_message_rejected_total[5m]))
+
+      - record: devils:site_online_users
+        expr: sum by (kind) (devils_site_online_users)
+
+  - name: devils-alerts
+    rules:
+      - alert: BackendMetricsDown
+        expr: up{job="backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Backend metrics target is down"
+          description: "Prometheus cannot scrape backend:8000/metrics/ for more than 2 minutes."
+
+      - alert: NginxExporterDown
+        expr: up{job="nginx_exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: edge
+        annotations:
+          summary: "Nginx exporter is down"
+          description: "Nginx exporter is unavailable for more than 2 minutes."
+
+      - alert: PostgresExporterDown
+        expr: up{job="postgres_exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL exporter is down"
+          description: "PostgreSQL exporter has not been scraped successfully for more than 2 minutes."
+
+      - alert: RedisExporterDown
+        expr: up{job="redis_exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis exporter is down"
+          description: "Redis exporter has not been scraped successfully for more than 2 minutes."
+
+      - alert: NodeExporterDown
+        expr: up{job="node_exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: host
+        annotations:
+          summary: "Node exporter is down"
+          description: "Host metrics are unavailable for more than 2 minutes."
+
+      - alert: CadvisorDown
+        expr: up{job="cadvisor"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: containers
+        annotations:
+          summary: "cAdvisor is down"
+          description: "Container metrics are unavailable for more than 2 minutes."
+
+      - alert: BlackboxProbeFailed
+        expr: probe_success{job="blackbox_https"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: edge
+        annotations:
+          summary: "HTTPS probe failed"
+          description: "Blackbox probing failed for {{ $labels.instance }} for more than 2 minutes."
+
+      - alert: HighHttpP95Latency
+        expr: devils:http_request_latency:p95_5m > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "HTTP p95 latency is high"
+          description: "p95 HTTP latency has been above 1 second for more than 10 minutes."
+
+      - alert: Api5xxSpike
+        expr: sum(rate(devils_http_requests_total{route=~"/api/.*", status_class="5xx"}[5m])) / clamp_min(sum(rate(devils_http_requests_total{route=~"/api/.*"}[5m])), 0.1) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "API 5xx rate is elevated"
+          description: "More than 5% of API requests returned 5xx over the last 5 minutes."
+
+      - alert: RedisEvictionsDetected
+        expr: rate(redis_evicted_keys_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis is evicting keys"
+          description: "Redis evictions are greater than zero for more than 10 minutes."
+
+      - alert: RedisBlockedClients
+        expr: redis_blocked_clients > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis has blocked clients"
+          description: "Redis blocked client count is non-zero for more than 5 minutes."
+
+      - alert: PostgresUnavailable
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL is unavailable"
+          description: "postgres_exporter reports pg_up == 0 for more than 2 minutes."
+
+      - alert: PostgresDeadlocksDetected
+        expr: increase(pg_stat_database_deadlocks[10m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL deadlocks detected"
+          description: "PostgreSQL deadlocks were observed in the last 10 minutes."
+
+      - alert: PostgresLongTransactions
+        expr: pg_stat_activity_max_tx_duration > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "Long-running PostgreSQL transaction"
+          description: "A PostgreSQL transaction has been open for more than 5 minutes."
+
+      - alert: HostDiskSpaceLow
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} < 0.10
+        for: 15m
+        labels:
+          severity: critical
+          service: host
+        annotations:
+          summary: "Host disk space is low"
+          description: "Filesystem {{ $labels.mountpoint }} has less than 10% free space."
+
+      - alert: HostMemoryPressure
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 10m
+        labels:
+          severity: warning
+          service: host
+        annotations:
+          summary: "Host memory pressure is high"
+          description: "Available memory is below 10% for more than 10 minutes."
+
+      - alert: HostInodesLow
+        expr: node_filesystem_files_free{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} / node_filesystem_files{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} < 0.10
+        for: 15m
+        labels:
+          severity: warning
+          service: host
+        annotations:
+          summary: "Host inode space is low"
+          description: "Filesystem {{ $labels.mountpoint }} has less than 10% free inodes."
+
+      - alert: ContainerRestartSpike
+        expr: sum(changes(container_start_time_seconds{name!=""}[15m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+          service: containers
+        annotations:
+          summary: "Container restart spike detected"
+          description: "More than 3 container restarts were detected over the last 15 minutes."
+
+      - alert: WebSocketConnectFailureSpike
+        expr: sum(rate(devils_ws_connect_total{result="rejected"}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: websocket
+        annotations:
+          summary: "WebSocket connect failures are elevated"
+          description: "Rejected WebSocket connections exceed 1 request per second over the last 5 minutes."
+
+      - alert: ChatMessageRejectSpike
+        expr: sum(rate(devils_chat_message_rejected_total[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: chat
+        annotations:
+          summary: "Chat message rejects are elevated"
+          description: "Rejected chat submissions exceed 0.5 requests per second over the last 5 minutes."

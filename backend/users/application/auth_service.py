@@ -14,6 +14,7 @@ from django.contrib.auth.models import AbstractUser, User
 from django.db import IntegrityError, transaction
 from django.utils.html import strip_tags
 
+from chat_app_django.metrics import observe_account_created
 from users.identity import (
     ensure_profile,
     ensure_user_identity_core,
@@ -277,6 +278,7 @@ def register_user(
                     set_user_public_handle(user, username)
                 except ValueError as exc:
                     _raise_handle_validation_or_conflict(exc)
+            transaction.on_commit(lambda: observe_account_created("password"))
     except IntegrityError as exc:
         raise IdentityConflictError("Конфликт уникальности при регистрации") from exc
 
@@ -565,6 +567,7 @@ def authenticate_or_signup_with_google(
                 set_user_public_handle(user, username)
             except ValueError as exc:
                 _raise_handle_validation_or_conflict(exc)
+        transaction.on_commit(lambda: observe_account_created("google"))
 
     return user
 
