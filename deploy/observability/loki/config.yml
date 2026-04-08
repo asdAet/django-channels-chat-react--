@@ -49,6 +49,7 @@ ruler:
 compactor:
   working_directory: /loki/compactor
   retention_enabled: true
+  delete_request_store: filesystem
 
 analytics:
   reporting_enabled: false
