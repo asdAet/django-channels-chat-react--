@@ -3,16 +3,15 @@
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 
 from rooms.models import Room
 from users.identity import user_public_username
 
-from ._typing import TypedAPIClient
+from ._typing import TypedAPIClient, typed_user_model
 
-User = get_user_model()
+User = typed_user_model()
 
 
 class APITestCase(TestCase):
@@ -284,7 +283,7 @@ class TestPublicGroupList(APITestCase):
     def test_list_public_groups(self):
         avatar = SimpleUploadedFile("avatar.png", b"fake-image-content", content_type="image/png")
         room = Room.objects.get(public_handle__handle="grp0")
-        room.avatar.save(avatar.name, avatar, save=False)
+        room.avatar.save(avatar.name or "avatar.png", avatar, save=False)
         room.save(update_fields=["avatar"])
 
         self.api_client.force_authenticate(user=None)

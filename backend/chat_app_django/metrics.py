@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import time
-from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
@@ -94,6 +93,24 @@ SITE_ONLINE_USERS = Gauge(
 )
 
 
+def _coerce_int(value: object, default: int = 0) -> int:
+    if not isinstance(value, (int, float, str, bytes, bytearray)):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _coerce_float(value: object, default: float = 0.0) -> float:
+    if not isinstance(value, (int, float, str, bytes, bytearray)):
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _safe_cache_mapping(key: str) -> dict[str, dict[str, object]]:
     value = cache.get(key, {}) or {}
     if not isinstance(value, dict):
@@ -106,18 +123,9 @@ def _safe_cache_mapping(key: str) -> dict[str, dict[str, object]]:
 
 
 def _presence_entry_alive(info: dict[str, object], *, now: float, ttl: int) -> bool:
-    try:
-        count = int(info.get("count", 0))
-    except (TypeError, ValueError):
-        count = 0
-    try:
-        last_seen = float(info.get("last_seen", 0))
-    except (TypeError, ValueError):
-        last_seen = 0.0
-    try:
-        grace_until = float(info.get("grace_until", 0))
-    except (TypeError, ValueError):
-        grace_until = 0.0
+    count = _coerce_int(info.get("count", 0))
+    last_seen = _coerce_float(info.get("last_seen", 0))
+    grace_until = _coerce_float(info.get("grace_until", 0))
 
     if count > 0 and (now - last_seen) <= ttl:
         return True
@@ -153,7 +161,7 @@ def normalize_http_method(method: str | None) -> str:
     return str(method or "GET").upper()
 
 
-def normalize_http_route(request: Any) -> str:
+def normalize_http_route(request: object) -> str:
     resolver_match = getattr(request, "resolver_match", None)
     route = getattr(resolver_match, "route", None)
     if isinstance(route, str) and route.strip():
@@ -175,7 +183,7 @@ def normalize_status_class(status_code: int | str | None) -> str:
     return "unknown"
 
 
-def normalize_ws_auth_state(user: Any) -> str:
+def normalize_ws_auth_state(user: object) -> str:
     if user is not None and bool(getattr(user, "is_authenticated", False)):
         return "authenticated"
     return "guest"
@@ -189,7 +197,7 @@ def normalize_room_kind(room_kind: object | None) -> str:
     return "none"
 
 
-def observe_http_request(request: Any, status_code: int, duration_seconds: float) -> None:
+def observe_http_request(request: object, status_code: int, duration_seconds: float) -> None:
     method = normalize_http_method(getattr(request, "method", None))
     route = normalize_http_route(request)
     status_class = normalize_status_class(status_code)
@@ -283,8 +291,5 @@ def _content_group(content_type: str | None) -> str:
 def observe_attachment_created(*, content_type: str | None, file_size: int | None) -> None:
     group = _content_group(content_type)
     CHAT_ATTACHMENTS_CREATED_TOTAL.labels(content_group=group).inc()
-    try:
-        size = int(file_size or 0)
-    except (TypeError, ValueError):
-        size = 0
+    size = _coerce_int(file_size or 0)
     CHAT_ATTACHMENTS_BYTES_TOTAL.labels(content_group=group).inc(max(0, size))

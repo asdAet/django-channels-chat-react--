@@ -4,7 +4,6 @@ from datetime import timedelta
 from unittest.mock import Mock
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import OperationalError
 from django.test import TestCase, override_settings
@@ -22,8 +21,18 @@ from messages.models import (
 )
 from rooms.models import Room
 from rooms.services import ensure_membership
+from testsupport.files import require_stored_file_name
+from testsupport.users import typed_user_model
 
-User = get_user_model()
+User = typed_user_model()
+
+
+def _attachment_file_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.file, field_name="attachment.file")
+
+
+def _attachment_thumbnail_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.thumbnail, field_name="attachment.thumbnail")
 
 
 class ChatServicesTests(TestCase):
@@ -114,8 +123,8 @@ class ChatServicesTests(TestCase):
             )
             file_storage = attachment.file.storage
             thumb_storage = attachment.thumbnail.storage
-            file_name = attachment.file.name
-            thumb_name = attachment.thumbnail.name
+            file_name = _attachment_file_name(attachment)
+            thumb_name = _attachment_thumbnail_name(attachment)
 
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))
@@ -144,8 +153,8 @@ class ChatServicesTests(TestCase):
             )
             file_storage = attachment.file.storage
             thumb_storage = attachment.thumbnail.storage
-            file_name = attachment.file.name
-            thumb_name = attachment.thumbnail.name
+            file_name = _attachment_file_name(attachment)
+            thumb_name = _attachment_thumbnail_name(attachment)
 
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))

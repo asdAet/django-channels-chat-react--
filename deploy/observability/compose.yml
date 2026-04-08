@@ -44,7 +44,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./deploy/observability/grafana/dashboards:/etc/grafana/provisioning/dashboards/devils-resting:ro
+      - ./deploy/observability/grafana/dashboards:/var/lib/grafana/dashboards/devils-resting:ro
     depends_on:
       - prometheus
       - loki

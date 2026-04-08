@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from types import SimpleNamespace
+from typing import Any, cast
 
 from asgiref.sync import async_to_sync
 from channels.routing import URLRouter
@@ -21,7 +22,11 @@ from rooms.models import Room
 from rooms.services import ensure_membership
 
 User = get_user_model()
-application = URLRouter(chat_ws + direct_inbox_ws + presence_ws)
+application = URLRouter(cast(list[Any], chat_ws + direct_inbox_ws + presence_ws))
+
+
+def _scope_dict(communicator: WebsocketCommunicator) -> dict[str, Any]:
+    return cast(dict[str, Any], communicator.scope)
 
 
 def _sample_value(metric, sample_name: str, labels: dict[str, str]) -> float:
@@ -53,9 +58,10 @@ class WebSocketObservabilityMetricsTests(TransactionTestCase):
             "/ws/presence/",
             headers=[(b"host", b"localhost")],
         )
-        communicator.scope["user"] = user if user is not None else AnonymousUser()
-        communicator.scope["client"] = ("198.51.100.10", 55000)
-        communicator.scope["session"] = SimpleNamespace(session_key=session_key or "presence-session")
+        scope = _scope_dict(communicator)
+        scope["user"] = user if user is not None else AnonymousUser()
+        scope["client"] = ("198.51.100.10", 55000)
+        scope["session"] = SimpleNamespace(session_key=session_key or "presence-session")
         connected, close_code = await communicator.connect()
         return communicator, connected, close_code
 
@@ -65,8 +71,9 @@ class WebSocketObservabilityMetricsTests(TransactionTestCase):
             "/ws/inbox/",
             headers=[(b"host", b"localhost")],
         )
-        communicator.scope["user"] = user if user is not None else AnonymousUser()
-        communicator.scope["client"] = ("198.51.100.20", 55010)
+        scope = _scope_dict(communicator)
+        scope["user"] = user if user is not None else AnonymousUser()
+        scope["client"] = ("198.51.100.20", 55010)
         connected, close_code = await communicator.connect()
         return communicator, connected, close_code
 
@@ -76,8 +83,9 @@ class WebSocketObservabilityMetricsTests(TransactionTestCase):
             f"/ws/chat/{room_id}/",
             headers=[(b"host", b"localhost")],
         )
-        communicator.scope["user"] = user
-        communicator.scope["client"] = ("198.51.100.30", 55020)
+        scope = _scope_dict(communicator)
+        scope["user"] = user
+        scope["client"] = ("198.51.100.30", 55020)
         connected, close_code = await communicator.connect()
         return communicator, connected, close_code
 

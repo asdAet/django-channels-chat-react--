@@ -1,3 +1,4 @@
+# pyright: reportIncompatibleVariableOverride=false, reportCallIssue=false
 """Discord-style role and membership models.
 
 Role      — per-room role definition with permissions bitmask and hierarchy.

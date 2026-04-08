@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import shutil
 import time
+from contextlib import AbstractContextManager
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 from django.conf import settings
@@ -21,6 +23,11 @@ from rooms.models import Room
 from users.application import auth_service
 
 User = get_user_model()
+
+
+def _capture_on_commit_callbacks(test_case: TestCase, *, execute: bool) -> AbstractContextManager[list[object]]:
+    callback_capture = cast(Any, test_case).captureOnCommitCallbacks
+    return cast(AbstractContextManager[list[object]], callback_capture(execute=execute))
 
 
 def _sample_value(metric, sample_name: str, labels: dict[str, str]) -> float:
@@ -67,7 +74,7 @@ class HttpMetricsTests(TestCase):
             },
         )
 
-        response = self.client.get("/api/")
+        response = cast(Any, self.client.get("/api/"))
         self.assertEqual(response.status_code, 200)
 
         request_count_after = _sample_value(
@@ -97,7 +104,7 @@ class HttpMetricsTests(TestCase):
             0.0,
         )
 
-        metrics_response = self.client.get("/metrics/")
+        metrics_response = cast(Any, self.client.get("/metrics/"))
         self.assertEqual(metrics_response.status_code, 200)
         metrics_body = metrics_response.content.decode("utf-8")
         self.assertIn("devils_http_requests_total", metrics_body)
@@ -190,7 +197,7 @@ class BusinessMetricsTests(TestCase):
             {"source": "google"},
         )
 
-        with self.captureOnCommitCallbacks(execute=True):
+        with _capture_on_commit_callbacks(self, execute=True):
             auth_service.register_user(
                 login="metrics_login",
                 password="pass12345",
@@ -215,7 +222,7 @@ class BusinessMetricsTests(TestCase):
                 },
             ),
         ):
-            with self.captureOnCommitCallbacks(execute=True):
+            with _capture_on_commit_callbacks(self, execute=True):
                 auth_service.authenticate_or_signup_with_google(
                     id_token="metrics-token",
                     username="metricsgoogle",
@@ -260,7 +267,7 @@ class BusinessMetricsTests(TestCase):
             {"content_group": "image"},
         )
 
-        with self.captureOnCommitCallbacks(execute=True):
+        with _capture_on_commit_callbacks(self, execute=True):
             message = Message.objects.create(
                 username=user.username,
                 user=user,
@@ -268,7 +275,7 @@ class BusinessMetricsTests(TestCase):
                 message_content="metrics hello",
             )
 
-        with self.captureOnCommitCallbacks(execute=True):
+        with _capture_on_commit_callbacks(self, execute=True):
             MessageAttachment.objects.create(
                 message=message,
                 file=SimpleUploadedFile("metrics.png", b"12345", content_type="image/png"),
