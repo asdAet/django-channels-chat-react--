@@ -17,6 +17,14 @@ const isMediaAttachment = (
   return null;
 };
 
+/**
+ * Собирает плоский список медиа-вложений из сообщений комнаты для лайтбокса.
+ * Дубликаты по `attachment.id` отбрасываются, чтобы лайтбокс не открывал один и тот же файл
+ * несколько раз после дозагрузки истории.
+ *
+ * @param messages Сообщения текущей комнаты вместе с вложениями.
+ * @returns Список изображений и видео в формате, который понимает lightbox-слой.
+ */
 export const buildChatLightboxMediaItems = (
   messages: Message[],
 ): ImageLightboxMediaItem[] => {
@@ -54,6 +62,13 @@ export const buildChatLightboxMediaItems = (
   );
 };
 
+/**
+ * Находит индекс конкретного вложения в уже подготовленном списке медиа для лайтбокса.
+ *
+ * @param mediaItems Список элементов, который показывает lightbox.
+ * @param attachmentId Идентификатор вложения, с которого нужно открыть просмотр.
+ * @returns Индекс элемента в массиве или `-1`, если вложение в списке не найдено.
+ */
 export const findLightboxMediaIndex = (
   mediaItems: ImageLightboxMediaItem[],
   attachmentId: number | null,

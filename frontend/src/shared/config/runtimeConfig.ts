@@ -6,6 +6,9 @@ const BUILD_TIME_GOOGLE_OAUTH_CLIENT_ID = String(
   import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID ?? "",
 ).trim();
 
+/**
+ * Константа `DEFAULT_RUNTIME_CONFIG`, используемая как default runtime config.
+ */
 export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
   usernameMaxLength: 30,
   chatMessageMaxLength: 1000,
@@ -32,8 +35,19 @@ export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
 
 let currentRuntimeConfig: ClientRuntimeConfig = { ...DEFAULT_RUNTIME_CONFIG };
 
+/**
+ * Возвращает `get runtime config`.
+ *
+ * @returns Возвращает результат `get runtime config` в формате `ClientRuntimeConfig`.
+ */
 export const getRuntimeConfig = (): ClientRuntimeConfig => currentRuntimeConfig;
 
+/**
+ * Обновляет `set runtime config`.
+ *
+ * @param next Параметр `next` в формате `ClientRuntimeConfig`.
+ * @returns Возвращает результат `set runtime config` в формате `void`.
+ */
 export const setRuntimeConfig = (next: ClientRuntimeConfig): void => {
   currentRuntimeConfig = { ...next };
 };

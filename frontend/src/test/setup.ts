@@ -4,6 +4,9 @@ import { cleanup } from "@testing-library/react";
 import { setupServer } from "msw/node";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 
+/**
+ * Константа `server`, используемая как server.
+ */
 export const server = setupServer();
 
 beforeAll(() => {

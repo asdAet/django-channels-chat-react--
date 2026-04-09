@@ -21,6 +21,12 @@ type Props = {
   onClose: () => void;
 };
 
+/**
+ * Отрисовывает верхнюю chrome-панель lightbox с заголовком и action-кнопками.
+ *
+ * Компонент объединяет прямые действия, выпадающее меню и кнопку закрытия,
+ * сохраняя единый вид для desktop- и mobile-режимов.
+ */
 export function LightboxChrome({
   layout,
   title,

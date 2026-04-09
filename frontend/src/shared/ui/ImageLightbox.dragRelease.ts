@@ -1,3 +1,10 @@
+/**
+ * Сбрасывает флаг drag-release для desktop lightbox после завершения жеста.
+ *
+ * Возвращает `true`, только если действительно был drag на desktop-версии
+ * изображения или видео. На мобильном layout и без движения указателя
+ * функция ничего не меняет и возвращает `false`.
+ */
 export const consumePendingDesktopMediaDragRelease = ({
   isMobileLayout,
   currentKind,

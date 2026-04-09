@@ -42,6 +42,12 @@ const formatExactReadAt = (iso: string) =>
     second: "2-digit",
   }).format(new Date(iso));
 
+/**
+ * Показывает контекстное меню с пользователями, прочитавшими сообщение.
+ *
+ * Меню привязывается к координатам клика, само удерживает себя внутри viewport
+ * и умеет открывать профиль читателя, если для него доступен public ref.
+ */
 export function ReadersMenu({
   x,
   y,

@@ -19,6 +19,9 @@ export type DirectInboxContextValue = {
 const noop = () => {};
 const noopAsync = async () => {};
 
+/**
+ * Константа `FALLBACK_DIRECT_INBOX`, используемая как fallback direct inbox.
+ */
 export const FALLBACK_DIRECT_INBOX: DirectInboxContextValue = {
   items: [],
   loading: false,
@@ -32,6 +35,11 @@ export const FALLBACK_DIRECT_INBOX: DirectInboxContextValue = {
   refresh: noopAsync,
 };
 
+/**
+ * Константа `DirectInboxContext`, используемая как direct inbox context.
+ *
+ * @param FALLBACK_DIRECT_INBOX Контекст `FALLBACK_DIRECT_INBOX`.
+ */
 export const DirectInboxContext = createContext<DirectInboxContextValue>(
   FALLBACK_DIRECT_INBOX,
 );

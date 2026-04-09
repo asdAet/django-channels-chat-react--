@@ -4,6 +4,20 @@ import rangeStyles from "../../styles/ui/LightboxVideoPlayer.range.module.css";
 import timelineStyles from "../../styles/ui/LightboxVideoPlayer.timeline.module.css";
 import { formatTime } from "./LightboxVideoPlayer.utils";
 
+/**
+ * Свойства таймлайна, через который пользователь перематывает видео.
+ *
+ * @property displayTime Текущее время воспроизведения, показываемое слева.
+ * @property remainingLabel Уже подготовленная строка оставшегося времени без минуса.
+ * @property isReady Признак, что видео готово и таймлайн можно активировать.
+ * @property duration Полная длительность видео в секундах.
+ * @property progressStyle Инлайн-стили для визуализации заполнения range.
+ * @property onSeekPreview Вызывается при перемещении ползунка до фиксации новой позиции.
+ * @property onSeekCommit Вызывается после подтверждения новой позиции.
+ * @property onSeekInteractionStart Сообщает родителю о начале перемотки.
+ * @property onSeekInteractionEnd Сообщает родителю о завершении перемотки.
+ * @property className Дополнительный CSS-класс для встраивания таймлайна в разные layouts.
+ */
 type LightboxVideoTimelineProps = {
   displayTime: number;
   remainingLabel: string;
@@ -17,6 +31,13 @@ type LightboxVideoTimelineProps = {
   className?: string;
 };
 
+/**
+ * Отрисовывает таймлайн видеоплеера с текущим временем и range-контролом.
+ *
+ * Компонент сам не хранит состояние перемотки: он только отображает переданные
+ * значения и прокидывает наружу события preview/commit для синхронизации
+ * с родительским контроллером плеера.
+ */
 export function LightboxVideoTimeline({
   displayTime,
   remainingLabel,

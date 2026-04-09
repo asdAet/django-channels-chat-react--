@@ -405,11 +405,15 @@ const requestGoogleIdToken = async (
   });
 
 /**
- * Обрабатывает sign in with google.
- * @param clientId Идентификатор OAuth-клиента.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Запускает клиентский сценарий входа через Google OAuth.
+ *
+ * Функция сама выбирает доступный механизм авторизации:
+ * сначала пробует popup OAuth2 для production-сценария, а при необходимости
+ * откатывается к Google Identity token flow.
+ *
+ * @param clientId Идентификатор Google OAuth-клиента, выданный для фронтенда.
+ * @returns Данные успешной авторизации, которые затем передаются на backend для обмена на сессию.
  */
-
 export const signInWithGoogle = async (
   clientId: string,
 ): Promise<GoogleOAuthSuccess> => {

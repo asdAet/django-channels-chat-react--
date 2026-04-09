@@ -23,6 +23,13 @@ type ChatTargetState = {
   error: string | null;
 };
 
+/**
+ * Открывает чат по внешнему `target`, предварительно разрешая его в `roomId`.
+ *
+ * Страница нужна как мост между канонической внешней навигацией по public target
+ * и внутренним room-id transport: сначала дергает `resolveChatTarget`, а затем
+ * либо показывает `ChatRoomPage`, либо выводит понятную ошибку доступа.
+ */
 export function ChatTargetPage({ user, target, onNavigate }: Props) {
   const normalizedTarget = useMemo(() => normalizeChatTarget(target), [target]);
   const requestKey = useMemo(

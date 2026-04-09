@@ -20,6 +20,13 @@ import { PLAYBACK_RATE_OPTIONS } from "./LightboxVideoPlayer.utils";
 const formatRateLabel = (value: number) =>
   Number.isInteger(value) ? `${value.toFixed(0)}x` : `${value.toFixed(1)}x`;
 
+/**
+ * Отрисовывает мобильную версию оверлея управления видеоплеером.
+ *
+ * В этой версии элементы управления собраны в нижний dock: таймлайн,
+ * транспорт, переключение звука, выбор скорости и переход в полный экран.
+ * Само состояние воспроизведения приходит извне через общий контракт пропсов.
+ */
 export default function LightboxVideoPlayerMobileView({
   rootRef,
   mediaViewport,

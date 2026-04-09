@@ -35,6 +35,12 @@ export const getWebSocketBase = () => {
   return `${scheme}://${window.location.host}`;
 };
 
+/**
+ * Добавляет `append web socket params`.
+ *
+ * @param url Параметр `url` в формате `string`.
+ * @param params Параметр `params` в формате `Record<string, WebSocketQueryValue>`.
+ */
 export const appendWebSocketParams = (
   url: string,
   params: Record<string, WebSocketQueryValue>,
@@ -51,6 +57,12 @@ export const appendWebSocketParams = (
   return nextUrl.toString();
 };
 
+/**
+ * Добавляет `append web socket auth token`.
+ *
+ * @param url Параметр `url` в формате `string`.
+ * @param token Параметр `token` в формате `string | null | undefined`.
+ */
 export const appendWebSocketAuthToken = (
   url: string,
   token: string | null | undefined,

@@ -288,6 +288,12 @@ export const decodeRoomMessagesResponse = (input: unknown): RoomMessagesDto => {
   };
 };
 
+/**
+ * Декодирует `decode chat resolve response`.
+ *
+ * @param input Параметр `input` в формате `unknown`.
+ * @returns Возвращает результат `decode chat resolve response` в формате `ChatResolveResponseDto`.
+ */
 export const decodeChatResolveResponse = (
   input: unknown,
 ): ChatResolveResponseDto => {

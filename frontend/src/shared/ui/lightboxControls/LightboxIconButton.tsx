@@ -13,6 +13,13 @@ type Props = {
   suppressAriaLabel?: boolean;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label" | "children">;
 
+/**
+ * Рендерит унифицированную icon-кнопку для контролов lightbox.
+ *
+ * Компонент инкапсулирует layout-зависимые стили, активное состояние,
+ * цветовой тон и aria-label, чтобы остальные части lightbox не собирали
+ * этот шаблон вручную.
+ */
 export function LightboxIconButton({
   layout,
   label,

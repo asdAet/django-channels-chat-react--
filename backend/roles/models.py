@@ -205,10 +205,10 @@ class Membership(models.Model):
 
     @property
     def display_name(self) -> str:
-        """Вспомогательная функция `display_name` реализует внутренний шаг бизнес-логики.
-        
+        """Возвращает отображаемое имя участника в рамках комнаты.
+
         Returns:
-            Строковое значение, сформированное функцией.
+            Никнейм участника в комнате, если он задан, иначе базовый username пользователя.
         """
         return self.nickname or self.user.username
 

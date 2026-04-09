@@ -31,6 +31,9 @@ function BaseIcon({
   );
 }
 
+/**
+ * Иконка закрытия для chrome и action-кнопок lightbox.
+ */
 export function CloseIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -40,6 +43,9 @@ export function CloseIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка вызова дополнительного меню действий.
+ */
 export function MoreIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -50,6 +56,9 @@ export function MoreIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка скачивания текущего медиафайла.
+ */
 export function DownloadIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -60,6 +69,9 @@ export function DownloadIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка поворота изображения или видео.
+ */
 export function RotateIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -68,6 +80,9 @@ export function RotateIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка перехода в полноэкранный или расширенный режим просмотра.
+ */
 export function ExpandIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -83,6 +98,9 @@ export function ExpandIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка открытия текущего медиа в отдельной вкладке браузера.
+ */
 export function OpenInBrowserIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -93,6 +111,9 @@ export function OpenInBrowserIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка копирования ссылки на текущее медиа.
+ */
 export function CopyLinkIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -103,6 +124,9 @@ export function CopyLinkIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка увеличения масштаба.
+ */
 export function ZoomInIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -114,6 +138,9 @@ export function ZoomInIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка уменьшения масштаба.
+ */
 export function ZoomOutIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -124,6 +151,9 @@ export function ZoomOutIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка сброса масштаба к исходному значению.
+ */
 export function ResetZoomIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -135,6 +165,9 @@ export function ResetZoomIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка запуска воспроизведения с адаптацией под mobile и desktop layout.
+ */
 export function PlayIcon({ layout = "desktop", ...props }: IconProps) {
   return (
     <svg
@@ -154,6 +187,9 @@ export function PlayIcon({ layout = "desktop", ...props }: IconProps) {
   );
 }
 
+/**
+ * Иконка паузы для видеоплеера.
+ */
 export function PauseIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" {...props}>
@@ -162,6 +198,9 @@ export function PauseIcon(props: IconProps) {
   );
 }
 
+/**
+ * Иконка громкости, которая умеет показывать muted- и unmuted-состояние.
+ */
 export function VolumeIcon({
   muted,
   layout = "desktop",
@@ -186,6 +225,9 @@ export function VolumeIcon({
   );
 }
 
+/**
+ * Иконка открытия настроек просмотра.
+ */
 export function SettingsIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -195,6 +237,11 @@ export function SettingsIcon(props: IconProps) {
   );
 }
 
+/**
+ * React-компонент `PictureInPictureIcon`.
+ *
+ * @param props Параметр `props` в формате `IconProps`.
+ */
 export function PictureInPictureIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -212,6 +259,11 @@ export function PictureInPictureIcon(props: IconProps) {
   );
 }
 
+/**
+ * React-компонент `FullscreenIcon`.
+ *
+ * @param props Параметр `props` в формате `IconProps`.
+ */
 export function FullscreenIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -223,6 +275,11 @@ export function FullscreenIcon(props: IconProps) {
   );
 }
 
+/**
+ * React-компонент `ChevronLeftIcon`.
+ *
+ * @param props Параметр `props` в формате `IconProps`.
+ */
 export function ChevronLeftIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -231,6 +288,11 @@ export function ChevronLeftIcon(props: IconProps) {
   );
 }
 
+/**
+ * React-компонент `ChevronRightIcon`.
+ *
+ * @param props Параметр `props` в формате `IconProps`.
+ */
 export function ChevronRightIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

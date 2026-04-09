@@ -2,15 +2,24 @@ import type { SyntheticEvent } from "react";
 
 import type { PlaybackRateOption } from "./LightboxVideoPlayer.types";
 
+/**
+ * Константа `PLAYBACK_RATE_OPTIONS`, используемая как playback rate options.
+ */
 export const PLAYBACK_RATE_OPTIONS: PlaybackRateOption[] = [
-  { value: 0.5, label: "\u041c\u0435\u0434\u043b\u0435\u043d\u043d\u043e" },
-  { value: 1, label: "\u041f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e" },
-  { value: 1.2, label: "\u0423\u0441\u043a\u043e\u0440\u0435\u043d\u043d\u043e" },
-  { value: 1.5, label: "\u0411\u044b\u0441\u0442\u0440\u043e" },
-  { value: 1.7, label: "\u041e\u0447\u0435\u043d\u044c \u0431\u044b\u0441\u0442\u0440\u043e" },
-  { value: 2, label: "\u0421\u0432\u0435\u0440\u0445\u0431\u044b\u0441\u0442\u0440\u043e" },
+  { value: 0.5, label: "Медленно" },
+  { value: 1, label: "По умолчанию" },
+  { value: 1.2, label: "Ускоренно" },
+  { value: 1.5, label: "Быстро" },
+  { value: 1.7, label: "Очень быстро" },
+  { value: 2, label: "Сверхбыстро" },
 ];
 
+/**
+ * Форматирует `format time`.
+ *
+ * @param value Параметр `value` в формате `number`.
+ * @returns Возвращает результат `format time` в формате `string`.
+ */
 export const formatTime = (value: number): string => {
   const totalSeconds = Math.max(0, Math.floor(value));
   const hours = Math.floor(totalSeconds / 3600);
@@ -24,9 +33,21 @@ export const formatTime = (value: number): string => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
+/**
+ * Ограничивает `clamp number`.
+ *
+ * @param value Параметр `value` в формате `number`.
+ * @param min Параметр `min` в формате `number`.
+ * @param max Параметр `max` в формате `number`.
+ */
 export const clampNumber = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+/**
+ * Функция `stopPropagation`.
+ *
+ * @param event Параметр `event` в формате `SyntheticEvent<HTMLElement>`.
+ */
 export const stopPropagation = (event: SyntheticEvent<HTMLElement>) => {
   event.stopPropagation();
 };

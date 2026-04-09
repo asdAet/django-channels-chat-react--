@@ -80,6 +80,12 @@ const SettingsIcon = () => (
   </svg>
 );
 
+/**
+ * Рендерит основной sidebar приложения: навигацию, direct inbox, server rail и профиль.
+ *
+ * Компонент также отвечает за desktop-resize, mobile drawer UX, открытие
+ * настроек, быстрый переход к друзьям и восстановление последнего личного чата.
+ */
 export function Sidebar({
   user,
   onNavigate,
