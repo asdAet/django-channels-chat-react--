@@ -1,5 +1,5 @@
 ﻿<div align="center">
-  <img src="frontend/public/direct-logo-avatar.png" alt="Devils Resting logo" width="180">
+  <img src="frontend/public/MINI-direct-logo-avatar.png" alt="Devils Resting logo" width="180">
   <h1>Devils Resting</h1>
   <p><strong>Full-stack real-time чат-платформа на Django, Channels, React и TypeScript</strong></p>
   <p>
