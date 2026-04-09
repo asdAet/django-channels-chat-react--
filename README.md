@@ -1,8 +1,16 @@
-﻿# Devils Resting
+﻿<div align="center">
+  <img src="frontend/public/direct-logo-avatar.png" alt="Devils Resting logo" width="180">
+  <h1>Devils Resting</h1>
+  <p><strong>Full-stack real-time чат-платформа на Django, Channels, React и TypeScript</strong></p>
+  <p>
+    <a href="https://github.com/asdAet/django-channels-chat-react">
+      <img src="https://myhits.vercel.app/api/hit/https%3A%2F%2Fgithub.com%2FasdAet%2Fdjango-channels-chat-react?label=%D0%BF%D1%80%D0%BE%D1%81%D0%BC%D0%BE%D1%82%D1%80%D1%8B&color=0d1117&size=small" alt="Счетчик просмотров репозитория">
+    </a>
+  </p>
+  <p>Личные и групповые чаты, WebSocket presence, роли и права внутри комнат, вложения, подписанные media URL и production-ready observability.</p>
+</div>
 
-`Devils Resting` — full-stack real-time чат-платформа с backend на `Django + Channels` и frontend на `React + TypeScript`.
-
-Проект поддерживает личные и групповые чаты, presence, роли и права внутри комнат, вложения с превью, безопасную отдачу медиа по подписанным URL, а также production-ready observability через `Prometheus`, `Grafana`, `Loki` и `Alertmanager`.
+---
 
 ## Возможности
 
@@ -25,12 +33,12 @@
 
 ## Архитектурные принципы
 
-- Внешняя навигация по чатам строится через публичные идентификаторы `publicRef` / `publicId`.
-- Внутренний транспорт работает только через `roomId`.
-- Канонический resolve внешней цели чата выполняется через `POST /api/chat/resolve/`.
-- WebSocket чата использует путь `/ws/chat/<room_id>/`, а inbox работает через `/ws/inbox/`.
-- Старые внешние маршруты вида `/direct/*` и `/rooms/*` не считаются каноническими.
-- Медиа отдаются по подписанным URL с ограниченным временем жизни.
+- Внешняя навигация по чатам строится через публичные идентификаторы `publicRef` / `publicId`
+- Внутренний транспорт работает только через `roomId`
+- Канонический resolve внешней цели чата выполняется через `POST /api/chat/resolve/`
+- WebSocket чата использует путь `/ws/chat/<room_id>/`, а inbox работает через `/ws/inbox/`
+- Старые внешние маршруты вида `/direct/*` и `/rooms/*` не считаются каноническими
+- Медиа отдаются по подписанным URL с ограниченным временем жизни
 
 ## Структура репозитория
 
@@ -103,8 +111,8 @@ python manage.py runserver 127.0.0.1:8000
 
 Примечания:
 
-- В debug-режиме `DJANGO_SECRET_KEY` генерируется автоматически, если не задан.
-- Если `REDIS_URL` не задан и включен debug, проект может использовать `InMemoryChannelLayer`.
+- В debug-режиме `DJANGO_SECRET_KEY` генерируется автоматически, если не задан
+- Если `REDIS_URL` не задан и включен debug, проект может использовать `InMemoryChannelLayer`
 
 ### Frontend
 
@@ -263,10 +271,10 @@ python tools/generate_project_docs.py
 
 ## Что важно знать перед изменениями
 
-- Канонический внешний вход в чат идет через `publicRef` / `publicId` и `/api/chat/resolve/`.
-- Внутренние REST и WebSocket операции используют `roomId`.
-- `ws/inbox` является текущим endpoint для inbox-сценария.
-- Подписанные media URL имеют TTL и не должны заменяться на публичные постоянные ссылки.
+- Канонический внешний вход в чат идет через `publicRef` / `publicId` и `/api/chat/resolve/`
+- Внутренние REST и WebSocket операции используют `roomId`
+- `ws/inbox` является текущим endpoint для inbox-сценария
+- Подписанные media URL имеют TTL и не должны заменяться на публичные постоянные ссылки
 
 ## Лицензия
 
