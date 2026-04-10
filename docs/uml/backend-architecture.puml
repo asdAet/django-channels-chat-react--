@@ -1,0 +1,124 @@
+@startuml
+title Devils Resting - Backend Architecture
+left to right direction
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor Browser
+node "Nginx / TLS edge" as nginx
+cloud "Google OAuth" as google
+database "PostgreSQL" as db
+queue "Redis / Channel Layer" as redis
+folder "Media storage\navatars + attachments" as media
+node "Monitoring stack\nPrometheus / Grafana / Loki / Alertmanager" as observability
+
+rectangle "Django ASGI application" {
+  component "HTTP API router\nchat_app_django.urls" as http_router
+  component "ASGI router\nProtocolTypeRouter" as asgi_router
+  component "WS token auth middleware" as ws_token_auth
+
+  component "Meta / Health / Metrics" as platform_api
+  component "Users API" as users_api
+  component "Chat API" as chat_api
+  component "Friends API" as friends_api
+  component "Groups API" as groups_api
+  component "Roles API" as roles_api
+  component "Audit API" as audit_api
+
+  component "ChatConsumer" as chat_ws
+  component "PresenceConsumer" as presence_ws
+  component "DirectInboxConsumer" as inbox_ws
+
+  component "Auth + media access services" as users_service
+  component "Chat services" as chat_service
+  component "Friend service" as friend_service
+  component "Group services\nCRUD + members + invites + pins + ownership" as group_service
+  component "Role management service" as role_service
+  component "Permission service" as permission_service
+  component "Audit services\nwrite + query + username history" as audit_service
+
+  component "User / Profile / Identity models" as users_models
+  component "Room / Membership / Role models" as room_models
+  component "Message / Attachment / Read models" as message_models
+  component "Group infra models\nInviteLink / JoinRequest / PinnedMessage" as group_models
+  component "AuditEvent model" as audit_models
+}
+
+Browser --> nginx : HTTP / WS
+nginx --> http_router : /api/*
+nginx --> asgi_router : /ws/*
+google --> users_api : OAuth token validation
+observability --> platform_api : scrape /metrics\nprobe /health
+
+http_router --> platform_api
+http_router --> users_api
+http_router --> chat_api
+http_router --> friends_api
+http_router --> groups_api
+http_router --> audit_api
+chat_api --> roles_api : room scoped role endpoints
+
+asgi_router --> ws_token_auth
+ws_token_auth --> chat_ws
+ws_token_auth --> presence_ws
+ws_token_auth --> inbox_ws
+
+users_api --> users_service
+chat_api --> chat_service
+friends_api --> friend_service
+groups_api --> group_service
+roles_api --> role_service
+audit_api --> audit_service
+
+chat_api --> permission_service
+groups_api --> permission_service
+roles_api --> permission_service
+chat_ws --> chat_service
+chat_ws --> permission_service
+presence_ws --> users_models
+inbox_ws --> message_models
+inbox_ws --> room_models
+
+users_service --> users_models
+users_service --> media
+chat_service --> room_models
+chat_service --> message_models
+chat_service --> media
+friend_service --> users_models
+group_service --> room_models
+group_service --> group_models
+group_service --> permission_service
+role_service --> room_models
+role_service --> permission_service
+permission_service --> room_models
+audit_service --> audit_models
+
+users_models --> db
+room_models --> db
+message_models --> db
+group_models --> db
+audit_models --> db
+
+chat_ws --> redis : room events
+presence_ws --> redis : online state
+inbox_ws --> redis : unread state
+
+note right of chat_api
+Canonical external chat entrypoint:
+POST /api/chat/resolve/
+
+All room-scoped HTTP and WS traffic uses roomId.
+end note
+
+note bottom of asgi_router
+WebSocket endpoints:
+- /ws/chat/<room_id>/
+- /ws/presence/
+- /ws/inbox/
+end note
+
+note bottom of audit_service
+Mutating HTTP and WS flows emit audit events.
+end note
+@enduml

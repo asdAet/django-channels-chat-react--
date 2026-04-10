@@ -1,0 +1,39 @@
+@startuml
+title Devils Resting - Message Lifecycle
+skinparam shadowing false
+
+[*] --> NoDraft
+
+NoDraft --> Drafting : focus composer
+Drafting --> FilesQueued : attach files
+FilesQueued --> Uploading : uploadAttachments
+Uploading --> FilesQueued : cancel or partial failure
+Uploading --> ReadyToSend : upload ids complete
+
+Drafting --> Sending : send text only
+ReadyToSend --> Sending : send text + upload ids
+
+Sending : ws chat_message\nor attachment finalize
+Sending --> Published : Message persisted\nattachments linked
+Sending --> Rejected : validation / permission /\nrate limit / slow mode
+Rejected --> Drafting : edit and retry
+
+Published --> Edited : edit_message
+Edited --> Published : edit broadcast applied
+
+Published --> ReadTracked : mark_read / read_receipt
+Edited --> ReadTracked : later read receipts
+
+Published --> Deleted : delete_message
+Edited --> Deleted : delete_message
+ReadTracked --> Edited : later edit
+ReadTracked --> Deleted : later delete
+
+Deleted --> [*]
+
+note right of Published
+A published message can also receive
+reactions, pins and inbox notifications
+without changing its core lifecycle state.
+end note
+@enduml

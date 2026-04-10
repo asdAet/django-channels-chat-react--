@@ -1,0 +1,56 @@
+@startuml
+title Devils Resting - Chat Session State
+skinparam shadowing false
+
+[*] --> Idle
+
+Idle --> ResolveTarget : navigate to /:target
+ResolveTarget : POST /api/chat/resolve/
+ResolveTarget --> AccessDenied : 400 / 401 / 403 / 404
+ResolveTarget --> LoadRoom : roomId resolved
+
+LoadRoom : GET room details + messages
+LoadRoom --> PassiveView : guest public room
+LoadRoom --> ConnectRealtime : authenticated room\nor ws-enabled route
+
+PassiveView --> ConnectRealtime : session becomes available
+PassiveView --> [*] : navigate away
+
+ConnectRealtime : build /ws/chat/<roomId>/
+ConnectRealtime --> Active : socket open
+ConnectRealtime --> Reconnecting : error / close before ready
+
+state Active {
+  [*] --> Synced
+
+  Synced --> Typing : send typing event
+  Typing --> Synced : timeout or message sent
+
+  Synced --> Uploading : queue attachments
+  Uploading --> Synced : uploads complete
+  Uploading --> ComposerError : upload failed or canceled
+  ComposerError --> Synced : retry or clear queue
+
+  Synced --> ReadSync : mark_read
+  ReadSync --> Synced : read ack received
+
+  Synced --> RateLimited : slow mode or 429
+  RateLimited --> Synced : retry_after elapsed
+}
+
+Active --> Reconnecting : socket closed / browser offline
+Reconnecting --> ConnectRealtime : backoff retry
+Reconnecting --> Degraded : retry limit reached
+Degraded --> ConnectRealtime : manual reconnect\nor network restored
+
+Active --> MembershipRevoked : kicked / banned /\npermission revoked
+AccessDenied --> [*]
+MembershipRevoked --> [*]
+Active --> [*] : navigate away / logout
+Degraded --> [*] : leave page
+
+note right of Active
+The same reconnecting websocket primitive
+is reused by presence and direct inbox providers.
+end note
+@enduml

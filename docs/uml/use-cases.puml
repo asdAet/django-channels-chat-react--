@@ -1,0 +1,82 @@
+@startuml
+title Devils Resting - Primary Use Cases
+left to right direction
+skinparam shadowing false
+
+actor Guest
+actor "Authenticated User" as User
+actor Moderator
+actor "Group Owner" as Owner
+actor "System Administrator" as Admin
+actor "Google OAuth" as Google
+actor "Monitoring Stack" as Monitoring
+
+Moderator --|> User
+Owner --|> Moderator
+Admin --|> User
+
+rectangle "Devils Resting" {
+  usecase "Browse public groups" as UC_PublicGroups
+  usecase "View public room" as UC_PublicRoom
+  usecase "Preview invite link" as UC_InvitePreview
+  usecase "Register account" as UC_Register
+  usecase "Login with password" as UC_Login
+  usecase "Login with Google" as UC_GoogleLogin
+  usecase "Manage profile and session" as UC_Profile
+  usecase "Manage friends and blocks" as UC_Friends
+  usecase "Open direct chat" as UC_Direct
+  usecase "Open group chat" as UC_GroupChat
+  usecase "Resolve chat target" as UC_ResolveTarget
+  usecase "Send / edit / delete / react to message" as UC_Message
+  usecase "Upload attachments" as UC_Attach
+  usecase "Track presence and read state" as UC_Realtime
+  usecase "Search users / groups / messages" as UC_Search
+  usecase "Create / update / delete group" as UC_GroupCrud
+  usecase "Join or leave group" as UC_GroupMembership
+  usecase "Manage invites" as UC_Invites
+  usecase "Approve join requests" as UC_JoinRequests
+  usecase "Manage roles and overrides" as UC_Roles
+  usecase "Moderate members\nkick / ban / mute" as UC_Moderate
+  usecase "Pin / unpin messages" as UC_Pins
+  usecase "Transfer ownership" as UC_Transfer
+  usecase "Review audit trail" as UC_Audit
+  usecase "Collect metrics and health" as UC_Metrics
+}
+
+Guest --> UC_PublicGroups
+Guest --> UC_PublicRoom
+Guest --> UC_InvitePreview
+Guest --> UC_Register
+Guest --> UC_Login
+Guest --> UC_GoogleLogin
+
+User --> UC_Profile
+User --> UC_Friends
+User --> UC_Direct
+User --> UC_GroupChat
+User --> UC_Message
+User --> UC_Attach
+User --> UC_Realtime
+User --> UC_Search
+User --> UC_GroupMembership
+
+Moderator --> UC_Invites
+Moderator --> UC_JoinRequests
+Moderator --> UC_Roles
+Moderator --> UC_Moderate
+Moderator --> UC_Pins
+
+Owner --> UC_GroupCrud
+Owner --> UC_Transfer
+
+Admin --> UC_Audit
+Monitoring --> UC_Metrics
+Google --> UC_GoogleLogin
+
+UC_Direct .> UC_ResolveTarget : <<include>>
+UC_GroupChat .> UC_ResolveTarget : <<include>>
+UC_Message .> UC_Realtime : <<include>>
+UC_Attach .> UC_Message : <<extend>>
+UC_GroupMembership .> UC_InvitePreview : <<extend>>
+UC_Moderate .> UC_Roles : <<include>>
+@enduml
