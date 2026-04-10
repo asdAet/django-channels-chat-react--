@@ -1,143 +1,173 @@
 @startuml
 title Devils Resting - Backend Domain Model
 left to right direction
-skinparam classAttributeIconSize 0
 skinparam shadowing false
-
-class User {
-  +id: int
-  +username: str
-  +is_superuser: bool
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam defaultTextAlignment center
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam packageStyle rectangle
+skinparam package {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam class {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam note {
+  BorderColor #d7dee8
+  BackgroundColor #fbfcfe
+  FontColor #445066
 }
 
-class Profile {
-  +name: str
-  +bio: text
-  +avatar_url: url
-  +last_seen: datetime
+package "Users & Identity" {
+  class User {
+    +id: int
+    +username: str
+    +is_superuser: bool
+  }
+
+  class Profile {
+    +name: str
+    +bio: text
+    +avatar_url: url
+    +last_seen: datetime
+  }
+
+  class UserIdentityCore {
+    +public_id: str
+  }
+
+  class LoginIdentity {
+    +login_normalized: str
+  }
+
+  class EmailIdentity {
+    +email_normalized: str
+    +email_verified: bool
+  }
+
+  class OAuthIdentity {
+    +provider: str
+    +provider_user_id: str
+  }
+
+  class PublicHandle {
+    +handle: str
+  }
+
+  class SecurityRateLimitBucket {
+    +scope_key: str
+    +count: int
+    +reset_at: datetime
+  }
 }
 
-class UserIdentityCore {
-  +public_id: str
+package "Rooms & Access" {
+  class Room {
+    +id: int
+    +name: str
+    +kind: public|private|direct|group
+    +direct_pair_key: str
+    +public_id: str
+    +is_public: bool
+  }
+
+  class Role {
+    +name: str
+    +position: int
+    +permissions: int
+  }
+
+  class Membership {
+    +nickname: str
+    +is_banned: bool
+    +muted_until: datetime
+  }
+
+  class PermissionOverride {
+    +allow: int
+    +deny: int
+  }
+
+  class Friendship {
+    +status: pending|accepted|declined|blocked
+  }
 }
 
-class LoginIdentity {
-  +login_normalized: str
+package "Messaging" {
+  class Message {
+    +id: int
+    +message_content: text
+    +date_added: datetime
+    +edited_at: datetime
+    +is_deleted: bool
+  }
+
+  class Reaction {
+    +emoji: str
+  }
+
+  class MessageAttachment {
+    +original_filename: str
+    +content_type: str
+    +file_size: bigint
+  }
+
+  class MessageAttachmentUpload {
+    +id: uuid
+    +status: pending|uploading|complete
+    +received_bytes: bigint
+  }
+
+  class MessageReadState {
+    +last_read_at: datetime
+  }
+
+  class MessageReadReceipt {
+    +read_at: datetime
+  }
 }
 
-class EmailIdentity {
-  +email_normalized: str
-  +email_verified: bool
+package "Group Extensions" {
+  class InviteLink {
+    +code: str
+    +expires_at: datetime
+    +max_uses: int
+    +is_revoked: bool
+  }
+
+  class JoinRequest {
+    +status: pending|approved|rejected
+    +message: text
+  }
+
+  class PinnedMessage {
+    +pinned_at: datetime
+  }
 }
 
-class OAuthIdentity {
-  +provider: str
-  +provider_user_id: str
+package "Operations" {
+  class AuditEvent {
+    +action: str
+    +protocol: str
+    +status_code: int
+    +success: bool
+    +request_id: str
+  }
 }
 
-class PublicHandle {
-  +handle: str
-}
-
-class SecurityRateLimitBucket {
-  +scope_key: str
-  +count: int
-  +reset_at: datetime
-}
-
-class Room {
-  +id: int
-  +name: str
-  +kind: public|private|direct|group
-  +direct_pair_key: str
-  +public_id: str
-  +is_public: bool
-  +slow_mode_seconds: int
-  +member_count: int
-}
-
-class Role {
-  +name: str
-  +position: int
-  +permissions: int
-  +is_default: bool
-}
-
-class Membership {
-  +nickname: str
-  +is_banned: bool
-  +muted_until: datetime
-}
-
-class PermissionOverride {
-  +allow: int
-  +deny: int
-}
-
-class Friendship {
-  +status: pending|accepted|declined|blocked
-}
-
-class Message {
-  +id: int
-  +message_content: text
-  +date_added: datetime
-  +edited_at: datetime
-  +is_deleted: bool
-}
-
-class Reaction {
-  +emoji: str
-  +created_at: datetime
-}
-
-class MessageAttachment {
-  +original_filename: str
-  +content_type: str
-  +file_size: bigint
-}
-
-class MessageAttachmentUpload {
-  +id: uuid
-  +status: pending|uploading|complete
-  +received_bytes: bigint
-  +expires_at: datetime
-}
-
-class MessageReadState {
-  +last_read_at: datetime
-}
-
-class MessageReadReceipt {
-  +read_at: datetime
-}
-
-class InviteLink {
-  +code: str
-  +expires_at: datetime
-  +max_uses: int
-  +use_count: int
-  +is_revoked: bool
-}
-
-class JoinRequest {
-  +status: pending|approved|rejected
-  +message: text
-  +reviewed_at: datetime
-}
-
-class PinnedMessage {
-  +pinned_at: datetime
-}
-
-class AuditEvent {
-  +action: str
-  +protocol: str
-  +status_code: int
-  +success: bool
-  +request_id: str
-  +created_at: datetime
-}
+User -[hidden]down-> Profile
+Room -[hidden]down-> Role
+Message -[hidden]down-> Reaction
+InviteLink -[hidden]down-> JoinRequest
 
 User "1" -- "1" Profile
 User "1" -- "0..1" UserIdentityCore
@@ -147,20 +177,20 @@ User "1" -- "0..*" OAuthIdentity
 
 PublicHandle "0..1" --> "0..1" User : user owner
 PublicHandle "0..1" --> "0..1" Room : room owner
-User ..> SecurityRateLimitBucket : security throttles
+SecurityRateLimitBucket ..> User : security throttles
 
-Role "*" --> "1" Room : room
-Membership "*" --> "1" Room : room
-Membership "*" --> "1" User : user
-Membership "*" -- "*" Role : assigned roles
-PermissionOverride "*" --> "1" Room : room
+Role "*" --> "1" Room
+Membership "*" --> "1" Room
+Membership "*" --> "1" User
+Membership "*" -- "*" Role
+PermissionOverride "*" --> "1" Room
 PermissionOverride "*" --> "0..1" Role : target_role
 PermissionOverride "*" --> "0..1" User : target_user
 
 Friendship "*" --> "1" User : from_user
 Friendship "*" --> "1" User : to_user
 
-Message "*" --> "1" Room : room
+Message "*" --> "1" Room
 Message "*" --> "0..1" User : author
 Message "0..*" --> "0..1" Message : reply_to
 Reaction "*" --> "1" Message
@@ -186,22 +216,8 @@ PinnedMessage "*" --> "0..1" User : pinned_by
 
 AuditEvent "*" --> "0..1" User : actor_user
 
-note right of PublicHandle
-Exactly one owner is allowed:
-either User or Room.
-end note
-
-note right of Room
-Room is the transport anchor for:
-- direct chats
-- groups
-- public room
-
-Group navigation uses public_id or handle.
-end note
-
-note bottom of MessageReadState
-Stores the last read pointer
-per user and room.
+note bottom of Room
+Room is the transport anchor for direct chats,
+groups and the public room.
 end note
 @enduml

@@ -1,6 +1,24 @@
 @startuml
 title Devils Resting - Chat Session State
 skinparam shadowing false
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam ArrowThickness 1.1
+skinparam state {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam note {
+  BorderColor #d7dee8
+  BackgroundColor #fbfcfe
+  FontColor #445066
+}
 
 [*] --> Idle
 

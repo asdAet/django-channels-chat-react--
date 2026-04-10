@@ -1,165 +1,151 @@
 @startuml
 title Devils Resting - Frontend Architecture
-left to right direction
-skinparam componentStyle rectangle
-skinparam packageStyle rectangle
+top to bottom direction
 skinparam shadowing false
-
-actor "Browser User" as browser_user
-cloud "Backend\n/api + /ws" as backend
-
-package "Bootstrap" {
-  [main.tsx] as main
-  [App] as app
-  [BrowserRouter] as router
-  [RuntimeConfigProvider] as runtime_provider
-  [DeviceProvider] as device_provider
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam ArrowThickness 1.1
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam rectangle {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam package {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam component {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam note {
+  BorderColor #d7dee8
+  BackgroundColor #fbfcfe
+  FontColor #445066
 }
 
-package "App shell" {
-  [AppInner] as app_inner
-  [useAuth] as use_auth
-  [usePasswordRules] as use_pw_rules
-  [WsAuthProvider] as ws_auth_provider
-  [PresenceProvider] as presence_provider
-  [DirectInboxProvider] as inbox_provider
-  [AppShell] as app_shell
-  [ConversationListProvider] as convo_provider
-  [InfoPanelProvider] as info_provider
-  [MobileShellProvider] as mobile_provider
-  [Sidebar + ConversationList] as sidebar
-  [InfoPanel] as info_panel
-  [AppRoutes] as routes
+actor "Browser User" as BrowserUser
+cloud "Backend\n/api + /ws" as Backend
+
+rectangle "Bootstrap" {
+  component "main.tsx" as Main
+  component "App\nBrowserRouter" as App
+  component "RuntimeConfigProvider\nDeviceProvider" as Runtime
 }
 
-package "Feature hooks" {
-  [useFriends] as use_friends
-  [useGroupList / useGroupDetails] as use_groups
-  [useUserProfile] as use_user_profile
+rectangle "Shell & Providers" {
+  component "AppInner\nSEO + auth page orchestration" as AppInner
+  component "useAuth\nusePasswordRules" as AuthHooks
+  component "WsAuthProvider" as WsAuth
+  component "PresenceProvider" as Presence
+  component "DirectInboxProvider" as Inbox
+  component "AppShell" as Shell
 }
 
-package "Route pages" {
-  [Home / Login / Register] as public_pages
-  [Profile / Settings / UserProfile] as profile_pages
-  [FriendsPage] as friends_page
-  [GroupsPage] as groups_page
-  [InvitePreviewPage] as invite_page
-  [ChatTargetPage] as chat_target_page
-  [ChatRoomPage] as chat_room_page
+rectangle "Navigation & Screens" {
+  component "AppRoutes" as Routes
+  component "Public Screens\nhome, login, register,\ninvite preview" as PublicScreens
+  component "User Screens\nprofile, settings,\nuser profile" as UserScreens
+  component "Social Screens\nfriends, groups" as SocialScreens
+  component "Chat Entry\nChatTargetPage" as ChatEntry
+  component "Chat Room\nChatRoomPage + view" as ChatRoom
 }
 
-package "Chat room feature" {
-  [useChatRoomPageController] as room_controller
-  [useChatRoom] as use_chat_room
-  [useRoomPermissions] as use_room_permissions
-  [useChatRoomPageRealtime] as room_realtime
-  [useChatRoomPageReadState] as room_read_state
-  [useChatRoomPageComposer] as room_composer
-  [useChatRoomPageViewModel] as room_view_model
-  [ChatRoomPageView] as room_view
-  [useReconnectingWebSocket] as reconnect_ws
+rectangle "Feature Layer" {
+  component "Social Hooks\nuseFriends,\nuseGroupList,\nuseUserProfile" as SocialHooks
+  component "Chat Controller Hook\nuseChatRoomPageController" as ChatFeature
+  component "Chat Realtime + Read State\nrealtime, composer,\npermissions, view model" as ChatRealtime
+  component "Shared Reconnecting WebSocket" as ReconnectWs
 }
 
-package "Feature controllers" {
-  [AuthController] as auth_controller
-  [ChatController] as chat_controller
-  [FriendsController] as friends_controller
-  [GroupController] as group_controller
-  [RolesController] as roles_controller
+rectangle "Data Access" {
+  component "Feature Controllers\nAuth, Chat, Friends,\nGroup, Roles" as Controllers
+  component "ApiService\nAxios + request modules" as ApiService
+  component "DTO Layer\nparsers + decoders" as DtoLayer
+  component "Client Cache\nconversation list,\nunread overrides" as CacheLayer
 }
 
-package "Data access" {
-  [ApiService] as api_service
-  [apiService/* request modules] as request_modules
-  [DTO decoders + parsers] as dto_layer
-  [Cache manager + unread overrides] as cache_layer
-}
+Main -[hidden]down-> App
+App -[hidden]down-> Runtime
+AppInner -[hidden]right-> AuthHooks
+AuthHooks -[hidden]right-> WsAuth
+WsAuth -[hidden]right-> Presence
+Presence -[hidden]right-> Inbox
+Inbox -[hidden]right-> Shell
+PublicScreens -[hidden]right-> UserScreens
+UserScreens -[hidden]right-> SocialScreens
+SocialScreens -[hidden]right-> ChatEntry
+ChatEntry -[hidden]right-> ChatRoom
+SocialHooks -[hidden]right-> ChatFeature
+ChatFeature -[hidden]right-> ChatRealtime
+Controllers -[hidden]right-> ApiService
+ApiService -[hidden]right-> DtoLayer
+DtoLayer -[hidden]right-> CacheLayer
 
-browser_user --> main
-main --> app
-app --> router
-app --> runtime_provider
-app --> device_provider
-router --> app_inner
+BrowserUser --> Main
+Main --> App
+App --> Runtime
+Runtime --> AppInner
 
-app_inner --> use_auth
-app_inner --> use_pw_rules
-app_inner --> ws_auth_provider
-ws_auth_provider --> presence_provider
-presence_provider --> inbox_provider
-inbox_provider --> app_shell
-inbox_provider --> routes
-app_inner --> routes
+AppInner --> AuthHooks
+AppInner --> WsAuth
+WsAuth --> Presence
+Presence --> Inbox
+Inbox --> Shell
+AppInner --> Routes
+Shell --> Routes
 
-app_shell --> convo_provider
-app_shell --> info_provider
-app_shell --> mobile_provider
-app_shell --> sidebar
-app_shell --> info_panel
+Routes --> PublicScreens
+Routes --> UserScreens
+Routes --> SocialScreens
+Routes --> ChatEntry
 
-routes --> public_pages
-routes --> profile_pages
-routes --> friends_page
-routes --> groups_page
-routes --> invite_page
-routes --> chat_target_page
+SocialScreens --> SocialHooks
+ChatEntry --> Controllers : resolveChatTarget
+ChatEntry --> ChatRoom : roomId resolved
+ChatRoom --> ChatFeature
+ChatFeature --> ChatRealtime
 
-profile_pages --> use_user_profile
-friends_page --> use_friends
-groups_page --> use_groups
+AuthHooks --> Controllers
+SocialHooks --> Controllers
+ChatFeature --> Controllers
+Presence --> ReconnectWs
+Inbox --> ReconnectWs
+ChatRealtime --> ReconnectWs
 
-chat_target_page --> chat_controller : resolve target
-chat_target_page --> chat_room_page : roomId resolved
-chat_room_page --> room_controller
-room_controller --> use_chat_room
-room_controller --> use_room_permissions
-room_controller --> room_realtime
-room_controller --> room_read_state
-room_controller --> room_composer
-room_controller --> room_view_model
-room_controller --> room_view
+Controllers --> ApiService
+ApiService --> DtoLayer
+AuthHooks --> CacheLayer
+Inbox --> CacheLayer
+Shell --> CacheLayer
 
-use_auth --> auth_controller
-use_chat_room --> chat_controller
-use_friends --> friends_controller
-use_groups --> group_controller
-use_room_permissions --> roles_controller
-use_user_profile --> api_service
+ApiService --> Backend : HTTP
+ReconnectWs --> Backend : WS
+DtoLayer ..> ReconnectWs : event decoding
 
-presence_provider --> reconnect_ws
-inbox_provider --> reconnect_ws
-room_realtime --> reconnect_ws
-presence_provider ..> dto_layer : decode presence events
-inbox_provider ..> dto_layer : decode inbox events
-room_realtime ..> dto_layer : decode chat events
-
-auth_controller --> api_service
-chat_controller --> api_service
-friends_controller --> api_service
-group_controller --> api_service
-roles_controller --> api_service
-
-use_auth --> cache_layer
-inbox_provider --> cache_layer
-convo_provider --> cache_layer
-
-api_service --> request_modules
-request_modules --> dto_layer : encode / decode
-request_modules --> backend : HTTP payloads
-reconnect_ws --> backend : WS payloads
-
-note right of chat_target_page
-Canonical chat route flow:
+note right of Routes
+Canonical chat navigation:
 /:target
   -> resolveChatTarget()
   -> roomId
   -> ChatRoomPage
-  -> /ws/chat/<roomId>/
 end note
 
-note bottom of reconnect_ws
-Connection states:
-idle -> connecting -> online
-offline / error -> reconnect with backoff
+note right of ChatRealtime
+The chat room feature combines:
+- realtime socket state
+- typing and read markers
+- composer and uploads
+- permissions and presentation
 end note
 @enduml
