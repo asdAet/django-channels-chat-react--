@@ -7,6 +7,7 @@ set -euf
 : "${NGINX_SSL_CERT_PATH:=/etc/nginx/certs/fullchain.pem}"
 : "${NGINX_SSL_KEY_PATH:=/etc/nginx/certs/privkey.pem}"
 : "${NGINX_TLS_SYNC_INTERVAL_SECONDS:=60}"
+: "${GRAFANA_PUBLIC_ENABLED:=0}"
 
 tls_root="/var/lib/nginx/tls"
 fallback_dir="${tls_root}/fallback"
@@ -27,6 +28,57 @@ active_cert_path="${active_dir}/fullchain.pem"
 active_key_path="${active_dir}/privkey.pem"
 letsencrypt_cert_path="/etc/letsencrypt/live/${primary_domain}/fullchain.pem"
 letsencrypt_key_path="/etc/letsencrypt/live/${primary_domain}/privkey.pem"
+
+render_grafana_locations() {
+  case "$(printf '%s' "${GRAFANA_PUBLIC_ENABLED}" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on)
+      cat > /etc/nginx/grafana-locations.conf <<'EOF'
+location = /grafana {
+    return 302 /grafana/;
+}
+
+location ^~ /grafana/api/live/ {
+    proxy_pass http://grafana:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Prefix /grafana;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+}
+
+location ^~ /grafana/ {
+    proxy_pass http://grafana:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Prefix /grafana;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+}
+EOF
+      ;;
+    *)
+      cat > /etc/nginx/grafana-locations.conf <<'EOF'
+location = /grafana {
+    return 404;
+}
+
+location ^~ /grafana/ {
+    return 404;
+}
+EOF
+      ;;
+  esac
+}
 
 build_subject_alt_names() {
   san_entries=""
@@ -127,6 +179,8 @@ watch_tls_updates() {
     sleep "${NGINX_TLS_SYNC_INTERVAL_SECONDS}"
   done
 }
+
+render_grafana_locations
 
 export NGINX_CLIENT_MAX_BODY_SIZE NGINX_SERVER_NAMES
 envsubst '${NGINX_CLIENT_MAX_BODY_SIZE} ${NGINX_SERVER_NAMES}' \

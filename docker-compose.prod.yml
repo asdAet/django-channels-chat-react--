@@ -80,6 +80,7 @@ services:
       NGINX_CLIENT_MAX_BODY_SIZE: "${NGINX_CLIENT_MAX_BODY_SIZE:-0}"
       NGINX_SERVER_NAMES: "${NGINX_SERVER_NAMES:-slowed.sbs proxy.slowed.sbs 80.253.249.107}"
       NGINX_PRIMARY_DOMAIN: "${NGINX_PRIMARY_DOMAIN:-slowed.sbs}"
+      GRAFANA_PUBLIC_ENABLED: "${GRAFANA_PUBLIC_ENABLED:-0}"
     ports:
       - "80:80"
       # Set NGINX_HTTPS_BIND to `127.0.0.1:8443` for external TLS proxy mode,

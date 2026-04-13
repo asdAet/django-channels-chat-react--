@@ -244,17 +244,14 @@ docker compose -f docker-compose.prod.yml -f deploy/observability/compose.yml up
 
 Особенности:
 
-- `Grafana` публикуется только на `127.0.0.1:${GRAFANA_PORT:-3000}`
+- `Grafana` может работать в двух режимах: только `localhost` или публично через `https://<domain>/grafana/`
 - публичный `nginx` не отдает `/metrics`
 - dashboards и datasources provisioned из репозитория
 
 Доступ к Grafana:
 
-```bash
-ssh -L 3000:127.0.0.1:3000 <user>@<server>
-```
-
-После этого открой `http://127.0.0.1:3000`.
+- приватный режим: `ssh -L 3000:127.0.0.1:3000 <user>@<server>` и затем `http://127.0.0.1:3000`
+- публичный режим: `https://<domain>/grafana/`
 
 ## Документация
 
