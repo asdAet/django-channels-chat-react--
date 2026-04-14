@@ -22,6 +22,9 @@ import { PLAYBACK_RATE_OPTIONS } from "./LightboxVideoPlayer.utils";
 const formatRateLabel = (value: number) =>
   Number.isInteger(value) ? `${value.toFixed(0)}x` : `${value.toFixed(1)}x`;
 
+/**
+ * Функция `LightboxVideoPlayerDesktopView`.
+ */
 export default function LightboxVideoPlayerDesktopView({
   rootRef,
   mediaViewport,

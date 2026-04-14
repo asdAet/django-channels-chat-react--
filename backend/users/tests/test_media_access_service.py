@@ -8,12 +8,21 @@ from django.test import TestCase
 from messages.models import Message, MessageAttachment
 from rooms.models import Room
 from rooms.services import ensure_membership
+from testsupport.files import require_stored_file_name
 from users.application import auth_service
 from users.application.media_access_service import (
     MediaAccessNotFoundError,
     resolve_attachment_media_access,
     resolve_media_content_type,
 )
+
+
+def _attachment_file_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.file, field_name="attachment.file")
+
+
+def _attachment_thumbnail_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.thumbnail, field_name="attachment.thumbnail")
 
 
 class MediaAccessServiceTests(TestCase):
@@ -84,7 +93,7 @@ class MediaAccessServiceTests(TestCase):
     def test_resolve_attachment_media_access_returns_preferred_type_for_original_file(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
         result = resolve_attachment_media_access(
-            normalized_path=attachment.file.name,
+            normalized_path=_attachment_file_name(attachment),
             room_id_raw=str(self.direct_room.pk),
             user=self.owner,
         )
@@ -94,7 +103,7 @@ class MediaAccessServiceTests(TestCase):
     def test_resolve_attachment_media_access_allows_non_owner_direct_participant(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
         result = resolve_attachment_media_access(
-            normalized_path=attachment.file.name,
+            normalized_path=_attachment_file_name(attachment),
             room_id_raw=self.direct_room.pk,
             user=self.peer,
         )
@@ -103,7 +112,7 @@ class MediaAccessServiceTests(TestCase):
     def test_resolve_attachment_media_access_returns_guess_for_thumbnail(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
         result = resolve_attachment_media_access(
-            normalized_path=attachment.thumbnail.name,
+            normalized_path=_attachment_thumbnail_name(attachment),
             room_id_raw=self.direct_room.pk,
             user=self.owner,
         )
@@ -115,14 +124,14 @@ class MediaAccessServiceTests(TestCase):
 
         with self.assertRaises(MediaAccessNotFoundError):
             resolve_attachment_media_access(
-                normalized_path=attachment.file.name,
+                normalized_path=_attachment_file_name(attachment),
                 room_id_raw=self.direct_room.pk,
                 user=None,
             )
 
         with self.assertRaises(MediaAccessNotFoundError):
             resolve_attachment_media_access(
-                normalized_path=attachment.file.name,
+                normalized_path=_attachment_file_name(attachment),
                 room_id_raw=self.direct_room.pk,
                 user=self.outsider,
             )
@@ -136,7 +145,7 @@ class MediaAccessServiceTests(TestCase):
         attachment = self._attachment_for_room(public_room, author=self.owner)
 
         result = resolve_attachment_media_access(
-            normalized_path=attachment.file.name,
+            normalized_path=_attachment_file_name(attachment),
             room_id_raw=public_room.pk,
             user=self.outsider,
         )

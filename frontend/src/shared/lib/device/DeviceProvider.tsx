@@ -30,6 +30,12 @@ const bindMediaQuery = (
   return () => mediaQuery.removeListener?.(onChange);
 };
 
+/**
+ * Публикует в контекст актуальный снимок устройства и viewport.
+ *
+ * Провайдер слушает media query, resize и orientation changes, а затем
+ * обновляет `DeviceContext` только тогда, когда snapshot реально изменился.
+ */
 export function DeviceProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<DeviceSnapshot>(() =>
     readDeviceSnapshot(typeof window === "undefined" ? null : window),

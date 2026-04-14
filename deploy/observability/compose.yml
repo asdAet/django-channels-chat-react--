@@ -1,0 +1,168 @@
+services:
+  prometheus:
+    image: quay.io/prometheus/prometheus:v3.11.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-30d}"
+      - "--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-15GB}"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./deploy/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/observability/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      postgres-bootstrap:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  alertmanager:
+    build:
+      context: .
+      dockerfile: deploy/observability/alertmanager/Dockerfile
+    environment:
+      ALERTMANAGER_TELEGRAM_BOT_TOKEN: "${ALERTMANAGER_TELEGRAM_BOT_TOKEN:-}"
+      ALERTMANAGER_TELEGRAM_CHAT_ID: "${ALERTMANAGER_TELEGRAM_CHAT_ID:-}"
+    volumes:
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.4.2
+    environment:
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3000}"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "${GRAFANA_SERVE_FROM_SUB_PATH:-false}"
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/var/lib/grafana/dashboards/devils-resting-overview.json"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_COOKIE_SECURE: "${GRAFANA_COOKIE_SECURE:-false}"
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY: "${GRAFANA_HSTS_ENABLED:-false}"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    ports:
+      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/observability/grafana/unified-dashboard:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+      - alertmanager
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.7.1
+    command:
+      - "-config.file=/etc/loki/config.yml"
+    volumes:
+      - ./deploy/observability/loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.15.0
+    command:
+      - "run"
+      - "--server.http.listen-addr=0.0.0.0:12345"
+      - "--storage.path=/var/lib/alloy"
+      - "/etc/alloy/config.alloy"
+    volumes:
+      - ./deploy/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:v1.11.1
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host/root"
+      - '--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|host/.+)($$|/)'
+    read_only: true
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    restart: unless-stopped
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:0.56.2
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    restart: unless-stopped
+
+  blackbox_exporter:
+    image: quay.io/prometheus/blackbox-exporter:v0.28.0
+    command:
+      - "--config.file=/etc/blackbox_exporter/config.yml"
+    volumes:
+      - ./deploy/observability/blackbox/config.yml:/etc/blackbox_exporter/config.yml:ro
+    restart: unless-stopped
+
+  nginx_exporter:
+    image: nginx/nginx-prometheus-exporter:1.5.1
+    command:
+      - "--nginx.scrape-uri=http://nginx:8080/nginx_status"
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.82.0
+    command:
+      - "--redis.addr=redis://redis:6379"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  postgres-bootstrap:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-chatapp}"
+      POSTGRES_USER: "${POSTGRES_USER:-chatapp}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      POSTGRES_MONITORING_USER: "${POSTGRES_MONITORING_USER:-postgres_exporter}"
+      POSTGRES_MONITORING_PASSWORD: "${POSTGRES_MONITORING_PASSWORD:?set POSTGRES_MONITORING_PASSWORD in .env}"
+    command:
+      - "/bin/sh"
+      - "/bootstrap/bootstrap.sh"
+    volumes:
+      - ./deploy/observability/postgres/bootstrap.sh:/bootstrap/bootstrap.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+    environment:
+      DATA_SOURCE_URI: "postgres:5432/${POSTGRES_DB:-chatapp}?sslmode=disable"
+      DATA_SOURCE_USER: "${POSTGRES_MONITORING_USER:-postgres_exporter}"
+      DATA_SOURCE_PASS: "${POSTGRES_MONITORING_PASSWORD:?set POSTGRES_MONITORING_PASSWORD in .env}"
+    command:
+      - "--collector.long_running_transactions"
+      - "--collector.stat_statements"
+      - "--collector.stat_bgwriter"
+      - "--collector.process_idle"
+    depends_on:
+      postgres-bootstrap:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:
+  loki_data:
+  alloy_data:

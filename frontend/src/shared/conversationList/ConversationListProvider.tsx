@@ -102,6 +102,13 @@ const toRoomKey = (roomId: number | null | undefined): string =>
     ? String(Math.trunc(roomId))
     : "";
 
+/**
+ * Собирает и хранит состояние бокового списка диалогов и серверов.
+ *
+ * Провайдер объединяет данные из direct inbox, групп, публичной комнаты,
+ * presence и глобального поиска, чтобы sidebar и связанные виджеты работали
+ * с единым согласованным снимком состояния.
+ */
 export function ConversationListProvider({ user, ready, children }: Props) {
   const { items: directItems, unreadCounts } = useDirectInbox();
   const unreadOverrides = useUnreadOverrides();
@@ -375,6 +382,9 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   );
 }
 
+/**
+ * React-хук `useConversationList`.
+ */
 export function useConversationList() {
   return useContext(ConversationListCtx);
 }

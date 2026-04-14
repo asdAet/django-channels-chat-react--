@@ -279,6 +279,11 @@ function ImageLightboxFallback({
   );
 }
 
+/**
+ * React-компонент `ImageLightbox`.
+ *
+ * @param props Параметр `props` в формате `ImageLightboxProps`.
+ */
 export function ImageLightbox(props: ImageLightboxProps) {
   const { isMobileViewport } = useDevice();
   const mediaItems = useMemo<ImageLightboxMediaItem[]>(

@@ -405,11 +405,15 @@ const requestGoogleIdToken = async (
   });
 
 /**
- * Обрабатывает sign in with google.
- * @param clientId Идентификатор OAuth-клиента.
- * @returns Промис с данными, возвращаемыми этой функцией.
+ * Запускает клиентский сценарий входа через Google OAuth.
+ *
+ * Функция сама выбирает доступный механизм авторизации:
+ * сначала пробует popup OAuth2 для production-сценария, а при необходимости
+ * откатывается к Google Identity token flow.
+ *
+ * @param clientId Идентификатор Google OAuth-клиента, выданный для фронтенда.
+ * @returns Данные успешной авторизации, которые затем передаются на backend для обмена на сессию.
  */
-
 export const signInWithGoogle = async (
   clientId: string,
 ): Promise<GoogleOAuthSuccess> => {
@@ -421,7 +425,6 @@ export const signInWithGoogle = async (
   await loadGoogleIdentitySdk();
 
   const oauth2Api = getGoogleOauth2Api();
-  let oauth2Error: GoogleOAuthError | null = null;
   if (oauth2Api) {
     try {
       const accessToken = await requestGoogleAccessToken(
@@ -430,34 +433,33 @@ export const signInWithGoogle = async (
       );
       return { token: accessToken, tokenType: "accessToken" };
     } catch (error) {
-      oauth2Error =
+      const oauth2Error =
         error instanceof GoogleOAuthError
           ? error
           : new GoogleOAuthError(
               "oauth_request_failed",
               "Не удалось выполнить вход через Google.",
             );
-      if (oauth2Error.code === "oauth_popup_closed") {
-        throw oauth2Error;
-      }
+      throw oauth2Error;
     }
   }
 
   const idApi = getGoogleIdApi();
   if (!idApi) {
-    if (oauth2Error) {
-      throw oauth2Error;
-    }
     throw new GoogleOAuthError("oauth_sdk_unavailable", "Google OAuth SDK недоступен.");
   }
 
   try {
     const idToken = await requestGoogleIdToken(idApi, normalizedClientId);
     return { token: idToken, tokenType: "idToken" };
-  } catch (idError) {
-    if (oauth2Error) {
-      throw oauth2Error;
-    }
+  } catch (error) {
+    const idError =
+      error instanceof GoogleOAuthError
+        ? error
+        : new GoogleOAuthError(
+            "oauth_request_failed",
+            "Не удалось выполнить вход через Google.",
+          );
     throw idError;
   }
 };

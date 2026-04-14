@@ -394,12 +394,15 @@ export const buildUpdateProfileRequestDto = (
   );
 
 /**
- * Преобразует HTTP-данные для операции validate public username.
- * @param username Имя пользователя.
- * @returns Нормализованные данные после декодирования.
+ * Проверяет и нормализует публичный username перед отправкой в API.
+ *
+ * Функция использует ту же схему, что и сетевой контракт фронтенда:
+ * отбрасывает недопустимые значения и гарантирует строковый результат,
+ * пригодный для регистрации, профиля и поиска.
+ *
+ * @param username Строка, которую пользователь хочет использовать как публичный username.
+ * @returns Проверенный username в каноническом формате.
  */
-
 export const validatePublicUsername = (username: string): string =>
   decodeOrThrow(usernameLatinSchema, username, "auth/public-username");
-
 

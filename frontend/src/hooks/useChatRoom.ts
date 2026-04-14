@@ -66,6 +66,13 @@ const createInitialRoomState = (roomId: string): ChatRoomState => ({
   error: null,
 });
 
+/**
+ * React-хук `useChatRoom`.
+ *
+ * @param roomId Параметр `roomId` в формате `string`.
+ * @param user Параметр `user` в формате `UserProfileDto | null`.
+ * @param initialRoomKind Параметр `initialRoomKind` в формате `RoomKind | null`.
+ */
 export const useChatRoom = (
   roomId: string,
   user: UserProfileDto | null,

@@ -3,7 +3,7 @@
 SPA-клиент на `React + TypeScript + Vite` для `Devil Resting`.
 
 ## Что важно сейчас
-- Chat routing prefixless: вместо `/direct/*` и `/rooms/*` используется `/:target`
+- Chat routing prefixless: используется `/:target`
 - Канонические chat routes:
   - `/public`
   - `/@username`
@@ -11,7 +11,7 @@ SPA-клиент на `React + TypeScript + Vite` для `Devil Resting`.
   - `/<groupPublicRef>`
   - `/<groupPublicId>`
 - Внешний target сначала резолвится через `POST /api/chat/resolve/`, затем весь runtime работает по внутреннему `roomId`
-- Direct inbox использует `GET /api/chat/inbox/` и `ws://<host>/ws/inbox/`
+- Inbox диалогов использует `GET /api/chat/inbox/` и `ws://<host>/ws/inbox/`
 
 ## Локальный запуск
 ```bash

@@ -194,6 +194,10 @@ if ALLOW_LOCALHOST_DEV_ORIGINS:
         ALLOWED_HOSTS,
         ["localhost", "127.0.0.1", "[::1]", "host.docker.internal"],
     )
+ALLOWED_HOSTS = _extend_unique(
+    ALLOWED_HOSTS,
+    ["backend", "nginx"],
+)
 if not DEBUG and not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS должен быть задан в production.")
 
@@ -261,6 +265,7 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "chat_app_django.metrics_middleware.HttpMetricsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -470,6 +475,14 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", not DEBUG)
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
+SECURE_REDIRECT_EXEMPT = env_list(
+    "DJANGO_SECURE_REDIRECT_EXEMPT",
+    [
+        r"^api/health/live/$",
+        r"^api/health/ready/$",
+        r"^metrics/$",
+    ],
+)
 SECURE_CROSS_ORIGIN_OPENER_POLICY = (
     os.getenv("DJANGO_SECURE_COOP", "same-origin-allow-popups").strip()
     or "same-origin-allow-popups"
@@ -637,11 +650,18 @@ LOGGING = {
         "standard": {
             "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
         },
+        "message_only": {
+            "format": "%(message)s",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
+        },
+        "audit_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "message_only",
         },
     },
     "root": {
@@ -675,7 +695,7 @@ LOGGING = {
             "propagate": False,
         },
         "security.audit": {
-            "handlers": ["console"],
+            "handlers": ["audit_console"],
             "level": "INFO",
             "propagate": False,
         },

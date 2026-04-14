@@ -26,6 +26,12 @@ const normalizeUnreadCount = (value: number) => {
   return Math.max(0, Math.trunc(value));
 };
 
+/**
+ * Устанавливает локальный override unread-count для конкретной комнаты.
+ *
+ * Используется, когда UI уже знает новое число непрочитанных сообщений раньше,
+ * чем его подтвердит backend или WebSocket-ack.
+ */
 export const setUnreadOverride = ({ roomId, unreadCount }: UnreadOverride) => {
   const normalizedRoomId = roomId.trim();
   if (!normalizedRoomId) return;
@@ -46,6 +52,9 @@ export const setUnreadOverride = ({ roomId, unreadCount }: UnreadOverride) => {
   emit();
 };
 
+/**
+ * Удаляет локальный unread-override для комнаты и возвращает отображение к backend-данным.
+ */
 export const clearUnreadOverride = (roomId: string) => {
   const normalizedRoomId = roomId.trim();
   if (!normalizedRoomId) return;
@@ -54,6 +63,9 @@ export const clearUnreadOverride = (roomId: string) => {
   emit();
 };
 
+/**
+ * Полностью очищает все локальные unread-overrides.
+ */
 export const resetUnreadOverrides = () => {
   if (overrides.size === 0) return;
   overrides.clear();
@@ -70,5 +82,11 @@ const subscribe = (listener: Listener) => {
   };
 };
 
+/**
+ * Подписывает компонент на снапшот локальных unread-overrides.
+ *
+ * Хук построен на `useSyncExternalStore`, чтобы React корректно синхронизировал
+ * состояние unread badge с внешним in-memory store.
+ */
 export const useUnreadOverrides = () =>
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

@@ -23,6 +23,13 @@ const pickFirstNonEmpty = (
 };
 
 // Prefer a human label first, then fall back to a stable public ref or numeric id.
+/**
+ * Разрешает `resolve identity label`.
+ *
+ * @param identity Параметр `identity` в формате `IdentityLike`.
+ * @param fallback Контекст `fallback`.
+ * @returns Возвращает результат `resolve identity label` в формате `string`.
+ */
 export const resolveIdentityLabel = (
   identity: IdentityLike,
   fallback = "user",
@@ -35,6 +42,12 @@ export const resolveIdentityLabel = (
     identity.userId,
   ) ?? fallback;
 
+/**
+ * Разрешает `resolve identity handle`.
+ *
+ * @param identity Параметр `identity` в формате `IdentityLike`.
+ * @returns Возвращает результат `resolve identity handle` в формате `string | null`.
+ */
 export const resolveIdentityHandle = (
   identity: IdentityLike,
 ): string | null => {

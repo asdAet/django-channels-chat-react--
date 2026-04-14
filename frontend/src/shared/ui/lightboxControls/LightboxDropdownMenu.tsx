@@ -19,6 +19,12 @@ type Props = {
 const MENU_GAP_PX = 10;
 const VIEWPORT_PADDING_PX = 12;
 
+/**
+ * Показывает выпадающее меню действий lightbox рядом с кнопкой-источником.
+ *
+ * Компонент сам вычисляет позицию относительно viewport, закрывается по клику
+ * снаружи и по `Escape`, а выбор конкретного действия делегирует item-обработчикам.
+ */
 export function LightboxDropdownMenu({
   anchorRef,
   layout,

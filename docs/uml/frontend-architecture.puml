@@ -1,0 +1,151 @@
+@startuml
+title Devils Resting - Frontend Architecture
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam ArrowThickness 1.1
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam rectangle {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam package {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam component {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam note {
+  BorderColor #d7dee8
+  BackgroundColor #fbfcfe
+  FontColor #445066
+}
+
+actor "Browser User" as BrowserUser
+cloud "Backend\n/api + /ws" as Backend
+
+rectangle "Bootstrap" {
+  component "main.tsx" as Main
+  component "App\nBrowserRouter" as App
+  component "RuntimeConfigProvider\nDeviceProvider" as Runtime
+}
+
+rectangle "Shell & Providers" {
+  component "AppInner\nSEO + auth page orchestration" as AppInner
+  component "useAuth\nusePasswordRules" as AuthHooks
+  component "WsAuthProvider" as WsAuth
+  component "PresenceProvider" as Presence
+  component "DirectInboxProvider" as Inbox
+  component "AppShell" as Shell
+}
+
+rectangle "Navigation & Screens" {
+  component "AppRoutes" as Routes
+  component "Public Screens\nhome, login, register,\ninvite preview" as PublicScreens
+  component "User Screens\nprofile, settings,\nuser profile" as UserScreens
+  component "Social Screens\nfriends, groups" as SocialScreens
+  component "Chat Entry\nChatTargetPage" as ChatEntry
+  component "Chat Room\nChatRoomPage + view" as ChatRoom
+}
+
+rectangle "Feature Layer" {
+  component "Social Hooks\nuseFriends,\nuseGroupList,\nuseUserProfile" as SocialHooks
+  component "Chat Controller Hook\nuseChatRoomPageController" as ChatFeature
+  component "Chat Realtime + Read State\nrealtime, composer,\npermissions, view model" as ChatRealtime
+  component "Shared Reconnecting WebSocket" as ReconnectWs
+}
+
+rectangle "Data Access" {
+  component "Feature Controllers\nAuth, Chat, Friends,\nGroup, Roles" as Controllers
+  component "ApiService\nAxios + request modules" as ApiService
+  component "DTO Layer\nparsers + decoders" as DtoLayer
+  component "Client Cache\nconversation list,\nunread overrides" as CacheLayer
+}
+
+Main -[hidden]down-> App
+App -[hidden]down-> Runtime
+AppInner -[hidden]right-> AuthHooks
+AuthHooks -[hidden]right-> WsAuth
+WsAuth -[hidden]right-> Presence
+Presence -[hidden]right-> Inbox
+Inbox -[hidden]right-> Shell
+PublicScreens -[hidden]right-> UserScreens
+UserScreens -[hidden]right-> SocialScreens
+SocialScreens -[hidden]right-> ChatEntry
+ChatEntry -[hidden]right-> ChatRoom
+SocialHooks -[hidden]right-> ChatFeature
+ChatFeature -[hidden]right-> ChatRealtime
+Controllers -[hidden]right-> ApiService
+ApiService -[hidden]right-> DtoLayer
+DtoLayer -[hidden]right-> CacheLayer
+
+BrowserUser --> Main
+Main --> App
+App --> Runtime
+Runtime --> AppInner
+
+AppInner --> AuthHooks
+AppInner --> WsAuth
+WsAuth --> Presence
+Presence --> Inbox
+Inbox --> Shell
+AppInner --> Routes
+Shell --> Routes
+
+Routes --> PublicScreens
+Routes --> UserScreens
+Routes --> SocialScreens
+Routes --> ChatEntry
+
+SocialScreens --> SocialHooks
+ChatEntry --> Controllers : resolveChatTarget
+ChatEntry --> ChatRoom : roomId resolved
+ChatRoom --> ChatFeature
+ChatFeature --> ChatRealtime
+
+AuthHooks --> Controllers
+SocialHooks --> Controllers
+ChatFeature --> Controllers
+Presence --> ReconnectWs
+Inbox --> ReconnectWs
+ChatRealtime --> ReconnectWs
+
+Controllers --> ApiService
+ApiService --> DtoLayer
+AuthHooks --> CacheLayer
+Inbox --> CacheLayer
+Shell --> CacheLayer
+
+ApiService --> Backend : HTTP
+ReconnectWs --> Backend : WS
+DtoLayer ..> ReconnectWs : event decoding
+
+note right of Routes
+Canonical chat navigation:
+/:target
+  -> resolveChatTarget()
+  -> roomId
+  -> ChatRoomPage
+end note
+
+note right of ChatRealtime
+The chat room feature combines:
+- realtime socket state
+- typing and read markers
+- composer and uploads
+- permissions and presentation
+end note
+@enduml

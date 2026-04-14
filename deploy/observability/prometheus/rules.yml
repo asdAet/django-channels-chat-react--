@@ -1,0 +1,231 @@
+groups:
+  - name: devils-recording
+    interval: 30s
+    rules:
+      - record: devils:http_requests:rate5m
+        expr: sum(rate(devils_http_requests_total[5m]))
+
+      - record: devils:http_request_latency:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(devils_http_request_duration_seconds_bucket[5m])))
+
+      - record: devils:ws_open_connections
+        expr: sum(devils_ws_open_connections)
+
+      - record: devils:chat_messages:rate5m
+        expr: sum(rate(devils_chat_messages_created_total[5m]))
+
+      - record: devils:accounts_created:rate1h
+        expr: sum(rate(devils_accounts_created_total[1h]))
+
+      - record: devils:ws_connect_rejects:rate5m
+        expr: sum(rate(devils_ws_connect_total{result="rejected"}[5m]))
+
+      - record: devils:chat_message_rejects:rate5m
+        expr: sum(rate(devils_chat_message_rejected_total[5m]))
+
+      - record: devils:site_online_users
+        expr: sum by (kind) (devils_site_online_users)
+
+  - name: devils-alerts
+    rules:
+      - alert: BackendMetricsDown
+        expr: up{job="backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Метрики backend недоступны"
+          description: "Prometheus не может опрашивать backend:8000/metrics/ дольше 2 минут."
+
+      # Оставлены только важные продовые алерты. Шумные предупреждения ниже
+      # временно отключены, чтобы бот слал только сообщения про реальные аварии.
+      # - alert: NginxExporterDown
+      #   expr: up{job="nginx_exporter"} == 0
+      #   for: 2m
+      #   labels:
+      #     severity: critical
+      #     service: edge
+      #   annotations:
+      #     summary: "Экспортер Nginx недоступен"
+      #     description: "Prometheus не может получать метрики из Nginx exporter дольше 2 минут."
+
+      # - alert: PostgresExporterDown
+      #   expr: up{job="postgres_exporter"} == 0
+      #   for: 2m
+      #   labels:
+      #     severity: critical
+      #     service: postgres
+      #   annotations:
+      #     summary: "Экспортер PostgreSQL недоступен"
+      #     description: "Prometheus не может успешно опрашивать PostgreSQL exporter дольше 2 минут."
+
+      # - alert: RedisExporterDown
+      #   expr: up{job="redis_exporter"} == 0
+      #   for: 2m
+      #   labels:
+      #     severity: critical
+      #     service: redis
+      #   annotations:
+      #     summary: "Экспортер Redis недоступен"
+      #     description: "Prometheus не может успешно опрашивать Redis exporter дольше 2 минут."
+
+      # - alert: NodeExporterDown
+      #   expr: up{job="node_exporter"} == 0
+      #   for: 2m
+      #   labels:
+      #     severity: critical
+      #     service: host
+      #   annotations:
+      #     summary: "Экспортер метрик хоста недоступен"
+      #     description: "Метрики хоста недоступны дольше 2 минут."
+
+      # - alert: CadvisorDown
+      #   expr: up{job="cadvisor"} == 0
+      #   for: 2m
+      #   labels:
+      #     severity: critical
+      #     service: containers
+      #   annotations:
+      #     summary: "cAdvisor недоступен"
+      #     description: "Метрики контейнеров недоступны дольше 2 минут."
+
+      - alert: BlackboxProbeFailed
+        expr: probe_success{job="blackbox_https"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: edge
+        annotations:
+          summary: "Проверка HTTPS не проходит"
+          description: "Blackbox не может успешно проверить {{ $labels.instance }} дольше 2 минут."
+
+      # - alert: HighHttpP95Latency
+      #   expr: devils:http_request_latency:p95_5m > 1
+      #   for: 10m
+      #   labels:
+      #     severity: warning
+      #     service: backend
+      #   annotations:
+      #     summary: "Высокая p95 задержка HTTP"
+      #     description: "p95 HTTP-задержка держится выше 1 секунды дольше 10 минут."
+
+      - alert: Api5xxSpike
+        expr: sum(rate(devils_http_requests_total{route=~"/api/.*", status_class="5xx"}[5m])) / clamp_min(sum(rate(devils_http_requests_total{route=~"/api/.*"}[5m])), 0.1) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "Повышена доля API-ошибок 5xx"
+          description: "Более 5% API-запросов возвращают 5xx за последние 5 минут."
+
+      # - alert: RedisEvictionsDetected
+      #   expr: rate(redis_evicted_keys_total[5m]) > 0
+      #   for: 10m
+      #   labels:
+      #     severity: warning
+      #     service: redis
+      #   annotations:
+      #     summary: "Redis вытесняет ключи"
+      #     description: "В Redis происходят eviction-операции дольше 10 минут."
+
+      # - alert: RedisBlockedClients
+      #   expr: redis_blocked_clients > 0
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #     service: redis
+      #   annotations:
+      #     summary: "В Redis есть заблокированные клиенты"
+      #     description: "Количество blocked clients в Redis остается больше нуля дольше 5 минут."
+
+      - alert: PostgresUnavailable
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "PostgreSQL недоступен"
+          description: "postgres_exporter сообщает pg_up == 0 дольше 2 минут."
+
+      - alert: PostgresDeadlocksDetected
+        expr: increase(pg_stat_database_deadlocks[10m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: postgres
+        annotations:
+          summary: "Обнаружены deadlock в PostgreSQL"
+          description: "За последние 10 минут в PostgreSQL были зафиксированы deadlock."
+
+      # - alert: PostgresLongTransactions
+      #   expr: pg_stat_activity_max_tx_duration > 300
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #     service: postgres
+      #   annotations:
+      #     summary: "Долгая транзакция PostgreSQL"
+      #     description: "Одна из транзакций PostgreSQL открыта дольше 5 минут."
+
+      - alert: HostDiskSpaceLow
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} < 0.10
+        for: 15m
+        labels:
+          severity: critical
+          service: host
+        annotations:
+          summary: "На хосте мало места на диске"
+          description: "На файловой системе {{ $labels.mountpoint }} осталось меньше 10% свободного места."
+
+      # - alert: HostMemoryPressure
+      #   expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+      #   for: 10m
+      #   labels:
+      #     severity: warning
+      #     service: host
+      #   annotations:
+      #     summary: "На хосте сильное давление по памяти"
+      #     description: "Доля доступной памяти ниже 10% дольше 10 минут."
+
+      # - alert: HostInodesLow
+      #   expr: node_filesystem_files_free{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} / node_filesystem_files{fstype!~"tmpfs|overlay",mountpoint!~"/run.*"} < 0.10
+      #   for: 15m
+      #   labels:
+      #     severity: warning
+      #     service: host
+      #   annotations:
+      #     summary: "На хосте заканчиваются inode"
+      #     description: "На файловой системе {{ $labels.mountpoint }} осталось меньше 10% свободных inode."
+
+      # - alert: ContainerRestartSpike
+      #   expr: sum(changes(container_start_time_seconds{name!=""}[15m])) > 3
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #     service: containers
+      #   annotations:
+      #     summary: "Обнаружен всплеск перезапусков контейнеров"
+      #     description: "За последние 15 минут зафиксировано больше 3 перезапусков контейнеров."
+
+      # - alert: WebSocketConnectFailureSpike
+      #   expr: sum(rate(devils_ws_connect_total{result="rejected"}[5m])) > 1
+      #   for: 10m
+      #   labels:
+      #     severity: warning
+      #     service: websocket
+      #   annotations:
+      #     summary: "Увеличилось число отказов WebSocket-подключений"
+      #     description: "Число отклоненных WebSocket-подключений превышает 1 запрос в секунду за последние 5 минут."
+
+      # - alert: ChatMessageRejectSpike
+      #   expr: sum(rate(devils_chat_message_rejected_total[5m])) > 0.5
+      #   for: 10m
+      #   labels:
+      #     severity: warning
+      #     service: chat
+      #   annotations:
+      #     summary: "Увеличилось число отклоненных сообщений чата"
+      #     description: "Число отклоненных отправок в чат превышает 0.5 запроса в секунду за последние 5 минут."

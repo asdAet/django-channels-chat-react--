@@ -53,13 +53,13 @@ class RoleAdmin(admin.ModelAdmin):
 
     @admin.display(description="Permission flags")
     def permission_flags(self, obj: Role) -> str:
-        """Формирует значение permission flags для отображения в админ-панели.
-        
+        """Возвращает активные permission-флаги роли для колонки Django Admin.
+
         Args:
-            obj: Параметр obj, используемый в логике функции.
-        
+            obj: Роль, для которой нужно показать установленную битовую маску в человекочитаемом виде.
+
         Returns:
-            Строковое значение, сформированное функцией.
+            Строка с перечислением включенных permission-флагов или `-`, если права не заданы.
         """
         return _permission_flags(int(obj.permissions))
 
@@ -76,13 +76,13 @@ class MembershipAdmin(admin.ModelAdmin):
 
     @admin.display(description="Roles")
     def role_names(self, obj: Membership) -> str:
-        """Формирует значение role names для отображения в админ-панели.
-        
+        """Возвращает роли участника комнаты в человекочитаемом виде для Django Admin.
+
         Args:
-            obj: Параметр obj, используемый в логике функции.
-        
+            obj: Membership, для которого нужно отрисовать список назначенных ролей.
+
         Returns:
-            Строковое значение, сформированное функцией.
+            Строка с названиями ролей в порядке приоритета либо `@everyone only`, если дополнительных ролей нет.
         """
         names = list(obj.roles.order_by("-position", "name").values_list("name", flat=True))
         return ", ".join(names) if names else "@everyone only"
@@ -107,24 +107,24 @@ class PermissionOverrideAdmin(admin.ModelAdmin):
 
     @admin.display(description="Allow flags")
     def allow_flags(self, obj: PermissionOverride) -> str:
-        """Формирует значение allow flags для отображения в админ-панели.
-        
+        """Возвращает разрешающие override-флаги в виде строки для Django Admin.
+
         Args:
-            obj: Параметр obj, используемый в логике функции.
-        
+            obj: PermissionOverride, для которого показываются разрешающие биты.
+
         Returns:
-            Строковое значение, сформированное функцией.
+            Строка с перечислением разрешающих permission-флагов.
         """
         return _permission_flags(int(obj.allow))
 
     @admin.display(description="Deny flags")
     def deny_flags(self, obj: PermissionOverride) -> str:
-        """Формирует значение deny flags для отображения в админ-панели.
-        
+        """Возвращает запрещающие override-флаги в виде строки для Django Admin.
+
         Args:
-            obj: Параметр obj, используемый в логике функции.
-        
+            obj: PermissionOverride, для которого показываются запрещающие биты.
+
         Returns:
-            Строковое значение, сформированное функцией.
+            Строка с перечислением запрещающих permission-флагов.
         """
         return _permission_flags(int(obj.deny))

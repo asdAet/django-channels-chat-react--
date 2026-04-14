@@ -7,6 +7,9 @@ import {
   ChevronRightIcon,
 } from "./lightboxControls/LightboxIcons";
 
+/**
+ * Функция `ImageLightboxDesktopView`.
+ */
 export default function ImageLightboxDesktopView({
   chrome,
   currentItem,

@@ -6,8 +6,9 @@ import math
 import mimetypes
 import os
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from django.conf import settings
@@ -15,6 +16,7 @@ from django.core.files import File
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import transaction
+from django.db.models.fields.files import FieldFile
 from django.utils import timezone
 
 from messages.models import Message, MessageAttachment, MessageAttachmentUpload
@@ -58,6 +60,19 @@ class AttachmentUploadError(Exception):
 
     def __str__(self) -> str:
         return self.message
+
+
+def _require_stored_file_name(field_file: FieldFile, *, field_name: str) -> str:
+    """Returns a persisted file name or raises a server-side invariant error."""
+
+    file_name = field_file.name
+    if not isinstance(file_name, str) or not file_name:
+        raise AttachmentUploadError(
+            message=f"{field_name} is missing a stored file name",
+            code="attachment_storage_invariant",
+            status_code=500,
+        )
+    return file_name
 
 
 def sanitize_attachment_filename(original_filename: str | None) -> str:
@@ -171,7 +186,7 @@ def pick_attachment_chunk_size(file_size: int) -> int:
     return min(bounded_max_chunk, max(min_chunk_size, rounded))
 
 
-def build_attachment_upload_expiration() -> timezone.datetime:
+def build_attachment_upload_expiration() -> datetime:
     """Returns the next upload-session expiration timestamp."""
 
     ttl_seconds = int(getattr(settings, "CHAT_ATTACHMENT_UPLOAD_TTL_SECONDS", 21600))
@@ -452,7 +467,7 @@ def _materialize_attachment_file(
         target_name,
     ):
         attachment.file.name = target_name
-        attachment.file._committed = True
+        setattr(attachment.file, "_committed", True)
         return True
 
     with default_storage.open(upload.storage_name, "rb") as source_file:
@@ -501,7 +516,7 @@ def finalize_attachment_uploads(
     moved_uploads: list[tuple[MessageAttachmentUpload, object, str]] = []
     temp_storage_names: list[str] = []
 
-    with transaction.atomic():
+    with cast(Any, transaction.atomic)():
         uploads = list(
             MessageAttachmentUpload.objects.select_for_update()
             .filter(pk__in=upload_ids, room=room)
@@ -570,19 +585,23 @@ def finalize_attachment_uploads(
                     file_size=upload.file_size,
                 )
                 upload_blob_consumed = _materialize_attachment_file(attachment, upload)
+                stored_file_name = _require_stored_file_name(
+                    attachment.file,
+                    field_name="attachment.file",
+                )
                 if upload_blob_consumed:
                     moved_uploads.append(
                         (
                             upload,
                             attachment.file.storage,
-                            attachment.file.name,
+                            stored_file_name,
                         )
                     )
                 else:
                     created_files.append(
                         (
                             attachment.file.storage,
-                            attachment.file.name,
+                            stored_file_name,
                             0,
                             "file",
                         )
@@ -596,10 +615,14 @@ def finalize_attachment_uploads(
                         attachment.width = thumb_info.get("width")
                         attachment.height = thumb_info.get("height")
                         attachment.save(update_fields=["thumbnail", "width", "height"])
+                        thumbnail_name = _require_stored_file_name(
+                            attachment.thumbnail,
+                            field_name="attachment.thumbnail",
+                        )
                         created_files.append(
                             (
                                 attachment.thumbnail.storage,
-                                attachment.thumbnail.name,
+                                thumbnail_name,
                                 attachment.pk,
                                 "thumbnail",
                             )

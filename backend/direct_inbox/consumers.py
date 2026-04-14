@@ -12,6 +12,13 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 
 from chat_app_django.ip_utils import get_client_ip_from_scope
+from chat_app_django.metrics import (
+    dec_ws_open_connection,
+    inc_ws_open_connection,
+    normalize_ws_auth_state,
+    observe_ws_connect,
+    observe_ws_event,
+)
 from chat_app_django.security.audit import audit_ws_event
 from chat_app_django.security.rate_limit import DbRateLimiter
 from chat_app_django.security.rate_limit_config import (
@@ -75,12 +82,29 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Устанавливает соединение и выполняет проверки доступа."""
         user = self.scope.get("user")
+        self._metrics_connected = False
+        self._metrics_auth_state = normalize_ws_auth_state(user)
+        self._metrics_room_kind = "none"
         if not user or not user.is_authenticated:
+            observe_ws_connect(
+                "direct_inbox",
+                auth_state=self._metrics_auth_state,
+                room_kind=self._metrics_room_kind,
+                result="rejected",
+                reason="unauthorized",
+            )
             audit_ws_event("ws.connect.denied", self.scope, endpoint="direct_inbox", reason="unauthorized", code=4401)
             await self.close(code=4401)
             return
 
         if await _to_async(_ws_connect_rate_limited)(self.scope, "direct_inbox"):
+            observe_ws_connect(
+                "direct_inbox",
+                auth_state=self._metrics_auth_state,
+                room_kind=self._metrics_room_kind,
+                result="rejected",
+                reason="rate_limited",
+            )
             audit_ws_event("ws.connect.denied", self.scope, endpoint="direct_inbox", reason="rate_limited", code=4429)
             await self.close(code=4429)
             return
@@ -91,6 +115,18 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+        self._metrics_connected = True
+        observe_ws_connect(
+            "direct_inbox",
+            auth_state=self._metrics_auth_state,
+            room_kind=self._metrics_room_kind,
+            result="accepted",
+        )
+        inc_ws_open_connection(
+            "direct_inbox",
+            auth_state=self._metrics_auth_state,
+            room_kind=self._metrics_room_kind,
+        )
         audit_ws_event("ws.connect.accepted", self.scope, endpoint="direct_inbox")
 
         self._last_client_activity = time.monotonic()
@@ -123,6 +159,13 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
 
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        if getattr(self, "_metrics_connected", False):
+            dec_ws_open_connection(
+                "direct_inbox",
+                auth_state=self._metrics_auth_state,
+                room_kind=self._metrics_room_kind,
+            )
+            observe_ws_event("direct_inbox", event_type="disconnect", result="accepted")
         audit_ws_event("ws.disconnect", self.scope, endpoint="direct_inbox", code=code)
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -139,11 +182,13 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
         try:
             payload = json.loads(text_data)
         except json.JSONDecodeError:
+            observe_ws_event("direct_inbox", event_type="receive", result="rejected")
             audit_ws_event("ws.direct_inbox.rejected", self.scope, endpoint="direct_inbox", reason="invalid_json")
             return
 
         event_type = payload.get("type")
         if event_type == "ping":
+            observe_ws_event("direct_inbox", event_type="ping", result="accepted")
             await self._touch_active_room()
             return
 
@@ -151,6 +196,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             raw_room_id = payload.get("roomId")
             if raw_room_id is None:
                 await self._clear_active_room(conn_only=True)
+                observe_ws_event("direct_inbox", event_type="set_active_room", result="accepted")
                 audit_ws_event(
                     "ws.direct_inbox.set_active_room.success",
                     self.scope,
@@ -162,6 +208,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             try:
                 room_id = int(raw_room_id)
             except (TypeError, ValueError):
+                observe_ws_event("direct_inbox", event_type="set_active_room", result="rejected")
                 audit_ws_event(
                     "ws.direct_inbox.set_active_room.rejected",
                     self.scope,
@@ -172,6 +219,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                 return
 
             if room_id <= 0:
+                observe_ws_event("direct_inbox", event_type="set_active_room", result="rejected")
                 audit_ws_event(
                     "ws.direct_inbox.set_active_room.rejected",
                     self.scope,
@@ -184,6 +232,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
 
             room = await self._load_room(room_id)
             if not room or room.kind != Room.Kind.DIRECT or not await self._can_read(room):
+                observe_ws_event("direct_inbox", event_type="set_active_room", result="rejected")
                 audit_ws_event(
                     "ws.direct_inbox.set_active_room.rejected",
                     self.scope,
@@ -195,6 +244,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                 return
 
             await self._set_active_room(room_id)
+            observe_ws_event("direct_inbox", event_type="set_active_room", result="accepted")
             audit_ws_event(
                 "ws.direct_inbox.set_active_room.success",
                 self.scope,
@@ -208,6 +258,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             try:
                 room_id = int(raw_room_id)
             except (TypeError, ValueError):
+                observe_ws_event("direct_inbox", event_type="mark_read", result="rejected")
                 audit_ws_event(
                     "ws.direct_inbox.mark_read.rejected",
                     self.scope,
@@ -218,6 +269,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                 return
 
             if room_id <= 0:
+                observe_ws_event("direct_inbox", event_type="mark_read", result="rejected")
                 audit_ws_event(
                     "ws.direct_inbox.mark_read.rejected",
                     self.scope,
@@ -230,6 +282,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
 
             room = await self._load_room(room_id)
             if not room or room.kind != Room.Kind.DIRECT or not await self._can_read(room):
+                observe_ws_event("direct_inbox", event_type="mark_read", result="rejected")
                 audit_ws_event(
                     "ws.direct_inbox.mark_read.rejected",
                     self.scope,
@@ -241,6 +294,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                 return
 
             unread = await self._mark_read(room_id)
+            observe_ws_event("direct_inbox", event_type="mark_read", result="accepted")
             audit_ws_event(
                 "ws.direct_inbox.mark_read.success",
                 self.scope,
@@ -258,6 +312,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             )
             return
 
+        observe_ws_event("direct_inbox", event_type="receive", result="rejected")
         audit_ws_event(
             "ws.direct_inbox.rejected",
             self.scope,

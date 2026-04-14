@@ -1,8 +1,10 @@
-﻿import { encodeSwCacheMessage, type SwCacheMessage } from "../../dto";
+import { encodeSwCacheMessage, type SwCacheMessage } from "../../dto";
 
 /**
- * Обрабатывает post message.
- * @param message Сообщение, которое нужно обработать.
+ * Отправляет service worker команду управления API-кэшем. Если контроллер еще не захватил
+ * страницу, сообщение уходит в активный worker после `navigator.serviceWorker.ready`.
+ *
+ * @param message Команда инвалидации или очистки кэша в формате `SwCacheMessage`.
  */
 const postMessage = (message: SwCacheMessage): void => {
   if (typeof navigator === "undefined") return;
@@ -23,21 +25,21 @@ const postMessage = (message: SwCacheMessage): void => {
 };
 
 /**
- * Обрабатывает invalidate room messages.
- * @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
+ * Инвалидирует кэш сообщений конкретной комнаты, чтобы следующий запрос забрал свежую историю.
+ *
+ * @param roomRef Публичный идентификатор комнаты или строковый `roomId`.
  */
-
-export const invalidateRoomMessages = (roomRef: string) => {
+export const invalidateRoomMessages = (roomRef: string): void => {
   if (!roomRef) return;
   postMessage({ type: "invalidate", key: "roomMessages", roomRef });
 };
 
 /**
- * Обрабатывает invalidate room details.
- * @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
+ * Инвалидирует кэш сведений о комнате, например после смены названия или состава участников.
+ *
+ * @param roomRef Публичный идентификатор комнаты или строковый `roomId`.
  */
-
-export const invalidateRoomDetails = (roomRef: string) => {
+export const invalidateRoomDetails = (roomRef: string): void => {
   if (!roomRef) return;
   postMessage({ type: "invalidate", key: "roomDetails", roomRef });
 };
@@ -45,33 +47,31 @@ export const invalidateRoomDetails = (roomRef: string) => {
 /**
  * Инвалидирует кэш списка direct-чатов.
  */
-
-export const invalidateDirectChats = () => {
+export const invalidateDirectChats = (): void => {
   postMessage({ type: "invalidate", key: "directChats" });
 };
 
 /**
- * Инвалидирует кэш публичного профиля пользователя.
- * @param publicRef Публичный идентификатор пользователя или комнаты.
+ * Инвалидирует кэш публичного профиля пользователя после обновления карточки или аватара.
+ *
+ * @param publicRef Публичный идентификатор пользователя.
  */
-
-export const invalidateUserProfile = (publicRef: string) => {
+export const invalidateUserProfile = (publicRef: string): void => {
   if (!publicRef) return;
   postMessage({ type: "invalidate", key: "userProfile", publicRef });
 };
 
 /**
- * Инвалидирует кэш собственного профиля.
+ * Инвалидирует кэш собственного профиля текущего пользователя.
  */
-
-export const invalidateSelfProfile = () => {
+export const invalidateSelfProfile = (): void => {
   postMessage({ type: "invalidate", key: "selfProfile" });
 };
 
 /**
- * Очищает все пользовательские API-кэши.
+ * Полностью очищает пользовательские API-кэши, когда локальное состояние больше нельзя
+ * считать достоверным, например после logout.
  */
-
-export const clearAllUserCaches = () => {
+export const clearAllUserCaches = (): void => {
   postMessage({ type: "clearUserCaches" });
 };

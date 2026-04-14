@@ -7,6 +7,9 @@ import {
   ChevronRightIcon,
 } from "./lightboxControls/LightboxIcons";
 
+/**
+ * Функция `ImageLightboxMobileView`.
+ */
 export default function ImageLightboxMobileView({
   chrome,
   mediaItems,

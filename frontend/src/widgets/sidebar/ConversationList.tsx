@@ -32,6 +32,12 @@ const TAB_LABELS: { key: FilterTab; label: string }[] = [
   { key: "groups", label: "Группы" },
 ];
 
+/**
+ * Отрисовывает список диалогов и результаты глобального поиска в боковой панели.
+ *
+ * В обычном режиме показывает conversation list по выбранному фильтру,
+ * а при активном поиске переключается на секции пользователей, групп и сообщений.
+ */
 export function ConversationList({ onNavigate }: Props) {
   const {
     items,

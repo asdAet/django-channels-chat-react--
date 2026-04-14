@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Devils Resting UML</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111418;
+        --panel: #1a1f26;
+        --border: #2c3440;
+        --text: #ecf2f8;
+        --muted: #a9b5c3;
+        --link: #7cc4ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 32px;
+      }
+
+      p {
+        margin: 0 0 24px;
+        color: var(--muted);
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 0 0 24px;
+      }
+
+      nav a {
+        color: var(--link);
+        text-decoration: none;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        border-radius: 6px;
+      }
+
+      section {
+        margin: 0 0 28px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        border-radius: 6px;
+      }
+
+      h2 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+
+      .meta {
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .meta a {
+        color: var(--link);
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Devils Resting UML</h1>
+      <p>Готовые визуальные диаграммы проекта в формате SVG.</p>
+
+      <nav>
+        <a href="#backend-architecture">Backend Architecture</a>
+        <a href="#backend-domain-model">Backend Domain Model</a>
+        <a href="#frontend-architecture">Frontend Architecture</a>
+        <a href="#use-cases">Use Cases</a>
+        <a href="#state-chat-session">State Chat Session</a>
+        <a href="#state-message-lifecycle">State Message Lifecycle</a>
+      </nav>
+
+      <section id="backend-architecture">
+        <h2>Backend Architecture</h2>
+        <div class="meta">
+          <a href="./rendered/backend-architecture.svg">Open SVG</a> |
+          <a href="./backend-architecture.puml">Open source</a>
+        </div>
+        <img
+          src="./rendered/backend-architecture.svg"
+          alt="Backend architecture diagram"
+        />
+      </section>
+
+      <section id="backend-domain-model">
+        <h2>Backend Domain Model</h2>
+        <div class="meta">
+          <a href="./rendered/backend-domain-model.svg">Open SVG</a> |
+          <a href="./backend-domain-model.puml">Open source</a>
+        </div>
+        <img
+          src="./rendered/backend-domain-model.svg"
+          alt="Backend domain model diagram"
+        />
+      </section>
+
+      <section id="frontend-architecture">
+        <h2>Frontend Architecture</h2>
+        <div class="meta">
+          <a href="./rendered/frontend-architecture.svg">Open SVG</a> |
+          <a href="./frontend-architecture.puml">Open source</a>
+        </div>
+        <img
+          src="./rendered/frontend-architecture.svg"
+          alt="Frontend architecture diagram"
+        />
+      </section>
+
+      <section id="use-cases">
+        <h2>Use Cases</h2>
+        <div class="meta">
+          <a href="./rendered/use-cases.svg">Open SVG</a> |
+          <a href="./use-cases.puml">Open source</a>
+        </div>
+        <img src="./rendered/use-cases.svg" alt="Use case diagram" />
+      </section>
+
+      <section id="state-chat-session">
+        <h2>State Chat Session</h2>
+        <div class="meta">
+          <a href="./rendered/state-chat-session.svg">Open SVG</a> |
+          <a href="./state-chat-session.puml">Open source</a>
+        </div>
+        <img
+          src="./rendered/state-chat-session.svg"
+          alt="Chat session state diagram"
+        />
+      </section>
+
+      <section id="state-message-lifecycle">
+        <h2>State Message Lifecycle</h2>
+        <div class="meta">
+          <a href="./rendered/state-message-lifecycle.svg">Open SVG</a> |
+          <a href="./state-message-lifecycle.puml">Open source</a>
+        </div>
+        <img
+          src="./rendered/state-message-lifecycle.svg"
+          alt="Message lifecycle state diagram"
+        />
+      </section>
+    </main>
+  </body>
+</html>

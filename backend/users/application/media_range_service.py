@@ -24,6 +24,7 @@ class ByteRange:
 
     @property
     def length(self) -> int:
+        """Возвращает длину выбранного диапазона в байтах."""
         return self.end - self.start + 1
 
 

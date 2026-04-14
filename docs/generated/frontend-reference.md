@@ -1,2865 +1,6477 @@
-# Frontend Reference
+﻿# Справочник Frontend
 
-Generated: 2026-03-22T02:06:48Z
+Сгенерировано: 2026-04-09T17:14:03Z
 
-Total modules: 257
+Всего модулей: 258
 
 ## `frontend/src/adapters/apiService/acceptFriendRequest.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function acceptFriendRequest( apiClient: AxiosInstance, friendshipId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции accept friend request. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param friendshipId Идентификатор связи дружбы. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function acceptFriendRequest( apiClient: AxiosInstance, friendshipId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `acceptFriendRequest`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `friendshipId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор связи дружбы.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `accept friend request`.
 
 ## `frontend/src/adapters/apiService/addReaction.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function addReaction( apiClient: AxiosInstance, roomId: string, messageId: number, emoji: string, ): Promise<ReactionResult> {`
-  - Р”РѕР±Р°РІР»СЏРµС‚ reaction. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param messageId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃРѕРѕР±С‰РµРЅРёСЏ. @param emoji Р­РјРѕРґР·Рё СЂРµР°РєС†РёРё. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function addReaction( apiClient: AxiosInstance, roomId: string, messageId: number, emoji: string, ): Promise<ReactionResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `addReaction`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `messageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `messageId` в формате `number`.
+  - `emoji`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `emoji` в формате `string`.
+- Возвращает: `Promise<ReactionResult>`
+  - Описание: Промис с результатом операции в формате `ReactionResult`.
 
 ## `frontend/src/adapters/apiService/approveJoinRequest.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function approveJoinRequest( apiClient: AxiosInstance, roomId: string, requestId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции approve join request. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param requestId Идентификатор заявки. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function approveJoinRequest( apiClient: AxiosInstance, roomId: string, requestId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `approveJoinRequest`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `requestId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор заявки.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `approve join request`.
 
 ## `frontend/src/adapters/apiService/banMember.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function banMember( apiClient: AxiosInstance, roomId: string, userId: number, reason?: string, ): Promise<void> {`
-  - Выполняет API-запрос для операции ban member. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @param reason Причина административного действия. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function banMember( apiClient: AxiosInstance, roomId: string, userId: number, reason?: string, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `banMember`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+  - `reason`
+    - Формат: `string`
+    - Вид: необязательный
+    - Описание: Причина административного действия.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `ban member`.
 
 ## `frontend/src/adapters/apiService/blockUser.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function blockUser( apiClient: AxiosInstance, publicRef: string, ): Promise<void> {`
-  - Выполняет API-запрос для операции block user. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param publicRef Публичный идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function blockUser( apiClient: AxiosInstance, publicRef: string, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `blockUser`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `publicRef`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный идентификатор пользователя.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `block user`.
 
 ## `frontend/src/adapters/apiService/cancelOutgoingFriendRequest.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function cancelOutgoingFriendRequest( apiClient: AxiosInstance, friendshipId: number, ): Promise<void> {`
-  - Проверяет условие cancel outgoing friend request. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param friendshipId Идентификатор связи дружбы. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function cancelOutgoingFriendRequest( apiClient: AxiosInstance, friendshipId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `cancelOutgoingFriendRequest`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `friendshipId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор связи дружбы.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `cancel outgoing friend request`.
 
 ## `frontend/src/adapters/apiService/createGroup.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function createGroup( apiClient: AxiosInstance, data: { name: string; description?: string; isPublic?: boolean; username?: string | null; }, ): Promise<Group> {`
-  - Асинхронно создаёт группы. @param apiClient HTTP-клиент для выполнения API-запросов. @param data Данные запроса или полезная нагрузка операции. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function createGroup( apiClient: AxiosInstance, data: { name: string; description?: string; isPublic?: boolean; username?: string | null; }, ): Promise<Group> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно создаёт группы.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `data`
+    - Формат: `{ name: string; description?: string; isPublic?: boolean; username?: string | null; }`
+    - Вид: обязательный
+    - Описание: Данные запроса или полезная нагрузка операции.
+- Возвращает: `Promise<Group>`
+  - Описание: Промис с результатом операции в формате `Group`.
 
 ## `frontend/src/adapters/apiService/createInvite.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function createInvite( apiClient: AxiosInstance, roomId: string, data?: { maxUses?: number; expiresInHours?: number }, ): Promise<GroupInvite> {`
-  - Асинхронно создаёт приглашение. @param apiClient HTTP-клиент для выполнения API-запросов. @param roomId Идентификатор комнаты. @param data Данные запроса или полезная нагрузка операции. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function createInvite( apiClient: AxiosInstance, roomId: string, data?: { maxUses?: number; expiresInHours?: number }, ): Promise<GroupInvite> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно создаёт приглашение.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `data`
+    - Формат: `{ maxUses?: number; expiresInHours?: number }`
+    - Вид: необязательный
+    - Описание: Данные запроса или полезная нагрузка операции.
+- Возвращает: `Promise<GroupInvite>`
+  - Описание: Промис с результатом операции в формате `GroupInvite`.
 
 ## `frontend/src/adapters/apiService/createRoomOverride.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function createRoomOverride( apiClient: AxiosInstance, roomId: string, data: { targetRoleId?: number; targetUserId?: number; allow?: number; deny?: number; }, ): Promise<PermissionOverride> {`
-  - Асинхронно создаёт комнаты override. @param apiClient HTTP-клиент для выполнения API-запросов. @param roomId Идентификатор комнаты. @param data Данные запроса или полезная нагрузка операции. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function createRoomOverride( apiClient: AxiosInstance, roomId: string, data: { targetRoleId?: number; targetUserId?: number; allow?: number; deny?: number; }, ): Promise<PermissionOverride> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно создаёт комнаты override.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `data`
+    - Формат: `{ targetRoleId?: number; targetUserId?: number; allow?: number; deny?: number; }`
+    - Вид: обязательный
+    - Описание: Данные запроса или полезная нагрузка операции.
+- Возвращает: `Promise<PermissionOverride>`
+  - Описание: Промис с результатом операции в формате `PermissionOverride`.
 
 ## `frontend/src/adapters/apiService/createRoomRole.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function createRoomRole( apiClient: AxiosInstance, roomId: string, data: { name: string; color?: string; permissions?: number }, ): Promise<Role> {`
-  - Асинхронно создаёт комнаты роли. @param apiClient HTTP-клиент для выполнения API-запросов. @param roomId Идентификатор комнаты. @param data Данные запроса или полезная нагрузка операции. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function createRoomRole( apiClient: AxiosInstance, roomId: string, data: { name: string; color?: string; permissions?: number }, ): Promise<Role> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно создаёт комнаты роли.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `data`
+    - Формат: `{ name: string; color?: string; permissions?: number }`
+    - Вид: обязательный
+    - Описание: Данные запроса или полезная нагрузка операции.
+- Возвращает: `Promise<Role>`
+  - Описание: Промис с результатом операции в формате `Role`.
 
 ## `frontend/src/adapters/apiService/declineFriendRequest.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function declineFriendRequest( apiClient: AxiosInstance, friendshipId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции decline friend request. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param friendshipId Идентификатор связи дружбы. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function declineFriendRequest( apiClient: AxiosInstance, friendshipId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `declineFriendRequest`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `friendshipId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор связи дружбы.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `decline friend request`.
 
 ## `frontend/src/adapters/apiService/deleteGroup.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function deleteGroup( apiClient: AxiosInstance, roomId: string, ): Promise<void> {`
-  - Удаляет group. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function deleteGroup( apiClient: AxiosInstance, roomId: string, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Удаляет group.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `delete group`.
 
 ## `frontend/src/adapters/apiService/deleteMessage.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function deleteMessage( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<void> {`
-  - РЈРґР°Р»СЏРµС‚ message. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param messageId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃРѕРѕР±С‰РµРЅРёСЏ. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function deleteMessage( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `deleteMessage`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `messageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `messageId` в формате `number`.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `delete message`.
 
 ## `frontend/src/adapters/apiService/deleteRoomOverride.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function deleteRoomOverride( apiClient: AxiosInstance, roomId: string, overrideId: number, ): Promise<void> {`
-  - Удаляет room override. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param overrideId Идентификатор переопределения прав. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function deleteRoomOverride( apiClient: AxiosInstance, roomId: string, overrideId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `deleteRoomOverride`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `overrideId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор переопределения прав.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `delete room override`.
 
 ## `frontend/src/adapters/apiService/deleteRoomRole.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function deleteRoomRole( apiClient: AxiosInstance, roomId: string, roleId: number, ): Promise<void> {`
-  - Удаляет room role. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param roleId Идентификатор роли. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function deleteRoomRole( apiClient: AxiosInstance, roomId: string, roleId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `deleteRoomRole`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `roleId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор роли.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `delete room role`.
 
 ## `frontend/src/adapters/apiService/editMessage.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function editMessage( apiClient: AxiosInstance, roomId: string, messageId: number, content: string, ): Promise<EditMessageResult> {`
-  - Выполняет API-запрос для операции edit message. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param messageId Идентификатор сообщения. @param content Текст сообщения. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function editMessage( apiClient: AxiosInstance, roomId: string, messageId: number, content: string, ): Promise<EditMessageResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `editMessage`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `messageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор сообщения.
+  - `content`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Текст сообщения.
+- Возвращает: `Promise<EditMessageResult>`
+  - Описание: Промис с результатом операции в формате `EditMessageResult`.
 
 ## `frontend/src/adapters/apiService/ensureCsrf.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function ensureCsrf( apiClient: AxiosInstance, ): Promise<{ csrfToken: string }> {`
-  - Гарантирует csrf. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function ensureCsrf( apiClient: AxiosInstance, ): Promise<{ csrfToken: string }> {`
+
+- Вид: асинхронная функция
+- Кратко: Гарантирует csrf.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/ensurePresenceSession.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function ensurePresenceSession( apiClient: AxiosInstance, ): Promise<{ ok: boolean }> {`
-  - Гарантирует presence session. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function ensurePresenceSession( apiClient: AxiosInstance, ): Promise<{ ok: boolean; wsAuthToken: string | null }> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `ensurePresenceSession`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/getBannedMembers.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getBannedMembers( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; before?: number }, ): Promise<BannedMembersResult> {`
-  - Асинхронно возвращает заблокированные участников. @param apiClient HTTP-клиент для выполнения API-запросов. @param roomId Идентификатор комнаты. @param params Параметры запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getBannedMembers( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; before?: number }, ): Promise<BannedMembersResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно возвращает заблокированные участников.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `params`
+    - Формат: `{ limit?: number; before?: number }`
+    - Вид: необязательный
+    - Описание: Параметры запроса.
+- Возвращает: `Promise<BannedMembersResult>`
+  - Описание: Промис с результатом операции в формате `BannedMembersResult`.
 
 ## `frontend/src/adapters/apiService/getBlockedUsers.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getBlockedUsers( apiClient: AxiosInstance, ): Promise<BlockedUser[]> {`
-  - Возвращает blocked users. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getBlockedUsers( apiClient: AxiosInstance, ): Promise<BlockedUser[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getBlockedUsers`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<BlockedUser[]>`
+  - Описание: Промис с результатом операции в формате `BlockedUser[]`.
 
 ## `frontend/src/adapters/apiService/getClientConfig.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const getClientConfig = async (apiClient: AxiosInstance) => {`
-  - Возвращает client config. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса.
+#### `export const getClientConfig = async (apiClient: AxiosInstance) => {`
+
+- Вид: функция
+- Кратко: Функция `getClientConfig`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/adapters/apiService/getDirectChats.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const getDirectChats = async ( apiClient: AxiosInstance, ): Promise<DirectChatsResponse> => {`
-  - Возвращает direct chats. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export const getDirectChats = async ( apiClient: AxiosInstance, ): Promise<DirectChatsResponse> => {`
+
+- Вид: функция
+- Кратко: Функция `getDirectChats`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<DirectChatsResponse>`
+  - Описание: Промис с результатом операции в формате `DirectChatsResponse`.
 
 ## `frontend/src/adapters/apiService/getFriends.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getFriends(apiClient: AxiosInstance): Promise<Friend[]> {`
-  - Возвращает friends. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getFriends(apiClient: AxiosInstance): Promise<Friend[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Возвращает friends.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<Friend[]>`
+  - Описание: Промис с результатом операции в формате `Friend[]`.
 
 ## `frontend/src/adapters/apiService/getGroupDetails.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getGroupDetails( apiClient: AxiosInstance, roomId: string, ): Promise<Group> {`
-  - Возвращает group details. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getGroupDetails( apiClient: AxiosInstance, roomId: string, ): Promise<Group> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getGroupDetails`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<Group>`
+  - Описание: Промис с результатом операции в формате `Group`.
 
 ## `frontend/src/adapters/apiService/getGroupMembers.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getGroupMembers( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; before?: number }, ): Promise<GroupMembersResult> {`
-  - Асинхронно возвращает группы участников. @param apiClient HTTP-клиент для выполнения API-запросов. @param roomId Идентификатор комнаты. @param params Параметры запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getGroupMembers( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; before?: number }, ): Promise<GroupMembersResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно возвращает группы участников.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `params`
+    - Формат: `{ limit?: number; before?: number }`
+    - Вид: необязательный
+    - Описание: Параметры запроса.
+- Возвращает: `Promise<GroupMembersResult>`
+  - Описание: Промис с результатом операции в формате `GroupMembersResult`.
 
 ## `frontend/src/adapters/apiService/getIncomingRequests.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getIncomingRequests( apiClient: AxiosInstance, ): Promise<FriendRequest[]> {`
-  - Возвращает incoming requests. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getIncomingRequests( apiClient: AxiosInstance, ): Promise<FriendRequest[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getIncomingRequests`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<FriendRequest[]>`
+  - Описание: Промис с результатом операции в формате `FriendRequest[]`.
 
 ## `frontend/src/adapters/apiService/getInvitePreview.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getInvitePreview( apiClient: AxiosInstance, code: string, ): Promise<InvitePreview> {`
-  - Возвращает invite preview. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param code Код приглашения. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getInvitePreview( apiClient: AxiosInstance, code: string, ): Promise<InvitePreview> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getInvitePreview`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `code`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Код приглашения.
+- Возвращает: `Promise<InvitePreview>`
+  - Описание: Промис с результатом операции в формате `InvitePreview`.
 
 ## `frontend/src/adapters/apiService/getInvites.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getInvites( apiClient: AxiosInstance, roomId: string, ): Promise<GroupInvite[]> {`
-  - Возвращает invites. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getInvites( apiClient: AxiosInstance, roomId: string, ): Promise<GroupInvite[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Возвращает invites.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<GroupInvite[]>`
+  - Описание: Промис с результатом операции в формате `GroupInvite[]`.
 
 ## `frontend/src/adapters/apiService/getJoinRequests.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getJoinRequests( apiClient: AxiosInstance, roomId: string, ): Promise<JoinRequest[]> {`
-  - Возвращает join requests. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getJoinRequests( apiClient: AxiosInstance, roomId: string, ): Promise<JoinRequest[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getJoinRequests`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<JoinRequest[]>`
+  - Описание: Промис с результатом операции в формате `JoinRequest[]`.
 
 ## `frontend/src/adapters/apiService/getMemberRoles.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getMemberRoles( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<MemberRoles> {`
-  - Возвращает member roles. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getMemberRoles( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<MemberRoles> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getMemberRoles`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+- Возвращает: `Promise<MemberRoles>`
+  - Описание: Промис с результатом операции в формате `MemberRoles`.
 
 ## `frontend/src/adapters/apiService/getMessageReaders.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getMessageReaders( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<MessageReadersResult> {`
-  - Р’С‹РїРѕР»РЅСЏРµС‚ API-Р·Р°РїСЂРѕСЃ РґР»СЏ Р·Р°РіСЂСѓР·РєРё readers РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param messageId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃРѕРѕР±С‰РµРЅРёСЏ. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function getMessageReaders( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<MessageReadersResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getMessageReaders`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `messageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `messageId` в формате `number`.
+- Возвращает: `Promise<MessageReadersResult>`
+  - Описание: Промис с результатом операции в формате `MessageReadersResult`.
 
 ## `frontend/src/adapters/apiService/getMyGroups.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getMyGroups( apiClient: AxiosInstance, params?: { search?: string; limit?: number; before?: number }, ): Promise<{`
-  - Асинхронно возвращает my групп. @param apiClient HTTP-клиент для выполнения API-запросов. @param params Параметры запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getMyGroups( apiClient: AxiosInstance, params?: { search?: string; limit?: number; before?: number }, ): Promise<{`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно возвращает my групп.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `params`
+    - Формат: `{ search?: string; limit?: number; before?: number }`
+    - Вид: необязательный
+    - Описание: Параметры запроса.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/getMyPermissions.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getMyPermissions( apiClient: AxiosInstance, roomId: string, ): Promise<MyPermissions> {`
-  - Р’РѕР·РІСЂР°С‰Р°РµС‚ my permissions. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function getMyPermissions( apiClient: AxiosInstance, roomId: string, ): Promise<MyPermissions> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getMyPermissions`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+- Возвращает: `Promise<MyPermissions>`
+  - Описание: Промис с результатом операции в формате `MyPermissions`.
 
 ## `frontend/src/adapters/apiService/getOutgoingRequests.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getOutgoingRequests( apiClient: AxiosInstance, ): Promise<FriendRequest[]> {`
-  - Возвращает outgoing requests. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getOutgoingRequests( apiClient: AxiosInstance, ): Promise<FriendRequest[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getOutgoingRequests`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<FriendRequest[]>`
+  - Описание: Промис с результатом операции в формате `FriendRequest[]`.
 
 ## `frontend/src/adapters/apiService/getPasswordRules.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getPasswordRules( apiClient: AxiosInstance, ): Promise<{ rules: string[] }> {`
-  - Возвращает password rules. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getPasswordRules( apiClient: AxiosInstance, ): Promise<{ rules: string[] }> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getPasswordRules`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/getPinnedMessages.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getPinnedMessages( apiClient: AxiosInstance, roomId: string, ): Promise<PinnedMessage[]> {`
-  - Возвращает pinned messages. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getPinnedMessages( apiClient: AxiosInstance, roomId: string, ): Promise<PinnedMessage[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getPinnedMessages`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<PinnedMessage[]>`
+  - Описание: Промис с результатом операции в формате `PinnedMessage[]`.
 
 ## `frontend/src/adapters/apiService/getPublicGroups.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getPublicGroups( apiClient: AxiosInstance, params?: PublicGroupsParams, ): Promise<PublicGroupsResult> {`
-  - Возвращает public groups. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param params Параметры запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getPublicGroups( apiClient: AxiosInstance, params?: PublicGroupsParams, ): Promise<PublicGroupsResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getPublicGroups`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `params`
+    - Формат: `PublicGroupsParams`
+    - Вид: необязательный
+    - Описание: Параметры запроса.
+- Возвращает: `Promise<PublicGroupsResult>`
+  - Описание: Промис с результатом операции в формате `PublicGroupsResult`.
 
 ## `frontend/src/adapters/apiService/getRoomAttachments.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getRoomAttachments( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; before?: number }, ): Promise<RoomAttachmentsResult> {`
-  - РђСЃРёРЅС…СЂРѕРЅРЅРѕ РІРѕР·РІСЂР°С‰Р°РµС‚ РєРѕРјРЅР°С‚С‹ РІР»РѕР¶РµРЅРёСЏ. @param apiClient HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ API-Р·Р°РїСЂРѕСЃРѕРІ. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param params РџР°СЂР°РјРµС‚СЂС‹ Р·Р°РїСЂРѕСЃР°. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function getRoomAttachments( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; before?: number }, ): Promise<RoomAttachmentsResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getRoomAttachments`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `params`
+    - Формат: `{ limit?: number; before?: number }`
+    - Вид: необязательный
+    - Описание: Параметр `params` в формате `{ limit?: number; before?: number }`.
+- Возвращает: `Promise<RoomAttachmentsResult>`
+  - Описание: Промис с результатом операции в формате `RoomAttachmentsResult`.
 
 ## `frontend/src/adapters/apiService/getRoomDetails.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getRoomDetails( apiClient: AxiosInstance, roomTarget: string, ): Promise<RoomDetails> {`
-  - Возвращает room details. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomRef Текстовая ссылка или числовой идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getRoomDetails( apiClient: AxiosInstance, roomTarget: string, ): Promise<RoomDetails> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getRoomDetails`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomTarget`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomTarget` в формате `string`.
+- Возвращает: `Promise<RoomDetails>`
+  - Описание: Промис с результатом операции в формате `RoomDetails`.
 
 ## `frontend/src/adapters/apiService/getRoomMessages.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getRoomMessages( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; beforeId?: number }, ): Promise<RoomMessagesResponse> {`
-  - РђСЃРёРЅС…СЂРѕРЅРЅРѕ РІРѕР·РІСЂР°С‰Р°РµС‚ РєРѕРјРЅР°С‚С‹ СЃРѕРѕР±С‰РµРЅРёР№. @param apiClient HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ API-Р·Р°РїСЂРѕСЃРѕРІ. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param params РџР°СЂР°РјРµС‚СЂС‹ Р·Р°РїСЂРѕСЃР°. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function getRoomMessages( apiClient: AxiosInstance, roomId: string, params?: { limit?: number; beforeId?: number }, ): Promise<RoomMessagesResponse> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getRoomMessages`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `params`
+    - Формат: `{ limit?: number; beforeId?: number }`
+    - Вид: необязательный
+    - Описание: Параметр `params` в формате `{ limit?: number; beforeId?: number }`.
+- Возвращает: `Promise<RoomMessagesResponse>`
+  - Описание: Промис с результатом операции в формате `RoomMessagesResponse`.
 
 ## `frontend/src/adapters/apiService/getRoomOverrides.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getRoomOverrides( apiClient: AxiosInstance, roomId: string, ): Promise<PermissionOverride[]> {`
-  - Возвращает room overrides. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getRoomOverrides( apiClient: AxiosInstance, roomId: string, ): Promise<PermissionOverride[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getRoomOverrides`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<PermissionOverride[]>`
+  - Описание: Промис с результатом операции в формате `PermissionOverride[]`.
 
 ## `frontend/src/adapters/apiService/getRoomRoles.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getRoomRoles( apiClient: AxiosInstance, roomId: string, ): Promise<Role[]> {`
-  - Возвращает room roles. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getRoomRoles( apiClient: AxiosInstance, roomId: string, ): Promise<Role[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getRoomRoles`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<Role[]>`
+  - Описание: Промис с результатом операции в формате `Role[]`.
 
 ## `frontend/src/adapters/apiService/getSession.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getSession( apiClient: AxiosInstance, ): Promise<SessionResponse> {`
-  - Возвращает session. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getSession( apiClient: AxiosInstance, ): Promise<SessionResponse> {`
+
+- Вид: асинхронная функция
+- Кратко: Возвращает session.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<SessionResponse>`
+  - Описание: Промис с результатом операции в формате `SessionResponse`.
 
 ## `frontend/src/adapters/apiService/getUnreadCounts.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getUnreadCounts( apiClient: AxiosInstance, ): Promise<UnreadCountItem[]> {`
-  - Возвращает unread counts. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getUnreadCounts( apiClient: AxiosInstance, ): Promise<UnreadCountItem[]> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getUnreadCounts`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<UnreadCountItem[]>`
+  - Описание: Промис с результатом операции в формате `UnreadCountItem[]`.
 
 ## `frontend/src/adapters/apiService/getUserProfile.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function getUserProfile( apiClient: AxiosInstance, ref: string, ): Promise<{ user: UserProfile }> {`
-  - Возвращает user profile. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param ref Аргумент `ref` текущего вызова. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function getUserProfile( apiClient: AxiosInstance, ref: string, ): Promise<{ user: UserProfile }> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `getUserProfile`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `ref`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `ref` в формате `string`.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/globalSearch.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function globalSearch( apiClient: AxiosInstance, query: string, params?: { usersLimit?: number; groupsLimit?: number; messagesLimit?: number; }, ): Promise<GlobalSearchResult> {`
-  - Асинхронно выполняет поиск. @param apiClient HTTP-клиент для выполнения API-запросов. @param query Поисковый запрос. @param params Параметры запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function globalSearch( apiClient: AxiosInstance, query: string, params?: { usersLimit?: number; groupsLimit?: number; messagesLimit?: number; }, ): Promise<GlobalSearchResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно выполняет поиск.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `query`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Поисковый запрос.
+  - `params`
+    - Формат: `{ usersLimit?: number; groupsLimit?: number; messagesLimit?: number; }`
+    - Вид: необязательный
+    - Описание: Параметры запроса.
+- Возвращает: `Promise<GlobalSearchResult>`
+  - Описание: Промис с результатом операции в формате `GlobalSearchResult`.
 
 ## `frontend/src/adapters/apiService/joinGroup.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function joinGroup( apiClient: AxiosInstance, roomId: string, ): Promise<void> {`
-  - Выполняет API-запрос для операции join group. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function joinGroup( apiClient: AxiosInstance, roomId: string, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `joinGroup`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `join group`.
 
 ## `frontend/src/adapters/apiService/joinViaInvite.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function joinViaInvite( apiClient: AxiosInstance, code: string, ): Promise<{ roomId: number; groupPublicRef?: string | null }> {`
-  - Выполняет API-запрос для операции join via invite. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param code Код приглашения. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function joinViaInvite( apiClient: AxiosInstance, code: string, ): Promise<{ roomId: number; groupPublicRef?: string | null }> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `joinViaInvite`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `code`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Код приглашения.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/kickMember.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function kickMember( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции kick member. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function kickMember( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `kickMember`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `kick member`.
 
 ## `frontend/src/adapters/apiService/leaveGroup.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function leaveGroup( apiClient: AxiosInstance, roomId: string, ): Promise<void> {`
-  - Выполняет API-запрос для операции leave group. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function leaveGroup( apiClient: AxiosInstance, roomId: string, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `leaveGroup`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `leave group`.
 
 ## `frontend/src/adapters/apiService/login.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function login( apiClient: AxiosInstance, identifier: string, password: string, ): Promise<SessionResponse> {`
-  - Выполняет API-запрос для операции login. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param identifier Идентификатор сущности, с которой выполняется операция. @param password Пароль пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function login( apiClient: AxiosInstance, identifier: string, password: string, ): Promise<SessionResponse> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `login`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `identifier`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор сущности, с которой выполняется операция.
+  - `password`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Пароль пользователя.
+- Возвращает: `Promise<SessionResponse>`
+  - Описание: Промис с результатом операции в формате `SessionResponse`.
 
 ## `frontend/src/adapters/apiService/logout.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function logout( apiClient: AxiosInstance, ): Promise<{ ok: boolean }> {`
-  - Выполняет API-запрос для операции logout. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function logout( apiClient: AxiosInstance, ): Promise<{ ok: boolean }> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `logout`.
+- Параметры: 1
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/markRead.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function markRead( apiClient: AxiosInstance, roomId: string, messageId?: number, ): Promise<ReadStateResult> {`
-  - Р’С‹РїРѕР»РЅСЏРµС‚ API-Р·Р°РїСЂРѕСЃ РґР»СЏ РѕРїРµСЂР°С†РёРё mark read. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param messageId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃРѕРѕР±С‰РµРЅРёСЏ. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function markRead( apiClient: AxiosInstance, roomId: string, messageId?: number, ): Promise<ReadStateResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `markRead`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `messageId`
+    - Формат: `number`
+    - Вид: необязательный
+    - Описание: Параметр `messageId` в формате `number`.
+- Возвращает: `Promise<ReadStateResult>`
+  - Описание: Промис с результатом операции в формате `ReadStateResult`.
 
 ## `frontend/src/adapters/apiService/muteMember.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function muteMember( apiClient: AxiosInstance, roomId: string, userId: number, durationSeconds = 3600, ): Promise<void> {`
-  - Выполняет API-запрос для операции mute member. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @param durationSeconds Длительность действия в секундах. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function muteMember( apiClient: AxiosInstance, roomId: string, userId: number, durationSeconds = 3600, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `muteMember`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+  - `durationSeconds`
+    - Формат: не указан
+    - Вид: обязательный
+    - Значение по умолчанию: `3600`
+    - Описание: Длительность действия в секундах.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `mute member`.
 
 ## `frontend/src/adapters/apiService/oauthGoogle.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function oauthGoogle( apiClient: AxiosInstance, token: string, tokenType: "idToken" | "accessToken" = "idToken", username?: string, ): Promise<SessionResponse> {`
-  - Выполняет API-запрос для операции oauth google. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param token Токен аутентификации. @param tokenType Тип токена аутентификации. @param username Имя пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function oauthGoogle( apiClient: AxiosInstance, token: string, tokenType: "idToken" | "accessToken" = "idToken", username?: string, ): Promise<SessionResponse> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `oauthGoogle`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `token`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Токен аутентификации.
+  - `tokenType`
+    - Формат: `"idToken" | "accessToken"`
+    - Вид: обязательный
+    - Значение по умолчанию: `"idToken"`
+    - Описание: Тип токена аутентификации.
+  - `username`
+    - Формат: `string`
+    - Вид: необязательный
+    - Описание: Имя пользователя.
+- Возвращает: `Promise<SessionResponse>`
+  - Описание: Промис с результатом операции в формате `SessionResponse`.
 
 ## `frontend/src/adapters/apiService/pinMessage.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function pinMessage( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции pin message. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param messageId Идентификатор сообщения. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function pinMessage( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `pinMessage`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `messageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор сообщения.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `pin message`.
 
 ## `frontend/src/adapters/apiService/register.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function register( apiClient: AxiosInstance, login: string, password: string, passwordConfirm: string, name: string, username?: string, email?: string, ): Promise<SessionResponse> {`
-  - Выполняет API-запрос для операции register. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param login Аргумент `login` текущего вызова. @param password Пароль пользователя. @param passwordConfirm Аргумент `passwordConfirm` текущего вызова. @param name Имя параметра или ключа, который используется в операции. @param username Имя пользователя. @param email Email пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function register( apiClient: AxiosInstance, login: string, password: string, passwordConfirm: string, name: string, username?: string, email?: string, ): Promise<SessionResponse> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `register`.
+- Параметры: 7
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `login`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `login` в формате `string`.
+  - `password`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Пароль пользователя.
+  - `passwordConfirm`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `passwordConfirm` в формате `string`.
+  - `name`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Имя параметра или ключа, который используется в операции.
+  - `username`
+    - Формат: `string`
+    - Вид: необязательный
+    - Описание: Имя пользователя.
+  - `email`
+    - Формат: `string`
+    - Вид: необязательный
+    - Описание: Email пользователя.
+- Возвращает: `Promise<SessionResponse>`
+  - Описание: Промис с результатом операции в формате `SessionResponse`.
 
 ## `frontend/src/adapters/apiService/rejectJoinRequest.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function rejectJoinRequest( apiClient: AxiosInstance, roomId: string, requestId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции reject join request. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param requestId Идентификатор заявки. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function rejectJoinRequest( apiClient: AxiosInstance, roomId: string, requestId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `rejectJoinRequest`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `requestId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор заявки.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `reject join request`.
 
 ## `frontend/src/adapters/apiService/removeFriend.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function removeFriend( apiClient: AxiosInstance, userId: number, ): Promise<void> {`
-  - Удаляет friend. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param userId Идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function removeFriend( apiClient: AxiosInstance, userId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Удаляет friend.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `remove friend`.
 
 ## `frontend/src/adapters/apiService/removeReaction.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function removeReaction( apiClient: AxiosInstance, roomId: string, messageId: number, emoji: string, ): Promise<void> {`
-  - РЈРґР°Р»СЏРµС‚ reaction. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param messageId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СЃРѕРѕР±С‰РµРЅРёСЏ. @param emoji Р­РјРѕРґР·Рё СЂРµР°РєС†РёРё. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function removeReaction( apiClient: AxiosInstance, roomId: string, messageId: number, emoji: string, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `removeReaction`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `messageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `messageId` в формате `number`.
+  - `emoji`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `emoji` в формате `string`.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `remove reaction`.
 
 ## `frontend/src/adapters/apiService/resolveChatTarget.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const resolveChatTarget = async ( apiClient: AxiosInstance, target: string, ): Promise<ChatResolveResult> => {`
+#### `export const resolveChatTarget = async ( apiClient: AxiosInstance, target: string, ): Promise<ChatResolveResult> => {`
+
+- Вид: функция
+- Кратко: Функция `resolveChatTarget`.
+- Детали: Используется как единая точка входа для навигации по `publicRef/publicId`, чтобы фронтенд не строил внутренние room-маршруты напрямую.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Сконфигурированный HTTP-клиент для обращения к backend API.
+  - `target`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный target чата, пользователя или группы, который нужно разрешить.
+- Возвращает: `Promise<ChatResolveResult>`
+  - Описание: Полный результат resolve-операции с `roomId`, видом комнаты и публичными идентификаторами.
 
 ## `frontend/src/adapters/apiService/resolveRoomId.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function resolveRoomId( apiClient: AxiosInstance, roomTarget: string, ): Promise<string> {`
+#### `export async function resolveRoomId( apiClient: AxiosInstance, roomTarget: string, ): Promise<string> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `resolveRoomId`.
+- Детали: Если в функцию уже пришел числовой идентификатор, он только нормализуется. Для внешних target-значений сначала вызывается `/chat/resolve/`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Сконфигурированный HTTP-клиент для обращения к backend API.
+  - `roomTarget`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Числовой room id или внешний target, который нужно разрешить.
+- Возвращает: `Promise<string>`
+  - Описание: Строковый идентификатор комнаты в каноническом формате.
 
 ## `frontend/src/adapters/apiService/revokeInvite.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function revokeInvite( apiClient: AxiosInstance, roomId: string, code: string, ): Promise<void> {`
-  - Выполняет API-запрос для операции revoke invite. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param code Код приглашения. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function revokeInvite( apiClient: AxiosInstance, roomId: string, code: string, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `revokeInvite`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `code`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Код приглашения.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `revoke invite`.
 
 ## `frontend/src/adapters/apiService/searchMessages.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function searchMessages( apiClient: AxiosInstance, roomId: string, query: string, ): Promise<SearchResult> {`
-  - Р’С‹РїРѕР»РЅСЏРµС‚ API-Р·Р°РїСЂРѕСЃ РґР»СЏ РѕРїРµСЂР°С†РёРё search messages. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param query РџРѕРёСЃРєРѕРІС‹Р№ Р·Р°РїСЂРѕСЃ. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export async function searchMessages( apiClient: AxiosInstance, roomId: string, query: string, ): Promise<SearchResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `searchMessages`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `query`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `query` в формате `string`.
+- Возвращает: `Promise<SearchResult>`
+  - Описание: Промис с результатом операции в формате `SearchResult`.
 
 ## `frontend/src/adapters/apiService/sendFriendRequest.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function sendFriendRequest( apiClient: AxiosInstance, publicRef: string, ): Promise<SendFriendRequestResponse> {`
-  - Выполняет API-запрос для операции send friend request. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param publicRef Публичный идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function sendFriendRequest( apiClient: AxiosInstance, publicRef: string, ): Promise<SendFriendRequestResponse> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `sendFriendRequest`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `publicRef`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный идентификатор пользователя.
+- Возвращает: `Promise<SendFriendRequestResponse>`
+  - Описание: Промис с результатом операции в формате `SendFriendRequestResponse`.
 
 ## `frontend/src/adapters/apiService/setMemberRoles.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function setMemberRoles( apiClient: AxiosInstance, roomId: string, userId: number, roleIds: number[], ): Promise<MemberRoles> {`
-  - Устанавливает member roles. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @param roleIds Список идентификаторов ролей. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function setMemberRoles( apiClient: AxiosInstance, roomId: string, userId: number, roleIds: number[], ): Promise<MemberRoles> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `setMemberRoles`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+  - `roleIds`
+    - Формат: `number[]`
+    - Вид: обязательный
+    - Описание: Список идентификаторов ролей.
+- Возвращает: `Promise<MemberRoles>`
+  - Описание: Промис с результатом операции в формате `MemberRoles`.
 
 ## `frontend/src/adapters/apiService/transferOwnership.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function transferOwnership( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции transfer ownership. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function transferOwnership( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `transferOwnership`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `transfer ownership`.
 
 ## `frontend/src/adapters/apiService/unbanMember.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function unbanMember( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции unban member. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function unbanMember( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `unbanMember`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `unban member`.
 
 ## `frontend/src/adapters/apiService/unblockUser.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function unblockUser( apiClient: AxiosInstance, userId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции unblock user. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param userId Идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function unblockUser( apiClient: AxiosInstance, userId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `unblockUser`.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `unblock user`.
 
 ## `frontend/src/adapters/apiService/unmuteMember.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function unmuteMember( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции unmute member. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param userId Идентификатор пользователя. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function unmuteMember( apiClient: AxiosInstance, roomId: string, userId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `unmuteMember`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `userId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор пользователя.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `unmute member`.
 
 ## `frontend/src/adapters/apiService/unpinMessage.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function unpinMessage( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<void> {`
-  - Выполняет API-запрос для операции unpin message. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param messageId Идентификатор сообщения. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function unpinMessage( apiClient: AxiosInstance, roomId: string, messageId: number, ): Promise<void> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `unpinMessage`.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `messageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор сообщения.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `unpin message`.
 
 ## `frontend/src/adapters/apiService/updateGroup.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const appendScalar = (formData: FormData, key: string, value: unknown) => {`
-  - Выполняет API-запрос для операции append scalar. @param formData Аргумент `formData` текущего вызова. @param key Аргумент `key` текущего вызова. @param value Входное значение для преобразования.
-- `export async function updateGroup( apiClient: AxiosInstance, roomId: string, data: UpdateGroupInput, ): Promise<Group> {`
-  - Обновляет group. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param roomId Идентификатор комнаты. @param data Входные данные операции. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function updateGroup( apiClient: AxiosInstance, roomId: string, data: UpdateGroupInput, ): Promise<Group> {`
+
+- Вид: асинхронная функция
+- Кратко: Обновляет group.
+- Параметры: 3
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `data`
+    - Формат: `UpdateGroupInput`
+    - Вид: обязательный
+    - Описание: Входные данные операции.
+- Возвращает: `Promise<Group>`
+  - Описание: Промис с результатом операции в формате `Group`.
 
 ## `frontend/src/adapters/apiService/updateProfile.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function updateProfile( apiClient: AxiosInstance, fields: UpdateProfileInput, ): Promise<{ user: UserProfile }> {`
-  - Обновляет profile. @param apiClient Сконфигурированный HTTP-клиент для выполнения запроса. @param fields Набор полей для обновления. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function updateProfile( apiClient: AxiosInstance, fields: UpdateProfileInput, ): Promise<{ user: UserProfile }> {`
+
+- Вид: асинхронная функция
+- Кратко: Обновляет profile.
+- Параметры: 2
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `fields`
+    - Формат: `UpdateProfileInput`
+    - Вид: обязательный
+    - Описание: Набор полей для обновления.
+- Возвращает: `Promise<`
+  - Описание: Результат функции в формате `Promise<`.
 
 ## `frontend/src/adapters/apiService/updateRoomOverride.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function updateRoomOverride( apiClient: AxiosInstance, roomId: string, overrideId: number, data: Partial<{ allow: number; deny: number }>, ): Promise<PermissionOverride> {`
-  - Асинхронно обновляет комнаты override. @param apiClient HTTP-клиент для выполнения API-запросов. @param roomId Идентификатор комнаты. @param overrideId Идентификатор переопределения прав. @param data Данные запроса или полезная нагрузка операции. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function updateRoomOverride( apiClient: AxiosInstance, roomId: string, overrideId: number, data: Partial<{ allow: number; deny: number }>, ): Promise<PermissionOverride> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронно обновляет комнаты override.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `overrideId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор переопределения прав.
+  - `data`
+    - Формат: `Partial<{ allow: number; deny: number }>`
+    - Вид: обязательный
+    - Описание: Данные запроса или полезная нагрузка операции.
+- Возвращает: `Promise<PermissionOverride>`
+  - Описание: Промис с результатом операции в формате `PermissionOverride`.
 
 ## `frontend/src/adapters/apiService/updateRoomRole.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export async function updateRoomRole( apiClient: AxiosInstance, roomId: string, roleId: number, data: Partial<{ name: string; color: string; permissions: number; position: number; }>, ): Promise<Role> {`
-  - Асинхронно обновляет комнаты роли. @param apiClient HTTP-клиент для выполнения API-запросов. @param roomId Идентификатор комнаты. @param roleId Идентификатор роли. @param data Данные запроса или полезная нагрузка операции. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export async function updateRoomRole( apiClient: AxiosInstance, roomId: string, roleId: number, data: Partial<{ name: string; color: string; permissions: number; position: number; }>, ): Promise<Role> {`
 
-## `frontend/src/adapters/apiService/uploadAttachments.test.ts`
-
-- Top-level declarations: 0
+- Вид: асинхронная функция
+- Кратко: Асинхронно обновляет комнаты роли.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: HTTP-клиент для выполнения API-запросов.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+  - `roleId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Идентификатор роли.
+  - `data`
+    - Формат: `Partial<{ name: string; color: string; permissions: number; position: number; }>`
+    - Вид: обязательный
+    - Описание: Данные запроса или полезная нагрузка операции.
+- Возвращает: `Promise<Role>`
+  - Описание: Промис с результатом операции в формате `Role`.
 
 ## `frontend/src/adapters/apiService/uploadAttachments.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 4
 
-### Declarations
+### Объявления
 
-- `export async function uploadAttachments( apiClient: AxiosInstance, roomId: string, files: File[], options?: UploadAttachmentsOptions, ): Promise<UploadResult> {`
-  - Р’С‹РїРѕР»РЅСЏРµС‚ API-Р·Р°РїСЂРѕСЃ РґР»СЏ РѕРїРµСЂР°С†РёРё upload attachments. @param apiClient РЎРєРѕРЅС„РёРіСѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ HTTP-РєР»РёРµРЅС‚ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РїСЂРѕСЃР°. @param roomId РРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РєРѕРјРЅР°С‚С‹. @param files РЎРїРёСЃРѕРє С„Р°Р№Р»РѕРІ РґР»СЏ Р·Р°РіСЂСѓР·РєРё. @param options РћРїС†РёРѕРЅР°Р»СЊРЅС‹Рµ РїР°СЂР°РјРµС‚СЂС‹ РїРѕРІРµРґРµРЅРёСЏ. @returns РџСЂРѕРјРёСЃ СЃ РґР°РЅРЅС‹РјРё, РІРѕР·РІСЂР°С‰Р°РµРјС‹РјРё СЌС‚РѕР№ С„СѓРЅРєС†РёРµР№.
+#### `export const ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS = 120_000;`
 
-## `frontend/src/adapters/ApiService.test.ts`
+- Вид: константа
+- Кратко: Хранит константное значение `ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
-- Top-level declarations: 1
+#### `export const ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS = 300_000;`
 
-### Declarations
+- Вид: константа
+- Кратко: Хранит константное значение `ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
-- `const makeResolvePayload = (target: string, roomId: number) => ({`
+#### `export const ATTACHMENT_UPLOAD_MAX_RECOVERY_ATTEMPTS = 2;`
+
+- Вид: константа
+- Кратко: Хранит константное значение `ATTACHMENT_UPLOAD_MAX_RECOVERY_ATTEMPTS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export async function uploadAttachments( apiClient: AxiosInstance, roomId: string, files: File[], options?: UploadAttachmentsOptions, ): Promise<UploadResult> {`
+
+- Вид: асинхронная функция
+- Кратко: Асинхронная функция `uploadAttachments`.
+- Параметры: 4
+  - `apiClient`
+    - Формат: `AxiosInstance`
+    - Вид: обязательный
+    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `files`
+    - Формат: `File[]`
+    - Вид: обязательный
+    - Описание: Параметр `files` в формате `File[]`.
+  - `options`
+    - Формат: `UploadAttachmentsOptions`
+    - Вид: необязательный
+    - Описание: Объект опций в формате `UploadAttachmentsOptions`.
+- Возвращает: `Promise<UploadResult>`
+  - Описание: Промис с результатом операции в формате `UploadResult`.
 
 ## `frontend/src/adapters/ApiService.ts`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `const isHtmlErrorPayload = (payload: string): boolean =>`
-  - Определяет, что строка выглядит как HTML-страница ошибки. @param payload Строка ответа от сервера. @returns true, когда в ответе обнаружены HTML-теги документа.
-- `const decodeEscapedUnicode = (value: string): string =>`
-  - Декодирует escaped unicode-последовательности вида \uXXXX. @param value Исходная строка. @returns Строка после декодирования unicode-последовательностей.
-- `const getStatusFallbackMessage = (status: number): string => {`
-  - Возвращает fallback-сообщение для HTTP-статуса. @param status HTTP-статус. @returns Сообщение для отображения пользователю.
-- `const getCsrfToken = () =>`
-  - Возвращает csrf token.
-- `export const normalizeAxiosError = (error: unknown): ApiError => {`
-  - Нормализует axios error. @param error Объект ошибки, полученный в обработчике. @returns Нормализованное значение после обработки входа.
-- `class ApiService implements IApiService {`
-  - Класс ApiService инкапсулирует логику текущего слоя приложения.
-- `export const apiService = new ApiService();`
-  - Экспорт `apiService` предоставляет инициализированный экземпляр для повторного использования в модуле.
+#### `export const normalizeAxiosError = (error: unknown): ApiError => {`
+
+- Вид: функция
+- Кратко: Функция `normalizeAxiosError`.
+- Параметры: 1
+  - `error`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Объект ошибки, полученный в обработчике.
+- Возвращает: `ApiError`
+  - Описание: Нормализованное значение после обработки входа.
+
+#### `export const apiService = new ApiService();`
+
+- Вид: константа
+- Кратко: Экспорт `apiService` предоставляет инициализированный экземпляр для повторного использования в модуле.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/app/App.tsx`
 
-- Top-level declarations: 15
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const resolveSeoDescriptor = (pathname: string): SeoDescriptor => {`
-  - Возвращает SEO-описание для текущего пути.
-- `const matched = MATCHED_ROUTE_SEO.find((item) => item.match(pathname));`
-- `const upsertMetaByName = (name: string, content: string) => {`
-  - Обновляет или создает meta-тег по имени.
-- `const upsertMetaByProperty = (property: string, content: string) => {`
-  - Обновляет или создает meta-тег по property.
-- `const upsertCanonicalLink = (href: string) => {`
-  - Обновляет или создает canonical-ссылку.
-- `function AppInner() {`
-  - React-компонент AppInner отвечает за отрисовку и обработку UI-сценария.
-- `const updateViewportVars = () => {`
-  - Обновляет viewport vars.
-- `const timerId = window.setTimeout(() => setBanner(null), 4200);`
-- `const extractMessage = (err: unknown) => {`
-  - Извлекает message. @param err Объект ошибки, полученный в обработчике.
-- `const extractAuthMessage = (err: unknown, fallback: string) => {`
-  - Извлекает auth message. @param err Объект ошибки, полученный в обработчике. @param fallback Резервное значение на случай ошибки или отсутствия данных.
-- `const extractFromData = (data: unknown) => {`
-  - Извлекает from data. @param data Входные данные операции.
-- `const extractProfileErrors = (err: unknown): ProfileFieldErrors | null => {`
-  - Извлекает profile errors. @param err Объект ошибки, полученный в обработчике. @returns Извлеченное значение из входных данных.
-- `const handleGoogleOAuth = useCallback(async () => {`
-- `const handleLogout = useCallback(async () => {`
-- `export function App() {`
-  - React-компонент App отвечает за отрисовку и обработку UI-сценария.
+#### `export function App() {`
 
-## `frontend/src/app/routes.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: React-компонент `App`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `App`.
 
 ## `frontend/src/app/routes.tsx`
 
-- Top-level declarations: 4
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `function UserProfileRoute({ user, onNavigate, onLogout, }: Pick<AppRoutesProps, "user" | "onNavigate" | "onLogout">) {`
-- `function ChatTargetRoute({ user, onNavigate, }: Pick<AppRoutesProps, "user" | "onNavigate">) {`
-- `function InviteRoute({ onNavigate }: Pick<AppRoutesProps, "onNavigate">) {`
-- `export function AppRoutes({ user, error, passwordRules, googleAuthDisabledReason, onNavigate, onLogin, onGoogleOAuth, onRegister, onLogout, onProfileSave, }: AppRoutesProps) {`
+#### `export function AppRoutes({ user, error, passwordRules, googleAuthDisabledReason, onNavigate, onLogin, onGoogleOAuth, onRegister, onLogout, onProfileSave, }: AppRoutesProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `AppRoutes`.
+- Детали: Компонент принимает готовые auth- и navigation-колбэки из верхнего уровня, а затем прокидывает их в конкретные страницы: вход, регистрацию, профиль, настройки, друзей, группы, приглашения и канонический маршрут чата по target.
+- Параметры: 1
+  - `{ user, error, passwordRules, googleAuthDisabledReason, onNavigate, onLogin, onGoogleOAuth, onRegister, onLogout, onProfileSave, }`
+    - Формат: `AppRoutesProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `AppRoutesProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `AppRoutes`.
 
 ## `frontend/src/App.tsx`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/controllers/AuthController.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `class AuthController {`
-  - Класс AuthController инкапсулирует логику текущего слоя приложения.
-- `export const authController = new AuthController();`
-  - Хранит значение auth controller.
+#### `export const authController = new AuthController();`
 
-## `frontend/src/controllers/ChatController.test.ts`
-
-- Top-level declarations: 6
-
-### Declarations
-
-- `const apiMocks = vi.hoisted(() => ({`
-- `const loadController = async () => {`
-  - Загружает экземпляр контроллера для тестового сценария.
-- `const resetApiMocks = () => {`
-  - Сбрасывает состояния моков API перед каждым тестом.
-- `const pending = new Promise<RoomDetailsDto>((res) => {`
-- `const pending = new Promise<RoomMessagesDto>((res) => {`
-- `const pending = new Promise<DirectChatsResponseDto>((res) => {`
+- Вид: константа
+- Кратко: Хранит константное значение `authController`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/controllers/ChatController.ts`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const buildRoomMessagesKey = (roomId: string, params?: RoomMessagesParams) => {`
-  - Формирует room messages key. @param roomId Идентификатор комнаты. @param params Параметры запроса.
-- `class ChatController {`
-  - Класс ChatController инкапсулирует логику текущего слоя приложения.
-- `const request = apiService.getRoomDetails(roomId).finally(() => {`
-- `const request = apiService.getRoomMessages(roomId, params).finally(() => {`
-- `export const chatController = new ChatController();`
-  - Экспорт `chatController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+#### `export const chatController = new ChatController();`
+
+- Вид: константа
+- Кратко: Экспорт `chatController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/controllers/FriendsController.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `class FriendsController {`
-  - Класс FriendsController инкапсулирует логику текущего слоя приложения.
-- `export const friendsController = new FriendsController();`
-  - Экспорт `friendsController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+#### `export const friendsController = new FriendsController();`
+
+- Вид: константа
+- Кратко: Экспорт `friendsController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/controllers/GroupController.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `class GroupController {`
-  - Класс GroupController инкапсулирует логику текущего слоя приложения.
-- `export const groupController = new GroupController();`
-  - Экспорт `groupController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+#### `export const groupController = new GroupController();`
+
+- Вид: константа
+- Кратко: Экспорт `groupController` предоставляет инициализированный экземпляр для повторного использования в модуле.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/controllers/RolesController.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `class RolesController {`
-  - Класс RolesController инкапсулирует логику текущего слоя приложения.
-- `export const rolesController = new RolesController();`
-  - Хранит значение roles controller.
+#### `export const rolesController = new RolesController();`
+
+- Вид: константа
+- Кратко: Хранит константное значение `rolesController`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/domain/interfaces/IApiService.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/dto/core/codec.ts`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 3
 
-### Declarations
+### Объявления
 
-- `const formatPath = (path: PropertyKey[]) =>`
-  - Форматирует path. @param path Путь до поля внутри входной структуры.
-- `const formatIssues = (error: z.ZodError): string[] =>`
-  - Форматирует issues. @param error Объект ошибки, полученный в обработчике. @returns Строковое значение результата.
-- `export const decodeOrThrow = <TSchema extends z.ZodTypeAny>( schema: TSchema, input: unknown, source: string, ): z.infer<TSchema> => {`
-  - Проверяет входное значение по схеме и бросает DtoDecodeError при невалидном payload. @param schema Схема валидации входных данных. @param input Входные данные для валидации и преобразования. @param source DOM-событие, вызвавшее обработчик. @returns Нормализованные данные после декодирования.
-- `export const safeDecode = <TSchema extends z.ZodTypeAny>( schema: TSchema, input: unknown, ): z.infer<TSchema> | null => {`
-  - Проверяет входное значение по схеме без броска исключения. @param schema Схема валидации входных данных. @param input Входные данные для валидации и преобразования. @returns Нормализованные данные после декодирования.
-- `export const parseJson = (raw: string): unknown | null => {`
-  - Разбирает JSON-строку в unknown-объект без падения. @param raw Сырые входные данные до нормализации. @returns Нормализованные данные после декодирования.
+#### `export const decodeOrThrow = <TSchema extends z.ZodTypeAny>( schema: TSchema, input: unknown, source: string, ): z.infer<TSchema> => {`
+
+- Вид: функция
+- Кратко: Функция `decodeOrThrow`.
+- Параметры: 3
+  - `schema`
+    - Формат: `TSchema`
+    - Вид: обязательный
+    - Описание: Схема валидации входных данных.
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+  - `source`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: DOM-событие, вызвавшее обработчик.
+- Возвращает: `z.infer<TSchema>`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const safeDecode = <TSchema extends z.ZodTypeAny>( schema: TSchema, input: unknown, ): z.infer<TSchema> | null => {`
+
+- Вид: функция
+- Кратко: Функция `safeDecode`.
+- Параметры: 2
+  - `schema`
+    - Формат: `TSchema`
+    - Вид: обязательный
+    - Описание: Схема валидации входных данных.
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+- Возвращает: `z.infer<TSchema> | null`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const parseJson = (raw: string): unknown | null => {`
+
+- Вид: функция
+- Кратко: Функция `parseJson`.
+- Параметры: 1
+  - `raw`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Сырые входные данные до нормализации.
+- Возвращает: `unknown | null`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/core/errors.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export class DtoDecodeError extends Error {`
-  - Класс DtoDecodeError инкапсулирует логику текущего слоя приложения.
+#### `export class DtoDecodeError extends Error {`
 
-## `frontend/src/dto/http/auth.test.ts`
-
-- Top-level declarations: 0
+- Вид: класс
+- Кратко: Класс DtoDecodeError инкапсулирует логику текущего слоя приложения.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/dto/http/auth.ts`
 
-- Top-level declarations: 12
+- Экспортируемые объявления: 12
 
-### Declarations
+### Объявления
 
-- `export const decodeCsrfResponse = (input: unknown) =>`
-  - Декодирует csrf response. @param input Входные данные для валидации и преобразования. @returns Нормализованные данные после декодирования.
-- `export const decodePresenceSessionResponse = (input: unknown) =>`
-  - Декодирует presence session response. @param input Входные данные для валидации и преобразования. @returns Нормализованные данные после декодирования.
-- `export const decodePasswordRulesResponse = (input: unknown) =>`
-  - Декодирует password rules response. @param input Входные данные для валидации и преобразования. @returns Нормализованные данные после декодирования.
-- `export const decodeLogoutResponse = (input: unknown) =>`
-  - Декодирует logout response. @param input Входные данные для валидации и преобразования. @returns Нормализованные данные после декодирования.
-- `export const decodeSessionResponse = (input: unknown): SessionResponseDto => {`
-  - Преобразует HTTP-данные для операции decode session response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeProfileEnvelopeResponse = ( input: unknown, ): ProfileEnvelopeDto => {`
-  - Преобразует HTTP-данные для операции decode profile envelope response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeAuthErrorPayload = ( input: unknown, ): AuthErrorPayloadDto | null => safeDecode(errorPayloadSchema, input);`
-  - Преобразует HTTP-данные для операции decode auth error payload. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const buildLoginRequestDto = (input: unknown): LoginRequestDto =>`
-  - Преобразует HTTP-данные для операции build login request dto. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const buildRegisterRequestDto = (input: unknown): RegisterRequestDto =>`
-  - Преобразует HTTP-данные для операции build register request dto. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const buildOAuthGoogleRequestDto = ( input: unknown, ): OAuthGoogleRequestDto =>`
-  - Преобразует HTTP-данные для операции build oauth google request dto. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const buildUpdateProfileRequestDto = ( input: unknown, ): UpdateProfileRequestDto =>`
-  - Преобразует HTTP-данные для операции build update profile request dto. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const validatePublicUsername = (username: string): string =>`
-  - Преобразует HTTP-данные для операции validate public username. @param username Имя пользователя. @returns Нормализованные данные после декодирования.
+#### `export const decodeCsrfResponse = (input: unknown) =>`
 
-## `frontend/src/dto/http/chat.test.ts`
+- Вид: функция
+- Кратко: Функция `decodeCsrfResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+- Возвращает: не указан
+  - Описание: Нормализованные данные после декодирования.
 
-- Top-level declarations: 0
+#### `export const decodePresenceSessionResponse = ( input: unknown, ): {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `decodePresenceSessionResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+- Возвращает: не указан
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodePasswordRulesResponse = (input: unknown) =>`
+
+- Вид: функция
+- Кратко: Функция `decodePasswordRulesResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+- Возвращает: не указан
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeLogoutResponse = (input: unknown) =>`
+
+- Вид: функция
+- Кратко: Функция `decodeLogoutResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+- Возвращает: не указан
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeSessionResponse = (input: unknown): SessionResponseDto => {`
+
+- Вид: функция
+- Кратко: Функция `decodeSessionResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `SessionResponseDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeProfileEnvelopeResponse = ( input: unknown, ): ProfileEnvelopeDto => {`
+
+- Вид: функция
+- Кратко: Функция `decodeProfileEnvelopeResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `ProfileEnvelopeDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeAuthErrorPayload = ( input: unknown, ): AuthErrorPayloadDto | null => safeDecode(errorPayloadSchema, input);`
+
+- Вид: функция
+- Кратко: Функция `decodeAuthErrorPayload`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `AuthErrorPayloadDto | null`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const buildLoginRequestDto = (input: unknown): LoginRequestDto =>`
+
+- Вид: функция
+- Кратко: Функция `buildLoginRequestDto`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `LoginRequestDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const buildRegisterRequestDto = (input: unknown): RegisterRequestDto =>`
+
+- Вид: функция
+- Кратко: Функция `buildRegisterRequestDto`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `RegisterRequestDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const buildOAuthGoogleRequestDto = ( input: unknown, ): OAuthGoogleRequestDto =>`
+
+- Вид: функция
+- Кратко: Функция `buildOAuthGoogleRequestDto`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `OAuthGoogleRequestDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const buildUpdateProfileRequestDto = ( input: unknown, ): UpdateProfileRequestDto =>`
+
+- Вид: функция
+- Кратко: Функция `buildUpdateProfileRequestDto`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `UpdateProfileRequestDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const validatePublicUsername = (username: string): string =>`
+
+- Вид: функция
+- Кратко: Функция `validatePublicUsername`.
+- Детали: Функция использует ту же схему, что и сетевой контракт фронтенда: отбрасывает недопустимые значения и гарантирует строковый результат, пригодный для регистрации, профиля и поиска.
+- Параметры: 1
+  - `username`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Строка, которую пользователь хочет использовать как публичный username.
+- Возвращает: `string`
+  - Описание: Проверенный username в каноническом формате.
 
 ## `frontend/src/dto/http/chat.ts`
 
-- Top-level declarations: 16
+- Экспортируемые объявления: 13
 
-### Declarations
+### Объявления
 
-- `const mapPeer = (dto: z.infer<typeof roomPeerSchema>): RoomPeer => {`
-  - Преобразует HTTP-данные для операции map peer. @param dto DTO-объект для декодирования данных. @returns Нормализованные данные после декодирования.
-- `const mapMessage = (dto: z.infer<typeof messageSchema>): Message => ({`
-  - Преобразует HTTP-данные для операции map message. @param dto DTO-объект для декодирования данных. @returns Нормализованные данные после декодирования.
-- `export const decodeRoomDetailsResponse = (input: unknown): RoomDetails => {`
-  - Преобразует HTTP-данные для операции decode room details response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeRoomMessagesResponse = (input: unknown): RoomMessagesDto => {`
-  - Преобразует HTTP-данные для операции decode room messages response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeChatResolveResponse = ( input: unknown, ): ChatResolveResponseDto => {`
-- `export const decodeDirectChatsResponse = ( input: unknown, ): DirectChatsResponseDto => {`
-  - Преобразует HTTP-данные для операции decode direct chats response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `const toRoomId = (value: number | string): number => {`
-  - Преобразует HTTP-данные для операции to room id. @param value Входное значение для преобразования. @returns Нормализованные данные после декодирования.
-- `export const decodeEditMessageResponse = ( input: unknown, ): EditMessageResponse => {`
-  - Преобразует HTTP-данные для операции decode edit message response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeReactionResponse = (input: unknown): ReactionResponse => {`
-  - Преобразует HTTP-данные для операции decode reaction response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeSearchResponse = (input: unknown): SearchResponse => {`
-  - Преобразует HTTP-данные для операции decode search response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeUploadResponse = (input: unknown): UploadResponse => {`
-  - Преобразует HTTP-данные для операции decode upload response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeReadStateResponse = (input: unknown): ReadStateResponse => {`
-  - Преобразует HTTP-данные для операции decode read state response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeMessageReadersResponse = ( input: unknown, ): MessageReadersResponse => {`
-  - Преобразует HTTP-данные для операции decode message readers response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeUnreadCountsResponse = ( input: unknown, ): UnreadCountItem[] => {`
-  - Преобразует HTTP-данные для операции decode unread counts response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeRoomAttachmentsResponse = ( input: unknown, ): RoomAttachmentsResponse => {`
-  - Преобразует HTTP-данные для операции decode room attachments response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeGlobalSearchResponse = ( input: unknown, ): GlobalSearchResponse => {`
-  - Преобразует HTTP-данные для операции decode global search response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
+#### `export const decodeRoomDetailsResponse = (input: unknown): RoomDetails => {`
 
-## `frontend/src/dto/http/friends.test.ts`
+- Вид: функция
+- Кратко: Функция `decodeRoomDetailsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `RoomDetails`
+  - Описание: Нормализованные данные после декодирования.
 
-- Top-level declarations: 0
+#### `export const decodeRoomMessagesResponse = (input: unknown): RoomMessagesDto => {`
+
+- Вид: функция
+- Кратко: Функция `decodeRoomMessagesResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `RoomMessagesDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeChatResolveResponse = ( input: unknown, ): ChatResolveResponseDto => {`
+
+- Вид: функция
+- Кратко: Функция `decodeChatResolveResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Параметр `input` произвольного формата.
+- Возвращает: `ChatResolveResponseDto`
+  - Описание: Результат функции в формате `ChatResolveResponseDto`.
+
+#### `export const decodeDirectChatsResponse = ( input: unknown, ): DirectChatsResponseDto => {`
+
+- Вид: функция
+- Кратко: Функция `decodeDirectChatsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `DirectChatsResponseDto`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeEditMessageResponse = ( input: unknown, ): EditMessageResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeEditMessageResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `EditMessageResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeReactionResponse = (input: unknown): ReactionResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeReactionResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `ReactionResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeSearchResponse = (input: unknown): SearchResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeSearchResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `SearchResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeUploadResponse = (input: unknown): UploadResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeUploadResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `UploadResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeReadStateResponse = (input: unknown): ReadStateResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeReadStateResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `ReadStateResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeMessageReadersResponse = ( input: unknown, ): MessageReadersResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeMessageReadersResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `MessageReadersResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeUnreadCountsResponse = ( input: unknown, ): UnreadCountItem[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeUnreadCountsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `UnreadCountItem[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeRoomAttachmentsResponse = ( input: unknown, ): RoomAttachmentsResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeRoomAttachmentsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `RoomAttachmentsResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeGlobalSearchResponse = ( input: unknown, ): GlobalSearchResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeGlobalSearchResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `GlobalSearchResponse`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/http/friends.ts`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 6
 
-### Declarations
+### Объявления
 
-- `const mapFriend = (dto: z.infer<typeof friendshipSchema>): Friend => ({`
-  - Преобразует HTTP-данные для операции map friend. @param dto DTO-объект для декодирования данных. @returns Нормализованные данные после декодирования.
-- `export const decodeFriendsListResponse = (input: unknown): Friend[] => {`
-  - Преобразует HTTP-данные для операции decode friends list response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeIncomingRequestsResponse = ( input: unknown, ): FriendRequest[] => {`
-  - Преобразует HTTP-данные для операции decode incoming requests response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeOutgoingRequestsResponse = ( input: unknown, ): FriendRequest[] => {`
-  - Преобразует HTTP-данные для операции decode outgoing requests response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeSendFriendRequestResponse = ( input: unknown, ): SendFriendRequestResponse => {`
-  - Преобразует HTTP-данные для операции decode send friend request response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeBlockResponse = (input: unknown): BlockedUser => {`
-  - Преобразует HTTP-данные для операции decode block response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeBlockedListResponse = (input: unknown): BlockedUser[] => {`
-  - Преобразует HTTP-данные для операции decode blocked list response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
+#### `export const decodeFriendsListResponse = (input: unknown): Friend[] => {`
 
-## `frontend/src/dto/http/groups.test.ts`
+- Вид: функция
+- Кратко: Функция `decodeFriendsListResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `Friend[]`
+  - Описание: Нормализованные данные после декодирования.
 
-- Top-level declarations: 0
+#### `export const decodeIncomingRequestsResponse = ( input: unknown, ): FriendRequest[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeIncomingRequestsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `FriendRequest[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeOutgoingRequestsResponse = ( input: unknown, ): FriendRequest[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeOutgoingRequestsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `FriendRequest[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeSendFriendRequestResponse = ( input: unknown, ): SendFriendRequestResponse => {`
+
+- Вид: функция
+- Кратко: Функция `decodeSendFriendRequestResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `SendFriendRequestResponse`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeBlockResponse = (input: unknown): BlockedUser => {`
+
+- Вид: функция
+- Кратко: Функция `decodeBlockResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `BlockedUser`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeBlockedListResponse = (input: unknown): BlockedUser[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeBlockedListResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `BlockedUser[]`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/http/groups.ts`
 
-- Top-level declarations: 11
+- Экспортируемые объявления: 9
 
-### Declarations
+### Объявления
 
-- `const toRoomId = (value: number | string): number => {`
-  - Преобразует HTTP-данные для операции to room id. @param value Входное значение для преобразования. @returns Нормализованные данные после декодирования.
-- `const mapGroup = (dto: z.infer<typeof groupSchema>): Group => ({`
-  - Преобразует HTTP-данные для операции map group. @param dto DTO-объект для декодирования данных. @returns Нормализованные данные после декодирования.
-- `export const decodeGroupResponse = (input: unknown): Group =>`
-  - Преобразует HTTP-данные для операции decode group response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeGroupListResponse = ( input: unknown, ): {`
-  - Декодирует group list response. @returns Нормализованные данные после декодирования.
-- `export const decodeGroupMembersResponse = ( input: unknown, ): {`
-  - Декодирует group members response. @returns Нормализованные данные после декодирования.
-- `export const decodeInvitesResponse = (input: unknown): GroupInvite[] => {`
-  - Преобразует HTTP-данные для операции decode invites response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeInviteResponse = (input: unknown): GroupInvite => {`
-  - Преобразует HTTP-данные для операции decode invite response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeInvitePreviewResponse = (input: unknown): InvitePreview => {`
-  - Преобразует HTTP-данные для операции decode invite preview response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeJoinRequestsResponse = (input: unknown): JoinRequest[] => {`
-  - Преобразует HTTP-данные для операции decode join requests response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodePinnedMessagesResponse = ( input: unknown, ): PinnedMessage[] => {`
-  - Преобразует HTTP-данные для операции decode pinned messages response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeBannedMembersResponse = ( input: unknown, ): {`
-  - Декодирует banned members response. @returns Нормализованные данные после декодирования.
+#### `export const decodeGroupResponse = (input: unknown): Group =>`
 
-## `frontend/src/dto/http/meta.test.ts`
+- Вид: функция
+- Кратко: Функция `decodeGroupResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `Group`
+  - Описание: Нормализованные данные после декодирования.
 
-- Top-level declarations: 0
+#### `export const decodeGroupListResponse = ( input: unknown, ): {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `decodeGroupListResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Параметр `input` произвольного формата.
+- Возвращает: не указан
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeGroupMembersResponse = ( input: unknown, ): {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `decodeGroupMembersResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Параметр `input` произвольного формата.
+- Возвращает: не указан
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeInvitesResponse = (input: unknown): GroupInvite[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeInvitesResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `GroupInvite[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeInviteResponse = (input: unknown): GroupInvite => {`
+
+- Вид: функция
+- Кратко: Функция `decodeInviteResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `GroupInvite`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeInvitePreviewResponse = (input: unknown): InvitePreview => {`
+
+- Вид: функция
+- Кратко: Функция `decodeInvitePreviewResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `InvitePreview`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeJoinRequestsResponse = (input: unknown): JoinRequest[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeJoinRequestsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `JoinRequest[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodePinnedMessagesResponse = ( input: unknown, ): PinnedMessage[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodePinnedMessagesResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `PinnedMessage[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeBannedMembersResponse = ( input: unknown, ): {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `decodeBannedMembersResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Параметр `input` произвольного формата.
+- Возвращает: не указан
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/http/meta.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const decodeClientConfigResponse = ( input: unknown, ): ClientRuntimeConfig =>`
-  - Преобразует HTTP-данные для операции decode client config response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
+#### `export const decodeClientConfigResponse = ( input: unknown, ): ClientRuntimeConfig =>`
+
+- Вид: функция
+- Кратко: Функция `decodeClientConfigResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `ClientRuntimeConfig`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/http/roles.ts`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 6
 
-### Declarations
+### Объявления
 
-- `const mapRole = (dto: z.infer<typeof roleSchema>): Role => ({`
-  - Преобразует HTTP-данные для операции map role. @param dto DTO-объект для декодирования данных. @returns Нормализованные данные после декодирования.
-- `export const decodeRolesListResponse = (input: unknown): Role[] => {`
-  - Преобразует HTTP-данные для операции decode roles list response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeRoleResponse = (input: unknown): Role => {`
-  - Преобразует HTTP-данные для операции decode role response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeMemberRolesResponse = (input: unknown): MemberRoles => {`
-  - Преобразует HTTP-данные для операции decode member roles response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeOverridesResponse = ( input: unknown, ): PermissionOverride[] => {`
-  - Преобразует HTTP-данные для операции decode overrides response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeOverrideResponse = (input: unknown): PermissionOverride => {`
-  - Преобразует HTTP-данные для операции decode override response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
-- `export const decodeMyPermissionsResponse = (input: unknown): MyPermissions => {`
-  - Преобразует HTTP-данные для операции decode my permissions response. @param input Входной объект с параметрами операции. @returns Нормализованные данные после декодирования.
+#### `export const decodeRolesListResponse = (input: unknown): Role[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeRolesListResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `Role[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeRoleResponse = (input: unknown): Role => {`
+
+- Вид: функция
+- Кратко: Функция `decodeRoleResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `Role`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeMemberRolesResponse = (input: unknown): MemberRoles => {`
+
+- Вид: функция
+- Кратко: Функция `decodeMemberRolesResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `MemberRoles`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeOverridesResponse = ( input: unknown, ): PermissionOverride[] => {`
+
+- Вид: функция
+- Кратко: Функция `decodeOverridesResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `PermissionOverride[]`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeOverrideResponse = (input: unknown): PermissionOverride => {`
+
+- Вид: функция
+- Кратко: Функция `decodeOverrideResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `PermissionOverride`
+  - Описание: Нормализованные данные после декодирования.
+
+#### `export const decodeMyPermissionsResponse = (input: unknown): MyPermissions => {`
+
+- Вид: функция
+- Кратко: Функция `decodeMyPermissionsResponse`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+- Возвращает: `MyPermissions`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/index.ts`
 
-- Top-level declarations: 0
-
-## `frontend/src/dto/input/route.test.ts`
-
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/dto/input/route.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export const decodeRoomRefParam = (value: unknown): string | null => {`
-  - Декодирует room ref param. @param value Входное значение для преобразования. @returns Строковое значение результата.
-- `export const decodePublicRefParam = (value: unknown): string | null => {`
-  - Декодирует public ref param. @param value Входное значение для преобразования. @returns Строковое значение результата.
+#### `export const decodeRoomRefParam = (value: unknown): string | null => {`
 
-## `frontend/src/dto/input/storage.test.ts`
+- Вид: функция
+- Кратко: Функция `decodeRoomRefParam`.
+- Параметры: 1
+  - `value`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `string | null`
+  - Описание: Строковое значение результата.
 
-- Top-level declarations: 0
+#### `export const decodePublicRefParam = (value: unknown): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `decodePublicRefParam`.
+- Параметры: 1
+  - `value`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `string | null`
+  - Описание: Строковое значение результата.
 
 ## `frontend/src/dto/input/storage.ts`
 
-- Top-level declarations: 6
+- Экспортируемые объявления: 4
 
-### Declarations
+### Объявления
 
-- `export const readCookieValue = ( cookie: string | null | undefined, name: string, ): string | null => {`
-  - Извлекает значение cookie по имени. @param cookie Строка cookie, из которой извлекается значение. @param name Отображаемое имя. @returns Нормализованные данные после декодирования.
-- `const chunks = cookie.split(";").map((entry) => entry.trim());`
-- `const match = chunks.find((entry) => entry.startsWith(`${cookieName.data}=`));`
-- `export const readCsrfFromCookie = (): string | null => {`
-  - Читает csrf token из document.cookie в браузере. @returns Нормализованные данные после декодирования.
-- `export const readCsrfFromSessionStorage = ( storageKey: string, ): string | null => {`
-  - Читает csrf token из sessionStorage. @param storageKey Аргумент `storageKey` текущего вызова. @returns Нормализованные данные после декодирования.
-- `export const writeCsrfToSessionStorage = ( storageKey: string, token: string | null, ): void => {`
-  - Сохраняет csrf token в sessionStorage. @param storageKey Аргумент `storageKey` текущего вызова. @param token Токен OAuth-провайдера.
+#### `export const readCookieValue = ( cookie: string | null | undefined, name: string, ): string | null => {`
 
-## `frontend/src/dto/input/swMessage.test.ts`
+- Вид: функция
+- Кратко: Функция `readCookieValue`.
+- Параметры: 2
+  - `cookie`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Строка `document.cookie` или ее часть.
+  - `name`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Имя cookie, которое нужно найти.
+- Возвращает: `string | null`
+  - Описание: Значение cookie либо `null`, если ключ отсутствует или значение не прошло проверку.
 
-- Top-level declarations: 0
+#### `export const readCsrfFromCookie = (): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `readCsrfFromCookie`.
+- Параметры: нет
+- Возвращает: `string | null`
+  - Описание: Нормализованное значение CSRF-токена или `null`, если токен недоступен.
+
+#### `export const readCsrfFromSessionStorage = ( storageKey: string, ): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `readCsrfFromSessionStorage`.
+- Параметры: 1
+  - `storageKey`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Ключ, под которым токен хранится в браузерной сессии.
+- Возвращает: `string | null`
+  - Описание: Нормализованный токен или `null`, если запись отсутствует либо повреждена.
+
+#### `export const writeCsrfToSessionStorage = ( storageKey: string, token: string | null, ): void => {`
+
+- Вид: функция
+- Кратко: Функция `writeCsrfToSessionStorage`.
+- Параметры: 2
+  - `storageKey`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Ключ, под которым токен хранится в `sessionStorage`.
+  - `token`
+    - Формат: `string | null`
+    - Вид: обязательный
+    - Описание: Новый CSRF-токен или `null`, если сохраненное значение нужно удалить.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
 
 ## `frontend/src/dto/input/swMessage.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export const encodeSwCacheMessage = (input: unknown): SwCacheMessage => {`
-  - Валидирует исходящее сообщение в Service Worker. @param input Входные данные для валидации и преобразования. @returns Нормализованные данные после декодирования.
-- `export const decodeSwCacheMessage = (input: unknown): SwCacheMessage | null => {`
-  - Безопасно декодирует входящее сообщение в Service Worker. @param input Входные данные для валидации и преобразования. @returns Нормализованные данные после декодирования.
+#### `export const encodeSwCacheMessage = (input: unknown): SwCacheMessage => {`
 
-## `frontend/src/dto/ws/chat.test.ts`
+- Вид: функция
+- Кратко: Функция `encodeSwCacheMessage`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+- Возвращает: `SwCacheMessage`
+  - Описание: Нормализованные данные после декодирования.
 
-- Top-level declarations: 0
+#### `export const decodeSwCacheMessage = (input: unknown): SwCacheMessage | null => {`
+
+- Вид: функция
+- Кратко: Функция `decodeSwCacheMessage`.
+- Параметры: 1
+  - `input`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входные данные для валидации и преобразования.
+- Возвращает: `SwCacheMessage | null`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/ws/chat.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const toNumberOrNull = (value: unknown): number | null => {`
-  - Преобразует WebSocket-данные для операции to number or null. @param value Входное значение для преобразования. @returns Числовое значение результата.
-- `export const decodeChatWsEvent = (raw: string): ChatWsEvent => {`
-  - Преобразует WebSocket-данные для операции decode chat ws event. @param raw Сырые входные данные до нормализации. @returns Нормализованные данные после декодирования.
+#### `export const decodeChatWsEvent = (raw: string): ChatWsEvent => {`
 
-## `frontend/src/dto/ws/directInbox.test.ts`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: Функция `decodeChatWsEvent`.
+- Параметры: 1
+  - `raw`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Сырые входные данные до нормализации.
+- Возвращает: `ChatWsEvent`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/ws/directInbox.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const decodeDirectInboxWsEvent = (raw: string): DirectInboxWsEvent => {`
-  - Преобразует WebSocket-данные для операции decode direct inbox ws event. @param raw Сырые входные данные до нормализации. @returns Нормализованные данные после декодирования.
+#### `export const decodeDirectInboxWsEvent = (raw: string): DirectInboxWsEvent => {`
 
-## `frontend/src/dto/ws/presence.test.ts`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: Функция `decodeDirectInboxWsEvent`.
+- Параметры: 1
+  - `raw`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Сырые входные данные до нормализации.
+- Возвращает: `DirectInboxWsEvent`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/dto/ws/presence.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const toGuests = (value: unknown): number | null => {`
-  - Преобразует WebSocket-данные для операции to guests. @param value Входное значение для преобразования. @returns Числовое значение результата.
-- `export const decodePresenceWsEvent = (raw: string): PresenceWsEvent => {`
-  - Преобразует WebSocket-данные для операции decode presence ws event. @param raw Сырые входные данные до нормализации. @returns Нормализованные данные после декодирования.
+#### `export const decodePresenceWsEvent = (raw: string): PresenceWsEvent => {`
+
+- Вид: функция
+- Кратко: Функция `decodePresenceWsEvent`.
+- Параметры: 1
+  - `raw`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Сырые входные данные до нормализации.
+- Возвращает: `PresenceWsEvent`
+  - Описание: Нормализованные данные после декодирования.
 
 ## `frontend/src/entities/conversation/types.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/entities/friend/types.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/entities/group/types.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/entities/message/types.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/entities/role/bitmask.ts`
 
-- Top-level declarations: 4
+- Экспортируемые объявления: 3
 
-### Declarations
+### Объявления
 
-- `const asBigInt = (value: number): bigint => {`
-  - Обрабатывает as big int. @param value Входное значение для преобразования. @returns Логический флаг наличия условия.
-- `export const hasPermissionFlag = (mask: number, flag: number): boolean => {`
-  - Проверяет наличие permission flag. @param mask Битовая маска разрешений. @param flag Флаг разрешения. @returns Логический флаг наличия условия.
-- `export const combinePermissionFlags = (flags: Iterable<number>): number => {`
-  - Выполняет permission flags. @param flags Набор флагов разрешений.
-- `export const flagsFromMask = ( mask: number, flags: readonly number[], ): number[] => flags.filter((flag) => hasPermissionFlag(mask, flag));`
-  - Обрабатывает flags from mask. @param mask Битовая маска разрешений. @param flags Набор флагов разрешений. @returns Числовое значение результата.
+#### `export const hasPermissionFlag = (mask: number, flag: number): boolean => {`
+
+- Вид: функция
+- Кратко: Проверяет, присутствует ли конкретный permission-флаг в битовой маске.
+- Параметры: 2
+  - `mask`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Битовая маска разрешений.
+  - `flag`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Флаг разрешения, наличие которого нужно проверить.
+- Возвращает: `boolean`
+  - Описание: `true`, если указанный флаг полностью содержится в маске.
+
+#### `export const combinePermissionFlags = (flags: Iterable<number>): number => {`
+
+- Вид: функция
+- Кратко: Объединяет набор флагов прав доступа в одну битовую маску для передачи в API и хранения в локальном состоянии.
+- Параметры: 1
+  - `flags`
+    - Формат: `Iterable<number>`
+    - Вид: обязательный
+    - Описание: Набор числовых флагов прав доступа.
+- Возвращает: `number`
+  - Описание: Итоговая битовая маска, в которой выставлены все переданные флаги.
+
+#### `export const flagsFromMask = ( mask: number, flags: readonly number[], ): number[] => flags.filter((flag) => hasPermissionFlag(mask, flag));`
+
+- Вид: функция
+- Кратко: Возвращает только те флаги, которые реально присутствуют в переданной битовой маске.
+- Параметры: 2
+  - `mask`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Битовая маска разрешений.
+  - `flags`
+    - Формат: `readonly number[]`
+    - Вид: обязательный
+    - Описание: Список флагов, которые нужно проверить на наличие в маске.
+- Возвращает: `number[]`
+  - Описание: Подмножество исходных флагов, найденных в `mask`.
 
 ## `frontend/src/entities/role/types.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const Perm = {`
-  - Bitmask flags matching backend roles/permissions.py Perm enum.
+#### `export const Perm = {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `Perm`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/entities/room/types.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/entities/user/types.ts`
 
-- Top-level declarations: 0
-
-## `frontend/src/hooks/useAuth.test.ts`
-
-- Top-level declarations: 1
-
-### Declarations
-
-- `const authControllerMock = vi.hoisted(() => ({`
+- Экспортируемые объявления: 0
 
 ## `frontend/src/hooks/useAuth.ts`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const normalizeProfileImage = (user: UserProfileDto): UserProfileDto => {`
-  - Нормализует profile image. @param user Текущий пользователь. @returns Нормализованное значение после обработки входа.
-- `export const useAuth = () => {`
-  - Хук useAuth управляет состоянием и побочными эффектами текущего сценария.
-- `const login = useCallback(async (dto: LoginDto) => {`
-- `const register = useCallback(async (dto: RegisterDto) => {`
-- `const logout = useCallback(async () => {`
+#### `export const useAuth = () => {`
 
-## `frontend/src/hooks/useChatRoom.test.ts`
-
-- Top-level declarations: 2
-
-### Declarations
-
-- `const controllerMocks = vi.hoisted(() => ({`
-- `const messages = Array.from({ length: 50 }, (_, idx) =>`
+- Вид: функция
+- Кратко: Хук useAuth управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/hooks/useChatRoom.ts`
 
-- Top-level declarations: 13
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const sanitizeMessage = (message: Message, maxMessageLength: number): Message => ({`
-- `const messageKey = (message: Message) => `${message.id}-${message.createdAt}`;`
-- `const dedupeMessages = (messages: Message[]) => {`
-- `const resolveHasMore = (payload: RoomMessagesDto, fetched: Message[]) => {`
-- `const resolveNextBefore = (payload: RoomMessagesDto, fetched: Message[]) => {`
-- `const createInitialRoomState = (roomId: string): ChatRoomState => ({`
-- `export const useChatRoom = ( roomId: string, user: UserProfileDto | null, initialRoomKind: RoomKind | null = null, ) => {`
-- `const loadInitial = useCallback(() => {`
-- `const sanitized = payload.messages.map((message) =>`
-- `const taskId = window.setTimeout(() => {`
-- `const loadMore = useCallback(async () => {`
-- `const sanitized = payload.messages.map((message) =>`
-- `const sanitized = nextMessages.map((message) =>`
+#### `export const useChatRoom = ( roomId: string, user: UserProfileDto | null, initialRoomKind: RoomKind | null = null, ) => {`
+
+- Вид: функция
+- Кратко: Хук `useChatRoom`.
+- Параметры: 3
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `user`
+    - Формат: `UserProfileDto | null`
+    - Вид: обязательный
+    - Описание: Параметр `user` в формате `UserProfileDto | null`.
+  - `initialRoomKind`
+    - Формат: `RoomKind | null`
+    - Вид: обязательный
+    - Значение по умолчанию: `null`
+    - Описание: Параметр `initialRoomKind` в формате `RoomKind | null`.
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/hooks/useFriends.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function useFriends(): UseFriendsResult {`
-  - Хук useFriends управляет состоянием и побочными эффектами текущего сценария. @returns Публичное состояние хука и его обработчики.
-- `const reload = useCallback(async () => {`
+#### `export function useFriends(): UseFriendsResult {`
+
+- Вид: функция
+- Кратко: Хук useFriends управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: `UseFriendsResult`
+  - Описание: Публичное состояние хука и его обработчики.
 
 ## `frontend/src/hooks/useGroupDetails.ts`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function useGroupDetails(roomId: string): UseGroupDetailsResult {`
-  - Хук useGroupDetails управляет состоянием и побочными эффектами текущего сценария. @param roomId ????????????? ???????. @returns Публичное состояние хука и его обработчики.
-- `const reload = useCallback(async () => {`
-- `const deleteGroupCb = useCallback(async () => {`
-- `const joinGroupCb = useCallback(async () => {`
-- `const leaveGroupCb = useCallback(async () => {`
+#### `export function useGroupDetails(roomId: string): UseGroupDetailsResult {`
+
+- Вид: функция
+- Кратко: Хук useGroupDetails управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `UseGroupDetailsResult`
+  - Описание: Публичное состояние хука и его обработчики.
 
 ## `frontend/src/hooks/useGroupList.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function useGroupList(): UseGroupListResult {`
-  - Хук useGroupList управляет состоянием и побочными эффектами текущего сценария. @returns Публичное состояние хука и его обработчики.
-- `const reload = useCallback(async () => {`
+#### `export function useGroupList(): UseGroupListResult {`
+
+- Вид: функция
+- Кратко: Хук useGroupList управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: `UseGroupListResult`
+  - Описание: Публичное состояние хука и его обработчики.
 
 ## `frontend/src/hooks/useKeyboardShortcuts.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function useKeyboardShortcuts({ roomId }: Options = {}) {`
-  - Хук useKeyboardShortcuts управляет состоянием и побочными эффектами текущего сценария.
-- `const handler = (e: KeyboardEvent) => {`
-  - Обрабатывает handler. @param e DOM-событие, вызвавшее обработчик.
+#### `export function useKeyboardShortcuts({ roomId }: Options = {}) {`
+
+- Вид: функция
+- Кратко: Хук useKeyboardShortcuts управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `{ roomId }`
+    - Формат: `Options`
+    - Вид: обязательный
+    - Значение по умолчанию: `{}`
+    - Описание: Объект параметров в формате `Options`.
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/hooks/useOnlineStatus.ts`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const useOnlineStatus = () => {`
-  - Хук useOnlineStatus управляет состоянием и побочными эффектами текущего сценария.
-- `const handleOnline = () => setOnline(true);`
-  - Обрабатывает handle online.
-- `const handleOffline = () => setOnline(false);`
-  - Обрабатывает handle offline.
+#### `export const useOnlineStatus = () => {`
+
+- Вид: функция
+- Кратко: Хук useOnlineStatus управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/hooks/usePasswordRules.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const usePasswordRules = (enabled: boolean) => {`
-  - Хук usePasswordRules управляет состоянием и побочными эффектами текущего сценария. @param enabled Флаг включения поведения.
+#### `export const usePasswordRules = (enabled: boolean) => {`
 
-## `frontend/src/hooks/useReconnectingWebSocket.test.ts`
-
-- Top-level declarations: 1
-
-### Declarations
-
-- `class MockWebSocket {`
-  - Реализует класс MockWebSocket.
+- Вид: функция
+- Кратко: Хук usePasswordRules управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `enabled`
+    - Формат: `boolean`
+    - Вид: обязательный
+    - Описание: Флаг включения поведения.
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/hooks/useReconnectingWebSocket.ts`
 
-- Top-level declarations: 8
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const useReconnectingWebSocket = (options: WebSocketOptions) => {`
-  - Хук useReconnectingWebSocket управляет состоянием и побочными эффектами текущего сценария. @param options Опциональные параметры поведения.
-- `const connectRef = useRef<(() => void) | null>(null);`
-- `const clearRetry = () => {`
-  - Обрабатывает clear retry.
-- `const cleanup = useCallback(() => {`
-- `const connect = useCallback(() => {`
-- `const handleOnline = () => {`
-  - Обрабатывает handle online.
-- `const handleOffline = () => {`
-  - Обрабатывает handle offline.
-- `const send = useCallback((data: string) => {`
+#### `export const useReconnectingWebSocket = (options: WebSocketOptions) => {`
+
+- Вид: функция
+- Кратко: Хук useReconnectingWebSocket управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `options`
+    - Формат: `WebSocketOptions`
+    - Вид: обязательный
+    - Описание: Опциональные параметры поведения.
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/hooks/useRoomPermissions.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function useRoomPermissions( roomId: string | null, ): UseRoomPermissionsResult {`
-  - Хук useRoomPermissions управляет состоянием и побочными эффектами текущего сценария. @param roomId ????????????? ???????. @returns Публичное состояние хука и его обработчики.
-- `const load = useCallback(async () => {`
+#### `export function useRoomPermissions( roomId: string | null, ): UseRoomPermissionsResult {`
+
+- Вид: функция
+- Кратко: Хук useRoomPermissions управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `roomId`
+    - Формат: `string | null`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `UseRoomPermissionsResult`
+  - Описание: Публичное состояние хука и его обработчики.
 
 ## `frontend/src/hooks/useTypingIndicator.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function useTypingIndicator(send: (data: string) => boolean) {`
-  - Хук useTypingIndicator управляет состоянием и побочными эффектами текущего сценария. @param send Аргумент `send` текущего вызова.
-- `const sendTyping = useCallback(() => {`
+#### `export function useTypingIndicator(send: (data: string) => boolean) {`
+
+- Вид: функция
+- Кратко: Хук useTypingIndicator управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `send`
+    - Формат: `(data: string)`
+    - Вид: обязательный
+    - Значение по умолчанию: `> boolean`
+    - Описание: Параметр `send` в формате `(data: string)`.
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/hooks/useUserProfile.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const useUserProfile = (publicRef: string) => {`
-  - Хук useUserProfile управляет состоянием и побочными эффектами текущего сценария. @param publicRef Публичный идентификатор пользователя.
+#### `export const useUserProfile = (publicRef: string) => {`
+
+- Вид: функция
+- Кратко: Хук useUserProfile управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `publicRef`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный идентификатор пользователя.
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/main.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 0
 
-### Declarations
+## `frontend/src/pages/chatRoomPage/ChatHeaderSearchPopover.tsx`
 
-- `const registerServiceWorker = () => {`
-  - Обрабатывает register service worker.
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function ChatHeaderSearchPopover({ anchorRef, layerRef, isOpen, className, children, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `ChatHeaderSearchPopover`.
+- Параметры: 1
+  - `{ anchorRef, layerRef, isOpen, className, children, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: Верхний слой поиска или `null`, если поиск закрыт.
+
+## `frontend/src/pages/chatRoomPage/ChatRoomPageView.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function ChatRoomPageView({ controller, onNavigate, user, }: ChatRoomPageViewProps) {`
+
+- Вид: функция
+- Кратко: Презентационный слой страницы комнаты.
+- Параметры: 1
+  - `{ controller, onNavigate, user, }`
+    - Формат: `ChatRoomPageViewProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ChatRoomPageViewProps`.
+- Возвращает: не указан
+  - Описание: Полная разметка страницы комнаты.
+
+## `frontend/src/pages/chatRoomPage/ChatRoomPageView.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/mediaLightbox.ts`
+
+- Экспортируемые объявления: 2
+
+### Объявления
+
+#### `export const buildChatLightboxMediaItems = ( messages: Message[], ): ImageLightboxMediaItem[] => {`
+
+- Вид: функция
+- Кратко: Функция `buildChatLightboxMediaItems`.
+- Параметры: 1
+  - `messages`
+    - Формат: `Message[]`
+    - Вид: обязательный
+    - Описание: Сообщения текущей комнаты вместе с вложениями.
+- Возвращает: `ImageLightboxMediaItem[]`
+  - Описание: Список изображений и видео в формате, который понимает lightbox-слой.
+
+#### `export const findLightboxMediaIndex = ( mediaItems: ImageLightboxMediaItem[], attachmentId: number | null, ): number => {`
+
+- Вид: функция
+- Кратко: Находит индекс конкретного вложения в уже подготовленном списке медиа для лайтбокса.
+- Параметры: 2
+  - `mediaItems`
+    - Формат: `ImageLightboxMediaItem[]`
+    - Вид: обязательный
+    - Описание: Список элементов, который показывает lightbox.
+  - `attachmentId`
+    - Формат: `number | null`
+    - Вид: обязательный
+    - Описание: Идентификатор вложения, с которого нужно открыть просмотр.
+- Возвращает: `number`
+  - Описание: Индекс элемента в массиве или `-1`, если вложение в списке не найдено.
+
+## `frontend/src/pages/chatRoomPage/types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageComposer.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useChatRoomPageComposer({ roomIdForRequests, user, messages, maxMessageLength, maxAttachmentPerMessage, maxAttachmentSizeBytes, maxAttachmentSizeMb, isCurrentUserSuperuser, currentActorRef, isOnline, status, send, rateLimitActive, reload, refreshRoomPermissions, jumpToMessageById, updateUnreadDividerAnchor,`
+
+- Вид: функция
+- Кратко: Управляет состоянием composer и мутациями сообщений страницы комнаты.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Публичное состояние composer и набор обработчиков.
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageComposer.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageController.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useChatRoomPageController({ roomId, initialRoomKind = null, user, }: UseChatRoomPageControllerOptions): ChatRoomPageController {`
+
+- Вид: функция
+- Кратко: Хук `useChatRoomPageController`.
+- Параметры: 1
+  - `{ roomId, initialRoomKind = null, user, }`
+    - Формат: `UseChatRoomPageControllerOptions`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UseChatRoomPageControllerOptions`.
+- Возвращает: `ChatRoomPageController`
+  - Описание: Структурированные slices для презентационного слоя.
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageController.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageHeaderSearch.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useChatRoomPageHeaderSearch({ roomIdForRequests, jumpToMessageById, setRoomError, }: UseChatRoomPageHeaderSearchOptions): UseChatRoomPageHeaderSearchResult {`
+
+- Вид: функция
+- Кратко: Управляет поиском по сообщениям в заголовке комнаты.
+- Параметры: 1
+  - `{ roomIdForRequests, jumpToMessageById, setRoomError, }`
+    - Формат: `UseChatRoomPageHeaderSearchOptions`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UseChatRoomPageHeaderSearchOptions`.
+- Возвращает: `UseChatRoomPageHeaderSearchResult`
+  - Описание: Ссылки, состояние и обработчики виджета поиска.
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageHeaderSearch.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageReadState.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useChatRoomPageReadState({ roomId, roomIdForRequests, roomApiRef, locationSearch, user, details, messages, loading, loadingMore, hasMore, error, loadMore, currentActorRef, resolvedRoomId, setActiveRoom, markDirectRoomRead, }: UseChatRoomPageReadStateOptions): UseChatRoomPageReadStateResult {`
+
+- Вид: функция
+- Кратко: Управляет прокруткой, непрочитанным разделителем и синхронизацией чтения.
+- Параметры: 1
+  - `{ roomId, roomIdForRequests, roomApiRef, locationSearch, user, details, messages, loading, loadingMore, hasMore, error, loadMore, currentActorRef, resolvedRoomId, setActiveRoom, markDirectRoomRead, }`
+    - Формат: `UseChatRoomPageReadStateOptions`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UseChatRoomPageReadStateOptions`.
+- Возвращает: `UseChatRoomPageReadStateResult`
+  - Описание: Ссылки на список, read-state и обработчики навигации.
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageReadState.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageRealtime.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useChatRoomPageRealtime({ wsUrl, roomIdForRequests, roomKind, maxMessageLength, currentActorRef, readStateEnabled, user, setMessages, setRoomError, onIncomingForeignMessage, }: UseChatRoomPageRealtimeOptions): UseChatRoomPageRealtimeResult {`
+
+- Вид: функция
+- Кратко: Хук `useChatRoomPageRealtime`.
+- Параметры: 1
+  - `{ wsUrl, roomIdForRequests, roomKind, maxMessageLength, currentActorRef, readStateEnabled, user, setMessages, setRoomError, onIncomingForeignMessage, }`
+    - Формат: `UseChatRoomPageRealtimeOptions`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UseChatRoomPageRealtimeOptions`.
+- Возвращает: `UseChatRoomPageRealtimeResult`
+  - Описание: Состояние транспорта, typing-индикаторы и read receipts.
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageRealtime.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageUiActions.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useChatRoomPageUiActions({ details, roomIdForRequests, openInfoPanel, openDrawer, }: UseChatRoomPageUiActionsOptions): UseChatRoomPageUiActionsResult {`
+
+- Вид: функция
+- Кратко: Собирает UI-обработчики для панели информации и мобильной навигации.
+- Параметры: 1
+  - `{ details, roomIdForRequests, openInfoPanel, openDrawer, }`
+    - Формат: `UseChatRoomPageUiActionsOptions`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UseChatRoomPageUiActionsOptions`.
+- Возвращает: `UseChatRoomPageUiActionsResult`
+  - Описание: Стабильные callbacks для презентационного слоя.
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageUiActions.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageViewModel.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useChatRoomPageViewModel({ details, roomIdForRequests, messages, unreadDividerRenderTarget, typingUsers, typingDisplayNames, readReceipts, currentActorRef, user, permissionsLoading, canWriteToRoom, canJoinRoom, presenceOnline, presenceStatus, lightboxAttachmentId, readersMenu, }: UseChatRoomPageViewModelOptions): UseChatRoomPageViewModelResult {`
+
+- Вид: функция
+- Кратко: Собирает производные данные, нужные только для отображения страницы.
+- Параметры: 1
+  - `{ details, roomIdForRequests, messages, unreadDividerRenderTarget, typingUsers, typingDisplayNames, readReceipts, currentActorRef, user, permissionsLoading, canWriteToRoom, canJoinRoom, presenceOnline, presenceStatus, lightboxAttachmentId, readersMenu, }`
+    - Формат: `UseChatRoomPageViewModelOptions`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UseChatRoomPageViewModelOptions`.
+- Возвращает: `UseChatRoomPageViewModelResult`
+  - Описание: Мемозависимые данные для прямого рендера.
+
+## `frontend/src/pages/chatRoomPage/useChatRoomPageViewModel.types.ts`
+
+- Экспортируемые объявления: 0
 
 ## `frontend/src/pages/chatRoomPage/useFileDropZone.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const useFileDropZone = ({ enabled, onFilesDrop }: Options): Result => {`
-  - Хук useFileDropZone управляет состоянием и побочными эффектами текущего сценария. @returns Публичное состояние хука и его обработчики.
-- `const resetState = useCallback(() => {`
+#### `export const useFileDropZone = ({ enabled, onFilesDrop }: Options): Result => {`
+
+- Вид: функция
+- Кратко: Хук useFileDropZone управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: 1
+  - `{ enabled, onFilesDrop }`
+    - Формат: `Options`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Options`.
+- Возвращает: `Result`
+  - Описание: Публичное состояние хука и его обработчики.
 
 ## `frontend/src/pages/chatRoomPage/utils.ts`
 
-- Top-level declarations: 23
+- Экспортируемые объявления: 19
 
-### Declarations
+### Объявления
 
-- `export const TYPING_TIMEOUT_MS = 5_000;`
-  - Константа `TYPING_TIMEOUT_MS` хранит используемое в модуле значение.
-- `export const MAX_HISTORY_JUMP_ATTEMPTS = 60;`
-  - Константа `MAX_HISTORY_JUMP_ATTEMPTS` задает верхнюю границу для соответствующего лимита.
-- `export const MAX_HISTORY_NO_PROGRESS_ATTEMPTS = 2;`
-  - Константа `MAX_HISTORY_NO_PROGRESS_ATTEMPTS` задает верхнюю границу для соответствующего лимита.
-- `export const MARK_READ_DEBOUNCE_MS = 180;`
-  - Константа `MARK_READ_DEBOUNCE_MS` хранит используемое в модуле значение.
-- `export const normalizeActorRef = (value: string | null | undefined): string => {`
-  - Нормализует actor ref. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export const resolveCurrentActorRef = (user: UserProfile | null): string => {`
-  - Определяет current actor ref. @param user Пользователь текущего контекста. @returns Разрешенное значение с учетом fallback-логики.
-- `export const resolveMessageActorRef = ( message: Pick<Message, "publicRef">, ): string => normalizeActorRef(message.publicRef);`
-  - Определяет message actor ref. @returns Разрешенное значение с учетом fallback-логики.
-- `export const isOwnMessage = (message: Message, currentActorRef: string) =>`
-  - Проверяет own message. @param message Текст сообщения. @param currentActorRef Публичный идентификатор текущего пользователя. @returns Логический флаг результата проверки.
-- `export const normalizeReadMessageId = (value: unknown): number => {`
-  - Нормализует read message id. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export const parseRoomIdRef = (value: unknown): number | null => {`
-  - Разбирает room id ref. @param value Входное значение для преобразования. @returns Числовое значение результата.
-- `export const isFileDragPayload = ( dataTransfer: DataTransfer | null | undefined, ): boolean => {`
-  - Проверяет условие is file drag payload. @param dataTransfer Объект DataTransfer из drag-and-drop события. @returns Булев результат проверки условия.
-- `const pendingReadStorageKey = (roomId: string) =>`
-  - Обрабатывает pending read storage key. @param roomId Слаг комнаты чата.
-- `export const readPendingReadFromStorage = (roomId: string): number => {`
-  - Выполняет pending read from storage. @param roomId Идентификатор комнаты. @returns Прочитанные данные из источника.
-- `export const writePendingReadToStorage = ( roomId: string, lastReadMessageId: number, ): void => {`
-  - Выполняет pending read to storage. @returns Ничего не возвращает.
-- `export const clearPendingReadFromStorage = (roomId: string): void => {`
-  - Выполняет pending read from storage. @param roomId Идентификатор комнаты. @returns Ничего не возвращает.
-- `const readCookieValue = (cookie: string, name: string): string | null => {`
-  - Обрабатывает read cookie value. @param cookie Строка cookie, из которой извлекается значение. @param name Имя параметра или ключа, который используется в операции. @returns Строковое значение результата.
-- `const chunks = cookie.split(";").map((entry) => entry.trim());`
-- `const match = chunks.find((entry) => entry.startsWith(`${name}=`));`
-- `export const resolveCsrfToken = (): string | null => {`
-  - Определяет csrf token. @returns Строковое значение результата.
-- `export const extractApiErrorMessage = (error: unknown, fallback: string) => {`
-  - Выполняет api error message. @param error Ошибка, полученная в процессе выполнения. @param fallback Резервное значение при ошибке. @returns Извлеченное значение из входных данных.
-- `export const sameAvatarCrop = ( left: Message["avatarCrop"], right: Message["avatarCrop"], ) => {`
-  - Выполняет avatar crop.
-- `export const formatGroupTypingLabel = ( kind: string | null | undefined, activeTypingUsers: string[], ): string | null => {`
-  - Форматирует group typing label. @param kind Аргумент `kind` текущего вызова. @param activeTypingUsers Список `activeTypingUsers`, который обрабатывается функцией. @returns Строковое значение результата.
-- `export const buildTimeline = ( messages: Message[], unreadDividerRenderTarget: UnreadDividerRenderTarget, ): TimelineItem[] => {`
-  - Формирует timeline. @param messages Список сообщений для дальнейшей обработки. @param unreadDividerRenderTarget Аргумент `unreadDividerRenderTarget` текущего вызова. @returns Сформированное значение для дальнейшего использования.
+#### `export const TYPING_TIMEOUT_MS = 5_000;`
 
-## `frontend/src/pages/ChatRoomPage.test.tsx`
+- Вид: константа
+- Кратко: Хранит константное значение `TYPING_TIMEOUT_MS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
-- Top-level declarations: 14
+#### `export const MAX_HISTORY_JUMP_ATTEMPTS = 60;`
 
-### Declarations
+- Вид: константа
+- Кратко: Хранит константное значение `MAX_HISTORY_JUMP_ATTEMPTS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
-- `const wsState = vi.hoisted(() => ({`
-- `const chatRoomMock = vi.hoisted(() => ({`
-- `const presenceMock = vi.hoisted(() => ({`
-- `const infoPanelMock = vi.hoisted(() => ({`
-- `const mobileShellMock = vi.hoisted(() => ({`
-- `const locationMock = vi.hoisted(() => ({`
-- `const permissionsMock = vi.hoisted(() => ({`
-- `const groupControllerMock = vi.hoisted(() => ({`
-- `const chatControllerMock = vi.hoisted(() => ({`
-- `const formatReadReceiptTimestamp = (iso: string) =>`
-- `const makeForeignMessage = (id: number, content: string): Message => ({`
-  - Создает сообщение от другого пользователя для проверки прав. @param id Идентификатор сущности. @param content Текстовое содержимое. @returns Возвращает значение типа Message.
-- `const mockViewport = () => {`
-  - Эмулирует параметры viewport для тестового сценария.
-- `const files = Array.from({ length: 6 }, (_, index) =>`
-- `const files = Array.from({ length: 6 }, (_, index) =>`
+#### `export const MAX_HISTORY_NO_PROGRESS_ATTEMPTS = 2;`
+
+- Вид: константа
+- Кратко: Хранит константное значение `MAX_HISTORY_NO_PROGRESS_ATTEMPTS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const MARK_READ_DEBOUNCE_MS = 180;`
+
+- Вид: константа
+- Кратко: Хранит константное значение `MARK_READ_DEBOUNCE_MS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const normalizeActorRef = (value: string | null | undefined): string => {`
+
+- Вид: функция
+- Кратко: Функция `normalizeActorRef`.
+- Параметры: 1
+  - `value`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `string`
+  - Описание: Нормализованное значение после обработки входа.
+
+#### `export const resolveCurrentActorRef = (user: UserProfile | null): string => {`
+
+- Вид: функция
+- Кратко: Функция `resolveCurrentActorRef`.
+- Параметры: 1
+  - `user`
+    - Формат: `UserProfile | null`
+    - Вид: обязательный
+    - Описание: Пользователь текущего контекста.
+- Возвращает: `string`
+  - Описание: Разрешенное значение с учетом fallback-логики.
+
+#### `export const resolveMessageActorRef = ( message: Pick<Message, "publicRef">, ): string => normalizeActorRef(message.publicRef);`
+
+- Вид: функция
+- Кратко: Функция `resolveMessageActorRef`.
+- Параметры: 1
+  - `message`
+    - Формат: `Pick<Message, "publicRef">`
+    - Вид: обязательный
+    - Описание: Параметр `message` в формате `Pick<Message, "publicRef">`.
+- Возвращает: `string`
+  - Описание: Разрешенное значение с учетом fallback-логики.
+
+#### `export const isOwnMessage = (message: Message, currentActorRef: string) =>`
+
+- Вид: функция
+- Кратко: Функция `isOwnMessage`.
+- Параметры: 2
+  - `message`
+    - Формат: `Message`
+    - Вид: обязательный
+    - Описание: Текст сообщения.
+  - `currentActorRef`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный идентификатор текущего пользователя.
+- Возвращает: не указан
+  - Описание: Логический флаг результата проверки.
+
+#### `export const normalizeReadMessageId = (value: unknown): number => {`
+
+- Вид: функция
+- Кратко: Функция `normalizeReadMessageId`.
+- Параметры: 1
+  - `value`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `number`
+  - Описание: Нормализованное значение после обработки входа.
+
+#### `export const parseRoomIdRef = (value: unknown): number | null => {`
+
+- Вид: функция
+- Кратко: Функция `parseRoomIdRef`.
+- Параметры: 1
+  - `value`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `number | null`
+  - Описание: Числовое значение результата.
+
+#### `export const isFileDragPayload = ( dataTransfer: DataTransfer | null | undefined, ): boolean => {`
+
+- Вид: функция
+- Кратко: Функция `isFileDragPayload`.
+- Параметры: 1
+  - `dataTransfer`
+    - Формат: `DataTransfer | null | undefined`
+    - Вид: обязательный
+    - Описание: Объект DataTransfer из drag-and-drop события.
+- Возвращает: `boolean`
+  - Описание: Булев результат проверки условия.
+
+#### `export const readPendingReadFromStorage = (roomId: string): number => {`
+
+- Вид: функция
+- Кратко: Функция `readPendingReadFromStorage`.
+- Параметры: 1
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `number`
+  - Описание: Прочитанные данные из источника.
+
+#### `export const writePendingReadToStorage = ( roomId: string, lastReadMessageId: number, ): void => {`
+
+- Вид: функция
+- Кратко: Функция `writePendingReadToStorage`.
+- Параметры: 2
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+  - `lastReadMessageId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `lastReadMessageId` в формате `number`.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает.
+
+#### `export const clearPendingReadFromStorage = (roomId: string): void => {`
+
+- Вид: функция
+- Кратко: Функция `clearPendingReadFromStorage`.
+- Параметры: 1
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор комнаты.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает.
+
+#### `export const resolveCsrfToken = (): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `resolveCsrfToken`.
+- Параметры: нет
+- Возвращает: `string | null`
+  - Описание: Строковое значение результата.
+
+#### `export const extractApiErrorMessage = ( error: unknown, fallback: string, ): string => {`
+
+- Вид: функция
+- Кратко: Функция `extractApiErrorMessage`.
+- Параметры: 2
+  - `error`
+    - Формат: `unknown`
+    - Вид: обязательный
+    - Описание: Ошибка, полученная из HTTP-клиента или runtime-слоя.
+  - `fallback`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Сообщение по умолчанию, если распознать структуру ошибки не удалось.
+- Возвращает: `string`
+  - Описание: Текст, который можно безопасно показать пользователю.
+
+#### `export const sameAvatarCrop = ( left: Message["avatarCrop"], right: Message["avatarCrop"], ): boolean => {`
+
+- Вид: функция
+- Кратко: Сравнивает два набора параметров кропа аватара после нормализации. Это позволяет понять, нужно ли перерисовывать аватар или отправлять обновление на backend.
+- Параметры: 2
+  - `left`
+    - Формат: `Message["avatarCrop"]`
+    - Вид: обязательный
+    - Описание: Первый вариант параметров кропа.
+  - `right`
+    - Формат: `Message["avatarCrop"]`
+    - Вид: обязательный
+    - Описание: Второй вариант параметров кропа.
+- Возвращает: `boolean`
+  - Описание: `true`, если оба варианта описывают один и тот же crop.
+
+#### `export const formatGroupTypingLabel = ( kind: string | null | undefined, activeTypingUsers: string[], ): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `formatGroupTypingLabel`.
+- Параметры: 2
+  - `kind`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Параметр `kind` в формате `string | null | undefined`.
+  - `activeTypingUsers`
+    - Формат: `string[]`
+    - Вид: обязательный
+    - Описание: Список `activeTypingUsers`, который обрабатывается функцией.
+- Возвращает: `string | null`
+  - Описание: Строковое значение результата.
+
+#### `export const buildTimeline = ( messages: Message[], unreadDividerRenderTarget: UnreadDividerRenderTarget, ): TimelineItem[] => {`
+
+- Вид: функция
+- Кратко: Формирует timeline.
+- Параметры: 2
+  - `messages`
+    - Формат: `Message[]`
+    - Вид: обязательный
+    - Описание: Список сообщений для дальнейшей обработки.
+  - `unreadDividerRenderTarget`
+    - Формат: `UnreadDividerRenderTarget`
+    - Вид: обязательный
+    - Описание: Параметр `unreadDividerRenderTarget` в формате `UnreadDividerRenderTarget`.
+- Возвращает: `TimelineItem[]`
+  - Описание: Сформированное значение для дальнейшего использования.
 
 ## `frontend/src/pages/ChatRoomPage.tsx`
 
-- Top-level declarations: 42
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function ChatRoomPage({ roomId, initialRoomKind = null, user, onNavigate }: Props) {`
-  - React-компонент ChatRoomPage отвечает за отрисовку и обработку UI-сценария.
-- `const parsedInitialRoomId = useMemo(() => parseRoomIdRef(roomId), [roomId]);`
-- `const resolvedRoomId = useMemo(() => {`
-- `const roomApiRef = useMemo(() => {`
-- `const currentActorRef = useMemo(() => resolveCurrentActorRef(user), [user]);`
-- `const beginProgrammaticScroll = useCallback(() => {`
-- `const unreadDividerRenderTarget = useMemo(() => {`
-- `const wsUrl = useMemo(() => {`
-- `const applyRateLimit = useCallback((cooldownMs: number) => {`
-- `const scrollMessageIntoView = useCallback((messageId: number) => {`
-- `const onKeyDown = (event: KeyboardEvent) => {`
-  - Обрабатывает on key down. @param event Событие браузера.
-- `const onMouseDown = (event: MouseEvent) => {`
-  - Обрабатывает on mouse down. @param event Событие браузера.
-- `const id = window.setInterval(() => {`
-- `const flushPendingRead = useCallback(() => {`
-- `const scheduleViewportReadSync = useCallback(() => {`
-- `const onVisibilityChange = () => {`
-  - Обрабатывает on visibility change.
-- `const onPageHide = () => {`
-  - Обрабатывает on page hide.
-- `const onBeforeUnload = () => {`
-  - Обрабатывает on before unload.
-- `const id = window.setInterval(() => {`
-- `const updated = prev.map((msg) => {`
-- `const armPaginationInteraction = useCallback(() => {`
-- `const scrollToBottom = useCallback(() => {`
-- `const snapToBottom = () => {`
-- `const sendMessage = useCallback(async () => {`
-- `const handleReply = useCallback((msg: Message) => {`
-- `const handleEdit = useCallback((msg: Message) => {`
-- `const handleDelete = useCallback((msg: Message) => {`
-- `const closeReadersMenu = useCallback(() => {`
-- `const confirmDelete = useCallback(() => {`
-- `const msg = messages.find((m) => m.id === msgId);`
-- `const existing = msg?.reactions.find((r) => r.emoji === emoji);`
-- `const handleRemoveQueuedFile = useCallback((index: number) => {`
-- `const handleClearQueuedFiles = useCallback(() => {`
-- `const handleCancelUpload = useCallback(() => {`
-- `const handleCancelReply = useCallback(() => {`
-- `const openDirectInfo = useCallback(() => {`
-- `const openGroupInfo = useCallback(() => {`
-- `const handleJoinGroup = useCallback(async () => {`
-- `const handleMobileOpenClick = useCallback(() => {`
-- `const openRoomSearch = useCallback(() => {`
-- `const maxReadMessageId = useMemo(() => {`
-- `const readersMenuEntries = useMemo<ReadersMenuEntry[]>(() => {`
+#### `export function ChatRoomPage(props: ChatRoomPageProps) {`
 
-## `frontend/src/pages/ChatTargetPage.test.tsx`
+- Вид: функция
+- Кратко: Точка входа страницы комнаты чата.
+- Параметры: 1
+  - `props`
+    - Формат: `ChatRoomPageProps`
+    - Вид: обязательный
+    - Описание: Входные параметры маршрута и текущего пользователя.
+- Возвращает: не указан
+  - Описание: Страница комнаты с изолированным ключом сессии.
 
-- Top-level declarations: 1
+## `frontend/src/pages/ChatRoomPage.types.ts`
 
-### Declarations
-
-- `const controllerMock = vi.hoisted(() => ({`
+- Экспортируемые объявления: 0
 
 ## `frontend/src/pages/ChatTargetPage.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function ChatTargetPage({ user, target, onNavigate }: Props) {`
-- `const normalizedTarget = useMemo(() => normalizeChatTarget(target), [target]);`
+#### `export function ChatTargetPage({ user, target, onNavigate }: Props) {`
 
-## `frontend/src/pages/FriendsPage.test.tsx`
-
-- Top-level declarations: 2
-
-### Declarations
-
-- `const friendsHookMock = vi.hoisted(() => ({`
-- `const presenceMock = vi.hoisted(() => ({`
+- Вид: функция
+- Кратко: React-компонент `ChatTargetPage`.
+- Детали: Страница нужна как мост между канонической внешней навигацией по public target и внутренним room-id transport: сначала дергает `resolveChatTarget`, а затем либо показывает `ChatRoomPage`, либо выводит понятную ошибку доступа.
+- Параметры: 1
+  - `{ user, target, onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ChatTargetPage`.
 
 ## `frontend/src/pages/FriendsPage.tsx`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const normalizeActorRef = (value: string): string =>`
-- `const IconPlus = () => (`
-- `const IconFriends = () => (`
-- `const IconSearch = () => (`
-- `export function FriendsPage({ user, onNavigate }: Props) {`
-- `const timer = window.setTimeout(() => clearInfoMessage(), 3000);`
-- `const renderContent = () => {`
+#### `export function FriendsPage({ user, onNavigate }: Props) {`
+
+- Вид: функция
+- Кратко: Показывает единый экран управления дружбой, блокировками и быстрым переходом в ЛС.
+- Детали: Компонент объединяет вкладки друзей, онлайна, входящих и исходящих запросов, а также список заблокированных пользователей. Все действия завязаны на `useFriends`, а переход в личный чат строится через публичный ref собеседника.
+- Параметры: 1
+  - `{ user, onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `FriendsPage`.
 
 ## `frontend/src/pages/GroupsPage.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const IconPlus = () => (`
-  - React-компонент IconPlus отвечает за отрисовку и обработку UI-сценария.
-- `export function GroupsPage({ user, onNavigate }: Props) {`
-  - React-компонент GroupsPage отвечает за отрисовку и обработку UI-сценария.
+#### `export function GroupsPage({ user, onNavigate }: Props) {`
 
-## `frontend/src/pages/HomePage.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: React-компонент `GroupsPage`.
+- Параметры: 1
+  - `{ user, onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `GroupsPage`.
 
 ## `frontend/src/pages/HomePage.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function HomePage({ user, onNavigate }: Props) {`
-  - React-компонент HomePage отвечает за отрисовку и обработку UI-сценария.
+#### `export function HomePage({ user, onNavigate }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `HomePage`.
+- Параметры: 1
+  - `{ user, onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `HomePage`.
 
 ## `frontend/src/pages/InvitePreviewPage.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function InvitePreviewPage({ code, onNavigate }: Props) {`
-  - React-компонент InvitePreviewPage отвечает за отрисовку и обработку UI-сценария.
-- `const handleJoin = useCallback(async () => {`
+#### `export function InvitePreviewPage({ code, onNavigate }: Props) {`
 
-## `frontend/src/pages/LoginPage.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: React-компонент `InvitePreviewPage`.
+- Параметры: 1
+  - `{ code, onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `InvitePreviewPage`.
 
 ## `frontend/src/pages/LoginPage.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function LoginPage({ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, }: Props) {`
-  - Компонент LoginPage рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function LoginPage({ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `LoginPage`.
+- Параметры: 1
+  - `{ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LoginPage`.
 
 ## `frontend/src/pages/NotFoundPage.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function NotFoundPage({ onNavigate }: Props) {`
+#### `export function NotFoundPage({ onNavigate }: Props) {`
 
-## `frontend/src/pages/ProfilePage.test.tsx`
-
-- Top-level declarations: 7
-
-### Declarations
-
-- `const presenceMock = vi.hoisted(() => ({`
-- `const createObjectUrlMock = vi.hoisted(() => vi.fn(() => "blob:avatar-upload"));`
-- `const revokeObjectUrlMock = vi.hoisted(() => vi.fn());`
-- `const onSave = vi.fn(async () => ({`
-- `const onSave = vi.fn(async () => ({ ok: true as const }));`
-- `const onSave = vi.fn(async () => ({ ok: true as const }));`
-- `const onSave = vi.fn(async () => ({ ok: true as const }));`
+- Вид: функция
+- Кратко: Отображает fallback-экран для неизвестных или невалидных маршрутов.
+- Детали: Страница не пытается восстановить контекст автоматически: она явно сообщает пользователю, что путь не найден, и предлагает вернуться на главную.
+- Параметры: 1
+  - `{ onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `NotFoundPage`.
 
 ## `frontend/src/pages/ProfilePage.tsx`
 
-- Top-level declarations: 9
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const normalizeActorRef = (value: string): string =>`
-  - Нормализует actor ref. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export function ProfilePage({ user, onSave, onNavigate }: Props) {`
-  - React-компонент ProfilePage отвечает за отрисовку и обработку UI-сценария.
-- `const clearFieldError = (field: string) => {`
-  - Обрабатывает clear field error. @param field Поле формы, к которому применяется действие.
-- `const revokeBlobUrl = (value: string | null) => {`
-  - Обрабатывает revoke blob url. @param value Входное значение для преобразования.
-- `const clearPendingState = (revoke = true) => {`
-  - Обрабатывает clear pending state. @param revoke Флаг, определяющий необходимость отзыва доступа.
-- `const timeoutId = window.setTimeout(() => setFormError(null), 4200);`
-- `const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {`
-  - Обрабатывает handle file change. @param event Событие браузера.
-- `const handleCropCancel = () => {`
-  - Обрабатывает handle crop cancel.
-- `const handleCropApply = (nextCrop: AvatarCrop) => {`
-  - Обрабатывает handle crop apply. @param nextCrop Следующие координаты и размеры области обрезки.
+#### `export function ProfilePage({ user, onSave, onNavigate }: Props) {`
 
-## `frontend/src/pages/RegisterPage.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: React-компонент `ProfilePage`.
+- Параметры: 1
+  - `{ user, onSave, onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ProfilePage`.
 
 ## `frontend/src/pages/RegisterPage.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function RegisterPage({ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], }: Props) {`
-  - Компонент RegisterPage рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function RegisterPage({ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `RegisterPage`.
+- Параметры: 1
+  - `{ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `RegisterPage`.
 
 ## `frontend/src/pages/SettingsPage.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function SettingsPage({ user, onNavigate, onLogout }: Props) {`
-  - React-компонент SettingsPage отвечает за отрисовку и обработку UI-сценария.
+#### `export function SettingsPage({ user, onNavigate, onLogout }: Props) {`
 
-## `frontend/src/pages/UserProfilePage.test.tsx`
-
-- Top-level declarations: 3
-
-### Declarations
-
-- `const profileMock = vi.hoisted(() => ({`
-- `const presenceMock = vi.hoisted(() => ({`
-- `const makeUser = (username: string) =>`
+- Вид: функция
+- Кратко: React-компонент `SettingsPage`.
+- Параметры: 1
+  - `{ user, onNavigate, onLogout }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `SettingsPage`.
 
 ## `frontend/src/pages/UserProfilePage.tsx`
 
-- Top-level declarations: 15
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const normalizeActorRef = (value: string): string =>`
-  - Нормализует actor ref. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export function UserProfilePage({ username, currentUser, onNavigate, onLogout, }: Props) {`
-  - Компонент UserProfilePage рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `const clampZoom = (value: number) => Math.min(15, Math.max(1, value));`
-  - Обрабатывает clamp zoom. @param value Входное значение для преобразования.
-- `const clampPan = (nextX: number, nextY: number, zoomValue: number = zoom) => {`
-  - Обрабатывает clamp pan. @param nextX Новое состояние или значение после изменения. @param nextY Новое состояние или значение после изменения. @param zoomValue DOM-событие, вызвавшее обработчик.
-- `const openPreview = () => {`
-  - Обрабатывает open preview.
-- `const closePreview = () => setIsPreviewOpen(false);`
-  - Обрабатывает close preview.
-- `const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {`
-  - Обрабатывает handle wheel. @param event Событие браузера.
-- `const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {`
-  - Обрабатывает handle touch start. @param event Событие браузера.
-- `const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {`
-  - Обрабатывает handle touch move. @param event Событие браузера.
-- `const handleTouchEnd = () => {`
-  - Обрабатывает handle touch end.
-- `const handleMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {`
-  - Обрабатывает handle mouse down. @param event Событие браузера.
-- `const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {`
-  - Обрабатывает handle mouse move. @param event Событие браузера.
-- `const handleMouseUp = () => {`
-  - Обрабатывает handle mouse up.
-- `const handleAvatarKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {`
-  - Обрабатывает handle avatar key down. @param event Событие браузера.
-- `const onKeyDown = (event: KeyboardEvent) => {`
-  - Обрабатывает on key down. @param event Событие браузера.
+#### `export function UserProfilePage({ username, currentUser, onNavigate, onLogout, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `UserProfilePage`.
+- Параметры: 1
+  - `{ username, currentUser, onNavigate, onLogout, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `UserProfilePage`.
 
 ## `frontend/src/shared/api/types.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/shared/api/users.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/shared/auth/googleIdentity.ts`
 
-- Top-level declarations: 10
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export class GoogleOAuthError extends Error {`
-  - Класс GoogleOAuthError инкапсулирует логику текущего слоя приложения.
-- `const getGoogleIdApi = (): GoogleAccountsId | null =>`
-  - Возвращает google id api. @returns Данные, полученные из источника или кэша.
-- `const getGoogleOauth2Api = (): GoogleAccountsOauth2 | null =>`
-  - Возвращает google oauth2 api. @returns Данные, полученные из источника или кэша.
-- `const loadGoogleIdentitySdk = async (): Promise<void> => {`
-  - Обрабатывает load google identity sdk. @returns Промис с данными, возвращаемыми этой функцией.
-- `const toGoogleAuthError = (message: string): GoogleOAuthError =>`
-  - Обрабатывает to google auth error. @param message Сообщение, которое нужно обработать.
-- `const timeoutId = window.setTimeout(() => {`
-- `const finish = (result: { token?: string; error?: GoogleOAuthError }) => {`
-  - Обрабатывает finish. @param result Аргумент `result` текущего вызова.
-- `const timeoutId = window.setTimeout(() => {`
-- `const finish = (result: { token?: string; error?: GoogleOAuthError }) => {`
-  - Обрабатывает finish. @param result Аргумент `result` текущего вызова.
-- `export const signInWithGoogle = async ( clientId: string, ): Promise<GoogleOAuthSuccess> => {`
-  - Обрабатывает sign in with google. @param clientId Идентификатор OAuth-клиента. @returns Промис с данными, возвращаемыми этой функцией.
+#### `export class GoogleOAuthError extends Error {`
+
+- Вид: класс
+- Кратко: Класс GoogleOAuthError инкапсулирует логику текущего слоя приложения.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const signInWithGoogle = async ( clientId: string, ): Promise<GoogleOAuthSuccess> => {`
+
+- Вид: функция
+- Кратко: Функция `signInWithGoogle`.
+- Детали: Функция сама выбирает доступный механизм авторизации: сначала пробует popup OAuth2 для production-сценария, а при необходимости откатывается к Google Identity token flow.
+- Параметры: 1
+  - `clientId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Идентификатор Google OAuth-клиента, выданный для фронтенда.
+- Возвращает: `Promise<GoogleOAuthSuccess>`
+  - Описание: Данные успешной авторизации, которые затем передаются на backend для обмена на сессию.
 
 ## `frontend/src/shared/cache/cacheConfig.ts`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 3
 
-### Declarations
+### Объявления
 
-- `export const CACHE_NAMES = {`
-  - Константа `CACHE_NAMES` описывает параметры кэширования.
-- `export const CACHE_TTLS = {`
-  - Константа `CACHE_TTLS` описывает параметры кэширования.
-- `export const CACHE_LIMITS = {`
-  - Константа `CACHE_LIMITS` описывает параметры кэширования.
+#### `export const CACHE_NAMES = {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `CACHE_NAMES`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const CACHE_TTLS = {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `CACHE_TTLS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const CACHE_LIMITS = {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `CACHE_LIMITS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/shared/cache/cacheManager.ts`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 6
 
-### Declarations
+### Объявления
 
-- `const postMessage = (message: SwCacheMessage): void => {`
-  - Обрабатывает post message. @param message Сообщение, которое нужно обработать.
-- `export const invalidateRoomMessages = (roomRef: string) => {`
-  - Обрабатывает invalidate room messages. @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
-- `export const invalidateRoomDetails = (roomRef: string) => {`
-  - Обрабатывает invalidate room details. @param roomRef Текстовая ссылка или числовой идентификатор комнаты.
-- `export const invalidateDirectChats = () => {`
-  - Инвалидирует кэш списка direct-чатов.
-- `export const invalidateUserProfile = (publicRef: string) => {`
-  - Инвалидирует кэш публичного профиля пользователя. @param publicRef Публичный идентификатор пользователя или комнаты.
-- `export const invalidateSelfProfile = () => {`
-  - Инвалидирует кэш собственного профиля.
-- `export const clearAllUserCaches = () => {`
-  - Очищает все пользовательские API-кэши.
+#### `export const invalidateRoomMessages = (roomRef: string): void => {`
 
-## `frontend/src/shared/chat/readTracker.test.ts`
+- Вид: функция
+- Кратко: Инвалидирует кэш сообщений конкретной комнаты, чтобы следующий запрос забрал свежую историю.
+- Параметры: 1
+  - `roomRef`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный идентификатор комнаты или строковый `roomId`.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
 
-- Top-level declarations: 1
+#### `export const invalidateRoomDetails = (roomRef: string): void => {`
 
-### Declarations
+- Вид: функция
+- Кратко: Инвалидирует кэш сведений о комнате, например после смены названия или состава участников.
+- Параметры: 1
+  - `roomRef`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный идентификатор комнаты или строковый `roomId`.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
 
-- `const makeMessage = (id: number, username: string): Message => ({`
+#### `export const invalidateDirectChats = (): void => {`
+
+- Вид: функция
+- Кратко: Инвалидирует кэш списка direct-чатов.
+- Параметры: нет
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
+
+#### `export const invalidateUserProfile = (publicRef: string): void => {`
+
+- Вид: функция
+- Кратко: Инвалидирует кэш публичного профиля пользователя после обновления карточки или аватара.
+- Параметры: 1
+  - `publicRef`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Публичный идентификатор пользователя.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
+
+#### `export const invalidateSelfProfile = (): void => {`
+
+- Вид: функция
+- Кратко: Инвалидирует кэш собственного профиля текущего пользователя.
+- Параметры: нет
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
+
+#### `export const clearAllUserCaches = (): void => {`
+
+- Вид: функция
+- Кратко: Функция `clearAllUserCaches`.
+- Параметры: нет
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
 
 ## `frontend/src/shared/chat/readTracker.ts`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 4
 
-### Declarations
+### Объявления
 
-- `const normalizeLastReadMessageId = (value: number | null | undefined) => {`
-  - Нормализует last read message id. @param value Входное значение для преобразования.
-- `const normalizeActorRef = (value: string | null | undefined): string => {`
-  - Нормализует actor ref. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `const resolveMessageActorRef = (message: Message): string =>`
-  - Определяет message actor ref. @param message Сообщение, которое нужно обработать. @returns Разрешенное значение с учетом fallback-логики.
-- `export const collectVisibleMessageIdsByBottomEdge = ( listElement: HTMLElement, ): Set<number> => {`
-  - Обрабатывает collect visible message ids by bottom edge. @param listElement Список `listElement`, который обрабатывается функцией. @returns Числовое значение результата.
-- `export const computeNextLastReadMessageId = ({ messages, currentActorRef, previousLastReadMessageId, visibleMessageIds, }: ComputeNextLastReadMessageIdParams): number => {`
-  - Выполняет next last read message id. @returns Вычисленный результат операции.
-- `export const computeUnreadStats = ({ messages, currentActorRef, lastReadMessageId, }: ComputeUnreadStatsParams): UnreadStats => {`
-  - Экспорт `computeUnreadStats` предоставляет инициализированный экземпляр для повторного использования в модуле.
-- `export const useReadTracker = ({ messages, currentActorRef, serverLastReadMessageId, enabled, resetKey, }: UseReadTrackerParams) => {`
-  - Выполняет read tracker. @returns Публичный API хука: состояние и доступные обработчики.
+#### `export const collectVisibleMessageIdsByBottomEdge = ( listElement: HTMLElement, ): Set<number> => {`
+
+- Вид: функция
+- Кратко: Функция `collectVisibleMessageIdsByBottomEdge`.
+- Параметры: 1
+  - `listElement`
+    - Формат: `HTMLElement`
+    - Вид: обязательный
+    - Описание: Список `listElement`, который обрабатывается функцией.
+- Возвращает: `Set<number>`
+  - Описание: Числовое значение результата.
+
+#### `export const computeNextLastReadMessageId = ({ messages, currentActorRef, previousLastReadMessageId, visibleMessageIds, }: ComputeNextLastReadMessageIdParams): number => {`
+
+- Вид: функция
+- Кратко: Функция `computeNextLastReadMessageId`.
+- Параметры: 1
+  - `{ messages, currentActorRef, previousLastReadMessageId, visibleMessageIds, }`
+    - Формат: `ComputeNextLastReadMessageIdParams`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ComputeNextLastReadMessageIdParams`.
+- Возвращает: `number`
+  - Описание: Вычисленный результат операции.
+
+#### `export const computeUnreadStats = ({ messages, currentActorRef, lastReadMessageId, }: ComputeUnreadStatsParams): UnreadStats => {`
+
+- Вид: функция
+- Кратко: Экспорт `computeUnreadStats` предоставляет инициализированный экземпляр для повторного использования в модуле.
+- Параметры: 1
+  - `{ messages, currentActorRef, lastReadMessageId, }`
+    - Формат: `ComputeUnreadStatsParams`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ComputeUnreadStatsParams`.
+- Возвращает: `UnreadStats`
+  - Описание: Результат функции в формате `UnreadStats`.
+
+#### `export const useReadTracker = ({ messages, currentActorRef, serverLastReadMessageId, enabled, resetKey, }: UseReadTrackerParams) => {`
+
+- Вид: функция
+- Кратко: Хук `useReadTracker`.
+- Параметры: 1
+  - `{ messages, currentActorRef, serverLastReadMessageId, enabled, resetKey, }`
+    - Формат: `UseReadTrackerParams`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UseReadTrackerParams`.
+- Возвращает: не указан
+  - Описание: Публичный API хука: состояние и доступные обработчики.
 
 ## `frontend/src/shared/config/limits.ts`
 
-- Top-level declarations: 11
+- Экспортируемые объявления: 11
 
-### Declarations
+### Объявления
 
-- `export const getUsernameMaxLength = () => getRuntimeConfig().usernameMaxLength;`
-- `export const useUsernameMaxLength = () =>`
-- `export const getChatMessageMaxLength = () =>`
-- `export const useChatMessageMaxLength = () =>`
-- `export const getChatAttachmentMaxSizeMb = () =>`
-- `export const getChatAttachmentMaxSizeBytes = () =>`
-- `export const useChatAttachmentMaxSizeMb = () =>`
-- `export const useChatAttachmentMaxPerMessage = () =>`
-- `export const useChatAttachmentAllowedTypes = () =>`
-- `export const getChatTargetRegex = () => {`
-- `export const getChatTargetRegExp = () => {`
+#### `export const getUsernameMaxLength = () => getRuntimeConfig().usernameMaxLength;`
+
+- Вид: функция
+- Кратко: Функция `getUsernameMaxLength`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const useUsernameMaxLength = () =>`
+
+- Вид: функция
+- Кратко: Хук `useUsernameMaxLength`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+#### `export const getChatMessageMaxLength = () =>`
+
+- Вид: функция
+- Кратко: Функция `getChatMessageMaxLength`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const useChatMessageMaxLength = () =>`
+
+- Вид: функция
+- Кратко: Хук `useChatMessageMaxLength`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+#### `export const getChatAttachmentMaxSizeMb = () =>`
+
+- Вид: функция
+- Кратко: Функция `getChatAttachmentMaxSizeMb`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const getChatAttachmentMaxSizeBytes = () =>`
+
+- Вид: функция
+- Кратко: Функция `getChatAttachmentMaxSizeBytes`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const useChatAttachmentMaxSizeMb = () =>`
+
+- Вид: функция
+- Кратко: Хук `useChatAttachmentMaxSizeMb`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+#### `export const useChatAttachmentMaxPerMessage = () =>`
+
+- Вид: функция
+- Кратко: Хук `useChatAttachmentMaxPerMessage`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+#### `export const useChatAttachmentAllowedTypes = () =>`
+
+- Вид: функция
+- Кратко: Хук `useChatAttachmentAllowedTypes`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+#### `export const getChatTargetRegex = () => {`
+
+- Вид: функция
+- Кратко: Функция `getChatTargetRegex`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const getChatTargetRegExp = () => {`
+
+- Вид: функция
+- Кратко: Функция `getChatTargetRegExp`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/shared/config/runtimeConfig.ts`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 3
 
-### Declarations
+### Объявления
 
-- `export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {`
-- `export const getRuntimeConfig = (): ClientRuntimeConfig => currentRuntimeConfig;`
-- `export const setRuntimeConfig = (next: ClientRuntimeConfig): void => {`
+#### `export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `DEFAULT_RUNTIME_CONFIG`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const getRuntimeConfig = (): ClientRuntimeConfig => currentRuntimeConfig;`
+
+- Вид: функция
+- Кратко: Функция `getRuntimeConfig`.
+- Параметры: нет
+- Возвращает: `ClientRuntimeConfig`
+  - Описание: Результат функции в формате `ClientRuntimeConfig`.
+
+#### `export const setRuntimeConfig = (next: ClientRuntimeConfig): void => {`
+
+- Вид: функция
+- Кратко: Функция `setRuntimeConfig`.
+- Параметры: 1
+  - `next`
+    - Формат: `ClientRuntimeConfig`
+    - Вид: обязательный
+    - Описание: Параметр `next` в формате `ClientRuntimeConfig`.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
 
 ## `frontend/src/shared/config/RuntimeConfigContext.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export const RuntimeConfigContext = createContext<RuntimeConfigContextValue>({ config: DEFAULT_RUNTIME_CONFIG, ready: false, });`
-  - Константа `RuntimeConfigContext` хранит используемое в модуле значение.
-- `export function useRuntimeConfig(): RuntimeConfigContextValue {`
-  - Хук useRuntimeConfig управляет состоянием и побочными эффектами текущего сценария. @returns Публичное состояние хука и его обработчики.
+#### `export const RuntimeConfigContext = createContext<RuntimeConfigContextValue>({ config: DEFAULT_RUNTIME_CONFIG, ready: false, });`
+
+- Вид: константа
+- Кратко: Хранит константное значение `RuntimeConfigContext`.
+- Параметры: 1
+  - `{ config: DEFAULT_RUNTIME_CONFIG, ready: false, }`
+    - Формат: не указан
+    - Вид: обязательный
+    - Описание: Объект параметров, переданный через деструктуризацию.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export function useRuntimeConfig(): RuntimeConfigContextValue {`
+
+- Вид: функция
+- Кратко: Хук useRuntimeConfig управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: `RuntimeConfigContextValue`
+  - Описание: Публичное состояние хука и его обработчики.
 
 ## `frontend/src/shared/config/RuntimeConfigProvider.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function RuntimeConfigProvider({ children, }: RuntimeConfigProviderProps) {`
-  - Компонент RuntimeConfigProvider рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function RuntimeConfigProvider({ children, }: RuntimeConfigProviderProps) {`
 
-## `frontend/src/shared/conversationList/ConversationListProvider.test.tsx`
-
-- Top-level declarations: 3
-
-### Declarations
-
-- `const chatMock = vi.hoisted(() => ({`
-- `const groupMock = vi.hoisted(() => ({`
-- `function Probe() {`
-  - Проверяет состояние провайдера в тестовом окружении.
+- Вид: функция
+- Кратко: Провайдер `RuntimeConfigProvider`.
+- Параметры: 1
+  - `{ children, }`
+    - Формат: `RuntimeConfigProviderProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `RuntimeConfigProviderProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `RuntimeConfigProvider`.
 
 ## `frontend/src/shared/conversationList/ConversationListProvider.tsx`
 
-- Top-level declarations: 10
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `const canRunGlobalSearchQuery = (query: string) => {`
-- `const normalizeActorRef = (value: string): string =>`
-- `const toRoomKey = (roomId: number | null | undefined): string =>`
-- `export function ConversationListProvider({ user, ready, children }: Props) {`
-- `const fetchData = useCallback(async () => {`
-- `const onRefresh = () => {`
-- `const timerId = window.setTimeout(() => {`
-- `const items = useMemo<ConversationItem[]>(() => {`
-- `const serverItems = useMemo<ServerRailItem[]>(() => {`
-- `export function useConversationList() {`
+#### `export function ConversationListProvider({ user, ready, children }: Props) {`
+
+- Вид: функция
+- Кратко: Собирает и хранит состояние бокового списка диалогов и серверов.
+- Детали: Провайдер объединяет данные из direct inbox, групп, публичной комнаты, presence и глобального поиска, чтобы sidebar и связанные виджеты работали с единым согласованным снимком состояния.
+- Параметры: 1
+  - `{ user, ready, children }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ConversationListProvider`.
+
+#### `export function useConversationList() {`
+
+- Вид: функция
+- Кратко: Хук `useConversationList`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/shared/conversationList/events.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export const CONVERSATION_LIST_REFRESH_EVENT = "conversation-list:refresh";`
-  - Константа `CONVERSATION_LIST_REFRESH_EVENT` хранит используемое в модуле значение.
-- `export const emitConversationListRefresh = (): void => {`
-  - Обрабатывает emit conversation list refresh.
+#### `export const CONVERSATION_LIST_REFRESH_EVENT = "conversation-list:refresh";`
+
+- Вид: константа
+- Кратко: Хранит константное значение `CONVERSATION_LIST_REFRESH_EVENT`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const emitConversationListRefresh = (): void => {`
+
+- Вид: функция
+- Кратко: Функция `emitConversationListRefresh`.
+- Параметры: нет
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
 
 ## `frontend/src/shared/directInbox/context.ts`
 
-- Top-level declarations: 4
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `const noop = () => {};`
-- `const noopAsync = async () => {};`
-- `export const FALLBACK_DIRECT_INBOX: DirectInboxContextValue = {`
-- `export const DirectInboxContext = createContext<DirectInboxContextValue>( FALLBACK_DIRECT_INBOX, );`
+#### `export const FALLBACK_DIRECT_INBOX: DirectInboxContextValue = {`
 
-## `frontend/src/shared/directInbox/DirectInboxProvider.test.tsx`
+- Вид: константа
+- Кратко: Хранит константное значение `FALLBACK_DIRECT_INBOX`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
-- Top-level declarations: 4
+#### `export const DirectInboxContext = createContext<DirectInboxContextValue>( FALLBACK_DIRECT_INBOX, );`
 
-### Declarations
-
-- `const wsMock = vi.hoisted(() => ({`
-- `const chatMock = vi.hoisted(() => ({`
-- `function Probe() {`
-  - Проверяет состояние провайдера в тестовом окружении.
-- `const sentPayloads = () =>`
-  - Возвращает отправленные payload для последующих проверок.
+- Вид: константа
+- Кратко: Хранит константное значение `DirectInboxContext`.
+- Параметры: 1
+  - `FALLBACK_DIRECT_INBOX`
+    - Формат: не указан
+    - Вид: обязательный
+    - Описание: Контекст `FALLBACK_DIRECT_INBOX`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/shared/directInbox/DirectInboxProvider.tsx`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const filtered = prev.filter((item) => item.roomId !== incoming.roomId);`
-- `export function DirectInboxProvider({ user, ready = true, children, }: ProviderProps) {`
-- `const wsUrl = useMemo(() => {`
-- `const refresh = useCallback(async () => {`
-- `const unreadCountsWithOverrides = useMemo(() => {`
-- `const knownDirectRoomIds = new Set(items.map((item) => String(item.roomId)));`
-- `const id = window.setInterval(() => {`
+#### `export function DirectInboxProvider({ user, ready = true, children, }: ProviderProps) {`
+
+- Вид: функция
+- Кратко: Поддерживает список личных чатов и их unread-состояние в реальном времени.
+- Детали: Провайдер загружает начальный inbox по HTTP, затем синхронизирует его через `ws/inbox`, применяя ack/unread update события и локальные unread overrides.
+- Параметры: 1
+  - `{ user, ready = true, children, }`
+    - Формат: `ProviderProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ProviderProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `DirectInboxProvider`.
 
 ## `frontend/src/shared/directInbox/index.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
 
 ## `frontend/src/shared/directInbox/useDirectInbox.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const useDirectInbox = () => useContext(DirectInboxContext);`
-  - Хук useDirectInbox управляет состоянием и побочными эффектами текущего сценария.
+#### `export const useDirectInbox = () => useContext(DirectInboxContext);`
+
+- Вид: функция
+- Кратко: Хук useDirectInbox управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/shared/layout/useInfoPanel.tsx`
 
-- Top-level declarations: 4
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export function InfoPanelProvider({ children }: { children: ReactNode }) {`
-  - React-компонент InfoPanelProvider отвечает за отрисовку и обработку UI-сценария.
-- `const close = useCallback(() => {`
-- `const clearClosed = useCallback(() => {`
-- `export function useInfoPanel() {`
-  - Хук useInfoPanel управляет состоянием и побочными эффектами текущего сценария.
+#### `export function InfoPanelProvider({ children }: { children: ReactNode }) {`
+
+- Вид: функция
+- Кратко: Провайдер `InfoPanelProvider`.
+- Параметры: 1
+  - `{ children }`
+    - Формат: `{ children: ReactNode }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `{ children: ReactNode }`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `InfoPanelProvider`.
+
+#### `export function useInfoPanel() {`
+
+- Вид: функция
+- Кратко: Хук useInfoPanel управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/shared/layout/useMobileShell.tsx`
 
-- Top-level declarations: 7
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `const readIsMobileViewport = () =>`
-- `export function MobileShellProvider({ children }: { children: ReactNode }) {`
-- `const handleResize = () => {`
-- `const openDrawer = useCallback(() => {`
-- `const closeDrawer = useCallback(() => {`
-- `const toggleDrawer = useCallback(() => {`
-- `export function useMobileShell() {`
+#### `export function MobileShellProvider({ children }: { children: ReactNode }) {`
+
+- Вид: функция
+- Кратко: Провайдер `MobileShellProvider`.
+- Детали: Наружу этот провайдер отдает флаги viewport и управление боковым drawer, чтобы layout-компоненты не дублировали одну и ту же логику.
+- Параметры: 1
+  - `{ children }`
+    - Формат: `{ children: ReactNode }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `{ children: ReactNode }`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `MobileShellProvider`.
+
+#### `export function useMobileShell() {`
+
+- Вид: функция
+- Кратко: Возвращает состояние мобильной оболочки и методы управления drawer.
+- Детали: Используется виджетами layout, когда им нужно узнать, открыт ли mobile drawer и можно ли программно его открыть, закрыть или переключить.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/shared/lib/attachmentMedia.ts`
 
-- Top-level declarations: 6
+- Экспортируемые объявления: 4
 
-### Declarations
+### Объявления
 
-- `const normalizeContentType = (contentType: string | null | undefined): string =>`
-  - Нормализует content type. @param contentType MIME-тип файла. @returns Нормализованное значение после обработки входа.
-- `const hasSvgExtension = (fileName: string | null | undefined): boolean =>`
-  - Проверяет условие has svg extension. @param fileName Имя файла вместе с расширением. @returns Булев результат проверки условия.
-- `export const isSvgAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
-  - Проверяет условие is svg attachment. @param contentType MIME-тип файла. @param fileName Имя файла вместе с расширением. @returns Булев результат проверки условия.
-- `export const isImageAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
-  - Проверяет условие is image attachment. @param contentType MIME-тип файла. @param fileName Имя файла вместе с расширением. @returns Булев результат проверки условия.
-- `export const isVideoAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
-  - Проверяет, относится ли файл к видео по MIME-типу или расширению. @param contentType MIME-тип файла. @param fileName Имя файла вместе с расширением. @returns `true`, если файл должен отображаться как видео.
-- `export const resolveImagePreviewUrl = ({ url, thumbnailUrl, contentType, fileName, }: { url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; }): string | null => {`
-  - Определяет image preview url. @returns Разрешенное значение с учетом fallback-логики.
+#### `export const isSvgAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
 
-## `frontend/src/shared/lib/attachmentTypeLabel.test.ts`
+- Вид: функция
+- Кратко: Функция `isSvgAttachment`.
+- Параметры: 2
+  - `contentType`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: MIME-тип файла.
+  - `fileName`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Имя файла вместе с расширением.
+- Возвращает: `boolean`
+  - Описание: Булев результат проверки условия.
 
-- Top-level declarations: 0
+#### `export const isImageAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
+
+- Вид: функция
+- Кратко: Функция `isImageAttachment`.
+- Параметры: 2
+  - `contentType`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: MIME-тип файла.
+  - `fileName`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Имя файла вместе с расширением.
+- Возвращает: `boolean`
+  - Описание: Булев результат проверки условия.
+
+#### `export const isVideoAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
+
+- Вид: функция
+- Кратко: Проверяет, относится ли файл к видео по MIME-типу или расширению.
+- Параметры: 2
+  - `contentType`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: MIME-тип файла.
+  - `fileName`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Имя файла вместе с расширением.
+- Возвращает: `boolean`
+  - Описание: `true`, если файл должен отображаться как видео.
+
+#### `export const resolveImagePreviewUrl = ({ url, thumbnailUrl, contentType, fileName, }: { url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; }): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `resolveImagePreviewUrl`.
+- Параметры: 1
+  - `{ url, thumbnailUrl, contentType, fileName, }`
+    - Формат: `{ url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `{ url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; }`.
+- Возвращает: `string | null`
+  - Описание: Разрешенное значение с учетом fallback-логики.
 
 ## `frontend/src/shared/lib/attachmentTypeLabel.ts`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const extractExtension = (fileName: string | null | undefined): string => {`
-  - Извлекает extension. @param fileName Имя файла вместе с расширением. @returns Извлеченное значение из входных данных.
-- `const normalizeMimeSubtype = (subtype: string): string => {`
-  - Нормализует mime subtype. @param subtype DOM-событие, вызвавшее обработчик. @returns Нормализованное значение после обработки входа.
-- `export const resolveAttachmentTypeLabel = ( contentType: string | null | undefined, fileName: string | null | undefined, ): string => {`
-  - Определяет attachment type label. @param contentType MIME-тип файла. @param fileName Имя файла вместе с расширением. @returns Разрешенное значение с учетом fallback-логики.
+#### `export const resolveAttachmentTypeLabel = ( contentType: string | null | undefined, fileName: string | null | undefined, ): string => {`
+
+- Вид: функция
+- Кратко: Функция `resolveAttachmentTypeLabel`.
+- Параметры: 2
+  - `contentType`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: MIME-тип файла.
+  - `fileName`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Имя файла вместе с расширением.
+- Возвращает: `string`
+  - Описание: Разрешенное значение с учетом fallback-логики.
 
 ## `frontend/src/shared/lib/avatarCrop.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export const normalizeAvatarCrop = ( value?: AvatarCrop | null, ): AvatarCrop | null => {`
-  - Нормализует avatar crop. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export const buildAvatarCropImageStyle = (crop: AvatarCrop): CSSProperties => ({`
-  - Формирует avatar crop image style. @param crop Параметры обрезки изображения. @returns Сформированная структура данных.
+#### `export const normalizeAvatarCrop = ( value?: AvatarCrop | null, ): AvatarCrop | null => {`
 
-## `frontend/src/shared/lib/chatTarget.test.ts`
+- Вид: функция
+- Кратко: Функция `normalizeAvatarCrop`.
+- Параметры: 1
+  - `value`
+    - Формат: `AvatarCrop | null`
+    - Вид: необязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `AvatarCrop | null`
+  - Описание: Нормализованное значение после обработки входа.
 
-- Top-level declarations: 0
+#### `export const buildAvatarCropImageStyle = (crop: AvatarCrop): CSSProperties => ({ width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `-${(crop.x / crop.width) * 100}%`, top: `-${(crop.y / crop.height) * 100}%`, objectFit: "fill", borderRadius: 0, maxWidth: "none", });`
+
+- Вид: функция
+- Кратко: Функция `buildAvatarCropImageStyle`.
+- Параметры: 1
+  - `crop`
+    - Формат: `AvatarCrop`
+    - Вид: обязательный
+    - Описание: Параметры обрезки изображения.
+- Возвращает: `CSSProperties`
+  - Описание: Сформированная структура данных.
 
 ## `frontend/src/shared/lib/chatTarget.ts`
 
-- Top-level declarations: 10
+- Экспортируемые объявления: 9
 
-### Declarations
+### Объявления
 
-- `export const PUBLIC_CHAT_TARGET = "public";`
-- `const isSinglePathSegment = (pathname: string): boolean => {`
-- `export const normalizeChatTarget = ( value: string | null | undefined, ): string => {`
-- `export const isReservedChatTarget = (value: string | null | undefined): boolean => {`
-- `export const encodeChatTargetSegment = (value: string): string => {`
-- `export const buildChatTargetPath = (value: string): string => {`
-- `export const buildPublicChatPath = (): string =>`
-- `export const buildDirectChatPath = (value: string): string => {`
-- `export const parseChatTargetFromPathname = ( pathname: string, ): string | null => {`
-- `export const isPrefixlessChatPath = (pathname: string): boolean =>`
+#### `export const PUBLIC_CHAT_TARGET = "public";`
+
+- Вид: константа
+- Кратко: Хранит константное значение `PUBLIC_CHAT_TARGET`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const normalizeChatTarget = ( value: string | null | undefined, ): string => {`
+
+- Вид: функция
+- Кратко: Функция `normalizeChatTarget`.
+- Параметры: 1
+  - `value`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `string | null | undefined`.
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const isReservedChatTarget = (value: string | null | undefined): boolean => {`
+
+- Вид: функция
+- Кратко: Функция `isReservedChatTarget`.
+- Параметры: 1
+  - `value`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `string | null | undefined`.
+- Возвращает: `boolean`
+  - Описание: Булево значение, отражающее результат проверки.
+
+#### `export const encodeChatTargetSegment = (value: string): string => {`
+
+- Вид: функция
+- Кратко: Функция `encodeChatTargetSegment`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `string`.
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const buildChatTargetPath = (value: string): string => {`
+
+- Вид: функция
+- Кратко: Функция `buildChatTargetPath`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `string`.
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const buildPublicChatPath = (): string =>`
+
+- Вид: функция
+- Кратко: Функция `buildPublicChatPath`.
+- Параметры: нет
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const buildDirectChatPath = (value: string): string => {`
+
+- Вид: функция
+- Кратко: Функция `buildDirectChatPath`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `string`.
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const parseChatTargetFromPathname = ( pathname: string, ): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `parseChatTargetFromPathname`.
+- Параметры: 1
+  - `pathname`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `pathname` в формате `string`.
+- Возвращает: `string | null`
+  - Описание: Результат функции в формате `string | null`.
+
+#### `export const isPrefixlessChatPath = (pathname: string): boolean =>`
+
+- Вид: функция
+- Кратко: Функция `isPrefixlessChatPath`.
+- Параметры: 1
+  - `pathname`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `pathname` в формате `string`.
+- Возвращает: `boolean`
+  - Описание: Булево значение, отражающее результат проверки.
 
 ## `frontend/src/shared/lib/debug.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const debugLog = (...args: unknown[]) => {`
-  - Реализует функцию `debugLog`. @param args Список аргументов для логирования или проксирования.
+#### `export const debugLog = (...args: unknown[]) => {`
 
-## `frontend/src/shared/lib/directNavigation.test.ts`
+- Вид: функция
+- Кратко: Реализует функцию `debugLog`.
+- Параметры: 1
+  - `args`
+    - Формат: `unknown[]`
+    - Вид: rest-параметр
+    - Описание: Список аргументов для логирования или проксирования.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
-- Top-level declarations: 0
+## `frontend/src/shared/lib/device/constants.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export const MOBILE_VIEWPORT_MAX_PX = 768;`
+
+- Вид: константа
+- Кратко: Хранит константное значение `MOBILE_VIEWPORT_MAX_PX`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+## `frontend/src/shared/lib/device/device-context.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export const DeviceContext = createContext<DeviceSnapshot | null>(null);`
+
+- Вид: константа
+- Кратко: Хранит константное значение `DeviceContext`.
+- Параметры: 1
+  - `null`
+    - Формат: не указан
+    - Вид: обязательный
+    - Описание: Контекст `null`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+## `frontend/src/shared/lib/device/DeviceProvider.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function DeviceProvider({ children }: { children: ReactNode }) {`
+
+- Вид: функция
+- Кратко: Публикует в контекст актуальный снимок устройства и viewport.
+- Детали: Провайдер слушает media query, resize и orientation changes, а затем обновляет `DeviceContext` только тогда, когда snapshot реально изменился.
+- Параметры: 1
+  - `{ children }`
+    - Формат: `{ children: ReactNode }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `{ children: ReactNode }`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `DeviceProvider`.
+
+## `frontend/src/shared/lib/device/index.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/lib/device/readDeviceSnapshot.ts`
+
+- Экспортируемые объявления: 3
+
+### Объявления
+
+#### `export const DEFAULT_DEVICE_SNAPSHOT: DeviceSnapshot = {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `DEFAULT_DEVICE_SNAPSHOT`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const areDeviceSnapshotsEqual = ( left: DeviceSnapshot, right: DeviceSnapshot, ): boolean =>`
+
+- Вид: функция
+- Кратко: Функция `areDeviceSnapshotsEqual`.
+- Параметры: 2
+  - `left`
+    - Формат: `DeviceSnapshot`
+    - Вид: обязательный
+    - Описание: Параметр `left` в формате `DeviceSnapshot`.
+  - `right`
+    - Формат: `DeviceSnapshot`
+    - Вид: обязательный
+    - Описание: Параметр `right` в формате `DeviceSnapshot`.
+- Возвращает: `boolean`
+  - Описание: Булево значение, отражающее результат проверки.
+
+#### `export const readDeviceSnapshot = ( targetWindow?: Window | null, ): DeviceSnapshot => {`
+
+- Вид: функция
+- Кратко: Функция `readDeviceSnapshot`.
+- Параметры: 1
+  - `targetWindow`
+    - Формат: `Window | null`
+    - Вид: необязательный
+    - Описание: Параметр `targetWindow` в формате `Window | null`.
+- Возвращает: `DeviceSnapshot`
+  - Описание: Результат функции в формате `DeviceSnapshot`.
+
+## `frontend/src/shared/lib/device/types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/lib/device/useDevice.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useDevice(): DeviceSnapshot {`
+
+- Вид: функция
+- Кратко: Хук `useDevice`.
+- Параметры: нет
+- Возвращает: `DeviceSnapshot`
+  - Описание: Результат функции в формате `DeviceSnapshot`.
 
 ## `frontend/src/shared/lib/directNavigation.ts`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 5
 
-### Declarations
+### Объявления
 
-- `export const LAST_DIRECT_REF_STORAGE_KEY = "ui.direct.last-ref";`
-- `export const DIRECT_HOME_FALLBACK_PATH = "/friends";`
-- `export const readStoredLastDirectRef = (): string => {`
-- `export const rememberLastDirectRef = (value: string | null | undefined): void => {`
-- `export const resolveRememberedDirectPath = ({ pathname, fallbackPath = DIRECT_HOME_FALLBACK_PATH, directPeerRefs = [], }: ResolveRememberedDirectPathOptions = {}): string => {`
+#### `export const LAST_DIRECT_REF_STORAGE_KEY = "ui.direct.last-ref";`
+
+- Вид: константа
+- Кратко: Ключ localStorage, под которым хранится последний открытый личный диалог.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const DIRECT_HOME_FALLBACK_PATH = "/friends";`
+
+- Вид: константа
+- Кратко: Безопасный маршрут по умолчанию, если восстановить последнее ЛС не удалось.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const readStoredLastDirectRef = (): string => {`
+
+- Вид: функция
+- Кратко: Функция `readStoredLastDirectRef`.
+- Детали: Возвращает уже нормализованное значение с префиксом public ref или пустую строку, если в хранилище нет корректных данных.
+- Параметры: нет
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const rememberLastDirectRef = (value: string | null | undefined): void => {`
+
+- Вид: функция
+- Кратко: Запоминает публичный ref собеседника, чтобы можно было быстро вернуться в ЛС.
+- Детали: Пустые и некорректные значения игнорируются, чтобы не засорять хранилище мусорными ключами и не ломать последующее восстановление навигации.
+- Параметры: 1
+  - `value`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `string | null | undefined`.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
+
+#### `export const resolveRememberedDirectPath = ({ pathname, fallbackPath = DIRECT_HOME_FALLBACK_PATH, directPeerRefs = [], }: ResolveRememberedDirectPathOptions = {}): string => {`
+
+- Вид: функция
+- Кратко: Вычисляет маршрут, в который нужно вести пользователя из shortcut-а личных чатов.
+- Детали: Приоритет такой: активный подходящий direct route, сохраненный в localStorage peer ref, первый доступный peer ref из списка и только потом fallback path.
+- Параметры: 1
+  - `{ pathname, fallbackPath = DIRECT_HOME_FALLBACK_PATH, directPeerRefs = [], }`
+    - Формат: `ResolveRememberedDirectPathOptions`
+    - Вид: обязательный
+    - Значение по умолчанию: `{}`
+    - Описание: Объект параметров в формате `ResolveRememberedDirectPathOptions`.
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
 
 ## `frontend/src/shared/lib/format.ts`
 
-- Top-level declarations: 6
+- Экспортируемые объявления: 6
 
-### Declarations
+### Объявления
 
-- `export const formatTimestamp = (iso: string) =>`
-  - Реализует функцию `formatTimestamp`. @param iso Дата в ISO-формате. @returns Строка в отформатированном виде.
-- `export const formatDayLabel = (date: Date, now: Date = new Date()) => {`
-  - Реализует функцию `formatDayLabel`. @param date Дата для форматирования. @param now Текущая дата для вычислений. @returns Строка в отформатированном виде.
-- `export const avatarFallback = (username: string) => {`
-  - Обрабатывает avatar fallback. @param username Имя пользователя.
-- `export const formatFullName = ( name: string | null | undefined, lastName?: string | null | undefined, ) => {`
-  - Форматирует full name. @returns Строка в отформатированном виде.
-- `export const formatRegistrationDate = (iso: string | null) => {`
-  - Реализует функцию `formatRegistrationDate`. @param iso Дата в ISO-формате. @returns Строка в отформатированном виде.
-- `export const formatLastSeen = (iso: string | null) => {`
-  - Реализует функцию `formatLastSeen`. @param iso Дата в ISO-формате. @returns Строка в отформатированном виде.
+#### `export const formatTimestamp = (iso: string) =>`
+
+- Вид: функция
+- Кратко: Реализует функцию `formatTimestamp`.
+- Параметры: 1
+  - `iso`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Дата в ISO-формате.
+- Возвращает: не указан
+  - Описание: Строка в отформатированном виде.
+
+#### `export const formatDayLabel = (date: Date, now: Date = new Date()) => {`
+
+- Вид: функция
+- Кратко: Реализует функцию `formatDayLabel`.
+- Параметры: 2
+  - `date`
+    - Формат: `Date`
+    - Вид: обязательный
+    - Описание: Дата для форматирования.
+  - `now`
+    - Формат: `Date`
+    - Вид: обязательный
+    - Значение по умолчанию: `new Date()`
+    - Описание: Текущая дата для вычислений.
+- Возвращает: не указан
+  - Описание: Строка в отформатированном виде.
+
+#### `export const avatarFallback = (username: string) => {`
+
+- Вид: функция
+- Кратко: Функция `avatarFallback`.
+- Параметры: 1
+  - `username`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Имя пользователя.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const formatFullName = ( name: string | null | undefined, lastName?: string | null | undefined, ) => {`
+
+- Вид: функция
+- Кратко: Функция `formatFullName`.
+- Параметры: 2
+  - `name`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Параметр `name` в формате `string | null | undefined`.
+  - `lastName`
+    - Формат: `string | null | undefined`
+    - Вид: необязательный
+    - Описание: Параметр `lastName` в формате `string | null | undefined`.
+- Возвращает: не указан
+  - Описание: Строка в отформатированном виде.
+
+#### `export const formatRegistrationDate = (iso: string | null) => {`
+
+- Вид: функция
+- Кратко: Реализует функцию `formatRegistrationDate`.
+- Параметры: 1
+  - `iso`
+    - Формат: `string | null`
+    - Вид: обязательный
+    - Описание: Дата в ISO-формате.
+- Возвращает: не указан
+  - Описание: Строка в отформатированном виде.
+
+#### `export const formatLastSeen = (iso: string | null) => {`
+
+- Вид: функция
+- Кратко: Реализует функцию `formatLastSeen`.
+- Параметры: 1
+  - `iso`
+    - Формат: `string | null`
+    - Вид: обязательный
+    - Описание: Дата в ISO-формате.
+- Возвращает: не указан
+  - Описание: Строка в отформатированном виде.
 
 ## `frontend/src/shared/lib/publicRef.ts`
 
-- Top-level declarations: 6
+- Экспортируемые объявления: 6
 
-### Declarations
+### Объявления
 
-- `export const normalizePublicRef = ( value: string | null | undefined, ): string => {`
-  - Нормализует public ref. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export const isHandleRef = (value: string): boolean =>`
-  - Проверяет условие is handle ref. @param value Входное значение для преобразования. @returns Булев результат проверки условия.
-- `export const isFallbackPublicId = (value: string): boolean => {`
-  - Проверяет условие is fallback public id. @param value Входное значение для преобразования. @returns Булев результат проверки условия.
-- `export const formatPublicRef = (value: string): string => {`
-  - Форматирует public ref. @param value Входное значение для преобразования. @returns Сформированное значение для дальнейшего использования.
-- `export const buildDirectPath = (value: string): string => {`
-  - Формирует direct path. @param value Входное значение для преобразования. @returns Сформированное значение для дальнейшего использования.
-- `export const buildUserProfilePath = (value: string): string => {`
-  - Формирует user profile path. @param value Входное значение для преобразования. @returns Сформированное значение для дальнейшего использования.
+#### `export const normalizePublicRef = ( value: string | null | undefined, ): string => {`
+
+- Вид: функция
+- Кратко: Функция `normalizePublicRef`.
+- Параметры: 1
+  - `value`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `string`
+  - Описание: Нормализованное значение после обработки входа.
+
+#### `export const isHandleRef = (value: string): boolean =>`
+
+- Вид: функция
+- Кратко: Функция `isHandleRef`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `boolean`
+  - Описание: Булев результат проверки условия.
+
+#### `export const isFallbackPublicId = (value: string): boolean => {`
+
+- Вид: функция
+- Кратко: Функция `isFallbackPublicId`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `boolean`
+  - Описание: Булев результат проверки условия.
+
+#### `export const formatPublicRef = (value: string): string => {`
+
+- Вид: функция
+- Кратко: Функция `formatPublicRef`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `string`
+  - Описание: Сформированное значение для дальнейшего использования.
+
+#### `export const buildDirectPath = (value: string): string => {`
+
+- Вид: функция
+- Кратко: Функция `buildDirectPath`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `string`
+  - Описание: Сформированное значение для дальнейшего использования.
+
+#### `export const buildUserProfilePath = (value: string): string => {`
+
+- Вид: функция
+- Кратко: Функция `buildUserProfilePath`.
+- Параметры: 1
+  - `value`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Входное значение для преобразования.
+- Возвращает: `string`
+  - Описание: Сформированное значение для дальнейшего использования.
 
 ## `frontend/src/shared/lib/sanitize.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const stripControlChars = (value: string) => {`
-  - Обрабатывает strip control chars. @param value Входное значение для преобразования.
-- `export const sanitizeText = (input: string, maxLen = 1000) => {`
-  - Очищает text. @param input Входной объект с параметрами операции. @param maxLen Максимальная длина значения.
+#### `export const sanitizeText = (input: string, maxLen = 1000) => {`
 
-## `frontend/src/shared/lib/userIdentity.test.ts`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: Очищает text.
+- Параметры: 2
+  - `input`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Входной объект с параметрами операции.
+  - `maxLen`
+    - Формат: не указан
+    - Вид: обязательный
+    - Значение по умолчанию: `1000`
+    - Описание: Максимальная длина значения.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/shared/lib/userIdentity.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export const resolveIdentityLabel = ( identity: IdentityLike, fallback = "user", ): string =>`
-- `export const resolveIdentityHandle = ( identity: IdentityLike, ): string | null => {`
+#### `export const resolveIdentityLabel = ( identity: IdentityLike, fallback = "user", ): string =>`
+
+- Вид: функция
+- Кратко: Функция `resolveIdentityLabel`.
+- Параметры: 2
+  - `identity`
+    - Формат: `IdentityLike`
+    - Вид: обязательный
+    - Описание: Параметр `identity` в формате `IdentityLike`.
+  - `fallback`
+    - Формат: не указан
+    - Вид: обязательный
+    - Значение по умолчанию: `"user"`
+    - Описание: Контекст `fallback`.
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const resolveIdentityHandle = ( identity: IdentityLike, ): string | null => {`
+
+- Вид: функция
+- Кратко: Функция `resolveIdentityHandle`.
+- Параметры: 1
+  - `identity`
+    - Формат: `IdentityLike`
+    - Вид: обязательный
+    - Описание: Параметр `identity` в формате `IdentityLike`.
+- Возвращает: `string | null`
+  - Описание: Результат функции в формате `string | null`.
 
 ## `frontend/src/shared/lib/ws.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 3
 
-### Declarations
+### Объявления
 
-- `const resolveDevWsOrigin = (scheme: "ws" | "wss"): string => {`
-  - Возвращает базовый websocket origin для текущего окружения. В dev подключаемся напрямую к backend (`:8000`), чтобы не зависеть от Vite WS-proxy и не получать `ws proxy ECONNABORTED` в терминале.
-- `export const getWebSocketBase = () => {`
-  - Возвращает web socket base.
+#### `export const getWebSocketBase = () => {`
+
+- Вид: функция
+- Кратко: Функция `getWebSocketBase`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const appendWebSocketParams = ( url: string, params: Record<string, WebSocketQueryValue>, ) => {`
+
+- Вид: функция
+- Кратко: Функция `appendWebSocketParams`.
+- Параметры: 2
+  - `url`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `url` в формате `string`.
+  - `params`
+    - Формат: `Record<string, WebSocketQueryValue>`
+    - Вид: обязательный
+    - Описание: Параметр `params` в формате `Record<string, WebSocketQueryValue>`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const appendWebSocketAuthToken = ( url: string, token: string | null | undefined, ) => appendWebSocketParams(url, { wst: token?.trim() || undefined });`
+
+- Вид: функция
+- Кратко: Функция `appendWebSocketAuthToken`.
+- Параметры: 2
+  - `url`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `url` в формате `string`.
+  - `token`
+    - Формат: `string | null | undefined`
+    - Вид: обязательный
+    - Описание: Параметр `token` в формате `string | null | undefined`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/shared/presence/context.ts`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 2
 
-### Declarations
+### Объявления
 
-- `export const FALLBACK_PRESENCE: PresenceContextValue = {`
-  - Константа `FALLBACK_PRESENCE` описывает резервное значение для безопасного fallback.
-- `export const PresenceContext =`
-  - Константа `PresenceContext` хранит используемое в модуле значение.
+#### `export const FALLBACK_PRESENCE: PresenceContextValue = {`
+
+- Вид: константа
+- Кратко: Хранит константное значение `FALLBACK_PRESENCE`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const PresenceContext = createContext<PresenceContextValue>(FALLBACK_PRESENCE);`
+
+- Вид: константа
+- Кратко: Хранит константное значение `PresenceContext`.
+- Параметры: 1
+  - `FALLBACK_PRESENCE`
+    - Формат: не указан
+    - Вид: обязательный
+    - Описание: Параметр `FALLBACK_PRESENCE`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/shared/presence/index.ts`
 
-- Top-level declarations: 0
-
-## `frontend/src/shared/presence/PresenceProvider.test.tsx`
-
-- Top-level declarations: 3
-
-### Declarations
-
-- `const wsMock = vi.hoisted(() => ({`
-- `const apiMock = vi.hoisted(() => ({`
-- `function PresenceProbe() {`
-  - Проверяет обновление состояния presence в тестовом окружении.
+- Экспортируемые объявления: 0
 
 ## `frontend/src/shared/presence/PresenceProvider.tsx`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const normalizePresenceRef = (value: string | null | undefined): string =>`
-  - Нормализует presence ref. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export function PresenceProvider({ user, children, ready = true, }: ProviderProps) {`
-  - Компонент PresenceProvider рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `const presenceUrl = useMemo(() => {`
-- `const sendPing = () => {`
-  - Обрабатывает send ping.
-- `const visibleOnline = useMemo(() => {`
+#### `export function PresenceProvider({ user, children, ready = true, }: ProviderProps) {`
+
+- Вид: функция
+- Кратко: Провайдер `PresenceProvider`.
+- Параметры: 1
+  - `{ user, children, ready = true, }`
+    - Формат: `ProviderProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ProviderProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `PresenceProvider`.
 
 ## `frontend/src/shared/presence/usePresence.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const usePresence = () => useContext(PresenceContext);`
-  - Хук usePresence управляет состоянием и побочными эффектами текущего сценария.
+#### `export const usePresence = () => useContext(PresenceContext);`
 
-## `frontend/src/shared/ui/AudioAttachmentPlayer.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: Хук usePresence управляет состоянием и побочными эффектами текущего сценария.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
 
 ## `frontend/src/shared/ui/AudioAttachmentPlayer.tsx`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const normalizeTime = (value: number) =>`
-  - Нормализует time. @param value Входное значение для преобразования.
-- `const createInitialPlaybackState = (srcKey: string): PlaybackState => ({`
-  - Создает initial playback state. @param srcKey Аргумент `srcKey` текущего вызова. @returns Сформированное значение для дальнейшего использования.
-- `const formatTime = (value: number) => {`
-  - Форматирует time. @param value Входное значение для преобразования.
-- `export function AudioAttachmentPlayer({ src, title, subtitle, downloadName, compact = false, className, }: Props) {`
-  - Компонент AudioAttachmentPlayer рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `const handleToggle = useCallback(async () => {`
+#### `export function AudioAttachmentPlayer({ src, title, subtitle, downloadName, compact = false, className, }: Props) {`
 
-## `frontend/src/shared/ui/Avatar.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: React-компонент `AudioAttachmentPlayer`.
+- Параметры: 1
+  - `{ src, title, subtitle, downloadName, compact = false, className, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `AudioAttachmentPlayer`.
 
 ## `frontend/src/shared/ui/Avatar.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Avatar({ username, profileImage = null, avatarCrop = null, size = "default", online = false, className, loading = "lazy", }: AvatarProps) {`
-  - Компонент Avatar рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function Avatar({ username, profileImage = null, avatarCrop = null, size = "default", online = false, className, loading = "lazy", }: AvatarProps) {`
 
-## `frontend/src/shared/ui/AvatarCropModal.test.tsx`
-
-- Top-level declarations: 1
-
-### Declarations
-
-- `const cropperState = vi.hoisted(() => ({`
+- Вид: функция
+- Кратко: React-компонент `Avatar`.
+- Параметры: 1
+  - `{ username, profileImage = null, avatarCrop = null, size = "default", online = false, className, loading = "lazy", }`
+    - Формат: `AvatarProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `AvatarProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Avatar`.
 
 ## `frontend/src/shared/ui/AvatarCropModal.tsx`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const clamp = (value: number, min: number, max: number) =>`
-  - Обрабатывает clamp. @param value Входное значение для преобразования. @param min Аргумент `min` текущего вызова. @param max Аргумент `max` текущего вызова.
-- `const roundToSix = (value: number) =>`
-  - Обрабатывает round to six. @param value Входное значение для преобразования.
-- `export function AvatarCropModal({ open, image, onCancel, onApply, }: AvatarCropModalProps) {`
-  - Компонент AvatarCropModal рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function AvatarCropModal({ open, image, onCancel, onApply, }: AvatarCropModalProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `AvatarCropModal`.
+- Параметры: 1
+  - `{ open, image, onCancel, onApply, }`
+    - Формат: `AvatarCropModalProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `AvatarCropModalProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `AvatarCropModal`.
 
 ## `frontend/src/shared/ui/AvatarMedia.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function AvatarMedia({ src, alt, avatarCrop = null, loading = "lazy", decoding = "async", draggable = false, className, onError, }: AvatarMediaProps) {`
-  - Компонент AvatarMedia рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function AvatarMedia({ src, alt, avatarCrop = null, loading = "lazy", decoding = "async", draggable = false, className, onError, }: AvatarMediaProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `AvatarMedia`.
+- Параметры: 1
+  - `{ src, alt, avatarCrop = null, loading = "lazy", decoding = "async", draggable = false, className, onError, }`
+    - Формат: `AvatarMediaProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `AvatarMediaProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `AvatarMedia`.
 
 ## `frontend/src/shared/ui/Button.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Button({ variant = "primary", fullWidth = false, className, type = "button", ...props }: ButtonProps) {`
-  - Компонент Button рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function Button({ variant = "primary", fullWidth = false, className, type = "button", ...props }: ButtonProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `Button`.
+- Параметры: 1
+  - `{ variant = "primary", fullWidth = false, className, type = "button", ...props }`
+    - Формат: `ButtonProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ButtonProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Button`.
 
 ## `frontend/src/shared/ui/Card.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Card<T extends ElementType = "section">({ as, wide = false, className, children, ...rest }: CardProps<T>) {`
-  - Компонент Card рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function Card<T extends ElementType = "section">({ as, wide = false, className, children, ...rest }: CardProps<T>) {`
 
-## `frontend/src/shared/ui/ContextMenu.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: React-компонент `Card`.
+- Параметры: 1
+  - `{ as, wide = false, className, children, ...rest }`
+    - Формат: `CardProps<T>`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `CardProps<T>`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Card`.
 
 ## `frontend/src/shared/ui/ContextMenu.tsx`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function ContextMenu({ items, x, y, onClose }: Props) {`
-  - React-компонент ContextMenu отвечает за отрисовку и обработку UI-сценария.
-- `const reposition = useCallback(() => {`
-- `const handleResize = () => reposition();`
-  - Обрабатывает handle resize.
-- `const handlePointerDown = (event: Event) => {`
-  - Обрабатывает handle pointer down. @param event Событие браузера.
-- `const handleKey = (e: KeyboardEvent) => {`
-  - Обрабатывает handle key. @param e DOM-событие, вызвавшее обработчик.
+#### `export function ContextMenu({ items, x, y, onClose }: Props) {`
+
+- Вид: функция
+- Кратко: Контекст `ContextMenu`.
+- Параметры: 1
+  - `{ items, x, y, onClose }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ContextMenu`.
 
 ## `frontend/src/shared/ui/Dropdown.tsx`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Dropdown({ trigger, children, align = "left", offset = 4, wrapperClassName, triggerClassName, menuClassName, closeOnContentClick = true, }: Props) {`
-  - React-компонент Dropdown отвечает за отрисовку и обработку UI-сценария.
-- `const handlePointerDown = useCallback((event: Event) => {`
-- `const handleKeyDown = useCallback((event: KeyboardEvent) => {`
+#### `export function Dropdown({ trigger, children, align = "left", offset = 4, wrapperClassName, triggerClassName, menuClassName, closeOnContentClick = true, onOpenChange, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `Dropdown`.
+- Параметры: 1
+  - `{ trigger, children, align = "left", offset = 4, wrapperClassName, triggerClassName, menuClassName, closeOnContentClick = true, onOpenChange, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Dropdown`.
 
 ## `frontend/src/shared/ui/EmptyState.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function EmptyState({ icon, title, description, children, className, }: Props) {`
-  - Компонент EmptyState рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function EmptyState({ icon, title, description, children, className, }: Props) {`
 
-## `frontend/src/shared/ui/ImageLightbox.test.tsx`
+- Вид: функция
+- Кратко: React-компонент `EmptyState`.
+- Параметры: 1
+  - `{ icon, title, description, children, className, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `EmptyState`.
 
-- Top-level declarations: 1
+## `frontend/src/shared/ui/ImageLightbox.dragRelease.ts`
 
-### Declarations
+- Экспортируемые объявления: 1
 
-- `const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);`
+### Объявления
+
+#### `export const consumePendingDesktopMediaDragRelease = ({ isMobileLayout, currentKind, pointerMovedRef, }: { isMobileLayout: boolean; currentKind: "image" | "video" | undefined; pointerMovedRef: { current: boolean }; }): boolean => {`
+
+- Вид: функция
+- Кратко: Функция `consumePendingDesktopMediaDragRelease`.
+- Детали: Возвращает `true`, только если действительно был drag на desktop-версии изображения или видео. На мобильном layout и без движения указателя функция ничего не меняет и возвращает `false`.
+- Параметры: 1
+  - `{ isMobileLayout, currentKind, pointerMovedRef, }`
+    - Формат: `{ isMobileLayout: boolean; currentKind: "image" | "video" | undefined; pointerMovedRef: { current: boolean }; }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `{ isMobileLayout: boolean; currentKind: "image" | "video" | undefined; pointerMovedRef: { current: boolean }; }`.
+- Возвращает: `boolean`
+  - Описание: Булево значение, отражающее результат проверки.
+
+## `frontend/src/shared/ui/ImageLightbox.loaders.ts`
+
+- Экспортируемые объявления: 2
+
+### Объявления
+
+#### `export const loadImageLightboxDesktopView = () =>`
+
+- Вид: функция
+- Кратко: Функция `loadImageLightboxDesktopView`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const loadImageLightboxMobileView = () =>`
+
+- Вид: функция
+- Кратко: Функция `loadImageLightboxMobileView`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/shared/ui/ImageLightbox.tsx`
 
-- Top-level declarations: 20
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const resolveFrameExpandProgress = (scale: number): number =>`
-- `const clampNumber = (value: number, min: number, max: number): number =>`
-- `const normalizeIndex = (value: number, size: number): number => {`
-- `const formatFileSize = (bytes: number): string => {`
-- `const formatSentAt = (value: string): string => {`
-- `const buildSingleItem = (props: SingleMediaProps): ImageLightboxMediaItem => ({`
-- `const isGalleryMediaProps = (value: Props): value is GalleryMediaProps =>`
-- `export function ImageLightbox(props: Props) {`
-- `const applyTransform = useCallback(() => {`
-- `const applyTransformOnFrame = useCallback(() => {`
-- `const resetTransform = useCallback(() => {`
-- `const beginClose = useCallback(() => {`
-- `const preventPageZoom = (event: WheelEvent) => {`
-- `const goToPrevious = useCallback(() => {`
-- `const goToNext = useCallback(() => {`
-- `const handleKeyDown = (event: KeyboardEvent) => {`
-- `const handleOpenFullscreen = useCallback(async () => {`
-- `const openInNewTab = () => {`
-- `const metadataLines = useMemo(() => {`
-- `const frameStyle = useMemo(() => {`
+#### `export function ImageLightbox(props: ImageLightboxProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `ImageLightbox`.
+- Параметры: 1
+  - `props`
+    - Формат: `ImageLightboxProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `ImageLightboxProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ImageLightbox`.
+
+## `frontend/src/shared/ui/ImageLightbox.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/ui/ImageLightboxDesktopView.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export default function ImageLightboxDesktopView({ chrome, currentItem, isClosing, dialogLabel, overlayStyle, resolvedFrameStyle, metadataLines, hasNavigation, canGoPrevious, canGoNext, overlayRef, frameRef, viewportRef, onViewportWheel, onPointerDown, onPointerMove, onEndPointerDrag, onViewportBackgroundClick, onViewportDoubleClick,`
+
+- Вид: функция
+- Кратко: React-компонент `ImageLightboxDesktopView`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ImageLightboxDesktopView`.
+
+## `frontend/src/shared/ui/ImageLightboxMobileView.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export default function ImageLightboxMobileView({ chrome, mediaItems, normalizedCurrentIndex, normalizedDisplayIndex, isClosing, dialogLabel, overlayStyle, resolvedFrameStyle, metadataLines, hasNavigation, canGoPrevious, canGoNext, overlayRef, frameRef, viewportRef, mobileTrackRef, mobileTrackStyle, onMobileTrackTransitionEnd,`
+
+- Вид: функция
+- Кратко: React-компонент `ImageLightboxMobileView`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ImageLightboxMobileView`.
 
 ## `frontend/src/shared/ui/index.ts`
 
-- Top-level declarations: 0
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/ui/lightboxControls/LightboxChrome.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function LightboxChrome({ layout, title, subtitle, counterLabel, directActions = [], menuActions = [], menuController, onClose, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `LightboxChrome`.
+- Детали: Компонент объединяет прямые действия, выпадающее меню и кнопку закрытия, сохраняя единый вид для desktop- и mobile-режимов.
+- Параметры: 1
+  - `{ layout, title, subtitle, counterLabel, directActions = [], menuActions = [], menuController, onClose, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LightboxChrome`.
+
+## `frontend/src/shared/ui/lightboxControls/LightboxDropdownMenu.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function LightboxDropdownMenu({ anchorRef, layout, items, onClose, }: Props) {`
+
+- Вид: функция
+- Кратко: Показывает выпадающее меню действий lightbox рядом с кнопкой-источником.
+- Детали: Компонент сам вычисляет позицию относительно viewport, закрывается по клику снаружи и по `Escape`, а выбор конкретного действия делегирует item-обработчикам.
+- Параметры: 1
+  - `{ anchorRef, layout, items, onClose, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LightboxDropdownMenu`.
+
+## `frontend/src/shared/ui/lightboxControls/LightboxIconButton.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function LightboxIconButton({ layout, label, icon, active = false, tone = "default", className, suppressAriaLabel = false, type = "button", ...props }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `LightboxIconButton`.
+- Детали: Компонент инкапсулирует layout-зависимые стили, активное состояние, цветовой тон и aria-label, чтобы остальные части lightbox не собирали этот шаблон вручную.
+- Параметры: 1
+  - `{ layout, label, icon, active = false, tone = "default", className, suppressAriaLabel = false, type = "button", ...props }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LightboxIconButton`.
+
+## `frontend/src/shared/ui/lightboxControls/LightboxIcons.tsx`
+
+- Экспортируемые объявления: 18
+
+### Объявления
+
+#### `export function CloseIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `CloseIcon`.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `CloseIcon`.
+
+#### `export function MoreIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка вызова дополнительного меню действий.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `MoreIcon`.
+
+#### `export function DownloadIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка скачивания текущего медиафайла.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `DownloadIcon`.
+
+#### `export function RotateIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка поворота изображения или видео.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `RotateIcon`.
+
+#### `export function ExpandIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка перехода в полноэкранный или расширенный режим просмотра.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ExpandIcon`.
+
+#### `export function OpenInBrowserIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка открытия текущего медиа в отдельной вкладке браузера.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `OpenInBrowserIcon`.
+
+#### `export function CopyLinkIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка копирования ссылки на текущее медиа.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `CopyLinkIcon`.
+
+#### `export function ZoomInIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка увеличения масштаба.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ZoomInIcon`.
+
+#### `export function ZoomOutIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка уменьшения масштаба.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ZoomOutIcon`.
+
+#### `export function ResetZoomIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка сброса масштаба к исходному значению.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ResetZoomIcon`.
+
+#### `export function PlayIcon({ layout = "desktop", ...props }: IconProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `PlayIcon`.
+- Параметры: 1
+  - `{ layout = "desktop", ...props }`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `PlayIcon`.
+
+#### `export function PauseIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка паузы для видеоплеера.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `PauseIcon`.
+
+#### `export function VolumeIcon({ muted, layout = "desktop", ...props }: IconProps & { muted: boolean }) {`
+
+- Вид: функция
+- Кратко: React-компонент `VolumeIcon`.
+- Параметры: 1
+  - `{ muted, layout = "desktop", ...props }`
+    - Формат: `IconProps & { muted: boolean }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `IconProps & { muted: boolean }`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `VolumeIcon`.
+
+#### `export function SettingsIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: Иконка открытия настроек просмотра.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `SettingsIcon`.
+
+#### `export function PictureInPictureIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `PictureInPictureIcon`.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `PictureInPictureIcon`.
+
+#### `export function FullscreenIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `FullscreenIcon`.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `FullscreenIcon`.
+
+#### `export function ChevronLeftIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `ChevronLeftIcon`.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ChevronLeftIcon`.
+
+#### `export function ChevronRightIcon(props: IconProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `ChevronRightIcon`.
+- Параметры: 1
+  - `props`
+    - Формат: `IconProps`
+    - Вид: обязательный
+    - Описание: Объект props в формате `IconProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ChevronRightIcon`.
+
+## `frontend/src/shared/ui/lightboxControls/types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/ui/LightboxVideoPlayer.loaders.ts`
+
+- Экспортируемые объявления: 2
+
+### Объявления
+
+#### `export const loadLightboxVideoPlayerDesktopView = () =>`
+
+- Вид: функция
+- Кратко: Функция `loadLightboxVideoPlayerDesktopView`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const loadLightboxVideoPlayerMobileView = () =>`
+
+- Вид: функция
+- Кратко: Функция `loadLightboxVideoPlayerMobileView`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+## `frontend/src/shared/ui/LightboxVideoPlayer.shared.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function LightboxVideoTimeline({ displayTime, remainingLabel, isReady, duration, progressStyle, onSeekPreview, onSeekCommit, onSeekInteractionStart, onSeekInteractionEnd, className, }: LightboxVideoTimelineProps) {`
+
+- Вид: функция
+- Кратко: Отрисовывает таймлайн видеоплеера с текущим временем и range-контролом.
+- Детали: Компонент сам не хранит состояние перемотки: он только отображает переданные значения и прокидывает наружу события preview/commit для синхронизации с родительским контроллером плеера.
+- Параметры: 1
+  - `{ displayTime, remainingLabel, isReady, duration, progressStyle, onSeekPreview, onSeekCommit, onSeekInteractionStart, onSeekInteractionEnd, className, }`
+    - Формат: `LightboxVideoTimelineProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `LightboxVideoTimelineProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LightboxVideoTimeline`.
+
+## `frontend/src/shared/ui/LightboxVideoPlayer.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export const LightboxVideoPlayer = forwardRef<LightboxVideoPlayerHandle, Props>( function LightboxVideoPlayer( { src, fileName, mediaClassName, mediaTransformClassName, mediaTransformRef, consumeMediaClickSuppression, menuController, onRequestFullscreen, layout, }, ref, ) { return ( <LightboxVideoPlayerSession key={src}`
+
+- Вид: функция
+- Кратко: React-компонент `LightboxVideoPlayer`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LightboxVideoPlayer`.
+
+## `frontend/src/shared/ui/LightboxVideoPlayer.types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/ui/LightboxVideoPlayer.utils.ts`
+
+- Экспортируемые объявления: 4
+
+### Объявления
+
+#### `export const PLAYBACK_RATE_OPTIONS: PlaybackRateOption[] = [ { value: 0.5, label: "Медленно" },`
+
+- Вид: константа
+- Кратко: Хранит константное значение `PLAYBACK_RATE_OPTIONS`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const formatTime = (value: number): string => {`
+
+- Вид: функция
+- Кратко: Функция `formatTime`.
+- Параметры: 1
+  - `value`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `number`.
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
+
+#### `export const clampNumber = (value: number, min: number, max: number) =>`
+
+- Вид: функция
+- Кратко: Функция `clampNumber`.
+- Параметры: 3
+  - `value`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `value` в формате `number`.
+  - `min`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `min` в формате `number`.
+  - `max`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `max` в формате `number`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const stopPropagation = (event: SyntheticEvent<HTMLElement>) => {`
+
+- Вид: функция
+- Кратко: Функция `stopPropagation`.
+- Параметры: 1
+  - `event`
+    - Формат: `SyntheticEvent<HTMLElement>`
+    - Вид: обязательный
+    - Описание: Параметр `event` в формате `SyntheticEvent<HTMLElement>`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+## `frontend/src/shared/ui/LightboxVideoPlayerDesktopView.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export default function LightboxVideoPlayerDesktopView({ rootRef, mediaViewport, isReady, isPlaying, isControlsVisible, duration, displayTime, volume, isMuted, playbackRate, activeMenuId, canUsePictureInPicture, isInPictureInPicture, progressStyle, volumeStyle, remainingLabel, onTogglePlayback, onSeekPreview, onSeekCommit,`
+
+- Вид: функция
+- Кратко: React-компонент `LightboxVideoPlayerDesktopView`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LightboxVideoPlayerDesktopView`.
+
+## `frontend/src/shared/ui/LightboxVideoPlayerMobileView.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export default function LightboxVideoPlayerMobileView({ rootRef, mediaViewport, isReady, isPlaying, duration, displayTime, volume, isMuted, playbackRate, activeMenuId, progressStyle, remainingLabel, onTogglePlayback, onSeekPreview, onSeekCommit, onSeekInteractionStart, onSeekInteractionEnd, onToggleMute, onSetPlaybackRate,`
+
+- Вид: функция
+- Кратко: Отрисовывает мобильную версию оверлея управления видеоплеером.
+- Детали: В этой версии элементы управления собраны в нижний dock: таймлайн, транспорт, переключение звука, выбор скорости и переход в полный экран. Само состояние воспроизведения приходит извне через общий контракт пропсов.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `LightboxVideoPlayerMobileView`.
 
 ## `frontend/src/shared/ui/Modal.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Modal({ open, onClose, title, children }: Props) {`
-  - React-компонент Modal отвечает за отрисовку и обработку UI-сценария.
+#### `export function Modal({ open, onClose, title, children }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `Modal`.
+- Параметры: 1
+  - `{ open, onClose, title, children }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Modal`.
 
 ## `frontend/src/shared/ui/Panel.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Panel({ muted = false, busy = false, className, children, }: PanelProps) {`
-  - Компонент Panel рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function Panel({ muted = false, busy = false, className, children, }: PanelProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `Panel`.
+- Параметры: 1
+  - `{ muted = false, busy = false, className, children, }`
+    - Формат: `PanelProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `PanelProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Panel`.
 
 ## `frontend/src/shared/ui/Spinner.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Spinner({ size = "md", className }: Props) {`
-  - React-компонент Spinner отвечает за отрисовку и обработку UI-сценария.
+#### `export function Spinner({ size = "md", className }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `Spinner`.
+- Параметры: 1
+  - `{ size = "md", className }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Spinner`.
 
 ## `frontend/src/shared/ui/Toast.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function Toast({ variant, role = "status", className, autoDismissMs = 5000, onDismiss, children, }: ToastProps) {`
-  - Компонент Toast рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `const dismiss = useCallback(() => {`
+#### `export function Toast({ variant, role = "status", className, autoDismissMs = 5000, onDismiss, children, }: ToastProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `Toast`.
+- Параметры: 1
+  - `{ variant, role = "status", className, autoDismissMs = 5000, onDismiss, children, }`
+    - Формат: `ToastProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ToastProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Toast`.
 
 ## `frontend/src/shared/unreadOverrides/store.ts`
 
-- Top-level declarations: 9
+- Экспортируемые объявления: 4
 
-### Declarations
+### Объявления
 
-- `const emit = () => {`
-- `const rebuildSnapshot = () => {`
-- `const normalizeUnreadCount = (value: number) => {`
-- `export const setUnreadOverride = ({ roomId, unreadCount }: UnreadOverride) => {`
-- `export const clearUnreadOverride = (roomId: string) => {`
-- `export const resetUnreadOverrides = () => {`
-- `const getSnapshot = () => snapshot;`
-- `const subscribe = (listener: Listener) => {`
-- `export const useUnreadOverrides = () =>`
+#### `export const setUnreadOverride = ({ roomId, unreadCount }: UnreadOverride) => {`
+
+- Вид: функция
+- Кратко: Функция `setUnreadOverride`.
+- Детали: Используется, когда UI уже знает новое число непрочитанных сообщений раньше, чем его подтвердит backend или WebSocket-ack.
+- Параметры: 1
+  - `{ roomId, unreadCount }`
+    - Формат: `UnreadOverride`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `UnreadOverride`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const clearUnreadOverride = (roomId: string) => {`
+
+- Вид: функция
+- Кратко: Функция `clearUnreadOverride`.
+- Параметры: 1
+  - `roomId`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Параметр `roomId` в формате `string`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const resetUnreadOverrides = () => {`
+
+- Вид: функция
+- Кратко: Функция `resetUnreadOverrides`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const useUnreadOverrides = () =>`
+
+- Вид: функция
+- Кратко: Хук `useUnreadOverrides`.
+- Детали: Хук построен на `useSyncExternalStore`, чтобы React корректно синхронизировал состояние unread badge с внешним in-memory store.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+## `frontend/src/shared/wsAuth/context.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export const WsAuthContext = createContext<string | null>(null);`
+
+- Вид: константа
+- Кратко: Хранит текущий токен авторизации для WebSocket-подключений.
+- Детали: В `null` находится состояние до логина или после явного сброса авторизации, когда клиенту нечего отправлять в handshake.
+- Параметры: 1
+  - `null`
+    - Формат: не указан
+    - Вид: обязательный
+    - Описание: Параметр `null`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+## `frontend/src/shared/wsAuth/index.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/wsAuth/useWsAuthToken.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useWsAuthToken() {`
+
+- Вид: функция
+- Кратко: Возвращает токен, который должен быть отправлен при авторизации WebSocket.
+- Детали: Хук читает значение из `WsAuthContext` и не создает побочных эффектов. Если токен еще не получен или пользователь не авторизован, вернет `null`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+## `frontend/src/shared/wsAuth/WsAuthProvider.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function WsAuthProvider({ token, children }: WsAuthProviderProps) {`
+
+- Вид: функция
+- Кратко: Провайдер `WsAuthProvider`.
+- Детали: Провайдер ничего не вычисляет сам: он лишь публикует токен, полученный извне, чтобы нижележащие части приложения могли брать его через `useWsAuthToken` и использовать в handshake при открытии сокета.
+- Параметры: 1
+  - `{ token, children }`
+    - Формат: `WsAuthProviderProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `WsAuthProviderProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `WsAuthProvider`.
 
 ## `frontend/src/sw.ts`
 
-- Top-level declarations: 10
-
-### Declarations
-
-- `const isSameOrigin = (url: URL) => url.origin === self.location.origin;`
-  - Проверяет условие is same origin. @param url URL-адрес ресурса.
-- `const isGetRequest = (request: Request) => request.method === "GET";`
-  - Проверяет условие is get request. @param request Объект HTTP-запроса.
-- `const matchSignedMedia = (url: URL) =>`
-  - Обрабатывает match signed media. @param url URL-адрес ресурса.
-- `const matchRoomMessages = (url: URL) =>`
-  - Обрабатывает match room messages. @param url URL-адрес ресурса.
-- `const matchRoomDetails = (url: URL) =>`
-  - Обрабатывает match room details. @param url URL-адрес ресурса.
-- `const matchDirectChats = (url: URL) =>`
-  - Обрабатывает match direct chats. @param url URL-адрес ресурса.
-- `const matchUserProfile = (url: URL) =>`
-  - Обрабатывает match user profile. @param url URL-адрес ресурса.
-- `const matchSelfProfile = (url: URL) => url.pathname === "/api/profile/";`
-  - Обрабатывает match self profile. @param url URL-адрес ресурса.
-- `const matchAuthNoCache = (url: URL) =>`
-  - Обрабатывает match auth no cache. @param url URL-адрес ресурса.
-- `const clearUserCaches = async () => {`
-  - Обрабатывает clear user caches.
+- Экспортируемые объявления: 0
 
 ## `frontend/src/test/setup.ts`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export const server = setupServer();`
+#### `export const server = setupServer();`
+
+- Вид: константа
+- Кратко: Хранит константное значение `server`.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
 
 ## `frontend/src/widgets/admin/RolesManager.tsx`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function RolesManager({ roomId }: Props) {`
-  - React-компонент RolesManager отвечает за отрисовку и обработку UI-сценария.
-- `const reload = useCallback(async () => {`
-- `const handleCreate = useCallback(async () => {`
+#### `export function RolesManager({ roomId }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `RolesManager`.
+- Параметры: 1
+  - `{ roomId }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `RolesManager`.
 
 ## `frontend/src/widgets/auth/AuthForm.tsx`
 
-- Top-level declarations: 4
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function AuthForm({ mode, title, submitLabel, onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], className, }: AuthFormProps) {`
-  - Компонент AuthForm рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `const canSubmit = useMemo(() => {`
-- `const handleSubmit = (event: FormEvent) => {`
-  - Обрабатывает handle submit. @param event Событие браузера.
-- `const handleGoogleAuth = async () => {`
-  - Обрабатывает handle google auth.
+#### `export function AuthForm({ mode, title, submitLabel, onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], className, }: AuthFormProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `AuthForm`.
+- Параметры: 1
+  - `{ mode, title, submitLabel, onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], className, }`
+    - Формат: `AuthFormProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `AuthFormProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `AuthForm`.
 
 ## `frontend/src/widgets/chat/ChatSearch.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `function highlightText(text: string, query: string): string {`
-  - Обрабатывает highlight text. @param text Текст, который используется в вычислении. @param query Поисковый запрос.
-- `export function ChatSearch({ roomId, onResultClick }: Props) {`
-  - React-компонент ChatSearch отвечает за отрисовку и обработку UI-сценария.
+#### `export function ChatSearch({ roomId, onResultClick }: Props) {`
 
-## `frontend/src/widgets/chat/DirectInfoPanel.test.tsx`
-
-- Top-level declarations: 1
-
-### Declarations
-
-- `const chatControllerMock = vi.hoisted(() => ({`
+- Вид: функция
+- Кратко: React-компонент `ChatSearch`.
+- Параметры: 1
+  - `{ roomId, onResultClick }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ChatSearch`.
 
 ## `frontend/src/widgets/chat/DirectInfoPanel.tsx`
 
-- Top-level declarations: 8
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const isVideo = (contentType: string) => contentType.startsWith("video/");`
-  - Проверяет условие is video. @param contentType MIME-тип файла.
-- `const isAudio = (contentType: string) => contentType.startsWith("audio/");`
-  - Проверяет условие is audio. @param contentType MIME-тип файла.
-- `const formatFileSize = (bytes: number) => {`
-  - Форматирует file size. @param bytes Размер файла в байтах.
-- `function AttachmentCard({ item }: { item: RoomAttachmentItem }) {`
-  - React-компонент AttachmentCard отвечает за отрисовку и обработку UI-сценария.
-- `export function DirectInfoPanel({ roomId }: Props) {`
-  - React-компонент DirectInfoPanel отвечает за отрисовку и обработку UI-сценария.
-- `const loadInitial = useCallback(async () => {`
-- `const loadMore = useCallback(async () => {`
-- `const attachmentItems = useMemo(() => attachments, [attachments]);`
+#### `export function DirectInfoPanel({ roomId }: Props) {`
 
-## `frontend/src/widgets/chat/lib/attachmentLayout.test.ts`
-
-- Top-level declarations: 1
-
-### Declarations
-
-- `const makeAttachment = (overrides: Partial<Attachment>): Attachment => ({`
+- Вид: функция
+- Кратко: React-компонент `DirectInfoPanel`.
+- Параметры: 1
+  - `{ roomId }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `DirectInfoPanel`.
 
 ## `frontend/src/widgets/chat/lib/attachmentLayout.ts`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 5
 
-### Declarations
+### Объявления
 
-- `const normalizeVisibleImageLimit = (value: number): number => {`
-  - Нормализует visible image limit. @param value Входное значение для преобразования. @returns Нормализованное значение после обработки входа.
-- `export const buildAttachmentRenderItems = ( attachments: Attachment[], ): AttachmentRenderItem[] =>`
-  - Формирует attachment render items. @param attachments Список вложений, переданных в текущую операцию. @returns Сформированное значение для дальнейшего использования.
-- `export const splitAttachmentRenderItems = ( items: AttachmentRenderItem[], maxVisibleImages: number, ): AttachmentBuckets => {`
-  - Делит вложения на изображения и прочие файлы. @param items Список элементов для обработки. @param maxVisibleImages Список `maxVisibleImages`, который обрабатывается функцией.
-- `export const resolveMediaGridVariant = (count: number): MediaGridVariant => {`
-  - Определяет вариант сетки изображений по количеству элементов. @param count Числовой параметр `count`, ограничивающий объем данных. @returns Разрешенное значение с учетом fallback-логики.
-- `export const resolveImageAspectRatio = (attachment: Attachment): number => {`
-  - Вычисляет ограниченное соотношение сторон изображения. @param attachment Аргумент `attachment` текущего вызова. @returns Разрешенное значение с учетом fallback-логики.
+#### `export const buildAttachmentRenderItems = ( attachments: Attachment[], ): AttachmentRenderItem[] =>`
 
-## `frontend/src/widgets/chat/MessageBubble.test.tsx`
+- Вид: функция
+- Кратко: Функция `buildAttachmentRenderItems`.
+- Параметры: 1
+  - `attachments`
+    - Формат: `Attachment[]`
+    - Вид: обязательный
+    - Описание: Параметр `attachments` в формате `Attachment[]`.
+- Возвращает: `AttachmentRenderItem[]`
+  - Описание: Результат функции в формате `AttachmentRenderItem[]`.
 
-- Top-level declarations: 3
+#### `export const splitAttachmentRenderItems = ( items: AttachmentRenderItem[], maxVisibleImages: number, ): AttachmentBuckets => {`
 
-### Declarations
+- Вид: функция
+- Кратко: Делит вложения на медиа-сетки и остальные файлы. Большие пачки изображений режутся на группы, чтобы UI не оставлял пустую нижнюю правую ячейку и не рисовал `+N` поверх последней картинки.
+- Параметры: 2
+  - `items`
+    - Формат: `AttachmentRenderItem[]`
+    - Вид: обязательный
+    - Описание: Параметр `items` в формате `AttachmentRenderItem[]`.
+  - `maxVisibleImages`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `maxVisibleImages` в формате `number`.
+- Возвращает: `AttachmentBuckets`
+  - Описание: Результат функции в формате `AttachmentBuckets`.
 
-- `const createImageAttachment = (id: number, filename: string) => ({`
-- `const installTouchMatchMedia = () => {`
-  - Настраивает эмуляцию touch-устройства через matchMedia.
-- `const installDesktopInputModel = () => {`
-  - Настраивает модель ввода для десктопного сценария.
+#### `export const resolveMediaGridVariant = (count: number): MediaGridVariant => {`
+
+- Вид: функция
+- Кратко: Выбирает шаблон сетки по размеру текущей группы изображений.
+- Параметры: 1
+  - `count`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `count` в формате `number`.
+- Возвращает: `MediaGridVariant`
+  - Описание: Результат функции в формате `MediaGridVariant`.
+
+#### `export const resolveMediaTilePlacement = ( count: number, index: number, ): MediaTilePlacement => {`
+
+- Вид: функция
+- Кратко: Для отдельных размеров группы расширяет последнюю плитку, чтобы не оставлять пустой угол в правом нижнем углу сетки.
+- Параметры: 2
+  - `count`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `count` в формате `number`.
+  - `index`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `index` в формате `number`.
+- Возвращает: `MediaTilePlacement`
+  - Описание: Результат функции в формате `MediaTilePlacement`.
+
+#### `export const resolveImageAspectRatio = (attachment: Attachment): number => {`
+
+- Вид: функция
+- Кратко: Функция `resolveImageAspectRatio`.
+- Параметры: 1
+  - `attachment`
+    - Формат: `Attachment`
+    - Вид: обязательный
+    - Описание: Параметр `attachment` в формате `Attachment`.
+- Возвращает: `number`
+  - Описание: Числовое значение результата.
 
 ## `frontend/src/widgets/chat/MessageBubble.tsx`
 
-- Top-level declarations: 14
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const formatFileSize = (bytes: number) => {`
-  - Форматирует размер файла для отображения рядом с вложением. @param bytes Размер файла в байтах. @returns Строка в отформатированном виде.
-- `const formatMediaDuration = (totalSeconds: number): string => {`
-- `const isVideoType = (contentType: string, fileName: string) =>`
-  - Проверяет, относится ли MIME-тип к видео. @param contentType MIME-тип вложения. @param fileName Имя файла, используется как дополнительная эвристика. @returns Логический флаг результата проверки.
-- `const isAudioType = (ct: string) => ct.startsWith("audio/");`
-  - Проверяет, относится ли MIME-тип к аудио. @param ct MIME-тип вложения. @returns Логический флаг результата проверки.
-- `const normalizeActorRef = (value: string) =>`
-  - Нормализует публичный идентификатор пользователя для сравнения online-статуса. @param value Входное значение для преобразования.
-- `const isTouchLikeDevice = () => {`
-  - Определяет, используется ли устройство с touch-вводом.
-- `const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {`
-  - Проверяет, что тап был по интерактивному элементу и меню открывать не нужно. @param target DOM-элемент, по которому пришло событие. @returns Логический флаг, нужно ли выполнять действие.
-- `function ReplyQuote({ replyTo, onClick, }: { replyTo: ReplyTo; onClick?: () => void;`
-  - Компонент ReplyQuote рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
-- `function ReactionChip({ reaction, onToggle, }: { reaction: ReactionSummary; onToggle: () => void;`
-  - Компонент ReactionChip рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
-- `function CheckMark({ isRead }: { isRead: boolean }) {`
-  - React-компонент CheckMark отвечает за отрисовку и обработку UI-сценария.
-- `function EmojiPicker({ onPick, onClose, }: { onPick: (emoji: string) => void;`
-  - Компонент EmojiPicker рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
-- `export function MessageBubble({ message, isOwn, showAvatar = true, showHeader = true, grouped = false, canModerate = false, canViewReaders = false, isRead = false, highlighted = false, onlineUsernames, onReply, onEdit, onDelete, onReact, onViewReaders,`
-  - Компонент MessageBubble рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
-- `const openContextMenuAt = useCallback((x: number, y: number) => {`
-- `const openLightboxByAttachmentId = (attachmentId: number) => {`
+#### `export function MessageBubble({ message, isOwn, showAvatar = true, showHeader = true, grouped = false, canModerate = false, canViewReaders = false, isRead = false, highlighted = false, onlineUsernames, onReply, onEdit, onDelete, onReact, onViewReaders, onReplyQuoteClick, onAvatarClick, onOpenMediaAttachment, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `MessageBubble`.
+- Параметры: 1
+  - `{ message, isOwn, showAvatar = true, showHeader = true, grouped = false, canModerate = false, canViewReaders = false, isRead = false, highlighted = false, onlineUsernames, onReply, onEdit, onDelete, onReact, onViewReaders, onReplyQuoteClick, onAvatarClick, onOpenMediaAttachment, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `MessageBubble`.
 
 ## `frontend/src/widgets/chat/MessageInput.tsx`
 
-- Top-level declarations: 5
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const IconAttach = () => (`
-  - React-компонент IconAttach отвечает за отрисовку и обработку UI-сценария.
-- `const IconSend = () => (`
-  - React-компонент IconSend отвечает за отрисовку и обработку UI-сценария.
-- `const IconClose = () => (`
-  - React-компонент IconClose отвечает за отрисовку и обработку UI-сценария.
-- `export function MessageInput({ draft, onDraftChange, onSend, onTyping, disabled, rateLimitActive, replyTo, onCancelReply, onAttach, pendingFiles = [], onRemovePendingFile, onClearPendingFiles, uploadProgress, onCancelUpload, }: Props) {`
-  - Компонент MessageInput рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `const resizeTextarea = useCallback(() => {`
-  - Автоматически подстраивает высоту поля ввода до 3x от базовой высоты.
+#### `export function MessageInput({ draft, onDraftChange, onSend, onTyping, disabled, rateLimitActive, replyTo, onCancelReply, onAttach, pendingFiles = [], onRemovePendingFile, onClearPendingFiles, uploadProgress, onCancelUpload, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `MessageInput`.
+- Параметры: 1
+  - `{ draft, onDraftChange, onSend, onTyping, disabled, rateLimitActive, replyTo, onCancelReply, onAttach, pendingFiles = [], onRemovePendingFile, onClearPendingFiles, uploadProgress, onCancelUpload, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `MessageInput`.
 
 ## `frontend/src/widgets/chat/ReadersMenu.tsx`
 
-- Top-level declarations: 6
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const formatExactReadAt = (iso: string) =>`
-- `export function ReadersMenu({ x, y, loading, error, entries, emptyLabel, onClose, onOpenProfile, }: Props) {`
-- `const reposition = useCallback(() => {`
-- `const handleResize = () => reposition();`
-- `const handlePointerDown = (event: Event) => {`
-- `const handleKey = (event: KeyboardEvent) => {`
+#### `export function ReadersMenu({ x, y, loading, error, entries, emptyLabel, onClose, onOpenProfile, }: Props) {`
+
+- Вид: функция
+- Кратко: Показывает контекстное меню с пользователями, прочитавшими сообщение.
+- Детали: Меню привязывается к координатам клика, само удерживает себя внутри viewport и умеет открывать профиль читателя, если для него доступен public ref.
+- Параметры: 1
+  - `{ x, y, loading, error, entries, emptyLabel, onClose, onOpenProfile, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ReadersMenu`.
 
 ## `frontend/src/widgets/chat/TypingIndicator.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function TypingIndicator({ users }: Props) {`
-  - React-компонент TypingIndicator отвечает за отрисовку и обработку UI-сценария.
+#### `export function TypingIndicator({ users }: Props) {`
 
-## `frontend/src/widgets/chat/UserProfilePanel.test.tsx`
-
-- Top-level declarations: 4
-
-### Declarations
-
-- `const profileMock = vi.hoisted(() => ({`
-- `const presenceMock = vi.hoisted(() => ({`
-- `const relationState = vi.hoisted(() => ({`
-- `const friendsControllerMock = vi.hoisted(() => ({`
+- Вид: функция
+- Кратко: React-компонент `TypingIndicator`.
+- Параметры: 1
+  - `{ users }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `TypingIndicator`.
 
 ## `frontend/src/widgets/chat/UserProfilePanel.tsx`
 
-- Top-level declarations: 13
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const normalize = (value: string) => normalizePublicRef(value).toLowerCase();`
-  - Нормализует данные. @param value Входное значение для преобразования.
-- `export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {`
-  - React-компонент UserProfilePanel отвечает за отрисовку и обработку UI-сценария.
-- `const loadRelationState = useCallback(async () => {`
-- `const run = async () => {`
-  - Обрабатывает run.
-- `const handleAddFriend = useCallback(() => {`
-- `const handleCancelRequest = useCallback(() => {`
-- `const handleAcceptRequest = useCallback(() => {`
-- `const handleDeclineRequest = useCallback(() => {`
-- `const handleRemoveFriend = useCallback(() => {`
-- `const handleBlock = useCallback(() => {`
-- `const handleUnblock = useCallback(() => {`
-- `const handleStartDirect = useCallback(() => {`
-- `const isUserOnline = useMemo(() => {`
+#### `export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `UserProfilePanel`.
+- Параметры: 1
+  - `{ publicRef, currentPublicRef }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `UserProfilePanel`.
 
 ## `frontend/src/widgets/friends/AddFriendDialog.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function AddFriendDialog({ onSubmit, onClose }: Props) {`
-  - React-компонент AddFriendDialog отвечает за отрисовку и обработку UI-сценария.
-- `const handleSubmit = useCallback(async () => {`
+#### `export function AddFriendDialog({ onSubmit, onClose }: Props) {`
 
-## `frontend/src/widgets/friends/FriendListItem.test.tsx`
-
-- Top-level declarations: 0
+- Вид: функция
+- Кратко: React-компонент `AddFriendDialog`.
+- Параметры: 1
+  - `{ onSubmit, onClose }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `AddFriendDialog`.
 
 ## `frontend/src/widgets/friends/FriendListItem.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const IconMore = () => (`
-- `export function FriendListItem({ friend, isOnline, onMessage, onRemove, onBlock, }: Props) {`
-  - Компонент FriendListItem рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
+#### `export function FriendListItem({ friend, isOnline, onMessage, onRemove, onBlock, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `FriendListItem`.
+- Параметры: 1
+  - `{ friend, isOnline, onMessage, onRemove, onBlock, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `FriendListItem`.
 
 ## `frontend/src/widgets/friends/FriendRequestItem.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function FriendRequestItem(props: Props) {`
-  - React-компонент FriendRequestItem отвечает за отрисовку и обработку UI-сценария. @param props Свойства компонента или хука.
+#### `export function FriendRequestItem(props: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `FriendRequestItem`.
+- Параметры: 1
+  - `props`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Свойства компонента или хука.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `FriendRequestItem`.
 
 ## `frontend/src/widgets/groups/CreateGroupDialog.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function CreateGroupDialog({ onCreated, onClose }: Props) {`
-  - React-компонент CreateGroupDialog отвечает за отрисовку и обработку UI-сценария.
-- `const handleSubmit = useCallback(async () => {`
+#### `export function CreateGroupDialog({ onCreated, onClose }: Props) {`
 
-## `frontend/src/widgets/groups/GroupInfoPanel.test.tsx`
-
-- Top-level declarations: 7
-
-### Declarations
-
-- `const groupControllerMock = vi.hoisted(() => ({`
-- `const rolesControllerMock = vi.hoisted(() => ({`
-- `const chatControllerMock = vi.hoisted(() => ({`
-- `const roomPermissionsMock = vi.hoisted(() => ({`
-- `const infoPanelMock = vi.hoisted(() => ({`
-- `const withBaseMocks = () => {`
-  - Создает тестовое окружение с базовыми моками зависимостей.
-- `const groupPromise = new Promise<Group>((resolve) => {`
+- Вид: функция
+- Кратко: React-компонент `CreateGroupDialog`.
+- Параметры: 1
+  - `{ onCreated, onClose }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `CreateGroupDialog`.
 
 ## `frontend/src/widgets/groups/GroupInfoPanel.tsx`
 
-- Top-level declarations: 37
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const PERMISSION_BITS = PERMISSION_ITEMS.map((item) => item.bit);`
-- `const extractErrorMessage = (error: unknown, fallback: string) => {`
-  - Извлекает error message. @param error Объект ошибки, полученный в обработчике. @param fallback Резервное значение на случай ошибки или отсутствия данных.
-- `const getElevatedRoles = (roles: string[]) =>`
-  - Возвращает elevated roles. @param roles Набор ролей, участвующих в вычислении.
-- `const toggleBit = (current: number[], bit: number): number[] =>`
-  - Обрабатывает toggle bit. @param current Аргумент `current` текущего вызова. @param bit Проверяемый бит в маске разрешений. @returns Числовое значение результата.
-- `const bitsFromMask = (mask: number): number[] =>`
-  - Обрабатывает bits from mask. @param mask Битовая маска разрешений. @returns Числовое значение результата.
-- `const formatFileSize = (bytes: number) => {`
-  - Форматирует file size. @param bytes Размер файла в байтах.
-- `const extractHttpLinks = (content: string): string[] => {`
-  - Извлекает http links. @param content Текст сообщения. @returns Строковое значение результата.
-- `const formatDateTime = (value: string) => {`
-  - Форматирует date time. @param value Входное значение для преобразования.
-- `const revokeBlobUrl = (value: string | null) => {`
-  - Обрабатывает revoke blob url. @param value Входное значение для преобразования.
-- `export function GroupInfoPanel({ roomId }: Props) {`
-  - React-компонент GroupInfoPanel отвечает за отрисовку и обработку UI-сценария.
-- `const isSelfMember = useCallback((member: GroupMember) => {`
-- `const resolveMemberTag = useCallback((member: GroupMember): string | null => {`
-- `const loadRolesData = useCallback(async () => {`
-- `const clearPendingAvatar = useCallback((revoke = true) => {`
-- `const loadBase = useCallback(async () => {`
-- `const loadInvites = useCallback(async () => {`
-- `const loadJoinRequests = useCallback(async () => {`
-- `const loadBanned = useCallback(async () => {`
-- `const loadMedia = useCallback(async () => {`
-- `const loadLinks = useCallback(async () => {`
-- `const role = roles.find((item) => item.id === selectedRoleId);`
-- `const hasGeneralChanges = useMemo(() => {`
-- `const saveGroupSettings = useCallback(async () => {`
-- `const removeAvatar = useCallback(async () => {`
-- `const handleAvatarCropCancel = useCallback(() => {`
-- `const handleLeaveGroup = useCallback(async () => {`
-- `const handleDeleteGroup = useCallback(async () => {`
-- `const activeViewTitle = useMemo(() => {`
-- `const createInvite = useCallback(async () => {`
-- `const createRole = useCallback(async () => {`
-- `const updateRole = useCallback(async () => {`
-- `const saveMemberRoles = useCallback(async () => {`
-- `const resetOverrideForm = useCallback(() => {`
-- `const editOverride = useCallback((item: PermissionOverride) => {`
-- `const saveOverride = useCallback(async () => {`
-- `const target = members.find((member) => member.userId === userId);`
-- `const banMemberFromForm = useCallback(async () => {`
+#### `export function GroupInfoPanel({ roomId }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `GroupInfoPanel`.
+- Параметры: 1
+  - `{ roomId }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `GroupInfoPanel`.
 
 ## `frontend/src/widgets/groups/GroupListItem.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function GroupListItem({ group, onClick }: Props) {`
-  - React-компонент GroupListItem отвечает за отрисовку и обработку UI-сценария.
+#### `export function GroupListItem({ group, onClick }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `GroupListItem`.
+- Параметры: 1
+  - `{ group, onClick }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `GroupListItem`.
 
 ## `frontend/src/widgets/groups/GroupMembersList.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function GroupMembersList({ members, isAdmin, onKick, onBan, onMute, onUnmute, }: Props) {`
-  - Компонент GroupMembersList рендерит список участников и их базовые действия.
+#### `export function GroupMembersList({ members, isAdmin, onKick, onBan, onMute, onUnmute, }: Props) {`
 
-## `frontend/src/widgets/layout/AppShell.test.tsx`
+- Вид: функция
+- Кратко: Компонент GroupMembersList рендерит список участников и их базовые действия.
+- Параметры: 1
+  - `{ members, isAdmin, onKick, onBan, onMute, onUnmute, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `GroupMembersList`.
 
-- Top-level declarations: 4
+## `frontend/src/widgets/layout/AppShell.tsx`
 
-### Declarations
+- Экспортируемые объявления: 1
 
-- `const conversationListMock = vi.hoisted(() => ({`
-- `const directInboxMock = vi.hoisted(() => ({`
-- `const setViewport = (width: number) => {`
-- `function ShellHarness() {`
+### Объявления
 
-## `frontend/src/widgets/layout/InfoPanel.test.tsx`
+#### `export function AppShell(props: Props) {`
 
-- Top-level declarations: 1
-
-### Declarations
-
-- `function Harness() {`
-  - Создает тестовый harness для рендера и взаимодействий.
+- Вид: функция
+- Кратко: React-компонент `AppShell`.
+- Параметры: 1
+  - `props`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Свойства компонента или хука.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `AppShell`.
 
 ## `frontend/src/widgets/layout/InfoPanel.tsx`
 
-- Top-level declarations: 3
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `function PanelContent({ content, targetId, currentPublicRef, onJumpToMessage, }: { content: string; targetId: string | null; currentPublicRef: string | null; onJumpToMessage: (roomTarget: string, messageId: number) => void;`
-  - Компонент PanelContent рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `export function InfoPanel({ currentPublicRef, }: { currentPublicRef: string | null; }) {`
-  - Компонент InfoPanel рендерит UI текущего раздела и связывает действия пользователя с обработчиками. @param props Свойства компонента.
-- `const onJumpToMessage = (roomTarget: string, messageId: number) => {`
-  - Обрабатывает on jump to message. @param roomTarget ??????? ????? ???? ??? ???????? ? ?????????. @param messageId Идентификатор сообщения.
+#### `export function InfoPanel({ currentPublicRef, }: { currentPublicRef: string | null; }) {`
 
-## `frontend/src/widgets/layout/Sidebar.test.tsx`
-
-- Top-level declarations: 2
-
-### Declarations
-
-- `const directInboxMock = vi.hoisted(() => ({`
-- `const conversationListMock = vi.hoisted(() => ({`
+- Вид: функция
+- Кратко: React-компонент `InfoPanel`.
+- Параметры: 1
+  - `{ currentPublicRef, }`
+    - Формат: `{ currentPublicRef: string | null; }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `{ currentPublicRef: string | null; }`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `InfoPanel`.
 
 ## `frontend/src/widgets/layout/Sidebar.tsx`
 
-- Top-level declarations: 13
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `const clampSidebarWidth = (value: number): number =>`
-- `const normalizeActorRef = (value: string): string =>`
-- `const FriendsIcon = () => (`
-- `const PublicChatIcon = () => (`
-- `const SettingsIcon = () => (`
-- `export function Sidebar({ user, onNavigate, onLogout, onCloseMobileDrawer, showMobileDrawerControls = false, }: Props) {`
-- `const resizeCleanupRef = useRef<(() => void) | null>(null);`
-- `const filteredDirectItems = useMemo(() => {`
-- `const rememberedDirectPath = useMemo(() => {`
-- `const handleResizeStart = useCallback((event: React.MouseEvent) => {`
-- `const handleMouseMove = (moveEvent: MouseEvent) => {`
-- `const stopResize = () => {`
-- `const handleSettingsLogout = useCallback(async () => {`
+#### `export function Sidebar({ user, onNavigate, onLogout, onCloseMobileDrawer, showMobileDrawerControls = false, }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `Sidebar`.
+- Детали: Компонент также отвечает за desktop-resize, mobile drawer UX, открытие настроек, быстрый переход к друзьям и восстановление последнего личного чата.
+- Параметры: 1
+  - `{ user, onNavigate, onLogout, onCloseMobileDrawer, showMobileDrawerControls = false, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `Sidebar`.
 
 ## `frontend/src/widgets/settings/SettingsContent.tsx`
 
-- Top-level declarations: 2
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function SettingsContent({ user, onNavigate, onLogout, compact = false, showTitle = true, }: Props) {`
-- `const handleToggleNotifications = useCallback(async () => {`
+#### `export function SettingsContent({ user, onNavigate, onLogout, compact = false, showTitle = true, }: Props) {`
+
+- Вид: функция
+- Кратко: Показывает основной контент страницы настроек аккаунта.
+- Детали: Компонент объединяет блок профиля, переключатель browser push-уведомлений, памятку по горячим клавишам и действие выхода из аккаунта. В компактном режиме используется как встраиваемая панель без лишнего визуального шума.
+- Параметры: 1
+  - `{ user, onNavigate, onLogout, compact = false, showTitle = true, }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `SettingsContent`.
 
 ## `frontend/src/widgets/sidebar/ConversationList.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function ConversationList({ onNavigate }: Props) {`
+#### `export function ConversationList({ onNavigate }: Props) {`
+
+- Вид: функция
+- Кратко: Отрисовывает список диалогов и результаты глобального поиска в боковой панели.
+- Детали: В обычном режиме показывает conversation list по выбранному фильтру, а при активном поиске переключается на секции пользователей, групп и сообщений.
+- Параметры: 1
+  - `{ onNavigate }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ConversationList`.
 
 ## `frontend/src/widgets/sidebar/ConversationListItem.tsx`
 
-- Top-level declarations: 1
+- Экспортируемые объявления: 1
 
-### Declarations
+### Объявления
 
-- `export function ConversationListItem({ item, isActive, onClick }: Props) {`
-  - React-компонент ConversationListItem отвечает за отрисовку и обработку UI-сценария.
+#### `export function ConversationListItem({ item, isActive, onClick }: Props) {`
+
+- Вид: функция
+- Кратко: React-компонент `ConversationListItem`.
+- Параметры: 1
+  - `{ item, isActive, onClick }`
+    - Формат: `Props`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `Props`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ConversationListItem`.

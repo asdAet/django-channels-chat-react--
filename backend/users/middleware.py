@@ -11,6 +11,13 @@ from django.utils import timezone
 from .models import Profile
 
 
+_SKIP_PATHS = {
+    "/api/health/live/",
+    "/api/health/ready/",
+    "/metrics/",
+}
+
+
 class UpdateLastSeenMiddleware:
     """Класс UpdateLastSeenMiddleware инкапсулирует связанную бизнес-логику модуля."""
 
@@ -31,6 +38,10 @@ class UpdateLastSeenMiddleware:
         Returns:
             Результат вычислений, сформированный в ходе выполнения функции.
         """
+        path = getattr(request, "path", "") or ""
+        if path in _SKIP_PATHS:
+            return self.get_response(request)
+
         user = getattr(request, "user", None)
         if user and user.is_authenticated:
             try:

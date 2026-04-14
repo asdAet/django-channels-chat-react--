@@ -26,6 +26,12 @@ const MobileShellContext = createContext<MobileShellState>({
   toggleDrawer: () => {},
 });
 
+/**
+ * Инициализирует mobile-shell состояние и выбирает мобильный или desktop-режим.
+ *
+ * Наружу этот провайдер отдает флаги viewport и управление боковым drawer,
+ * чтобы layout-компоненты не дублировали одну и ту же логику.
+ */
 export function MobileShellProvider({ children }: { children: ReactNode }) {
   const { isMobileViewport } = useDevice();
   return (
@@ -87,6 +93,12 @@ function MobileShellStateProvider({
   );
 }
 
+/**
+ * Возвращает состояние мобильной оболочки и методы управления drawer.
+ *
+ * Используется виджетами layout, когда им нужно узнать, открыт ли mobile drawer
+ * и можно ли программно его открыть, закрыть или переключить.
+ */
 export function useMobileShell() {
   return useContext(MobileShellContext);
 }

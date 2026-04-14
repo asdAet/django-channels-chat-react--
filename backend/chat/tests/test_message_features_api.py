@@ -5,11 +5,13 @@ from __future__ import annotations
 from datetime import timedelta
 import json
 from urllib.parse import parse_qs, urlparse
+from contextlib import AbstractContextManager
+from typing import Any, cast
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import OperationalError
+from django.http import HttpResponse
 from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
@@ -27,14 +29,29 @@ from messages.models import (
 from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
+from testsupport.files import require_stored_file_name
+from testsupport.users import typed_user_model
 from users.identity import ensure_user_identity_core, set_room_public_handle, set_user_public_handle
 
-User = get_user_model()
+User = typed_user_model()
+
+
+def _capture_on_commit_callbacks(test_case: TestCase, *, execute: bool) -> AbstractContextManager[list[object]]:
+    callback_capture = cast(Any, test_case).captureOnCommitCallbacks
+    return cast(AbstractContextManager[list[object]], callback_capture(execute=execute))
+
+
+def _attachment_file_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.file, field_name="attachment.file")
+
+
+def _attachment_thumbnail_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.thumbnail, field_name="attachment.thumbnail")
 
 
 class ChatMessageFeatureApiTests(TestCase):
     def setUp(self):
-        self.client = Client()
+        self.client: Any = Client()
         self.owner = User.objects.create_user(username="owner_feat", password="pass12345")
         self.peer = User.objects.create_user(username="peer_feat", password="pass12345")
         self.outsider = User.objects.create_user(username="outsider_feat", password="pass12345")
@@ -61,7 +78,7 @@ class ChatMessageFeatureApiTests(TestCase):
         filename: str,
         content_type: str,
         file_size: int,
-        client: Client | None = None,
+        client: Any | None = None,
     ):
         active_client = client or self.client
         return active_client.post(
@@ -83,10 +100,10 @@ class ChatMessageFeatureApiTests(TestCase):
         upload_id: str,
         content: bytes,
         chunk_size: int,
-        client: Client | None = None,
-    ):
+        client: Any | None = None,
+    ) -> Any | None:
         active_client = client or self.client
-        last_response = None
+        last_response: HttpResponse | None = None
         offset = 0
         while offset < len(content):
             chunk = content[offset : offset + chunk_size]
@@ -105,7 +122,7 @@ class ChatMessageFeatureApiTests(TestCase):
         filename: str,
         content: bytes,
         content_type: str,
-        client: Client | None = None,
+        client: Any | None = None,
     ) -> str:
         session_response = self._create_attachment_upload_session(
             room_id,
@@ -127,7 +144,7 @@ class ChatMessageFeatureApiTests(TestCase):
                 chunk_size=chunk_size,
                 client=client,
             )
-            self.assertIsNotNone(chunk_response)
+            assert chunk_response is not None
             self.assertEqual(chunk_response.status_code, 200)
             self.assertEqual(chunk_response.json()["receivedBytes"], len(content))
             self.assertEqual(chunk_response.json()["status"], "complete")
@@ -141,7 +158,7 @@ class ChatMessageFeatureApiTests(TestCase):
         upload_ids: list[str],
         message_content: str = "",
         reply_to: int | None = None,
-        client: Client | None = None,
+        client: Any | None = None,
     ):
         active_client = client or self.client
         return active_client.post(
@@ -163,7 +180,7 @@ class ChatMessageFeatureApiTests(TestCase):
         *,
         message_content: str = "",
         reply_to: int | None = None,
-        client: Client | None = None,
+        client: Any | None = None,
     ):
         upload_ids = [
             self._complete_attachment_upload(
@@ -635,7 +652,7 @@ class ChatMessageFeatureApiTests(TestCase):
                 "open",
                 wraps=attachment_uploads.default_storage.open,
             ) as storage_open:
-                with self.captureOnCommitCallbacks(execute=True):
+                with _capture_on_commit_callbacks(self, execute=True):
                     response = self._finalize_attachment_uploads(
                         self.direct_room.pk,
                         upload_ids=[upload_id],
@@ -1039,8 +1056,8 @@ class ChatMessageFeatureApiTests(TestCase):
             )
             file_storage = attachment.file.storage
             thumb_storage = attachment.thumbnail.storage
-            file_name = attachment.file.name
-            thumb_name = attachment.thumbnail.name
+            file_name = _attachment_file_name(attachment)
+            thumb_name = _attachment_thumbnail_name(attachment)
 
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))

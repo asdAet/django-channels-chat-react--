@@ -1,0 +1,38 @@
+{{ define "telegram.devils.message" -}}
+{{- if eq .Status "firing" -}}🚨 Сработал алерт{{- else -}}✅ Алерт восстановлен{{- end -}}
+{{- if gt (len .Alerts) 1 }} ({{ len .Alerts }}){{ end }}
+{{- range .Alerts }}
+
+Статус: {{ if eq .Status "firing" }}СРАБОТАЛ{{ else }}ВОССТАНОВЛЕН{{ end }}
+Сервис: {{ template "telegram.devils.service" .Labels.service }}
+Важность: {{ template "telegram.devils.severity" .Labels.severity }}
+Правило: {{ .Labels.alertname }}
+Кратко: {{ or .Annotations.summary "Без краткого описания" }}
+Описание: {{ or .Annotations.description "Без описания" }}
+{{- with .Labels.instance }}
+Источник: {{ . }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{ define "telegram.devils.severity" -}}
+{{- if eq . "critical" -}}критическая
+{{- else if eq . "warning" -}}предупреждение
+{{- else if . -}}{{ . }}
+{{- else -}}не указана
+{{- end -}}
+{{- end }}
+
+{{ define "telegram.devils.service" -}}
+{{- if eq . "backend" -}}backend
+{{- else if eq . "edge" -}}внешний контур
+{{- else if eq . "postgres" -}}PostgreSQL
+{{- else if eq . "redis" -}}Redis
+{{- else if eq . "host" -}}хост
+{{- else if eq . "containers" -}}контейнеры
+{{- else if eq . "websocket" -}}WebSocket
+{{- else if eq . "chat" -}}чат
+{{- else if . -}}{{ . }}
+{{- else -}}не указан
+{{- end -}}
+{{- end }}

@@ -1,5 +1,8 @@
 import { formatPublicRef, isFallbackPublicId, isHandleRef, normalizePublicRef } from "./publicRef";
 
+/**
+ * Константа `PUBLIC_CHAT_TARGET`, используемая как public chat target.
+ */
 export const PUBLIC_CHAT_TARGET = "public";
 
 const RESERVED_TOP_LEVEL_SEGMENTS = new Set([
@@ -26,6 +29,12 @@ const isSinglePathSegment = (pathname: string): boolean => {
   return !trimmed.includes("/");
 };
 
+/**
+ * Нормализует `normalize chat target`.
+ *
+ * @param value Параметр `value` в формате `string | null | undefined`.
+ * @returns Возвращает результат `normalize chat target` в формате `string`.
+ */
 export const normalizeChatTarget = (
   value: string | null | undefined,
 ): string => {
@@ -50,6 +59,12 @@ export const normalizeChatTarget = (
   return trimmed;
 };
 
+/**
+ * Проверяет `is reserved chat target`.
+ *
+ * @param value Параметр `value` в формате `string | null | undefined`.
+ * @returns Возвращает результат `is reserved chat target` в формате `boolean`.
+ */
 export const isReservedChatTarget = (value: string | null | undefined): boolean => {
   const rawSegment = typeof value === "string" ? value.trim() : "";
   if (!rawSegment) return false;
@@ -57,6 +72,12 @@ export const isReservedChatTarget = (value: string | null | undefined): boolean 
   return RESERVED_TOP_LEVEL_SEGMENTS.has(rawSegment.toLowerCase());
 };
 
+/**
+ * Кодирует `encode chat target segment`.
+ *
+ * @param value Параметр `value` в формате `string`.
+ * @returns Возвращает результат `encode chat target segment` в формате `string`.
+ */
 export const encodeChatTargetSegment = (value: string): string => {
   let encoded = encodeURIComponent(value);
   for (const [pattern, replacement] of PRESERVED_SEGMENT_REPLACEMENTS) {
@@ -65,21 +86,44 @@ export const encodeChatTargetSegment = (value: string): string => {
   return encoded;
 };
 
+/**
+ * Формирует `build chat target path`.
+ *
+ * @param value Параметр `value` в формате `string`.
+ * @returns Возвращает результат `build chat target path` в формате `string`.
+ */
 export const buildChatTargetPath = (value: string): string => {
   const normalized = normalizeChatTarget(value);
   if (!normalized) return "/";
   return `/${encodeChatTargetSegment(normalized)}`;
 };
 
+/**
+ * Формирует `build public chat path`.
+ *
+ * @returns Возвращает результат `build public chat path` в формате `string`.
+ */
 export const buildPublicChatPath = (): string =>
   buildChatTargetPath(PUBLIC_CHAT_TARGET);
 
+/**
+ * Формирует `build direct chat path`.
+ *
+ * @param value Параметр `value` в формате `string`.
+ * @returns Возвращает результат `build direct chat path` в формате `string`.
+ */
 export const buildDirectChatPath = (value: string): string => {
   const normalized = normalizeChatTarget(value);
   if (!normalized) return "/friends";
   return buildChatTargetPath(normalized);
 };
 
+/**
+ * Разбирает `parse chat target from pathname`.
+ *
+ * @param pathname Параметр `pathname` в формате `string`.
+ * @returns Возвращает результат `parse chat target from pathname` в формате `string | null`.
+ */
 export const parseChatTargetFromPathname = (
   pathname: string,
 ): string | null => {
@@ -101,5 +145,11 @@ export const parseChatTargetFromPathname = (
   return normalized;
 };
 
+/**
+ * Проверяет `is prefixless chat path`.
+ *
+ * @param pathname Параметр `pathname` в формате `string`.
+ * @returns Возвращает результат `is prefixless chat path` в формате `boolean`.
+ */
 export const isPrefixlessChatPath = (pathname: string): boolean =>
   parseChatTargetFromPathname(pathname) !== null;

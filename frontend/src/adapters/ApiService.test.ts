@@ -5,6 +5,11 @@ import { server } from "../test/setup";
 import { apiService, normalizeAxiosError } from "./ApiService";
 
 const now = "2026-01-01T00:00:00.000Z";
+const unicodeEscapePrefix = `${String.fromCharCode(92)}u`;
+const toEscapedUnicode = (value: string) =>
+  Array.from(value, (char) =>
+    `${unicodeEscapePrefix}${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  ).join("");
 
 const friendItem = {
   id: 10,
@@ -285,10 +290,12 @@ describe("ApiService", () => {
   });
 
   it("decodes escaped unicode errors into readable text", async () => {
+    const escapedMessage = toEscapedUnicode("Нельзя");
+
     server.use(
       http.post(
         "/api/auth/register/",
-        () => new HttpResponse("\\u041d\\u0435\\u043b\\u044c\\u0437\\u044f", { status: 400 }),
+        () => new HttpResponse(escapedMessage, { status: 400 }),
       ),
     );
 
@@ -297,7 +304,7 @@ describe("ApiService", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "Нельзя",
-      data: expect.objectContaining({ detail: "\\u041d\\u0435\\u043b\\u044c\\u0437\\u044f" }),
+      data: expect.objectContaining({ detail: escapedMessage }),
     });
   });
 

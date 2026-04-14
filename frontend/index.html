@@ -1,35 +1,63 @@
 <!doctype html>
 <html lang="ru">
   <head>
-    <!-- Yandex.Metrika counter -->
-    <script type="text/javascript">
-      (function(m,e,t,r,i,k,a){
-          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-          m[i].l=1*new Date();
-          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=108160241', 'ym');
+    <script type="module">
+      const yandexMetrikaId = "108160241";
+      const googleTagId = "G-CYFZ1JQNSR";
 
-      ym(108160241, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-    </script>
-    <!-- /Yandex.Metrika counter -->
+      const appendScript = (id, src) => {
+        if (document.getElementById(id)) {
+          return;
+        }
 
-    
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-CYFZ1JQNSR"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
+        const script = document.createElement("script");
+        script.id = id;
+        script.async = true;
+        script.src = src;
+        document.head.appendChild(script);
+      };
+
+      if (yandexMetrikaId) {
+        appendScript(
+          "yandex-metrika",
+          `https://mc.yandex.ru/metrika/tag.js?id=${encodeURIComponent(yandexMetrikaId)}`,
+        );
+
+        window.ym =
+          window.ym ||
+          ((...args) => {
+            const ym = window.ym;
+            ym.a = ym.a || [];
+            ym.a.push(args);
+            ym.l = ym.l || Date.now();
+          });
+
+        window.ym(Number(yandexMetrikaId), "init", {
+          ssr: true,
+          webvisor: true,
+          clickmap: true,
+          ecommerce: "dataLayer",
+          referrer: document.referrer,
+          url: window.location.href,
+          accurateTrackBounce: true,
+          trackLinks: true,
+        });
       }
-      gtag("js", new Date());
 
-      gtag("config", "G-CYFZ1JQNSR");
+      if (googleTagId) {
+        appendScript(
+          "google-tag-manager",
+          `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleTagId)}`,
+        );
+
+        window.dataLayer = window.dataLayer || [];
+        function gtag(...args) {
+          window.dataLayer.push(args);
+        }
+        gtag("js", new Date());
+        gtag("config", googleTagId);
+      }
     </script>
-
 
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/Devil.svg" />
@@ -99,7 +127,6 @@
     </style>
   </head>
   <body>
-    <noscript><div><img src="https://mc.yandex.ru/watch/108160241" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     <h1 class="seo-only">Devils Resting — чат в реальном времени</h1>
     <div id="root"></div>
     <noscript>Для работы приложения включите JavaScript.</noscript>

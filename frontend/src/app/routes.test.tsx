@@ -152,7 +152,7 @@ describe("AppRoutes", () => {
     expect(screen.getByText("USER_PAGE:@@@")).toBeInTheDocument();
   });
 
-  it("treats removed legacy /direct route as not found", () => {
+  it("keeps reserved /direct route out of chat resolution", () => {
     render(
       <MemoryRouter initialEntries={["/direct"]}>
         <AppRoutes

@@ -16,6 +16,7 @@ import { debugLog } from "../shared/lib/debug";
 import { DeviceProvider } from "../shared/lib/device";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { PresenceProvider } from "../shared/presence";
+import { SiteVisitTelemetry } from "../shared/visitorTelemetry";
 import { WsAuthProvider } from "../shared/wsAuth";
 import appStyles from "../styles/app/AppAuthPage.module.css";
 import { AppShell } from "../widgets/layout/AppShell";
@@ -503,6 +504,7 @@ function AppInner() {
 
   return (
     <WsAuthProvider token={auth.wsAuthToken}>
+      <SiteVisitTelemetry />
       <PresenceProvider user={auth.user} ready={!auth.loading}>
         <DirectInboxProvider user={auth.user} ready={!auth.loading}>
           {isAuthRoute ? (

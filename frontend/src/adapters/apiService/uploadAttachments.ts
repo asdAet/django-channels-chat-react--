@@ -9,8 +9,17 @@ import { decodeUploadResponse } from "../../dto";
 import type { ApiError } from "../../shared/api/types";
 import { resolveRoomId } from "./resolveRoomId";
 
+/**
+ * Константа `ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS`, используемая как attachment upload idle timeout ms.
+ */
 export const ATTACHMENT_UPLOAD_IDLE_TIMEOUT_MS = 120_000;
+/**
+ * Константа `ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS`, используемая как attachment upload processing timeout ms.
+ */
 export const ATTACHMENT_UPLOAD_PROCESSING_TIMEOUT_MS = 300_000;
+/**
+ * Константа `ATTACHMENT_UPLOAD_MAX_RECOVERY_ATTEMPTS`, используемая как attachment upload max recovery attempts.
+ */
 export const ATTACHMENT_UPLOAD_MAX_RECOVERY_ATTEMPTS = 2;
 
 type UploadSessionDto = {
@@ -197,6 +206,15 @@ const abortUploadSessions = async (
   );
 };
 
+/**
+ * Асинхронная функция `uploadAttachments`.
+ *
+ * @param apiClient Параметр `apiClient` в формате `AxiosInstance`.
+ * @param roomId Параметр `roomId` в формате `string`.
+ * @param files Параметр `files` в формате `File[]`.
+ * @param options Параметр `options` в формате `UploadAttachmentsOptions`.
+ * @returns Возвращает результат `upload attachments` в формате `Promise<UploadResult>`.
+ */
 export async function uploadAttachments(
   apiClient: AxiosInstance,
   roomId: string,

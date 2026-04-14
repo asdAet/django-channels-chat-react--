@@ -85,6 +85,9 @@ function LightboxVideoPlayerFallback({
   );
 }
 
+/**
+ * Функция `LightboxVideoPlayer`.
+ */
 export const LightboxVideoPlayer = forwardRef<LightboxVideoPlayerHandle, Props>(
   function LightboxVideoPlayer(
     {

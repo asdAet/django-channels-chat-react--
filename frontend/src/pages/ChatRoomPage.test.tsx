@@ -362,6 +362,30 @@ describe("ChatRoomPage", () => {
     expect(wsState.options?.url).toContain("wst=auth-token");
   });
 
+  it("uses resolved numeric room id for websocket even if initial route target is text", () => {
+    chatRoomMock.details = {
+      roomId: 7,
+      name: "General",
+      kind: "public",
+      created: false,
+      createdBy: null,
+    } as RoomDetails;
+
+    render(
+      <WsAuthProvider token="auth-token">
+        <ChatRoomPage
+          roomId="general"
+          initialRoomKind="public"
+          user={user}
+          onNavigate={vi.fn()}
+        />
+      </WsAuthProvider>,
+    );
+
+    expect(wsState.options?.url).toContain("/ws/chat/7/");
+    expect(wsState.options?.url).not.toContain("/ws/chat/general/");
+  });
+
   it("opens the mobile drawer from room chats", () => {
     locationMock.pathname = "/public";
 
@@ -1090,14 +1114,10 @@ describe("ChatRoomPage", () => {
       uploadedBytes: number;
       totalBytes: number;
     };
-    const preparingLabel =
-      "\u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u043a\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438...";
-    const uploadingLabel =
-      "\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0444\u0430\u0439\u043b\u043e\u0432:";
-    const processingLabel =
-      "\u041f\u0443\u0431\u043b\u0438\u043a\u0443\u0435\u043c \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435";
-    const cancelLabel =
-      "\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0443";
+    const preparingLabel = "Подготовка загрузки...";
+    const uploadingLabel = "Загрузка файлов:";
+    const processingLabel = "Публикуем сообщение";
+    const cancelLabel = "Отменить загрузку";
 
     let resolveUpload: ((value: unknown) => void) | null = null;
     let capturedOptions:
@@ -1177,10 +1197,8 @@ describe("ChatRoomPage", () => {
   });
 
   it("cancels chunk upload from composer without surfacing an error", async () => {
-    const cancelLabel =
-      "\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0443";
-    const uploadFailureLabel =
-      "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u0430\u0439\u043b\u044b";
+    const cancelLabel = "Отменить загрузку";
+    const uploadFailureLabel = "Не удалось загрузить файлы";
     let capturedSignal: AbortSignal | null = null;
 
     chatControllerMock.uploadAttachments.mockImplementationOnce(

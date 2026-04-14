@@ -1,0 +1,88 @@
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.relabel "docker" {
+  forward_to = [loki.process.docker.receiver]
+
+  rule {
+    action        = "keep"
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    regex         = ".+"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+    replacement   = "$1"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+
+  rule {
+    action = "labeldrop"
+    regex  = "__meta_docker_.*"
+  }
+}
+
+loki.process "docker" {
+  forward_to = [loki.write.local.receiver]
+
+  stage.docker {}
+
+  stage.match {
+    selector = "{service=\"nginx\"}"
+
+    stage.logfmt {
+      mapping = {
+        method                 = "method",
+        status                 = "status",
+        upstream_status        = "upstream_status",
+        request_time           = "request_time",
+        upstream_response_time = "upstream_response_time",
+      }
+    }
+
+    stage.labels {
+      values = {
+        method          = "",
+        status          = "",
+        upstream_status = "",
+      }
+    }
+  }
+
+  stage.static_labels {
+    values = {
+      env = "production",
+    }
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  labels        = {}
+  relabel_rules = loki.relabel.docker.rules
+  forward_to    = [loki.process.docker.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

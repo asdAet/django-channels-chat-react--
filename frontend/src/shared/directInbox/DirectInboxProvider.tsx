@@ -55,6 +55,12 @@ const parseRoomIdRef = (
   return Math.trunc(parsed);
 };
 
+/**
+ * Поддерживает список личных чатов и их unread-состояние в реальном времени.
+ *
+ * Провайдер загружает начальный inbox по HTTP, затем синхронизирует его через
+ * `ws/inbox`, применяя ack/unread update события и локальные unread overrides.
+ */
 export function DirectInboxProvider({
   user,
   ready = true,
