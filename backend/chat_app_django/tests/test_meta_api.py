@@ -136,3 +136,4 @@ class VisitorTelemetryNormalizationTests(TestCase):
         self.assertEqual(result["os_family"], "Windows")
         self.assertEqual(result["device_class"], "desktop")
         self.assertEqual(result["device_label"], "Windows PC")
+        self.assertEqual(result["platform"], "Windows PC")

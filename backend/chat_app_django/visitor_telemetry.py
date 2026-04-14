@@ -237,6 +237,21 @@ def _desktop_device_label(platform: str | None, os_family: str) -> str:
     return "Desktop"
 
 
+def _normalize_platform_label(platform: str | None, os_family: str) -> str | None:
+    """Возвращает безопасную и человекочитаемую подпись платформы."""
+
+    normalized_platform = (platform or "").strip().lower()
+    if os_family in {"Android", "iOS", "iPadOS"}:
+        return os_family
+    if "win" in normalized_platform or os_family == "Windows":
+        return "Windows PC"
+    if "mac" in normalized_platform or os_family == "macOS":
+        return "Mac"
+    if "linux" in normalized_platform or os_family == "Linux":
+        return "Linux PC"
+    return _normalize_device_candidate(platform)
+
+
 def _guess_vendor(device_model: str | None, os_family: str) -> str | None:
     """Подбирает производителя по модели устройства."""
 
@@ -368,6 +383,7 @@ def normalize_visit_payload(payload: object, *, user_agent: str | None) -> dict[
         time_zone=_clean_text(payload.get("timeZone"), max_length=64),
     )
     device = describe_device(user_agent, snapshot)
+    normalized_platform = _normalize_platform_label(snapshot.platform, device.os_family)
     referrer = _clean_text(payload.get("referrer"), max_length=2048)
 
     return {
@@ -386,7 +402,7 @@ def normalize_visit_payload(payload: object, *, user_agent: str | None) -> dict[
         "browser_version": device.browser_version,
         "os_family": device.os_family,
         "os_version": device.os_version,
-        "platform": snapshot.platform,
+        "platform": normalized_platform,
         "language": snapshot.language,
         "time_zone": snapshot.time_zone,
         "viewport_width": snapshot.viewport_width,
