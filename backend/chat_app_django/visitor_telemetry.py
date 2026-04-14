@@ -40,6 +40,13 @@ OS_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ("macOS", re.compile(r"Mac OS X ([\d_]+)", re.IGNORECASE)),
     ("Linux", re.compile(r"Linux", re.IGNORECASE)),
 )
+DEVICE_NOISE_PATTERNS: Final[tuple[re.Pattern[str], ...]] = (
+    re.compile(r"^rv:[\d.]+$", re.IGNORECASE),
+    re.compile(r"^gecko/\d+$", re.IGNORECASE),
+    re.compile(r"^(?:win64|wow64|x64|x86_64|arm64|armv8l|u|wv)$", re.IGNORECASE),
+    re.compile(r"^(?:firefox|fxios|chrome|crios|safari|opr|edg|yabrowser|version)/", re.IGNORECASE),
+    re.compile(r"^windows nt [\d.]+$", re.IGNORECASE),
+)
 
 
 @dataclass(frozen=True)
@@ -197,8 +204,37 @@ def _parse_android_model(user_agent: str) -> str | None:
             lowered = part.lower()
         if not part or lowered in {"linux", "u", "wv", "mobile", "tablet"}:
             continue
-        return part[:120]
+        normalized = _normalize_device_candidate(part)
+        if normalized:
+            return normalized
     return None
+
+
+def _normalize_device_candidate(value: str | None) -> str | None:
+    """Очищает строку модели устройства от служебных фрагментов User-Agent."""
+
+    normalized = _clean_text(value, max_length=120)
+    if not normalized:
+        return None
+
+    if any(pattern.search(normalized) for pattern in DEVICE_NOISE_PATTERNS):
+        return None
+    return normalized
+
+
+def _desktop_device_label(platform: str | None, os_family: str) -> str:
+    """Возвращает человекочитаемую подпись desktop-устройства."""
+
+    normalized_platform = (platform or "").strip().lower()
+    if "win" in normalized_platform or os_family == "Windows":
+        return "Windows PC"
+    if "mac" in normalized_platform or os_family == "macOS":
+        return "Mac"
+    if "linux" in normalized_platform or os_family == "Linux":
+        return "Linux PC"
+    if os_family and os_family != "Unknown":
+        return os_family
+    return "Desktop"
 
 
 def _guess_vendor(device_model: str | None, os_family: str) -> str | None:
@@ -276,13 +312,13 @@ def describe_device(user_agent: str | None, snapshot: DeviceSnapshot) -> DeviceD
         device_model = _parse_android_model(normalized_ua) or "Android device"
         device_vendor = _guess_vendor(device_model, os_family)
     elif device_class == "desktop":
-        device_model = snapshot.platform or os_family
+        device_model = _desktop_device_label(snapshot.platform, os_family)
         device_vendor = None
     elif device_class == "other":
-        device_model = snapshot.platform or "Touch device"
+        device_model = _normalize_device_candidate(snapshot.platform) or "Touch device"
         device_vendor = None
     else:
-        device_model = snapshot.platform or os_family
+        device_model = _normalize_device_candidate(snapshot.platform) or os_family
         device_vendor = _guess_vendor(device_model, os_family)
 
     device_label = device_model or os_family or browser_family or "Unknown device"

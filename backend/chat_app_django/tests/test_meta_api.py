@@ -4,6 +4,8 @@ import json
 
 from django.test import TestCase, override_settings
 
+from chat_app_django.visitor_telemetry import normalize_visit_payload
+
 
 class ClientConfigApiTests(TestCase):
     """Ensures runtime config endpoint exposes backend source-of-truth limits."""
@@ -97,3 +99,40 @@ class SiteVisitApiTests(TestCase):
             response.json(),
             {"error": "Некорректные данные visitor telemetry"},
         )
+
+
+class VisitorTelemetryNormalizationTests(TestCase):
+    """Проверяет нормализацию модели устройства для visitor telemetry."""
+
+    def test_normalize_visit_payload_ignores_firefox_revision_token(self):
+        payload = {
+            "visitorId": "visitor-firefox-12345678",
+            "pagePath": "/",
+            "pageTitle": "Devils Resting",
+            "referrer": "https://slowed.sbs/",
+            "viewportWidth": 1536,
+            "viewportHeight": 864,
+            "isMobileViewport": False,
+            "hasTouch": False,
+            "isTouchDesktop": False,
+            "canHover": True,
+            "primaryPointer": "fine",
+            "platform": "rv:149.0",
+            "language": "ru-RU",
+            "timeZone": "Asia/Yekaterinburg",
+        }
+
+        result = normalize_visit_payload(
+            payload,
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:149.0) "
+                "Gecko/20100101 Firefox/149.0"
+            ),
+        )
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(result["browser_family"], "Firefox")
+        self.assertEqual(result["os_family"], "Windows")
+        self.assertEqual(result["device_class"], "desktop")
+        self.assertEqual(result["device_label"], "Windows PC")
