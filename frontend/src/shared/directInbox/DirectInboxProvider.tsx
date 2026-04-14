@@ -9,7 +9,11 @@ import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import { invalidateDirectChats } from "../cache/cacheManager";
 import { debugLog } from "../lib/debug";
 import { appendWebSocketAuthToken, getWebSocketBase } from "../lib/ws";
-import { clearUnreadOverride, useUnreadOverrides } from "../unreadOverrides/store";
+import {
+  clearUnreadOverride,
+  clearUnreadOverridesForRooms,
+  useUnreadOverrides,
+} from "../unreadOverrides/store";
 import { useWsAuthToken } from "../wsAuth/useWsAuthToken";
 import { DirectInboxContext } from "./context";
 
@@ -75,6 +79,10 @@ export function DirectInboxProvider({
   const unreadOverrides = useUnreadOverrides();
 
   const activeRoomRef = useRef<string | number | null>(null);
+  const knownDirectRoomIds = useMemo(
+    () => items.map((item) => String(item.roomId)),
+    [items],
+  );
 
   const wsUrl = useMemo(() => {
     if (!ready || !user) return null;
@@ -92,8 +100,11 @@ export function DirectInboxProvider({
     }) => {
       setUnreadRoomIds(next.roomIds);
       setUnreadCounts(next.counts);
+      clearUnreadOverridesForRooms(
+        new Set([...knownDirectRoomIds, ...Object.keys(next.counts)]),
+      );
     },
-    [],
+    [knownDirectRoomIds],
   );
 
   const refresh = useCallback(async () => {
@@ -190,7 +201,8 @@ export function DirectInboxProvider({
     const nextCounts = { ...unreadCounts };
 
     for (const [roomId, overrideCount] of Object.entries(unreadOverrides)) {
-      if (!knownDirectRoomIds.has(roomId) && !(roomId in nextCounts)) continue;
+      if (roomId in nextCounts) continue;
+      if (!knownDirectRoomIds.has(roomId)) continue;
       if (overrideCount > 0) {
         nextCounts[roomId] = overrideCount;
       } else {

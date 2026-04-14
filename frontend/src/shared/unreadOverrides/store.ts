@@ -26,25 +26,22 @@ const normalizeUnreadCount = (value: number) => {
   return Math.max(0, Math.trunc(value));
 };
 
+const normalizeRoomId = (roomId: string): string => roomId.trim();
+
 /**
- * Устанавливает локальный override unread-count для конкретной комнаты.
+ * Фиксирует локально вычисленный unread-count комнаты до прихода
+ * авторитативного серверного снимка.
  *
- * Используется, когда UI уже знает новое число непрочитанных сообщений раньше,
- * чем его подтвердит backend или WebSocket-ack.
+ * Store хранит и положительные значения, и явный `0`. Это позволяет сразу
+ * обновлять бейдж текущего чата после прочтения, не дожидаясь отдельного
+ * refetch списка комнат.
  */
 export const setUnreadOverride = ({ roomId, unreadCount }: UnreadOverride) => {
-  const normalizedRoomId = roomId.trim();
+  const normalizedRoomId = normalizeRoomId(roomId);
   if (!normalizedRoomId) return;
 
   const normalizedCount = normalizeUnreadCount(unreadCount);
-  const prev = overrides.get(normalizedRoomId) ?? 0;
-  if (normalizedCount === 0) {
-    if (!overrides.has(normalizedRoomId)) return;
-    overrides.delete(normalizedRoomId);
-    rebuildSnapshot();
-    emit();
-    return;
-  }
+  const prev = overrides.get(normalizedRoomId);
   if (prev === normalizedCount) return;
 
   overrides.set(normalizedRoomId, normalizedCount);
@@ -53,12 +50,34 @@ export const setUnreadOverride = ({ roomId, unreadCount }: UnreadOverride) => {
 };
 
 /**
- * Удаляет локальный unread-override для комнаты и возвращает отображение к backend-данным.
+ * Удаляет локальный unread-override для комнаты и возвращает отображение к
+ * backend-данным.
  */
 export const clearUnreadOverride = (roomId: string) => {
-  const normalizedRoomId = roomId.trim();
+  const normalizedRoomId = normalizeRoomId(roomId);
   if (!normalizedRoomId) return;
   if (!overrides.delete(normalizedRoomId)) return;
+  rebuildSnapshot();
+  emit();
+};
+
+/**
+ * Сбрасывает optimistic unread-overrides для комнат, по которым уже пришли
+ * свежие серверные данные.
+ *
+ * После этого UI снова начинает опираться на backend/WebSocket-снимок, а
+ * временный локальный override больше не влияет на бейдж.
+ */
+export const clearUnreadOverridesForRooms = (roomIds: Iterable<string>) => {
+  let changed = false;
+
+  for (const roomId of roomIds) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+    if (!normalizedRoomId) continue;
+    changed = overrides.delete(normalizedRoomId) || changed;
+  }
+
+  if (!changed) return;
   rebuildSnapshot();
   emit();
 };
@@ -83,10 +102,10 @@ const subscribe = (listener: Listener) => {
 };
 
 /**
- * Подписывает компонент на снапшот локальных unread-overrides.
+ * Подписывает React-компонент на in-memory store локальных unread-overrides.
  *
- * Хук построен на `useSyncExternalStore`, чтобы React корректно синхронизировал
- * состояние unread badge с внешним in-memory store.
+ * `useSyncExternalStore` нужен, чтобы React видел консистентный снимок даже
+ * при одновременных рендерах и внешних обновлениях store.
  */
 export const useUnreadOverrides = () =>
   useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

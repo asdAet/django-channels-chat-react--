@@ -1197,22 +1197,56 @@ class ChatMessageFeatureApiTests(TestCase):
         )
         unread_public_before = self.client.get("/api/chat/unread/")
         self.assertEqual(unread_public_before.status_code, 200)
-        self.assertTrue(
+        self.assertFalse(
             any(item["roomId"] == public_room.pk for item in unread_public_before.json()["items"])
         )
-        public_short = self.client.post(
-            f"/api/chat/{public_room.pk}/read/",
-            data=json.dumps({"lastReadMessageId": public_message.pk}),
-            content_type="application/json",
-        )
-        self.assertEqual(public_short.status_code, 200)
-        self.assertEqual(public_short.json()["lastReadMessageId"], public_message.pk)
-        self.assertIsNotNone(public_short.json()["lastReadAt"])
+
+        public_details = self.client.get(f"/api/chat/{public_room.pk}/")
+        self.assertEqual(public_details.status_code, 200)
+        self.assertEqual(public_details.json()["lastReadMessageId"], public_message.pk)
         self.assertTrue(
             MessageReadState.objects.filter(
                 user=self.owner,
                 room=public_room,
                 last_read_message_id=public_message.pk,
+            ).exists()
+        )
+
+        unread_public_after_first_visit = self.client.get("/api/chat/unread/")
+        self.assertEqual(unread_public_after_first_visit.status_code, 200)
+        self.assertFalse(
+            any(item["roomId"] == public_room.pk for item in unread_public_after_first_visit.json()["items"])
+        )
+
+        later_public_message = Message.objects.create(
+            username=self.peer.username,
+            user=self.peer,
+            room=public_room,
+            message_content="public unread later",
+        )
+
+        unread_public_after_new_message = self.client.get("/api/chat/unread/")
+        self.assertEqual(unread_public_after_new_message.status_code, 200)
+        self.assertTrue(
+            any(
+                item["roomId"] == public_room.pk and item["unreadCount"] == 1
+                for item in unread_public_after_new_message.json()["items"]
+            )
+        )
+
+        public_short = self.client.post(
+            f"/api/chat/{public_room.pk}/read/",
+            data=json.dumps({"lastReadMessageId": later_public_message.pk}),
+            content_type="application/json",
+        )
+        self.assertEqual(public_short.status_code, 200)
+        self.assertEqual(public_short.json()["lastReadMessageId"], later_public_message.pk)
+        self.assertIsNotNone(public_short.json()["lastReadAt"])
+        self.assertTrue(
+            MessageReadState.objects.filter(
+                user=self.owner,
+                room=public_room,
+                last_read_message_id=later_public_message.pk,
             ).exists()
         )
 

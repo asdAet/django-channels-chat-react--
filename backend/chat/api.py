@@ -17,7 +17,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from messages.models import Message, MessageAttachment, MessageAttachmentUpload, MessageReadState
+from messages.models import Message, MessageAttachment, MessageAttachmentUpload
 from messages.serializers import MessageSerializer
 from roles.access import ensure_can_read_or_404, has_permission
 from roles.models import Membership
@@ -40,6 +40,7 @@ from .services import (
     add_reaction,
     delete_message,
     edit_message,
+    get_room_last_read_message_id,
     get_message_readers,
     get_unread_counts,
     mark_read as service_mark_read,
@@ -478,10 +479,11 @@ def _serialize_room_details(request, room: Room, created: bool):
     }
 
     if request.user and request.user.is_authenticated:
-        read_state = MessageReadState.objects.filter(
-            user=request.user, room=room
-        ).values_list("last_read_message_id", flat=True).first()
-        payload["lastReadMessageId"] = read_state
+        payload["lastReadMessageId"] = get_room_last_read_message_id(
+            request.user,
+            room,
+            initialize_public_on_first_visit=True,
+        )
 
     if room.kind == Room.Kind.DIRECT and request.user and request.user.is_authenticated:
         peer = direct_peer_for_user(room, request.user)
@@ -663,6 +665,13 @@ def room_messages(request, room_id: int):
             ensure_can_read_or_404(room, request.user)
         except Http404:
             return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+
+    if room.kind == Room.Kind.PUBLIC and request.user and request.user.is_authenticated:
+        get_room_last_read_message_id(
+            request.user,
+            room,
+            initialize_public_on_first_visit=True,
+        )
 
     try:
         default_page_size = max(1, int(getattr(settings, "CHAT_MESSAGES_PAGE_SIZE", 50)))

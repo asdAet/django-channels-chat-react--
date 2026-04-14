@@ -10,7 +10,6 @@ import {
 import { chatController } from "../../controllers/ChatController";
 import { useReadTracker } from "../../shared/chat/readTracker";
 import {
-  clearUnreadOverride,
   setUnreadOverride,
 } from "../../shared/unreadOverrides/store";
 import type {
@@ -348,9 +347,8 @@ export function useChatRoomPageReadState({
       }
 
       isProgrammaticScrollRef.current = false;
-      clearUnreadOverride(roomIdForRequests);
     };
-  }, [roomIdForRequests]);
+  }, []);
 
   const sendMarkReadIfNeeded = useCallback(
     (lastReadMessageId: number | null | undefined) => {

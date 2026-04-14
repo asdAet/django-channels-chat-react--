@@ -359,6 +359,62 @@ def _store_exact_read_receipts(
         )
 
 
+def _latest_room_message_id(room: Room) -> int | None:
+    """Возвращает идентификатор последнего не удаленного сообщения комнаты."""
+
+    return (
+        Message.objects.filter(room=room, is_deleted=False)
+        .order_by("-id")
+        .values_list("id", flat=True)
+        .first()
+    )
+
+
+def ensure_public_read_state_on_first_visit(user, room: Room) -> MessageReadState | None:
+    """Создает baseline чтения для первого входа в публичную комнату.
+
+    При первом заходе в публичный чат старые сообщения не должны считаться
+    непрочитанными. Для этого фиксируется курсор на последнее сообщение,
+    существующее в момент первого реального открытия комнаты. Если сообщений
+    еще нет, создается пустой cursor-state, чтобы следующие сообщения уже
+    считались новыми.
+    """
+
+    if room.kind != Room.Kind.PUBLIC:
+        return MessageReadState.objects.filter(user=user, room=room).first()
+
+    last_existing_message_id = _latest_room_message_id(room)
+    defaults: dict[str, int] = {}
+    if last_existing_message_id is not None:
+        defaults["last_read_message_id"] = last_existing_message_id
+
+    state, _created = MessageReadState.objects.get_or_create(
+        user=user,
+        room=room,
+        defaults=defaults,
+    )
+    return state
+
+
+def get_room_last_read_message_id(
+    user,
+    room: Room,
+    *,
+    initialize_public_on_first_visit: bool = False,
+) -> int | None:
+    """Возвращает last-read cursor комнаты с учетом первого визита в public."""
+
+    if initialize_public_on_first_visit and room.kind == Room.Kind.PUBLIC:
+        state = ensure_public_read_state_on_first_visit(user, room)
+        return state.last_read_message_id if state else None
+
+    return (
+        MessageReadState.objects.filter(user=user, room=room)
+        .values_list("last_read_message_id", flat=True)
+        .first()
+    )
+
+
 def mark_read(user, room: Room, last_read_message_id: int) -> MessageReadState:
     """Помечает read новым состоянием.
     
@@ -483,6 +539,9 @@ def get_unread_counts(user) -> list[dict]:
 
     for room in rooms:
         read_state = MessageReadState.objects.filter(user=user, room=room).first()
+        if room.kind == Room.Kind.PUBLIC and read_state is None:
+            continue
+
         last_read_id = read_state.last_read_message_id if read_state else 0
         unread = (
             Message.objects

@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const chatMock = vi.hoisted(() => ({
   getUnreadCounts:
     vi.fn<() => Promise<Array<{ roomId: number; unreadCount: number }>>>(),
+  resolveChatTarget: vi.fn<
+    (target: string) => Promise<{ roomId: number; resolvedTarget: string }>
+  >(),
   globalSearch: vi.fn<
     (query: string) => Promise<{
       users: Array<{
@@ -111,6 +114,9 @@ function Probe() {
 describe("ConversationListProvider global search validation", () => {
   beforeEach(() => {
     chatMock.getUnreadCounts.mockReset().mockResolvedValue([]);
+    chatMock.resolveChatTarget
+      .mockReset()
+      .mockResolvedValue({ roomId: 1, resolvedTarget: "public" });
     chatMock.globalSearch
       .mockReset()
       .mockResolvedValue({ users: [], groups: [], messages: [] });

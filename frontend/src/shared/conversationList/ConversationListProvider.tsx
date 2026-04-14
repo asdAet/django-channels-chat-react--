@@ -26,7 +26,10 @@ import { debugLog } from "../lib/debug";
 import { normalizePublicRef } from "../lib/publicRef";
 import { resolveIdentityLabel } from "../lib/userIdentity";
 import { usePresence } from "../presence";
-import { useUnreadOverrides } from "../unreadOverrides/store";
+import {
+  clearUnreadOverridesForRooms,
+  useUnreadOverrides,
+} from "../unreadOverrides/store";
 import { CONVERSATION_LIST_REFRESH_EVENT } from "./events";
 
 type FilterTab = "all" | "personal" | "groups";
@@ -102,6 +105,8 @@ const toRoomKey = (roomId: number | null | undefined): string =>
     ? String(Math.trunc(roomId))
     : "";
 
+const SERVER_UNREAD_POLL_MS = 12_000;
+
 /**
  * Собирает и хранит состояние бокового списка диалогов и серверов.
  *
@@ -124,6 +129,22 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     useState<GlobalSearchResult>(EMPTY_GLOBAL_RESULTS);
   const [globalLoading, setGlobalLoading] = useState(false);
   const mountedRef = useRef(true);
+  const knownServerRoomIds = useMemo(() => {
+    const roomIds: string[] = [];
+    const publicRoomKey = toRoomKey(publicRoomId);
+    if (publicRoomKey) {
+      roomIds.push(publicRoomKey);
+    }
+
+    for (const group of groupItems) {
+      const groupRoomKey = toRoomKey(group.roomId);
+      if (groupRoomKey) {
+        roomIds.push(groupRoomKey);
+      }
+    }
+
+    return roomIds;
+  }, [groupItems, publicRoomId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -144,6 +165,34 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     [presenceOnline, presenceStatus],
   );
 
+  const applyRoomUnreadSnapshot = useCallback(
+    (
+      counts: Array<{ roomId: number; unreadCount: number }>,
+      authoritativeRoomIds: Iterable<string>,
+    ) => {
+      const map: Record<string, number> = {};
+      for (const item of counts) {
+        map[String(item.roomId)] = item.unreadCount;
+      }
+
+      setRoomUnreads(map);
+      clearUnreadOverridesForRooms(authoritativeRoomIds);
+    },
+    [],
+  );
+
+  const refreshUnreadCounts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const counts = await chatController.getUnreadCounts();
+      if (!mountedRef.current) return;
+      applyRoomUnreadSnapshot(counts, knownServerRoomIds);
+    } catch (err) {
+      debugLog("Failed to refresh unread counts", err);
+    }
+  }, [applyRoomUnreadSnapshot, knownServerRoomIds, user]);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     try {
@@ -156,11 +205,19 @@ export function ConversationListProvider({ user, ready, children }: Props) {
         chatController.resolveChatTarget(PUBLIC_CHAT_TARGET).catch(() => null),
       ]);
       if (!mountedRef.current) return;
-      const map: Record<string, number> = {};
-      for (const item of counts) {
-        map[String(item.roomId)] = item.unreadCount;
+      const nextAuthoritativeRoomIds: string[] = [];
+      const publicRoomKey = toRoomKey(publicRoom?.roomId ?? null);
+      if (publicRoomKey) {
+        nextAuthoritativeRoomIds.push(publicRoomKey);
       }
-      setRoomUnreads(map);
+      for (const group of groups.items) {
+        const groupRoomKey = toRoomKey(group.roomId);
+        if (groupRoomKey) {
+          nextAuthoritativeRoomIds.push(groupRoomKey);
+        }
+      }
+
+      applyRoomUnreadSnapshot(counts, nextAuthoritativeRoomIds);
       setGroupItems(groups.items);
       setPublicRoomId(publicRoom?.roomId ?? null);
       setError(null);
@@ -170,7 +227,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [user]);
+  }, [applyRoomUnreadSnapshot, user]);
 
   useEffect(() => {
     if (ready && user) {
@@ -188,6 +245,28 @@ export function ConversationListProvider({ user, ready, children }: Props) {
       window.removeEventListener(CONVERSATION_LIST_REFRESH_EVENT, onRefresh);
     };
   }, [fetchData, ready, user]);
+
+  useEffect(() => {
+    if (!ready || !user) return;
+
+    const intervalId = window.setInterval(() => {
+      void refreshUnreadCounts();
+    }, SERVER_UNREAD_POLL_MS);
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshUnreadCounts();
+    };
+
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+    };
+  }, [ready, refreshUnreadCounts, user]);
 
   const isGlobalMode = searchQuery.trim().length >= 2;
   const canRunGlobalSearch = canRunGlobalSearchQuery(searchQuery);
