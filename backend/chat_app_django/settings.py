@@ -650,11 +650,18 @@ LOGGING = {
         "standard": {
             "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
         },
+        "message_only": {
+            "format": "%(message)s",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
+        },
+        "audit_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "message_only",
         },
     },
     "root": {
@@ -688,7 +695,7 @@ LOGGING = {
             "propagate": False,
         },
         "security.audit": {
-            "handlers": ["console"],
+            "handlers": ["audit_console"],
             "level": "INFO",
             "propagate": False,
         },

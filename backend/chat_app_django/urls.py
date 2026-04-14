@@ -80,6 +80,7 @@ def api_index(request):
         },
         "meta": {
             "clientConfig": _link(request, "api-client-config"),
+            "visit": _link(request, "api-site-visit"),
         },
         "auth": {
             "csrf": _link(request, "api-csrf-token"),
@@ -196,6 +197,7 @@ urlpatterns = [
     path("api/health/ready/", health.ready, name="health-ready"),
     path("metrics/", app_metrics.render_metrics_response, name="metrics"),
     path("api/meta/client-config/", meta_api.client_config_view, name="api-client-config"),
+    path("api/meta/visit/", meta_api.site_visit_view, name="api-site-visit"),
     path("api/auth/", include("users.urls")),
     path("api/profile/", users_api.profile_view, name="api-profile"),
     path("api/profile/handle/", users_api.profile_handle_view, name="api-profile-handle"),

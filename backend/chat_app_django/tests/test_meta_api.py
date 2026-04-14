@@ -1,4 +1,6 @@
-"""Tests for frontend runtime client-config endpoint."""
+"""Tests for meta endpoints used by the frontend runtime."""
+
+import json
 
 from django.test import TestCase, override_settings
 
@@ -30,3 +32,68 @@ class ClientConfigApiTests(TestCase):
         self.assertEqual(payload["mediaUrlTtlSeconds"], 120)
         self.assertEqual(payload["mediaMode"], "signed_only")
         self.assertEqual(payload["googleOAuthClientId"], "google-client-id")
+
+
+class SiteVisitApiTests(TestCase):
+    """Проверяет публичный telemetry-endpoint для visitor-событий."""
+
+    def test_site_visit_writes_structured_audit_event(self):
+        payload = {
+            "visitorId": "visitor-12345678",
+            "pagePath": "/",
+            "pageTitle": "Devils Resting",
+            "referrer": "https://slowed.sbs/login",
+            "viewportWidth": 393,
+            "viewportHeight": 852,
+            "isMobileViewport": True,
+            "hasTouch": True,
+            "isTouchDesktop": False,
+            "canHover": False,
+            "primaryPointer": "coarse",
+            "platform": "Linux armv8l",
+            "language": "ru-RU",
+            "timeZone": "Asia/Yekaterinburg",
+        }
+
+        with self.assertLogs("security.audit", level="INFO") as captured:
+            response = self.client.post(
+                "/api/meta/visit/",
+                data=json.dumps(payload),
+                content_type="application/json",
+                HTTP_USER_AGENT=(
+                    "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro Build/AP2A.240905.003) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36"
+                ),
+                REMOTE_ADDR="198.51.100.17",
+            )
+
+        self.assertEqual(response.status_code, 204)
+        record = next(
+            json.loads(entry.getMessage())
+            for entry in captured.records
+            if json.loads(entry.getMessage()).get("event") == "site.visit"
+        )
+        self.assertEqual(record["event"], "site.visit")
+        self.assertEqual(record["ip"], "198.51.100.17")
+        self.assertEqual(record["visitor_id"], "visitor-12345678")
+        self.assertEqual(record["visitor_alias"], "12345678")
+        self.assertEqual(record["page_path"], "/")
+        self.assertEqual(record["device_class"], "mobile")
+        self.assertEqual(record["device_label"], "Pixel 8 Pro")
+        self.assertEqual(record["browser_family"], "Chrome")
+        self.assertEqual(record["os_family"], "Android")
+        self.assertEqual(record["telemetry_source"], "site_visit")
+
+    def test_site_visit_rejects_invalid_payload(self):
+        response = self.client.post(
+            "/api/meta/visit/",
+            data=json.dumps({"pagePath": "/"}),
+            content_type="application/json",
+            REMOTE_ADDR="198.51.100.17",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json(),
+            {"error": "Некорректные данные visitor telemetry"},
+        )

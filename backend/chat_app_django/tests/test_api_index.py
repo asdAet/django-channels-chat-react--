@@ -16,8 +16,10 @@ class ApiIndexTests(TestCase):
         self.assertIn("endpoints", payload)
         self.assertIn("templates", payload)
         self.assertIn("auth", payload["endpoints"])
+        self.assertIn("meta", payload["endpoints"])
         self.assertIn("session", payload["endpoints"]["auth"])
         self.assertIn("/api/auth/session/", payload["endpoints"]["auth"]["session"])
+        self.assertIn("/api/meta/visit/", payload["endpoints"]["meta"]["visit"])
         self.assertIn("chatRoomRoles", payload["templates"])
         self.assertIn(
             "/api/chat/{room_id}/roles/",
@@ -33,6 +35,7 @@ class ApiIndexTests(TestCase):
         self.assertIn("text/html", response["Content-Type"])
         content = response.content.decode("utf-8", errors="ignore")
         self.assertIn("/api/auth/session/", content)
+        self.assertIn("/api/meta/visit/", content)
         self.assertIn("/api/chat/resolve/", content)
         self.assertIn("/api-auth/login/", content)
 

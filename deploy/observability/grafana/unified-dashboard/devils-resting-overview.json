@@ -1803,6 +1803,696 @@
         "x": 0,
         "y": 114
       },
+      "id": 50,
+      "panels": [],
+      "title": "Visitors Overview",
+      "type": "row",
+      "description": "Compact visitor view. Use the drilldown row below to inspect devices behind one IP and IP history for one browser/device."
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 115
+      },
+      "id": 51,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "count(sum by (ip) (count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" | json | ip != \"\" | label_format ip=\"{{.ip}}\" [$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique Visitor IPs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 115
+      },
+      "id": 52,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "count(sum by (visitor_alias) (count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" | json | visitor_alias != \"\" | label_format visitor_alias=\"{{.visitor_alias}}\" [$__range])))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique Devices",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 115
+      },
+      "id": 53,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Visit Events",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 115
+      },
+      "id": 54,
+      "options": {
+        "legend": {
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" [$__interval]))",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Visits Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visits"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 120
+      },
+      "id": 55,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ]
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Visits"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum by (ip) (count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" | json | ip != \"\" | label_format ip=\"{{.ip}}\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "IP Summary",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "ip": 0,
+              "Value": 1
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table",
+      "description": "Unique public IPs seen on the site during the selected range. Open the drilldown row below to inspect device breakdown for one IP."
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "visitor_alias"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visitor"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "device_label"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Device"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "device_class"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Type"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "browser_family"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Browser"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "os_family"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "OS"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visits"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 120
+      },
+      "id": 56,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ]
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Visits"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum by (visitor_alias, device_label, device_class, browser_family, os_family) (count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" | json | visitor_alias != \"\" | label_format visitor_alias=\"{{.visitor_alias}}\", device_label=\"{{.device_label}}\", device_class=\"{{.device_class}}\", browser_family=\"{{.browser_family}}\", os_family=\"{{.os_family}}\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Device Summary",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "visitor_alias": 0,
+              "device_label": 1,
+              "device_class": 2,
+              "browser_family": 3,
+              "os_family": 4,
+              "Value": 5
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table",
+      "description": "Stable browser/device visitors derived from a per-browser visitor id. Use the drilldown row below to inspect the IP history for one device."
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 128
+      },
+      "id": 57,
+      "panels": [],
+      "title": "Visitor Drilldown",
+      "type": "row",
+      "description": "Detailed breakdowns for IP to device and device to IP relations. These panels are the expanded view for the compact visitor summary above."
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "device_label"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Device"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "device_class"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Type"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "browser_family"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Browser"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "os_family"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "OS"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visits"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 129
+      },
+      "id": 58,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ]
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Visits"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum by (ip, device_label, device_class, browser_family, os_family) (count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" | json | ip != \"\" | label_format ip=\"{{.ip}}\", device_label=\"{{.device_label}}\", device_class=\"{{.device_class}}\", browser_family=\"{{.browser_family}}\", os_family=\"{{.os_family}}\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "Devices by IP",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "ip": 0,
+              "device_label": 1,
+              "device_class": 2,
+              "browser_family": 3,
+              "os_family": 4,
+              "Value": 5
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table",
+      "description": "Shows which device profiles were seen behind each IP and how many visit events they produced."
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "visitor_alias"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visitor"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "device_label"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Device"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ip"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "IP"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Visits"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 129
+      },
+      "id": 59,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ]
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Visits"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "sum by (visitor_alias, device_label, ip) (count_over_time({job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" | json | visitor_alias != \"\" | ip != \"\" | label_format visitor_alias=\"{{.visitor_alias}}\", device_label=\"{{.device_label}}\", ip=\"{{.ip}}\" [$__range]))",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "IPs by Device",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "visitor_alias": 0,
+              "device_label": 1,
+              "ip": 2,
+              "Value": 3
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table",
+      "description": "Shows from which IPs one browser/device visitor appeared during the selected range."
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 139
+      },
+      "id": 60,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "expr": "{job=\"docker\",service=\"backend\"} |= \"\\\"event\\\": \\\"site.visit\\\"\" | json | line_format \"{{.ip}} | {{.device_summary}} | {{.page_path}} | id {{.visitor_alias}}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": "30m",
+      "title": "Recent Visitor Events",
+      "type": "logs",
+      "description": "Raw site.visit telemetry events from the backend audit stream."
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 149
+      },
       "id": 37,
       "panels": [],
       "title": "Logs",
@@ -1817,7 +2507,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 115
+        "y": 150
       },
       "id": 38,
       "options": {
@@ -1850,7 +2540,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 125
+        "y": 160
       },
       "id": 39,
       "options": {
@@ -1883,7 +2573,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 125
+        "y": 160
       },
       "id": 40,
       "options": {
@@ -1926,5 +2616,5 @@
   "timezone": "browser",
   "title": "Devils Resting Unified Observability",
   "uid": "devils-resting-unified",
-  "version": 1
+  "version": 3
 }
