@@ -116,7 +116,7 @@ export const collectSettledUnreadOverrideRoomIds = ({
     }
 
     const serverUnread = authoritativeCounts[roomId] ?? 0;
-    if (serverUnread === 0 || localOverride > 0) {
+    if (serverUnread <= localOverride) {
       settledRoomIds.push(roomId);
     }
   }

@@ -43,4 +43,15 @@ describe("unread override reconciliation", () => {
 
     expect(settledRoomIds).toEqual(["101"]);
   });
+
+  it("keeps local lower unread override while server snapshot is still higher", () => {
+    setUnreadOverride({ roomId: "101", unreadCount: 2 });
+
+    const settledRoomIds = collectSettledUnreadOverrideRoomIds({
+      authoritativeRoomIds: ["101"],
+      authoritativeCounts: { "101": 5 },
+    });
+
+    expect(settledRoomIds).toEqual([]);
+  });
 });

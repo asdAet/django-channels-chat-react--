@@ -10,6 +10,7 @@ import { invalidateDirectChats } from "../cache/cacheManager";
 import { debugLog } from "../lib/debug";
 import { appendWebSocketAuthToken, getWebSocketBase } from "../lib/ws";
 import {
+  collectSettledUnreadOverrideRoomIds,
   clearUnreadOverride,
   clearUnreadOverridesForRooms,
   useUnreadOverrides,
@@ -98,11 +99,17 @@ export function DirectInboxProvider({
       roomIds: string[];
       counts: Record<string, number>;
     }) => {
+      const settledOverrideRoomIds = collectSettledUnreadOverrideRoomIds({
+        authoritativeRoomIds: new Set([
+          ...knownDirectRoomIds,
+          ...Object.keys(next.counts),
+        ]),
+        authoritativeCounts: next.counts,
+      });
+
       setUnreadRoomIds(next.roomIds);
       setUnreadCounts(next.counts);
-      clearUnreadOverridesForRooms(
-        new Set([...knownDirectRoomIds, ...Object.keys(next.counts)]),
-      );
+      clearUnreadOverridesForRooms(settledOverrideRoomIds);
     },
     [knownDirectRoomIds],
   );
@@ -201,7 +208,6 @@ export function DirectInboxProvider({
     const nextCounts = { ...unreadCounts };
 
     for (const [roomId, overrideCount] of Object.entries(unreadOverrides)) {
-      if (roomId in nextCounts) continue;
       if (!knownDirectRoomIds.has(roomId)) continue;
       if (overrideCount > 0) {
         nextCounts[roomId] = overrideCount;

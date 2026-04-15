@@ -62,6 +62,11 @@ const mobileShellMock = vi.hoisted(() => ({
   isMobileViewport: false,
 }));
 
+const directInboxMock = vi.hoisted(() => ({
+  setActiveRoom: vi.fn(),
+  markRead: vi.fn(),
+}));
+
 const locationMock = vi.hoisted(() => ({
   search: "",
   pathname: "/public",
@@ -148,7 +153,7 @@ vi.mock("../hooks/useRoomPermissions", () => ({
 }));
 
 vi.mock("../shared/directInbox", () => ({
-  useDirectInbox: () => ({ setActiveRoom: vi.fn(), markRead: vi.fn() }),
+  useDirectInbox: () => directInboxMock,
 }));
 
 vi.mock("../shared/config/limits", () => ({
@@ -321,6 +326,8 @@ describe("ChatRoomPage", () => {
     mobileShellMock.toggleDrawer.mockReset();
     mobileShellMock.isDrawerOpen = false;
     mobileShellMock.isMobileViewport = false;
+    directInboxMock.setActiveRoom.mockReset();
+    directInboxMock.markRead.mockReset();
     locationMock.search = "";
     locationMock.pathname = "/public";
     Object.defineProperty(window.navigator, "sendBeacon", {
@@ -1357,6 +1364,7 @@ describe("ChatRoomPage", () => {
     divider = chatLog.querySelector<HTMLElement>("[data-unread-divider]");
     expect(divider).not.toBeNull();
     expect(divider?.dataset.unreadAnchorId).toBe("1");
+    expect(directInboxMock.markRead).not.toHaveBeenCalled();
   });
 
   it("hides unread divider when current user sends a message", async () => {
