@@ -27,6 +27,7 @@ import { normalizePublicRef } from "../lib/publicRef";
 import { resolveIdentityLabel } from "../lib/userIdentity";
 import { usePresence } from "../presence";
 import {
+  collectSettledUnreadOverrideRoomIds,
   clearUnreadOverridesForRooms,
   useUnreadOverrides,
 } from "../unreadOverrides/store";
@@ -175,8 +176,13 @@ export function ConversationListProvider({ user, ready, children }: Props) {
         map[String(item.roomId)] = item.unreadCount;
       }
 
+      const settledOverrideRoomIds = collectSettledUnreadOverrideRoomIds({
+        authoritativeRoomIds,
+        authoritativeCounts: map,
+      });
+
       setRoomUnreads(map);
-      clearUnreadOverridesForRooms(authoritativeRoomIds);
+      clearUnreadOverridesForRooms(settledOverrideRoomIds);
     },
     [],
   );

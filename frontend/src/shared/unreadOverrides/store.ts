@@ -5,6 +5,11 @@ export type UnreadOverride = {
   unreadCount: number;
 };
 
+export type SettledUnreadOverrideParams = {
+  authoritativeRoomIds: Iterable<string>;
+  authoritativeCounts: Record<string, number>;
+};
+
 type Listener = () => void;
 
 const overrides = new Map<string, number>();
@@ -80,6 +85,43 @@ export const clearUnreadOverridesForRooms = (roomIds: Iterable<string>) => {
   if (!changed) return;
   rebuildSnapshot();
   emit();
+};
+
+/**
+ * Определяет, какие локальные unread-overrides уже можно снять после прихода
+ * серверного снимка unread-count.
+ *
+ * Правило слияния намеренно сохраняет локальный `0`, если поллинг `/api/chat/unread/`
+ * всё ещё сообщает положительный unread по этой комнате. Это защищает текущий чат
+ * от отката бейджа назад, когда локальное чтение уже зафиксировано, а серверный
+ * снимок ещё не догнал только что отправленный `mark_read`.
+ *
+ * Override снимается только в двух случаях:
+ * 1. сервер явно подтвердил ноль unread для комнаты;
+ * 2. локальный override был положительным, и сервер прислал свой авторитативный count.
+ */
+export const collectSettledUnreadOverrideRoomIds = ({
+  authoritativeRoomIds,
+  authoritativeCounts,
+}: SettledUnreadOverrideParams): string[] => {
+  const settledRoomIds: string[] = [];
+
+  for (const rawRoomId of authoritativeRoomIds) {
+    const roomId = normalizeRoomId(rawRoomId);
+    if (!roomId) continue;
+
+    const localOverride = overrides.get(roomId);
+    if (typeof localOverride !== "number") {
+      continue;
+    }
+
+    const serverUnread = authoritativeCounts[roomId] ?? 0;
+    if (serverUnread === 0 || localOverride > 0) {
+      settledRoomIds.push(roomId);
+    }
+  }
+
+  return settledRoomIds;
 };
 
 /**
