@@ -23,6 +23,7 @@ import type {
 } from "./utils";
 import {
   clearPendingReadFromStorage,
+  isOwnMessage,
   MARK_READ_DEBOUNCE_MS,
   MAX_HISTORY_JUMP_ATTEMPTS,
   MAX_HISTORY_NO_PROGRESS_ATTEMPTS,
@@ -78,6 +79,7 @@ export function useChatRoomPageReadState({
   const pendingReadFlushRef = useRef<number>(
     readPendingReadFromStorage(roomId),
   );
+  const pendingInitialViewportSyncRef = useRef(false);
   const unreadDividerAnchorRef = useRef<number | null>(null);
   const lastMessageSnapshotRef = useRef<{
     count: number;
@@ -199,6 +201,28 @@ export function useChatRoomPageReadState({
     ((details?.roomId !== undefined &&
       String(details.roomId) === roomIdForRequests) ||
       Boolean(error));
+  const shouldStartUnreadEntryFromBottom = useMemo(() => {
+    if (!readStateEnabled || localUnreadCount < 1 || !firstUnreadMessageId) {
+      return false;
+    }
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (isOwnMessage(message, currentActorRef)) {
+        continue;
+      }
+
+      return message.id === firstUnreadMessageId;
+    }
+
+    return false;
+  }, [
+    currentActorRef,
+    firstUnreadMessageId,
+    localUnreadCount,
+    messages,
+    readStateEnabled,
+  ]);
 
   const unreadDividerRenderTarget = useMemo<UnreadDividerRenderTarget>(() => {
     if (!roomDataReady && unreadDividerAnchorId === null) {
@@ -574,13 +598,20 @@ export function useChatRoomPageReadState({
     }
 
     if (localUnreadCount > 0 && firstUnreadMessageId) {
-      initialPositioningTargetRef.current = "unread";
       unreadDividerAnchorRef.current = firstUnreadMessageId;
+      initialPositioningTargetRef.current = shouldStartUnreadEntryFromBottom
+        ? "bottom"
+        : "unread";
       return;
     }
 
     initialPositioningTargetRef.current = "bottom";
-  }, [firstUnreadMessageId, localUnreadCount, roomDataReady]);
+  }, [
+    firstUnreadMessageId,
+    localUnreadCount,
+    roomDataReady,
+    shouldStartUnreadEntryFromBottom,
+  ]);
 
   useEffect(() => {
     if (!roomDataReady) {
@@ -608,9 +639,9 @@ export function useChatRoomPageReadState({
               ? (latestMessages[latestMessages.length - 1]?.id ?? null)
               : null,
         };
+        pendingInitialViewportSyncRef.current = true;
         initialPositioningPhaseRef.current = "settled";
         setInitialPositioningSettled(true);
-        scheduleViewportReadSync();
       });
       return;
     }
@@ -659,9 +690,9 @@ export function useChatRoomPageReadState({
               ? (latestMessages[latestMessages.length - 1]?.id ?? null)
               : null,
         };
+        pendingInitialViewportSyncRef.current = true;
         initialPositioningPhaseRef.current = "settled";
         setInitialPositioningSettled(true);
-        scheduleViewportReadSync();
       });
     });
   }, [
@@ -673,12 +704,32 @@ export function useChatRoomPageReadState({
   ]);
 
   useEffect(() => {
+    if (!isInitialPositioningSettled) {
+      return;
+    }
+    if (!pendingInitialViewportSyncRef.current) {
+      return;
+    }
+
+    pendingInitialViewportSyncRef.current = false;
+    scheduleViewportReadSync();
+  }, [isInitialPositioningSettled, scheduleViewportReadSync]);
+
+  useEffect(() => {
     if (!isInitialPositioningSettled || !user || localLastReadMessageId < 1) {
+      return;
+    }
+
+    const persistedServerLastReadMessageId = normalizeReadMessageId(
+      details?.lastReadMessageId,
+    );
+    if (localLastReadMessageId <= persistedServerLastReadMessageId) {
       return;
     }
 
     scheduleMarkRead(localLastReadMessageId);
   }, [
+    details?.lastReadMessageId,
     isInitialPositioningSettled,
     localLastReadMessageId,
     scheduleMarkRead,

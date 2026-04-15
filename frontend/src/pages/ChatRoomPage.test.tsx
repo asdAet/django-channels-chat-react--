@@ -1649,6 +1649,97 @@ describe("ChatRoomPage", () => {
     expect(scrollWrites).not.toContain(1200);
   });
 
+  it("starts from bottom when only the latest foreign message is unread", async () => {
+    chatRoomMock.details = {
+      roomId: 2,
+      name: "dm",
+      kind: "direct",
+      created: false,
+      createdBy: null,
+      peer: {
+        publicRef: "@alice",
+        username: "alice",
+        profileImage: null,
+        lastSeen: null,
+      },
+      lastReadMessageId: 1,
+    } as RoomDetails;
+    chatRoomMock.messages = [
+      makeForeignMessage(1, "first"),
+      makeForeignMessage(2, "second"),
+    ];
+
+    const { container } = render(
+      <ChatRoomPage
+        roomId="2"
+        initialRoomKind="direct"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+    const chatLog = container.querySelector(
+      '[aria-live="polite"]',
+    ) as HTMLDivElement;
+
+    const scrollWrites: number[] = [];
+    let scrollTopValue = 0;
+    Object.defineProperty(chatLog, "scrollTop", {
+      configurable: true,
+      get: () => scrollTopValue,
+      set: (value: number) => {
+        scrollTopValue = value;
+        scrollWrites.push(value);
+      },
+    });
+    Object.defineProperty(chatLog, "scrollHeight", {
+      configurable: true,
+      get: () => 1200,
+    });
+    Object.defineProperty(chatLog, "clientHeight", {
+      configurable: true,
+      get: () => 400,
+    });
+    Object.defineProperty(chatLog, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({ bottom: 600 }),
+    });
+    chatLog
+      .querySelectorAll<HTMLElement>("article[data-message-id]")
+      .forEach((node, index) => {
+        Object.defineProperty(node, "getBoundingClientRect", {
+          configurable: true,
+          value: () => ({ bottom: 160 + index * 120 }),
+        });
+      });
+
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoViewSpy = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoViewSpy,
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+    });
+
+    if (originalScrollIntoView) {
+      Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+        configurable: true,
+        value: originalScrollIntoView,
+      });
+    } else {
+      Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
+    }
+
+    expect(scrollWrites).toContain(1200);
+    expect(scrollIntoViewSpy).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(chatControllerMock.markRead).toHaveBeenCalledWith("2", 2);
+    });
+  });
+
   it("does not inherit unread divider from previous room while next chat is loading", async () => {
     chatRoomMock.details = {
       roomId: 2,
