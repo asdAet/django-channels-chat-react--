@@ -511,6 +511,7 @@ function AppInner() {
 
   const isAuthRoute =
     location.pathname === "/login" || location.pathname === "/register";
+  const realtimeProvidersReady = !auth.loading && !isAuthRoute;
 
   const routesElement = (
     <AppRoutes
@@ -536,8 +537,8 @@ function AppInner() {
   return (
     <WsAuthProvider token={auth.wsAuthToken}>
       <SiteVisitTelemetry />
-      <PresenceProvider user={auth.user} ready={!auth.loading}>
-        <DirectInboxProvider user={auth.user} ready={!auth.loading}>
+      <PresenceProvider user={auth.user} ready={realtimeProvidersReady}>
+        <DirectInboxProvider user={auth.user} ready={realtimeProvidersReady}>
           {isAuthRoute ? (
             <div className={appStyles.authPage}>{routesElement}</div>
           ) : (

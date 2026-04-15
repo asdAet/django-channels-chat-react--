@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { GoogleIdentityButton } from "../../shared/auth/GoogleIdentityButton";
 import type { GoogleOAuthSuccess } from "../../shared/auth/googleIdentity";
@@ -135,7 +135,7 @@ export function AuthForm({
   /**
    * Запускает резервный popup-flow для Google-входа.
    */
-  const handleGoogleAuth = async () => {
+  const handleGoogleAuth = useCallback(async () => {
     if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) {
       return;
     }
@@ -146,14 +146,14 @@ export function AuthForm({
     } finally {
       setGoogleAuthPending(false);
     }
-  };
+  }, [canUseGoogleAuth, googleAuthPending, onGoogleAuth]);
 
   /**
    * Завершает вход после получения Google токена от официального GIS button.
    *
    * @param payload Результат Google Identity Services с токеном пользователя.
    */
-  const handleGoogleAuthSuccess = async (payload: GoogleOAuthSuccess) => {
+  const handleGoogleAuthSuccess = useCallback(async (payload: GoogleOAuthSuccess) => {
     if (!onGoogleAuthSuccess || googleAuthPending) {
       return;
     }
@@ -164,7 +164,15 @@ export function AuthForm({
     } finally {
       setGoogleAuthPending(false);
     }
-  };
+  }, [googleAuthPending, onGoogleAuthSuccess]);
+
+  /**
+   * Переключает форму на резервный popup-flow, если нативная GIS-кнопка
+   * недоступна в текущем окружении.
+   */
+  const handleGoogleUnavailable = useCallback(() => {
+    setUseGoogleFallback(true);
+  }, []);
 
   return (
     <div className={[styles.auth, className].filter(Boolean).join(" ")}>
@@ -269,7 +277,7 @@ export function AuthForm({
                 clientId={normalizedGoogleClientId}
                 disabled={googleAuthPending}
                 onSuccess={handleGoogleAuthSuccess}
-                onUnavailable={() => setUseGoogleFallback(true)}
+                onUnavailable={handleGoogleUnavailable}
               />
             )}
 

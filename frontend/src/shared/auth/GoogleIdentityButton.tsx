@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import {
   GoogleOAuthError,
@@ -34,6 +34,12 @@ export function GoogleIdentityButton({
 }: GoogleIdentityButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
+  const handleSuccess = useEffectEvent((payload: GoogleOAuthSuccess) => {
+    void onSuccess(payload);
+  });
+  const handleUnavailable = useEffectEvent(() => {
+    onUnavailable?.();
+  });
 
   useEffect(() => {
     const container = containerRef.current;
@@ -50,7 +56,7 @@ export function GoogleIdentityButton({
       clientId: normalizedClientId,
       container,
       onSuccess: (payload) => {
-        void onSuccess(payload);
+        handleSuccess(payload);
       },
     })
       .then(() => {
@@ -76,7 +82,7 @@ export function GoogleIdentityButton({
         container.replaceChildren();
 
         if (googleError.code !== "oauth_not_configured") {
-          onUnavailable?.();
+          handleUnavailable();
         }
       });
 
@@ -84,7 +90,7 @@ export function GoogleIdentityButton({
       cancelled = true;
       container.replaceChildren();
     };
-  }, [clientId, disabled, onSuccess, onUnavailable]);
+  }, [clientId, disabled]);
 
   return (
     <div
