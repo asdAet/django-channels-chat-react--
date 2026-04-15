@@ -1814,6 +1814,83 @@ describe("ChatRoomPage", () => {
     });
   });
 
+  it("marks the first direct message as read when the route is opened by publicRef", async () => {
+    chatRoomMock.details = {
+      roomId: 13,
+      name: "dm",
+      kind: "direct",
+      created: false,
+      createdBy: null,
+      peer: {
+        publicRef: "2104489155",
+        username: "alice",
+        profileImage: null,
+        lastSeen: null,
+      },
+      lastReadMessageId: null,
+    } as RoomDetails;
+    chatRoomMock.messages = [
+      {
+        ...makeForeignMessage(1, "first"),
+        id: 244,
+        createdAt: "2026-02-13T12:44:00.000Z",
+      },
+    ];
+
+    const { container } = render(
+      <ChatRoomPage
+        roomId="2104489155"
+        initialRoomKind="direct"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+    const chatLog = container.querySelector(
+      '[aria-live="polite"]',
+    ) as HTMLDivElement;
+
+    const scrollWrites: number[] = [];
+    let scrollTopValue = 0;
+    Object.defineProperty(chatLog, "scrollTop", {
+      configurable: true,
+      get: () => scrollTopValue,
+      set: (value: number) => {
+        scrollTopValue = value;
+        scrollWrites.push(value);
+      },
+    });
+    Object.defineProperty(chatLog, "scrollHeight", {
+      configurable: true,
+      get: () => 220,
+    });
+    Object.defineProperty(chatLog, "clientHeight", {
+      configurable: true,
+      get: () => 400,
+    });
+    Object.defineProperty(chatLog, "getBoundingClientRect", {
+      configurable: true,
+      value: () => ({ bottom: 600 }),
+    });
+    chatLog
+      .querySelectorAll<HTMLElement>("article[data-message-id]")
+      .forEach((node) => {
+        Object.defineProperty(node, "getBoundingClientRect", {
+          configurable: true,
+          value: () => ({ bottom: 180 }),
+        });
+      });
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+    });
+
+    expect(scrollWrites).toContain(220);
+
+    await waitFor(() => {
+      expect(chatControllerMock.markRead).toHaveBeenCalledWith("13", 244);
+    });
+  });
+
   it("does not inherit unread divider from previous room while next chat is loading", async () => {
     chatRoomMock.details = {
       roomId: 2,
