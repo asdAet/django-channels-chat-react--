@@ -431,23 +431,6 @@ function AppInner() {
     }
   }, [completeGoogleLogin, runtimeConfig.googleOAuthClientId]);
 
-  const handleGoogleOAuthSuccess = useCallback(
-    async (payload: GoogleOAuthSuccess) => {
-      setError(null);
-      try {
-        await completeGoogleLogin(payload);
-      } catch (err) {
-        debugLog("Google OAuth failed", err);
-        if (err instanceof GoogleOAuthError) {
-          setError(err.message);
-          return;
-        }
-        setError("Не удалось выполнить вход через Google.");
-      }
-    },
-    [completeGoogleLogin],
-  );
-
   const handleLogout = useCallback(async () => {
     await logout();
     setBanner("Вы вышли из аккаунта");
@@ -514,23 +497,17 @@ function AppInner() {
   const realtimeProvidersReady = !auth.loading && !isAuthRoute;
 
   const routesElement = (
-    <AppRoutes
-      user={auth.user}
-      error={error}
-      passwordRules={passwordRules}
-      googleOAuthClientId={
-        isGoogleOAuthConfigured ? runtimeConfig.googleOAuthClientId : null
-      }
-      googleAuthDisabledReason={googleAuthDisabledReason}
-      onNavigate={onNavigate}
-      onLogin={handleLogin}
-      onGoogleOAuth={isGoogleOAuthConfigured ? handleGoogleOAuth : undefined}
-      onGoogleOAuthSuccess={
-        isGoogleOAuthConfigured ? handleGoogleOAuthSuccess : undefined
-      }
-      onRegister={handleRegister}
-      onLogout={handleLogout}
-      onProfileSave={handleProfileSave}
+      <AppRoutes
+        user={auth.user}
+        error={error}
+        passwordRules={passwordRules}
+        googleAuthDisabledReason={googleAuthDisabledReason}
+        onNavigate={onNavigate}
+        onLogin={handleLogin}
+        onGoogleOAuth={isGoogleOAuthConfigured ? handleGoogleOAuth : undefined}
+        onRegister={handleRegister}
+        onLogout={handleLogout}
+        onProfileSave={handleProfileSave}
     />
   );
 

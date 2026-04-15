@@ -13,7 +13,6 @@ import { ProfilePage } from "../pages/ProfilePage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { UserProfilePage } from "../pages/UserProfilePage";
-import type { GoogleOAuthSuccess } from "../shared/auth/googleIdentity";
 import { isReservedChatTarget, normalizeChatTarget } from "../shared/lib/chatTarget";
 
 type ProfileFieldErrors = Record<string, string[]>;
@@ -27,12 +26,10 @@ type ProfileSaveResult =
  * @property user Текущий авторизованный пользователь или `null` для гостя.
  * @property error Сообщение последней auth-ошибки, которое нужно показать на login/register.
  * @property passwordRules Список правил для отображения под формой регистрации.
- * @property googleOAuthClientId Google client id для рендера официальной GIS-кнопки.
  * @property googleAuthDisabledReason Причина, по которой кнопка Google OAuth недоступна.
  * @property onNavigate Унифицированный переход между страницами.
  * @property onLogin Выполняет вход по логину и паролю.
- * @property onGoogleOAuth Запускает резервный popup-сценарий входа через Google.
- * @property onGoogleOAuthSuccess Завершает вход после получения токена от официальной GIS-кнопки.
+ * @property onGoogleOAuth Запускает вход через Google через popup OAuth flow.
  * @property onRegister Создает аккаунт по данным формы регистрации.
  * @property onLogout Завершает пользовательскую сессию.
  * @property onProfileSave Сохраняет обновления профиля и возвращает результат валидации.
@@ -41,12 +38,10 @@ type AppRoutesProps = {
   user: UserProfile | null;
   error: string | null;
   passwordRules: string[];
-  googleOAuthClientId: string | null;
   googleAuthDisabledReason: string | null;
   onNavigate: (path: string) => void;
   onLogin: (identifier: string, password: string) => Promise<void>;
   onGoogleOAuth?: () => Promise<void>;
-  onGoogleOAuthSuccess?: (payload: GoogleOAuthSuccess) => Promise<void>;
   onRegister: (payload: {
     login: string;
     password: string;
@@ -132,12 +127,10 @@ export function AppRoutes({
   user,
   error,
   passwordRules,
-  googleOAuthClientId,
   googleAuthDisabledReason,
   onNavigate,
   onLogin,
   onGoogleOAuth,
-  onGoogleOAuthSuccess,
   onRegister,
   onLogout,
   onProfileSave,
@@ -154,8 +147,6 @@ export function AppRoutes({
           <LoginPage
             onSubmit={onLogin}
             onGoogleAuth={onGoogleOAuth}
-            onGoogleAuthSuccess={onGoogleOAuthSuccess}
-            googleOAuthClientId={googleOAuthClientId}
             onNavigate={onNavigate}
             googleAuthDisabledReason={googleAuthDisabledReason}
             error={error}
@@ -168,8 +159,6 @@ export function AppRoutes({
           <RegisterPage
             onSubmit={onRegister}
             onGoogleAuth={onGoogleOAuth}
-            onGoogleAuthSuccess={onGoogleOAuthSuccess}
-            googleOAuthClientId={googleOAuthClientId}
             googleAuthDisabledReason={googleAuthDisabledReason}
             onNavigate={onNavigate}
             error={error}

@@ -1,4 +1,3 @@
-import type { GoogleOAuthSuccess } from "../shared/auth/googleIdentity";
 import styles from "../styles/pages/LoginPage.module.css";
 import { AuthForm } from "../widgets/auth/AuthForm";
 
@@ -8,8 +7,6 @@ import { AuthForm } from "../widgets/auth/AuthForm";
 type Props = {
   onSubmit: (identifier: string, password: string) => void;
   onGoogleAuth?: () => Promise<void> | void;
-  onGoogleAuthSuccess?: (payload: GoogleOAuthSuccess) => Promise<void> | void;
-  googleOAuthClientId?: string | null;
   googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
   error?: string | null;
@@ -23,8 +20,6 @@ type Props = {
 export function LoginPage({
   onSubmit,
   onGoogleAuth,
-  onGoogleAuthSuccess,
-  googleOAuthClientId = null,
   googleAuthDisabledReason = null,
   onNavigate,
   error = null,
@@ -42,8 +37,6 @@ export function LoginPage({
         onSubmit(payload.identifier, payload.password);
       }}
       onGoogleAuth={onGoogleAuth}
-      onGoogleAuthSuccess={onGoogleAuthSuccess}
-      googleOAuthClientId={googleOAuthClientId}
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
       error={error}

@@ -1,4 +1,3 @@
-import type { GoogleOAuthSuccess } from "../shared/auth/googleIdentity";
 import styles from "../styles/pages/RegisterPage.module.css";
 import { AuthForm } from "../widgets/auth/AuthForm";
 
@@ -15,8 +14,6 @@ type Props = {
     email?: string;
   }) => void;
   onGoogleAuth?: () => Promise<void> | void;
-  onGoogleAuthSuccess?: (payload: GoogleOAuthSuccess) => Promise<void> | void;
-  googleOAuthClientId?: string | null;
   googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
   error?: string | null;
@@ -31,8 +28,6 @@ type Props = {
 export function RegisterPage({
   onSubmit,
   onGoogleAuth,
-  onGoogleAuthSuccess,
-  googleOAuthClientId = null,
   googleAuthDisabledReason = null,
   onNavigate,
   error = null,
@@ -51,8 +46,6 @@ export function RegisterPage({
         onSubmit(payload);
       }}
       onGoogleAuth={onGoogleAuth}
-      onGoogleAuthSuccess={onGoogleAuthSuccess}
-      googleOAuthClientId={googleOAuthClientId}
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
       error={error}

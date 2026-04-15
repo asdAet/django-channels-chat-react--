@@ -2,12 +2,8 @@
 <html lang="ru">
   <head>
     <script type="module">
-      const readEnvString = (value) =>
-        typeof value === "string" ? value.trim() : "";
-      const yandexMetrikaId = readEnvString(
-        import.meta.env.VITE_YANDEX_METRIKA_ID,
-      );
-      const googleTagId = readEnvString(import.meta.env.VITE_GOOGLE_TAG_ID);
+      const yandexMetrikaId = "108160241";
+      const googleTagId = "G-CYFZ1JQNSR";
 
       const appendScript = (id, src) => {
         if (document.getElementById(id)) {
