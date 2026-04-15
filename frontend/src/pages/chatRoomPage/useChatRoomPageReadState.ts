@@ -71,6 +71,7 @@ export function useChatRoomPageReadState({
   const deepLinkJumpRafRef = useRef<number | null>(null);
   const programmaticScrollTimerRef = useRef<number | null>(null);
   const isProgrammaticScrollRef = useRef(false);
+  const pendingBottomStickyReadRef = useRef(false);
   const initialPositioningPhaseRef = useRef<InitialPositioningPhase>("pending");
   const initialPositioningTargetRef = useRef<InitialPositioningTarget | null>(
     null,
@@ -491,6 +492,34 @@ export function useChatRoomPageReadState({
     readStateEnabled,
   ]);
 
+  /**
+   * Синхронно фиксирует прочитанные сообщения по текущему viewport.
+   *
+   * Используется после программного доскролла вниз, когда новое входящее
+   * сообщение уже попало в экран и badge должен уменьшиться без дополнительного
+   * scroll-события от пользователя.
+   *
+   * @param listOverride Явный контейнер списка, если нужно использовать уже
+   *   захваченный экземпляр DOM-узла.
+   * @returns Последний id сообщения, который удалось считать прочитанным.
+   */
+  const applyViewportReadNow = useCallback(
+    (listOverride?: HTMLDivElement | null) => {
+      const nextLastRead = applyViewportRead(listOverride ?? listRef.current);
+      persistPendingRead(nextLastRead);
+      const latestVisibleMessageId =
+        messagesRef.current.length > 0
+          ? (messagesRef.current[messagesRef.current.length - 1]?.id ?? 0)
+          : 0;
+      if (nextLastRead > 0 && nextLastRead <= latestVisibleMessageId) {
+        sendMarkReadIfNeeded(nextLastRead);
+      }
+
+      return nextLastRead;
+    },
+    [applyViewportRead, persistPendingRead, sendMarkReadIfNeeded],
+  );
+
   const scheduleViewportReadSync = useCallback(() => {
     if (!readStateEnabled) {
       return;
@@ -507,22 +536,9 @@ export function useChatRoomPageReadState({
 
     viewportReadRafRef.current = window.requestAnimationFrame(() => {
       viewportReadRafRef.current = null;
-      const nextLastRead = applyViewportRead(listRef.current);
-      persistPendingRead(nextLastRead);
-      const latestVisibleMessageId =
-        messagesRef.current.length > 0
-          ? (messagesRef.current[messagesRef.current.length - 1]?.id ?? 0)
-          : 0;
-      if (nextLastRead > 0 && nextLastRead <= latestVisibleMessageId) {
-        sendMarkReadIfNeeded(nextLastRead);
-      }
+      applyViewportReadNow(listRef.current);
     });
-  }, [
-    applyViewportRead,
-    persistPendingRead,
-    readStateEnabled,
-    sendMarkReadIfNeeded,
-  ]);
+  }, [applyViewportReadNow, readStateEnabled]);
 
   useEffect(() => {
     if (!readStateEnabled) {
@@ -861,14 +877,16 @@ export function useChatRoomPageReadState({
       requestAnimationFrame(() => {
         snapToBottom();
         endProgrammaticScroll(() => {
-          scheduleViewportReadSync();
+          window.requestAnimationFrame(() => {
+            applyViewportReadNow(listRef.current);
+          });
         }, 120);
       });
     });
   }, [
+    applyViewportReadNow,
     beginProgrammaticScroll,
     endProgrammaticScroll,
-    scheduleViewportReadSync,
   ]);
 
   useEffect(() => {
@@ -905,7 +923,10 @@ export function useChatRoomPageReadState({
     if (!appendedNewMessage) {
       return;
     }
-    if (!isAtBottomRef.current) {
+    const shouldStickToBottom =
+      pendingBottomStickyReadRef.current || isAtBottomRef.current;
+    pendingBottomStickyReadRef.current = false;
+    if (!shouldStickToBottom) {
       return;
     }
 
@@ -913,21 +934,24 @@ export function useChatRoomPageReadState({
     requestAnimationFrame(() => {
       list.scrollTop = list.scrollHeight;
       endProgrammaticScroll(() => {
-        scheduleViewportReadSync();
+        window.requestAnimationFrame(() => {
+          applyViewportReadNow(list);
+        });
       }, 80);
     });
   }, [
+    applyViewportReadNow,
     beginProgrammaticScroll,
     endProgrammaticScroll,
     isInitialPositioningSettled,
     messages,
-    scheduleViewportReadSync,
   ]);
 
   const handleIncomingForeignMessage =
     useCallback<UseChatRoomPageReadStateResult["handleIncomingForeignMessage"]>(
       (messageId) => {
         if (isAtBottomRef.current) {
+          pendingBottomStickyReadRef.current = true;
           return;
         }
 

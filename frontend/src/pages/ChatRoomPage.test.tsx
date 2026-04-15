@@ -1513,6 +1513,7 @@ describe("ChatRoomPage", () => {
           data: JSON.stringify({
             id: 3,
             message: "third",
+            publicRef: "alice",
             username: "alice",
             profile_pic: null,
             room: "dm_1",
@@ -1528,9 +1529,11 @@ describe("ChatRoomPage", () => {
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 240));
     });
-    fireEvent.scroll(chatLog);
 
     expect(chatLog.querySelector("[data-unread-divider]")).toBeNull();
+    await waitFor(() => {
+      expect(chatControllerMock.markRead).toHaveBeenCalledWith("2", 3);
+    });
   });
 
   it("performs a single initial scroll to bottom when unread messages are absent", async () => {
