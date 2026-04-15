@@ -1,11 +1,5 @@
 import type { ClientRuntimeConfig } from "../../domain/interfaces/IApiService";
 
-// Runtime config comes from backend meta API, but Google OAuth needs a public fallback
-// for static frontend builds when that endpoint is temporarily unavailable.
-const BUILD_TIME_GOOGLE_OAUTH_CLIENT_ID = String(
-  import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID ?? "",
-).trim();
-
 /**
  * Константа `DEFAULT_RUNTIME_CONFIG`, используемая как default runtime config.
  */
@@ -30,7 +24,7 @@ export const DEFAULT_RUNTIME_CONFIG: ClientRuntimeConfig = {
   ],
   mediaUrlTtlSeconds: 300,
   mediaMode: "signed_only",
-  googleOAuthClientId: BUILD_TIME_GOOGLE_OAUTH_CLIENT_ID,
+  googleOAuthClientId: "",
 };
 
 let currentRuntimeConfig: ClientRuntimeConfig = { ...DEFAULT_RUNTIME_CONFIG };

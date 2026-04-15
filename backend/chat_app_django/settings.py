@@ -75,6 +75,7 @@ if not IS_PYTEST_RUN:
             BASE_DIR.parent / ".env",
             allowed_keys={
                 "GOOGLE_OAUTH_CLIENT_ID",
+                "GOOGLE_OAUTH_CLIENT_SECRET",
                 "DJANGO_SECRET_KEY",
                 "CHAT_ATTACHMENT_MAX_PER_MESSAGE",
                 "CHAT_ATTACHMENT_MAX_SIZE_MB",
@@ -535,6 +536,7 @@ USERNAME_MAX_LENGTH = env_int("USERNAME_MAX_LENGTH", 30, minimum=1)
 if USERNAME_MAX_LENGTH > 150:
     raise ImproperlyConfigured("USERNAME_MAX_LENGTH должен быть <= 150.")
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "").strip()
 CHAT_MESSAGE_EDIT_WINDOW_SECONDS = env_int("CHAT_MESSAGE_EDIT_WINDOW_SECONDS", 900, minimum=0)
 CHAT_MESSAGE_MAX_LENGTH = int(os.getenv("CHAT_MESSAGE_MAX_LENGTH", "1000"))
 CHAT_MESSAGES_PAGE_SIZE = int(os.getenv("CHAT_MESSAGES_PAGE_SIZE", "50"))

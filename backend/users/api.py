@@ -6,13 +6,14 @@ import time
 from collections.abc import Mapping
 from datetime import timedelta
 from pathlib import Path
+import secrets
 from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth import login, logout, password_validation
 from django.core.files.storage import default_storage
 from django.db import OperationalError, ProgrammingError
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, HttpResponseRedirect
 from django.middleware.csrf import get_token
 from django.utils import timezone
 from django.utils.html import strip_tags
@@ -74,6 +75,33 @@ from users.identity import (
 
 
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
+GOOGLE_OAUTH_STATE_SESSION_KEY = "auth.google_oauth_state"
+GOOGLE_OAUTH_RETURN_TO_SESSION_KEY = "auth.google_oauth_return_to"
+
+
+def _build_google_oauth_redirect_uri(request) -> str:
+    """Собирает абсолютный callback URL для server-side Google OAuth redirect."""
+    return request.build_absolute_uri("/api/auth/oauth/google/callback/")
+
+
+def _sanitize_frontend_return_path(raw_value: object, *, fallback: str = "/login") -> str:
+    """Нормализует frontend-путь возврата и не допускает open redirect."""
+    candidate = str(raw_value or "").strip()
+    if not candidate:
+        return fallback
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return fallback
+    return candidate
+
+
+def _build_frontend_error_redirect(request, message: str) -> str:
+    """Формирует безопасный redirect назад в SPA с текстом ошибки OAuth."""
+    fallback_path = _sanitize_frontend_return_path(
+        request.session.pop(GOOGLE_OAUTH_RETURN_TO_SESSION_KEY, None),
+        fallback="/login",
+    )
+    separator = "&" if "?" in fallback_path else "?"
+    return f"{fallback_path}{separator}oauthError={quote(message, safe='')}"
 
 
 def _ensure_session_key(request) -> str:
@@ -505,6 +533,79 @@ def oauth_google_view(request):
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.oauth.google.success", request, public_ref=user_public_ref(user))
     return Response(_build_authenticated_session_payload(request, user))
+
+
+@api_view(["GET"])
+def oauth_google_start_view(request):
+    """Запускает server-side redirect flow для входа через Google OAuth."""
+    if not auth_service.google_oauth_redirect_is_configured():
+        audit_http_event("auth.oauth.google.redirect.failed", request, reason="oauth_not_configured")
+        return error_response(status=503, error="Google OAuth не настроен")
+
+    state = secrets.token_urlsafe(32)
+    redirect_uri = _build_google_oauth_redirect_uri(request)
+    frontend_return_to = _sanitize_frontend_return_path(
+        request.GET.get("next"),
+        fallback="/login",
+    )
+
+    request.session[GOOGLE_OAUTH_STATE_SESSION_KEY] = state
+    request.session[GOOGLE_OAUTH_RETURN_TO_SESSION_KEY] = frontend_return_to
+    request.session.modified = True
+
+    authorization_url = auth_service.build_google_authorization_url(
+        state=state,
+        redirect_uri=redirect_uri,
+    )
+    audit_http_event("auth.oauth.google.redirect.started", request)
+    return HttpResponseRedirect(authorization_url)
+
+
+@api_view(["GET"])
+def oauth_google_callback_view(request):
+    """Принимает callback Google OAuth, создает сессию и возвращает пользователя в SPA."""
+    expected_state = str(request.session.pop(GOOGLE_OAUTH_STATE_SESSION_KEY, "") or "").strip()
+    frontend_return_to = _sanitize_frontend_return_path(
+        request.session.get(GOOGLE_OAUTH_RETURN_TO_SESSION_KEY),
+        fallback="/login",
+    )
+
+    error_code = str(request.GET.get("error") or "").strip()
+    if error_code:
+        audit_http_event("auth.oauth.google.redirect.failed", request, reason=error_code)
+        message = "Вход через Google был отменен."
+        if error_code not in {"access_denied", "user_cancelled"}:
+            message = "Не удалось выполнить вход через Google."
+        return HttpResponseRedirect(_build_frontend_error_redirect(request, message))
+
+    code = str(request.GET.get("code") or "").strip()
+    state = str(request.GET.get("state") or "").strip()
+    if not expected_state or not state or state != expected_state or not code:
+        audit_http_event("auth.oauth.google.redirect.failed", request, reason="invalid_callback")
+        return HttpResponseRedirect(
+            _build_frontend_error_redirect(
+                request,
+                "Не удалось подтвердить вход через Google.",
+            )
+        )
+
+    redirect_uri = _build_google_oauth_redirect_uri(request)
+    try:
+        user = auth_service.authenticate_or_signup_with_google_authorization_code(
+            code=code,
+            redirect_uri=redirect_uri,
+        )
+    except IdentityServiceError as exc:
+        audit_http_event("auth.oauth.google.redirect.failed", request, reason=exc.code)
+        return HttpResponseRedirect(_build_frontend_error_redirect(request, exc.message))
+
+    request.session.pop(GOOGLE_OAUTH_RETURN_TO_SESSION_KEY, None)
+    login(request, user, backend=AUTH_BACKEND_PATH)
+    audit_http_event("auth.oauth.google.redirect.success", request, public_ref=user_public_ref(user))
+
+    if frontend_return_to in {"/login", "/register"}:
+        frontend_return_to = "/"
+    return HttpResponseRedirect(frontend_return_to)
 
 
 @api_view(["GET"])

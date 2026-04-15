@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from chat_app_django.http_utils import error_response, parse_request_payload
 from chat_app_django.security.audit import audit_http_event
 from chat_app_django.visitor_telemetry import normalize_visit_payload
+from users.application.auth_service import google_oauth_redirect_is_configured
 
 
 @api_view(["GET"])
@@ -21,6 +22,9 @@ def client_config_view(_request):
     """Возвращает runtime-конфигурацию, которую фронтенд читает при загрузке."""
 
     allow_any_type = bool(getattr(settings, "CHAT_ATTACHMENT_ALLOW_ANY_TYPE", True))
+    google_oauth_client_id = ""
+    if google_oauth_redirect_is_configured():
+        google_oauth_client_id = str(getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "") or "")
     return Response(
         {
             "usernameMaxLength": int(getattr(settings, "USERNAME_MAX_LENGTH", 30)),
@@ -43,7 +47,7 @@ def client_config_view(_request):
             ),
             "mediaUrlTtlSeconds": int(getattr(settings, "MEDIA_URL_TTL_SECONDS", 300)),
             "mediaMode": "signed_only",
-            "googleOAuthClientId": str(getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "") or ""),
+            "googleOAuthClientId": google_oauth_client_id,
         }
     )
 

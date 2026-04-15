@@ -20,6 +20,7 @@ class ClientConfigApiTests(TestCase):
         CHAT_ATTACHMENT_ALLOWED_TYPES=["audio/mpeg", "audio/webm"],
         MEDIA_URL_TTL_SECONDS=120,
         GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="google-client-secret",
     )
     def test_client_config_returns_expected_shape(self):
         response = self.client.get("/api/meta/client-config/")
@@ -34,6 +35,16 @@ class ClientConfigApiTests(TestCase):
         self.assertEqual(payload["mediaUrlTtlSeconds"], 120)
         self.assertEqual(payload["mediaMode"], "signed_only")
         self.assertEqual(payload["googleOAuthClientId"], "google-client-id")
+
+    @override_settings(
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="",
+    )
+    def test_client_config_hides_google_oauth_when_server_flow_is_incomplete(self):
+        response = self.client.get("/api/meta/client-config/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["googleOAuthClientId"], "")
 
 
 class SiteVisitApiTests(TestCase):

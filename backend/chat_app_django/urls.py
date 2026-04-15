@@ -88,6 +88,8 @@ def api_index(request):
             "presenceSession": _link(request, "api-presence-session"),
             "passwordRules": _link(request, "api-password-rules"),
             "login": _link(request, "api-login"),
+            "googleOAuthStart": _link(request, "api-oauth-google-start"),
+            "googleOAuthCallback": _link(request, "api-oauth-google-callback"),
             "logout": _link(request, "api-logout"),
             "register": _link(request, "api-register"),
         },

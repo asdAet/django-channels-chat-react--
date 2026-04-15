@@ -4,11 +4,7 @@ import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { usePasswordRules } from "../hooks/usePasswordRules";
 import type { ApiError } from "../shared/api/types";
-import {
-  GoogleOAuthError,
-  signInWithGoogle,
-  type GoogleOAuthSuccess,
-} from "../shared/auth/googleIdentity";
+import { startGoogleAuthRedirect } from "../shared/auth/googleRedirect";
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
@@ -174,8 +170,7 @@ function AppInner() {
   const navigate = useNavigate();
   const location = useLocation();
   const { config: runtimeConfig } = useRuntimeConfig();
-  const { auth, login, loginWithGoogle, register, logout, updateProfile } =
-    useAuth();
+  const { auth, login, register, logout, updateProfile } = useAuth();
   const { rules: passwordRules } = usePasswordRules(
     location.pathname === "/register",
   );
@@ -402,34 +397,13 @@ function AppInner() {
     ? null
     : "Google OAuth сейчас недоступен. Проверьте конфигурацию сервера.";
 
-  const completeGoogleLogin = useCallback(
-    async ({ token, tokenType }: GoogleOAuthSuccess) => {
-      await loginWithGoogle(token, tokenType);
-      setBanner("Вход через Google выполнен успешно.");
-      onNavigate("/");
-    },
-    [loginWithGoogle, onNavigate],
-  );
-
-  const handleGoogleOAuth = useCallback(async () => {
+  const handleGoogleOAuth = useCallback(() => {
     if (!runtimeConfig.googleOAuthClientId.trim()) {
       return;
     }
     setError(null);
-    try {
-      const googleAuth = await signInWithGoogle(
-        runtimeConfig.googleOAuthClientId,
-      );
-      await completeGoogleLogin(googleAuth);
-    } catch (err) {
-      debugLog("Google OAuth failed", err);
-      if (err instanceof GoogleOAuthError) {
-        setError(err.message);
-        return;
-      }
-      setError("Не удалось выполнить вход через Google.");
-    }
-  }, [completeGoogleLogin, runtimeConfig.googleOAuthClientId]);
+    startGoogleAuthRedirect(`${location.pathname}${location.search}`);
+  }, [location.pathname, location.search, runtimeConfig.googleOAuthClientId]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -494,6 +468,22 @@ function AppInner() {
 
   const isAuthRoute =
     location.pathname === "/login" || location.pathname === "/register";
+
+  useEffect(() => {
+    if (!isAuthRoute) {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const oauthError = params.get("oauthError");
+    if (!oauthError) {
+      return;
+    }
+
+    setError(oauthError);
+    navigate(location.pathname, { replace: true });
+  }, [isAuthRoute, location.pathname, location.search, navigate]);
+
   const realtimeProvidersReady = !auth.loading && !isAuthRoute;
 
   const routesElement = (

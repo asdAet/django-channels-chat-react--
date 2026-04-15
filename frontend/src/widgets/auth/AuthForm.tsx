@@ -28,6 +28,17 @@ export type RegisterSubmitPayload = {
 
 /**
  * Контракт auth-формы для экранов входа и регистрации.
+ *
+ * @property mode Режим формы: вход или регистрация.
+ * @property title Короткий заголовок карточки.
+ * @property submitLabel Подпись основной кнопки действия.
+ * @property onSubmit Единый обработчик отправки формы.
+ * @property onGoogleAuth Запускает вход через Google через redirect-сценарий.
+ * @property googleAuthDisabledReason Сообщение, почему Google-вход сейчас отключен.
+ * @property onNavigate Переход между `/login` и `/register`.
+ * @property error Текст auth-ошибки, который нужно показать пользователю.
+ * @property passwordRules Список правил пароля для экрана регистрации.
+ * @property className Дополнительный CSS-класс контейнера.
  */
 type AuthFormProps = {
   mode: AuthMode;
@@ -43,11 +54,12 @@ type AuthFormProps = {
 };
 
 /**
- * Рендерит auth-форму и связывает поля с обработчиками входа.
+ * Рендерит auth-форму и связывает поля ввода с auth-сценарием верхнего уровня.
  *
- * Google-вход здесь намеренно использует один канонический сценарий:
- * popup OAuth flow по явному клику пользователя. Это исключает конкуренцию
- * между нативной GIS-кнопкой и резервным popup-путем на одной странице.
+ * Google-вход здесь намеренно не использует popup. Кнопка запускает
+ * server-side redirect flow: браузер уходит на backend endpoint, backend сам
+ * завершает Google OAuth и затем возвращает пользователя обратно уже с готовой
+ * серверной сессией.
  *
  * @param props Настройки экрана входа или регистрации.
  */
@@ -72,7 +84,8 @@ export function AuthForm({
 
   const isRegister = mode === "register";
   const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
-  const shouldRenderGoogleAuth = Boolean(onGoogleAuth) || Boolean(googleAuthDisabledReason);
+  const shouldRenderGoogleAuth =
+    Boolean(onGoogleAuth) || Boolean(googleAuthDisabledReason);
 
   const canSubmit = useMemo(() => {
     if (isRegister) {
@@ -83,9 +96,9 @@ export function AuthForm({
   }, [confirm, identifier, isRegister, login, name, password]);
 
   /**
-   * Отправляет данные формы входа или регистрации в родительский сценарий.
+   * Отправляет данные формы в родительский auth-сценарий.
    *
-   * @param event Браузерное событие submit.
+   * @param event Браузерное событие `submit`.
    */
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -110,7 +123,7 @@ export function AuthForm({
   };
 
   /**
-   * Запускает popup-flow для входа через Google.
+   * Запускает redirect-flow для входа через Google.
    */
   const handleGoogleAuth = useCallback(async () => {
     if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) {
