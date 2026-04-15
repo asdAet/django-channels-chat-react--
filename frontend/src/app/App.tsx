@@ -7,6 +7,7 @@ import type { ApiError } from "../shared/api/types";
 import {
   GoogleOAuthError,
   signInWithGoogle,
+  type GoogleOAuthSuccess,
 } from "../shared/auth/googleIdentity";
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
@@ -401,6 +402,15 @@ function AppInner() {
     ? null
     : "Google OAuth сейчас недоступен. Проверьте конфигурацию сервера.";
 
+  const completeGoogleLogin = useCallback(
+    async ({ token, tokenType }: GoogleOAuthSuccess) => {
+      await loginWithGoogle(token, tokenType);
+      setBanner("Вход через Google выполнен успешно.");
+      onNavigate("/");
+    },
+    [loginWithGoogle, onNavigate],
+  );
+
   const handleGoogleOAuth = useCallback(async () => {
     if (!runtimeConfig.googleOAuthClientId.trim()) {
       return;
@@ -410,9 +420,7 @@ function AppInner() {
       const googleAuth = await signInWithGoogle(
         runtimeConfig.googleOAuthClientId,
       );
-      await loginWithGoogle(googleAuth.token, googleAuth.tokenType);
-      setBanner("Вход через Google выполнен успешно.");
-      onNavigate("/");
+      await completeGoogleLogin(googleAuth);
     } catch (err) {
       debugLog("Google OAuth failed", err);
       if (err instanceof GoogleOAuthError) {
@@ -421,7 +429,24 @@ function AppInner() {
       }
       setError("Не удалось выполнить вход через Google.");
     }
-  }, [loginWithGoogle, onNavigate, runtimeConfig.googleOAuthClientId]);
+  }, [completeGoogleLogin, runtimeConfig.googleOAuthClientId]);
+
+  const handleGoogleOAuthSuccess = useCallback(
+    async (payload: GoogleOAuthSuccess) => {
+      setError(null);
+      try {
+        await completeGoogleLogin(payload);
+      } catch (err) {
+        debugLog("Google OAuth failed", err);
+        if (err instanceof GoogleOAuthError) {
+          setError(err.message);
+          return;
+        }
+        setError("Не удалось выполнить вход через Google.");
+      }
+    },
+    [completeGoogleLogin],
+  );
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -492,10 +517,16 @@ function AppInner() {
       user={auth.user}
       error={error}
       passwordRules={passwordRules}
+      googleOAuthClientId={
+        isGoogleOAuthConfigured ? runtimeConfig.googleOAuthClientId : null
+      }
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
       onLogin={handleLogin}
       onGoogleOAuth={isGoogleOAuthConfigured ? handleGoogleOAuth : undefined}
+      onGoogleOAuthSuccess={
+        isGoogleOAuthConfigured ? handleGoogleOAuthSuccess : undefined
+      }
       onRegister={handleRegister}
       onLogout={handleLogout}
       onProfileSave={handleProfileSave}

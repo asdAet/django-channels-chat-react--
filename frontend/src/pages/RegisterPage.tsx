@@ -1,8 +1,9 @@
-﻿import styles from "../styles/pages/RegisterPage.module.css";
+import type { GoogleOAuthSuccess } from "../shared/auth/googleIdentity";
+import styles from "../styles/pages/RegisterPage.module.css";
 import { AuthForm } from "../widgets/auth/AuthForm";
 
 /**
- * Описывает входные props компонента `Props`.
+ * Контракт страницы регистрации.
  */
 type Props = {
   onSubmit: (payload: {
@@ -14,6 +15,8 @@ type Props = {
     email?: string;
   }) => void;
   onGoogleAuth?: () => Promise<void> | void;
+  onGoogleAuthSuccess?: (payload: GoogleOAuthSuccess) => Promise<void> | void;
+  googleOAuthClientId?: string | null;
   googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
   error?: string | null;
@@ -21,13 +24,15 @@ type Props = {
 };
 
 /**
- * Компонент RegisterPage рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * Рендерит экран регистрации и передает действия пользователя в auth-форму.
  *
- * @param props Свойства компонента.
+ * @param props Параметры текущего сценария регистрации.
  */
 export function RegisterPage({
   onSubmit,
   onGoogleAuth,
+  onGoogleAuthSuccess,
+  googleOAuthClientId = null,
   googleAuthDisabledReason = null,
   onNavigate,
   error = null,
@@ -39,10 +44,15 @@ export function RegisterPage({
       title="Регистрация"
       submitLabel="Создать аккаунт"
       onSubmit={(payload) => {
-        if ("identifier" in payload) return;
+        if ("identifier" in payload) {
+          return;
+        }
+
         onSubmit(payload);
       }}
       onGoogleAuth={onGoogleAuth}
+      onGoogleAuthSuccess={onGoogleAuthSuccess}
+      googleOAuthClientId={googleOAuthClientId}
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
       error={error}

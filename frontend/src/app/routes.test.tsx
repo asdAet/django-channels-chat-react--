@@ -69,6 +69,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />
@@ -84,6 +85,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />
@@ -99,6 +101,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />
@@ -114,6 +117,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />
@@ -129,6 +133,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />
@@ -144,6 +149,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />
@@ -159,6 +165,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />
@@ -174,6 +181,7 @@ describe("AppRoutes", () => {
           user={null}
           error={null}
           passwordRules={[]}
+          googleOAuthClientId={null}
           googleAuthDisabledReason={null}
           {...handlers}
         />

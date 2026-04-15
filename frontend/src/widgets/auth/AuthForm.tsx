@@ -1,16 +1,15 @@
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import { GoogleIdentityButton } from "../../shared/auth/GoogleIdentityButton";
+import type { GoogleOAuthSuccess } from "../../shared/auth/googleIdentity";
 import { Button, Card, Toast } from "../../shared/ui";
 import styles from "./AuthForm.module.css";
 
-/**
- * Описывает структуру данных `AuthMode`.
- */
 type AuthMode = "login" | "register";
 
 /**
- * Описывает структуру данных `LoginSubmitPayload`.
+ * Полезная нагрузка формы входа.
  */
 export type LoginSubmitPayload = {
   identifier: string;
@@ -18,7 +17,7 @@ export type LoginSubmitPayload = {
 };
 
 /**
- * Описывает структуру данных `RegisterSubmitPayload`.
+ * Полезная нагрузка формы регистрации.
  */
 export type RegisterSubmitPayload = {
   login: string;
@@ -30,7 +29,7 @@ export type RegisterSubmitPayload = {
 };
 
 /**
- * Описывает входные props компонента `AuthForm`.
+ * Контракт auth-формы для экранов входа и регистрации.
  */
 type AuthFormProps = {
   mode: AuthMode;
@@ -38,6 +37,8 @@ type AuthFormProps = {
   submitLabel: string;
   onSubmit: (payload: LoginSubmitPayload | RegisterSubmitPayload) => void;
   onGoogleAuth?: () => Promise<void> | void;
+  onGoogleAuthSuccess?: (payload: GoogleOAuthSuccess) => Promise<void> | void;
+  googleOAuthClientId?: string | null;
   googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
   error?: string | null;
@@ -46,9 +47,14 @@ type AuthFormProps = {
 };
 
 /**
- * Компонент AuthForm рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * Рендерит auth-форму и связывает поля с обработчиками входа.
  *
- * @param props Свойства компонента.
+ * Компонент поддерживает два варианта Google-входа:
+ * 1. основной production-путь через официальный GIS button;
+ * 2. резервный fallback через ручной popup flow, если GIS button не смог
+ *    подготовиться в текущем браузере.
+ *
+ * @param props Настройки экрана входа или регистрации.
  */
 export function AuthForm({
   mode,
@@ -56,6 +62,8 @@ export function AuthForm({
   submitLabel,
   onSubmit,
   onGoogleAuth,
+  onGoogleAuthSuccess,
+  googleOAuthClientId = null,
   googleAuthDisabledReason = null,
   onNavigate,
   error = null,
@@ -65,61 +73,94 @@ export function AuthForm({
   const [identifier, setIdentifier] = useState("");
   const [login, setLogin] = useState("");
   const [name, setName] = useState("");
-  // const [username, setUsername] = useState("");
-  // const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [googleAuthPending, setGoogleAuthPending] = useState(false);
 
   const isRegister = mode === "register";
+  const normalizedGoogleClientId = (googleOAuthClientId || "").trim();
+  const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
+  const canUseNativeGoogleButton =
+    Boolean(onGoogleAuthSuccess) &&
+    normalizedGoogleClientId.length > 0 &&
+    !googleAuthDisabledReason;
+  const shouldRenderGoogleAuth =
+    Boolean(onGoogleAuth) ||
+    Boolean(onGoogleAuthSuccess) ||
+    Boolean(googleAuthDisabledReason);
+
+  const [useGoogleFallback, setUseGoogleFallback] = useState(
+    !canUseNativeGoogleButton,
+  );
+
+  useEffect(() => {
+    setUseGoogleFallback(!canUseNativeGoogleButton);
+  }, [canUseNativeGoogleButton]);
 
   const canSubmit = useMemo(() => {
     if (isRegister) {
       return Boolean(login.trim() && name.trim() && password && confirm);
     }
+
     return Boolean(identifier.trim() && password);
   }, [confirm, identifier, isRegister, login, name, password]);
 
   /**
-   * Обрабатывает handle submit.
-   * @param event Событие браузера.
+   * Отправляет данные формы входа или регистрации в родительский сценарий.
+   *
+   * @param event Браузерное событие submit.
    */
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      return;
+    }
 
     if (isRegister) {
-      const payload: RegisterSubmitPayload = {
+      onSubmit({
         login: login.trim(),
         password,
         passwordConfirm: confirm,
         name: name.trim(),
-        // username: username.trim() || undefined,
-        // email: email.trim() || undefined,
-      };
-      onSubmit(payload);
+      });
       return;
     }
 
-    const payload: LoginSubmitPayload = {
+    onSubmit({
       identifier: identifier.trim(),
       password,
-    };
-    onSubmit(payload);
+    });
   };
 
-  const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
-  const shouldRenderGoogleAuth =
-    Boolean(onGoogleAuth) || Boolean(googleAuthDisabledReason);
-
   /**
-   * Обрабатывает handle google auth.
+   * Запускает резервный popup-flow для Google-входа.
    */
   const handleGoogleAuth = async () => {
-    if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) return;
+    if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) {
+      return;
+    }
+
     setGoogleAuthPending(true);
     try {
       await onGoogleAuth();
+    } finally {
+      setGoogleAuthPending(false);
+    }
+  };
+
+  /**
+   * Завершает вход после получения Google токена от официального GIS button.
+   *
+   * @param payload Результат Google Identity Services с токеном пользователя.
+   */
+  const handleGoogleAuthSuccess = async (payload: GoogleOAuthSuccess) => {
+    if (!onGoogleAuthSuccess || googleAuthPending) {
+      return;
+    }
+
+    setGoogleAuthPending(true);
+    try {
+      await onGoogleAuthSuccess(payload);
     } finally {
       setGoogleAuthPending(false);
     }
@@ -135,6 +176,7 @@ export function AuthForm({
             {error}
           </Toast>
         )}
+
         <form className={styles.form} onSubmit={handleSubmit}>
           {isRegister ? (
             <>
@@ -159,28 +201,6 @@ export function AuthForm({
                   onChange={(event) => setLogin(event.target.value)}
                 />
               </label>
-
-              {/* <label className={styles.field}>
-                <span>Username (опционально)</span>
-                <input
-                  type="text"
-                  data-testid="auth-username-input"
-                  autoComplete="off"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                />
-              </label> */}
-
-              {/* <label className={styles.field}>
-                <span>Email (опционально)</span>
-                <input
-                  type="email"
-                  data-testid="auth-email-input"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </label> */}
             </>
           ) : (
             <label className={styles.field}>
@@ -244,17 +264,33 @@ export function AuthForm({
 
         {shouldRenderGoogleAuth && (
           <div className={styles.oauthSection}>
-            <Button
-              variant="outline"
-              type="button"
-              onClick={handleGoogleAuth}
-              disabled={!canUseGoogleAuth || googleAuthPending}
-              data-testid="auth-google-button"
-            >
-              {googleAuthPending
-                ? "Подключение к Google..."
-                : "Продолжить с Google"}
-            </Button>
+            {canUseNativeGoogleButton && !useGoogleFallback && (
+              <GoogleIdentityButton
+                clientId={normalizedGoogleClientId}
+                disabled={googleAuthPending}
+                onSuccess={handleGoogleAuthSuccess}
+                onUnavailable={() => setUseGoogleFallback(true)}
+              />
+            )}
+
+            {(useGoogleFallback || !canUseNativeGoogleButton) && (
+              <Button
+                variant="outline"
+                type="button"
+                onClick={handleGoogleAuth}
+                disabled={!canUseGoogleAuth || googleAuthPending}
+                data-testid="auth-google-button"
+              >
+                {googleAuthPending
+                  ? "Подключение к Google..."
+                  : "Продолжить с Google"}
+              </Button>
+            )}
+
+            {canUseNativeGoogleButton && !useGoogleFallback && googleAuthPending && (
+              <p className={styles.oauthHint}>Завершаем вход через Google...</p>
+            )}
+
             {googleAuthDisabledReason && (
               <p className={styles.oauthHint}>{googleAuthDisabledReason}</p>
             )}

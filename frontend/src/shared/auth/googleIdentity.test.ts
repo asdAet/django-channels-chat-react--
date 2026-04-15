@@ -1,6 +1,9 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { signInWithGoogle } from "./googleIdentity";
+import {
+  renderGoogleSignInButton,
+  signInWithGoogle,
+} from "./googleIdentity";
 
 type GoogleIdClientConfig = {
   callback: (response: { credential?: string }) => void;
@@ -26,6 +29,7 @@ describe("googleIdentity", () => {
             idInitialized = true;
           },
           prompt: () => undefined,
+          renderButton: () => undefined,
         },
         oauth2: {
           initTokenClient: (config) => {
@@ -61,6 +65,7 @@ describe("googleIdentity", () => {
           prompt: () => {
             idConfig?.callback({ credential: "id-token-456" });
           },
+          renderButton: () => undefined,
         },
         oauth2: undefined,
       },
@@ -84,6 +89,7 @@ describe("googleIdentity", () => {
             idInitialized = true;
           },
           prompt: () => undefined,
+          renderButton: () => undefined,
         },
         oauth2: {
           initTokenClient: (config) => ({
@@ -99,5 +105,42 @@ describe("googleIdentity", () => {
       code: "oauth_popup_closed",
     });
     expect(idInitialized).toBe(false);
+  });
+
+  it("renders official GIS button and returns idToken through callback", async () => {
+    const container = document.createElement("div");
+    let initializeCalled = false;
+    let renderedButton = false;
+
+    window.google = {
+      accounts: {
+        id: {
+          initialize: (config) => {
+            initializeCalled = true;
+            config.callback({ credential: "id-token-from-button" });
+          },
+          prompt: () => undefined,
+          renderButton: (parent) => {
+            parent.innerHTML = "<div>google-button</div>";
+            renderedButton = true;
+          },
+        },
+      },
+    };
+
+    const onSuccess = vi.fn();
+
+    await renderGoogleSignInButton({
+      clientId: "client-id",
+      container,
+      onSuccess,
+    });
+
+    expect(initializeCalled).toBe(true);
+    expect(renderedButton).toBe(true);
+    expect(onSuccess).toHaveBeenCalledWith({
+      token: "id-token-from-button",
+      tokenType: "idToken",
+    });
   });
 });

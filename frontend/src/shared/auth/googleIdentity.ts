@@ -20,7 +20,29 @@ type GoogleIdClientConfig = {
   cancel_on_tap_outside?: boolean;
   auto_select?: boolean;
   use_fedcm_for_prompt?: boolean;
+  use_fedcm_for_button?: boolean;
   itp_support?: boolean;
+};
+
+/**
+ * Описывает сигнатуру callback-уведомлений Google prompt.
+ */
+type GooglePromptMomentNotification = {
+  isNotDisplayed?: () => boolean;
+  isSkippedMoment?: () => boolean;
+};
+
+/**
+ * Описывает параметры рендера официальной кнопки Google Sign-In.
+ */
+type GoogleSignInButtonConfig = {
+  type?: "standard" | "icon";
+  theme?: "outline" | "filled_blue" | "filled_black";
+  size?: "large" | "medium" | "small";
+  text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+  shape?: "rectangular" | "pill" | "circle" | "square";
+  logo_alignment?: "left" | "center";
+  width?: number;
 };
 
 /**
@@ -68,7 +90,8 @@ type GoogleAccountsOauth2 = {
  */
 type GoogleAccountsId = {
   initialize: (config: GoogleIdClientConfig) => void;
-  prompt: () => void;
+  prompt: (listener?: (notification: GooglePromptMomentNotification) => void) => void;
+  renderButton: (parent: HTMLElement, options: GoogleSignInButtonConfig) => void;
   cancel?: () => void;
 };
 
@@ -105,6 +128,15 @@ export type GoogleOAuthSuccess = {
 };
 
 /**
+ * Описывает параметры рендера официальной Google-кнопки.
+ */
+export type GoogleSignInButtonRenderOptions = {
+  clientId: string;
+  container: HTMLElement;
+  onSuccess: (payload: GoogleOAuthSuccess) => void;
+};
+
+/**
  * Класс GoogleOAuthError инкапсулирует логику текущего слоя приложения.
  */
 export class GoogleOAuthError extends Error {
@@ -112,6 +144,7 @@ export class GoogleOAuthError extends Error {
     | "oauth_not_configured"
     | "oauth_sdk_load_failed"
     | "oauth_sdk_unavailable"
+    | "oauth_prompt_unavailable"
     | "oauth_popup_closed"
     | "oauth_token_missing"
     | "oauth_request_failed";
@@ -144,6 +177,22 @@ const getGoogleIdApi = (): GoogleAccountsId | null =>
  */
 const getGoogleOauth2Api = (): GoogleAccountsOauth2 | null =>
   window.google?.accounts?.oauth2 ?? null;
+
+/**
+ * Безопасно определяет, что GIS prompt не смог отобразиться.
+ *
+ * FedCM-поток и классический prompt по-разному формируют уведомления, поэтому
+ * доступ к вспомогательным флагам нужно выполнять только через optional chaining.
+ *
+ * @param notification Уведомление Google prompt о текущем моменте показа.
+ * @returns `true`, когда prompt был пропущен или не был показан пользователю.
+ */
+const isPromptUnavailable = (
+  notification: GooglePromptMomentNotification,
+): boolean =>
+  Boolean(
+    notification.isNotDisplayed?.() || notification.isSkippedMoment?.(),
+  );
 
 /**
  * Обрабатывает load google identity sdk.
@@ -388,12 +437,24 @@ const requestGoogleIdToken = async (
       },
       cancel_on_tap_outside: true,
       auto_select: false,
-      use_fedcm_for_prompt: false,
+      use_fedcm_for_prompt: true,
+      use_fedcm_for_button: true,
       itp_support: true,
     });
 
     try {
-      api.prompt();
+      api.prompt((notification) => {
+        if (!notification || !isPromptUnavailable(notification)) {
+          return;
+        }
+
+        finish({
+          error: new GoogleOAuthError(
+            "oauth_prompt_unavailable",
+            "Google Sign-In сейчас недоступен в этом браузере.",
+          ),
+        });
+      });
     } catch {
       finish({
         error: new GoogleOAuthError(
@@ -403,6 +464,72 @@ const requestGoogleIdToken = async (
       });
     }
   });
+
+/**
+ * Рендерит официальный Google Sign-In button и возвращает `idToken` через callback.
+ *
+ * Основной production-путь использует официальный GIS button вместо ручного
+ * popup token flow. Это уменьшает шум в консоли вокруг `window.closed` и
+ * оставляет совместимый fallback только для браузеров, где GIS button недоступен.
+ *
+ * @param options Контекст рендера: клиентский id, контейнер и обработчик успеха.
+ */
+export const renderGoogleSignInButton = async ({
+  clientId,
+  container,
+  onSuccess,
+}: GoogleSignInButtonRenderOptions): Promise<void> => {
+  const normalizedClientId = clientId.trim();
+  if (!normalizedClientId) {
+    throw new GoogleOAuthError(
+      "oauth_not_configured",
+      "Google OAuth не настроен.",
+    );
+  }
+
+  await loadGoogleIdentitySdk();
+
+  const idApi = getGoogleIdApi();
+  if (!idApi) {
+    throw new GoogleOAuthError(
+      "oauth_sdk_unavailable",
+      "Google OAuth SDK недоступен.",
+    );
+  }
+
+  container.replaceChildren();
+  const measuredWidth = Math.round(container.getBoundingClientRect().width);
+  const buttonWidth =
+    measuredWidth > 0 ? Math.max(240, Math.min(measuredWidth, 360)) : 320;
+  idApi.initialize({
+    client_id: normalizedClientId,
+    callback: (response) => {
+      const credential = (response.credential || "").trim();
+      if (!credential) {
+        return;
+      }
+
+      onSuccess({
+        token: credential,
+        tokenType: "idToken",
+      });
+    },
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    use_fedcm_for_prompt: true,
+    use_fedcm_for_button: true,
+    itp_support: true,
+  });
+  idApi.renderButton(container, {
+    type: "standard",
+    theme: "outline",
+    size: "large",
+    text: "continue_with",
+    shape: "rectangular",
+    logo_alignment: "left",
+    width: buttonWidth,
+  });
+};
 
 /**
  * Запускает клиентский сценарий входа через Google OAuth.
