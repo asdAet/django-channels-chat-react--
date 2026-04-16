@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Backend Architecture
+title Devils Resting - Архитектура бэкенда
 top to bottom direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff
@@ -11,6 +11,7 @@ skinparam ranksep 55
 skinparam roundcorner 10
 skinparam ArrowColor #687385
 skinparam ArrowThickness 1.1
+skinparam defaultFontName Arial
 skinparam packageStyle rectangle
 skinparam componentStyle rectangle
 skinparam rectangle {
@@ -46,31 +47,31 @@ skinparam note {
   FontColor #445066
 }
 
-actor Browser
+actor "Клиент" as Browser
 cloud "Google OAuth" as Google
 
-rectangle "Edge" {
-  node "Nginx\nTLS + reverse proxy" as Nginx
+rectangle "Внешний контур" {
+  node "Nginx\nTLS и проксирование" as Nginx
 }
 
-rectangle "Delivery Layer" {
-  component "REST API\n/api/*" as Rest
-  component "WebSocket Gateway\n/ws/*" as Ws
-  component "ASGI Router\nProtocolTypeRouter" as Asgi
+rectangle "Слой доставки" {
+  component "HTTP API\nмаршруты /api/*" as Rest
+  component "Шлюз WebSocket\nмаршруты /ws/*" as Ws
+  component "ASGI-маршрутизация\nProtocolTypeRouter" as Asgi
 }
 
-rectangle "Application Layer" {
-  component "Identity & Session\nusers, profile,\nmedia access" as Identity
-  component "Chat & Collaboration\nchat, messages,\nfriends, groups" as Collaboration
-  component "Realtime Services\nchat consumer,\npresence, direct inbox" as Realtime
-  component "Access Control & Audit\nroles, permissions,\nauditlog" as Control
+rectangle "Прикладной слой" {
+  component "Идентификация и сессии\nusers, profile,\nзащищенный доступ к media" as Identity
+  component "Чаты и социальные функции\nchat, messages,\nfriends, groups" as Collaboration
+  component "Realtime-обработчики\nchat consumer,\npresence, direct inbox" as Realtime
+  component "Права доступа и аудит\nroles, permissions,\nauditlog" as Control
 }
 
-rectangle "Infrastructure" {
+rectangle "Инфраструктура" {
   database "PostgreSQL" as Db
-  queue "Redis\nchannel layer + presence" as Redis
-  folder "Media Storage\navatars + attachments" as Media
-  node "Observability\nPrometheus, Grafana,\nLoki, Alertmanager" as Observability
+  queue "Redis\nchannel layer и presence" as Redis
+  folder "Media-хранилище\nаватары и вложения" as Media
+  node "Наблюдаемость\nPrometheus, Grafana,\nLoki, Alertmanager" as Observability
 }
 
 Rest -[hidden]down-> Ws
@@ -82,49 +83,51 @@ Db -[hidden]right-> Redis
 Redis -[hidden]right-> Media
 Media -[hidden]right-> Observability
 
-Browser --> Nginx
-Nginx --> Rest
-Nginx --> Ws
-Ws --> Asgi
+Browser --> Nginx : HTTP и WebSocket
+Nginx --> Rest : запросы /api
+Nginx --> Ws : соединения /ws
+Ws --> Asgi : диспетчеризация WS
 
-Rest --> Identity
-Rest --> Collaboration
-Rest --> Control
+Rest --> Identity : вход, профиль, media
+Rest --> Collaboration : чаты, друзья, группы
+Rest --> Control : роли и аудит
 
-Asgi --> Identity : ws auth
-Asgi --> Realtime
+Asgi --> Identity : токен и сессия WS
+Asgi --> Realtime : realtime-события
 
-Collaboration ..> Control : permission checks
-Identity ..> Control : security events
-Realtime ..> Control : audit + block rules
+Collaboration ..> Control : проверка прав
+Identity ..> Control : события безопасности
+Realtime ..> Control : аудит и блокировки
 
-Identity --> Db
-Identity --> Media
-Collaboration --> Db
-Collaboration --> Media
-Realtime --> Redis
-Realtime --> Db
-Control --> Db
+Identity --> Db : пользователи и идентичности
+Identity --> Media : аватары и подписанные ссылки
+Collaboration --> Db : комнаты, группы, сообщения
+Collaboration --> Media : вложения
+Realtime --> Redis : fan-out и presence
+Realtime --> Db : read state и room data
+Control --> Db : роли и аудит
 
-Google --> Identity : token validation
-Observability ..> Rest : scrape health / metrics
+Google --> Identity : проверка OAuth-токена
+Observability ..> Rest : health и metrics
 
 note right of Rest
-Canonical external chat entrypoint:
+Каноническая внешняя точка входа в чат:
 POST /api/chat/resolve/
 
-Room-scoped HTTP calls use roomId.
+Все room-scoped HTTP вызовы используют roomId.
 end note
 
 note right of Realtime
-WebSocket endpoints:
+WebSocket-маршруты:
 - /ws/chat/<room_id>/
 - /ws/presence/
 - /ws/inbox/
 end note
 
 note bottom of Collaboration
-Group flows include invites, join requests,
-pins, moderation and ownership transfer.
+Групповые сценарии включают:
+приглашения, заявки на вступление,
+закрепление сообщений, модерацию
+и передачу владения.
 end note
 @enduml

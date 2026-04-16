@@ -1,24 +1,25 @@
 @startuml
-title Devils Resting - Backend Domain Model
-left to right direction
+title Devils Resting - Обзор доменной модели бэкенда
+top to bottom direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff
 skinparam linetype ortho
-skinparam classAttributeIconSize 0
 skinparam defaultTextAlignment center
+skinparam wrapWidth 220
 skinparam nodesep 45
 skinparam ranksep 55
 skinparam roundcorner 10
 skinparam ArrowColor #687385
-skinparam packageStyle rectangle
+skinparam ArrowThickness 1.1
+skinparam defaultFontName Arial
+skinparam rectangle {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
 skinparam package {
   BorderColor #c8d0db
   BackgroundColor #f7f9fc
-  FontColor #1f2937
-}
-skinparam class {
-  BorderColor #9fb0c7
-  BackgroundColor #ffffff
   FontColor #1f2937
 }
 skinparam note {
@@ -27,197 +28,29 @@ skinparam note {
   FontColor #445066
 }
 
-package "Users & Identity" {
-  class User {
-    +id: int
-    +username: str
-    +is_superuser: bool
-  }
-
-  class Profile {
-    +name: str
-    +bio: text
-    +avatar_url: url
-    +last_seen: datetime
-  }
-
-  class UserIdentityCore {
-    +public_id: str
-  }
-
-  class LoginIdentity {
-    +login_normalized: str
-  }
-
-  class EmailIdentity {
-    +email_normalized: str
-    +email_verified: bool
-  }
-
-  class OAuthIdentity {
-    +provider: str
-    +provider_user_id: str
-  }
-
-  class PublicHandle {
-    +handle: str
-  }
-
-  class SecurityRateLimitBucket {
-    +scope_key: str
-    +count: int
-    +reset_at: datetime
-  }
+package "Домены бэкенда" {
+  rectangle "Пользователи и идентичности\nUser, Profile, Identity,\nPublicHandle, rate limits" as UsersDomain
+  rectangle "Комнаты и доступ\nRoom, Role, Membership,\nPermissionOverride, Friendship" as AccessDomain
+  rectangle "Сообщения\nMessage, Reaction,\nAttachment, ReadState" as MessagingDomain
+  rectangle "Групповые расширения\nInviteLink, JoinRequest,\nPinnedMessage" as GroupsDomain
+  rectangle "Аудит и операции\nAuditEvent" as AuditDomain
 }
 
-package "Rooms & Access" {
-  class Room {
-    +id: int
-    +name: str
-    +kind: public|private|direct|group
-    +direct_pair_key: str
-    +public_id: str
-    +is_public: bool
-  }
+UsersDomain -[hidden]right-> AccessDomain
+AccessDomain -[hidden]right-> MessagingDomain
+MessagingDomain -[hidden]right-> GroupsDomain
+GroupsDomain -[hidden]right-> AuditDomain
 
-  class Role {
-    +name: str
-    +position: int
-    +permissions: int
-  }
+UsersDomain --> AccessDomain : пользователь входит в комнату\nи получает права
+AccessDomain --> MessagingDomain : доступ управляет чтением\nи отправкой сообщений
+AccessDomain --> GroupsDomain : группы строятся поверх Room\nи Membership
+MessagingDomain --> GroupsDomain : сообщения можно закреплять
+UsersDomain --> AuditDomain : действия пользователя\nфиксируются в аудите
+MessagingDomain --> AuditDomain : важные операции\nпишут события аудита
+GroupsDomain --> AuditDomain : админские действия групп\nфиксируются в аудите
 
-  class Membership {
-    +nickname: str
-    +is_banned: bool
-    +muted_until: datetime
-  }
-
-  class PermissionOverride {
-    +allow: int
-    +deny: int
-  }
-
-  class Friendship {
-    +status: pending|accepted|declined|blocked
-  }
-}
-
-package "Messaging" {
-  class Message {
-    +id: int
-    +message_content: text
-    +date_added: datetime
-    +edited_at: datetime
-    +is_deleted: bool
-  }
-
-  class Reaction {
-    +emoji: str
-  }
-
-  class MessageAttachment {
-    +original_filename: str
-    +content_type: str
-    +file_size: bigint
-  }
-
-  class MessageAttachmentUpload {
-    +id: uuid
-    +status: pending|uploading|complete
-    +received_bytes: bigint
-  }
-
-  class MessageReadState {
-    +last_read_at: datetime
-  }
-
-  class MessageReadReceipt {
-    +read_at: datetime
-  }
-}
-
-package "Group Extensions" {
-  class InviteLink {
-    +code: str
-    +expires_at: datetime
-    +max_uses: int
-    +is_revoked: bool
-  }
-
-  class JoinRequest {
-    +status: pending|approved|rejected
-    +message: text
-  }
-
-  class PinnedMessage {
-    +pinned_at: datetime
-  }
-}
-
-package "Operations" {
-  class AuditEvent {
-    +action: str
-    +protocol: str
-    +status_code: int
-    +success: bool
-    +request_id: str
-  }
-}
-
-User -[hidden]down-> Profile
-Room -[hidden]down-> Role
-Message -[hidden]down-> Reaction
-InviteLink -[hidden]down-> JoinRequest
-
-User "1" -- "1" Profile
-User "1" -- "0..1" UserIdentityCore
-User "1" -- "0..1" LoginIdentity
-User "1" -- "0..1" EmailIdentity
-User "1" -- "0..*" OAuthIdentity
-
-PublicHandle "0..1" --> "0..1" User : user owner
-PublicHandle "0..1" --> "0..1" Room : room owner
-SecurityRateLimitBucket ..> User : security throttles
-
-Role "*" --> "1" Room
-Membership "*" --> "1" Room
-Membership "*" --> "1" User
-Membership "*" -- "*" Role
-PermissionOverride "*" --> "1" Room
-PermissionOverride "*" --> "0..1" Role : target_role
-PermissionOverride "*" --> "0..1" User : target_user
-
-Friendship "*" --> "1" User : from_user
-Friendship "*" --> "1" User : to_user
-
-Message "*" --> "1" Room
-Message "*" --> "0..1" User : author
-Message "0..*" --> "0..1" Message : reply_to
-Reaction "*" --> "1" Message
-Reaction "*" --> "1" User
-MessageAttachment "*" --> "1" Message
-MessageAttachmentUpload "*" --> "1" Room
-MessageAttachmentUpload "*" --> "1" User
-MessageReadState "*" --> "1" Room
-MessageReadState "*" --> "1" User
-MessageReadState "*" --> "0..1" Message : last_read_message
-MessageReadReceipt "*" --> "1" Message
-MessageReadReceipt "*" --> "1" User
-
-InviteLink "*" --> "1" Room
-InviteLink "*" --> "0..1" User : created_by
-JoinRequest "*" --> "1" Room
-JoinRequest "*" --> "1" User : requester
-JoinRequest "*" --> "0..1" InviteLink
-JoinRequest "*" --> "0..1" User : reviewed_by
-PinnedMessage "*" --> "1" Room
-PinnedMessage "*" --> "1" Message
-PinnedMessage "*" --> "0..1" User : pinned_by
-
-AuditEvent "*" --> "0..1" User : actor_user
-
-note bottom of Room
-Room is the transport anchor for direct chats,
-groups and the public room.
+note bottom of UsersDomain
+Подробные схемы вынесены отдельно,
+чтобы избежать перегруженной диаграммы.
 end note
 @enduml

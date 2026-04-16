@@ -95,9 +95,8 @@ export function SettingsContent({
         <div className={styles.row}>
           <div>
             <div className={styles.rowLabel}>{fullName}</div>
-            {publicRef && (
-              <div className={styles.rowDesc}>{formatPublicRef(publicRef)}</div>
-            )}
+            #TODO: Сделать Отображение @username, если publicRef не пустой
+            {/* {publicRef && (<div className={styles.rowDesc}>{formatPublicRef(publicRef)}</div>)} */}
             <div className={styles.rowDesc}>{user.email}</div>
           </div>
           <button
@@ -165,4 +164,3 @@ export function SettingsContent({
     </div>
   );
 }
-

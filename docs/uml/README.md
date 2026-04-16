@@ -1,31 +1,31 @@
-# UML Diagrams
+# UML-диаграммы
 
-This folder contains PlantUML sources for the current project architecture and flows.
+В этой папке лежат исходники PlantUML и уже сгенерированные SVG-диаграммы.
 
-Quick open:
+Быстрый вход:
 
-- `index.html` - one page with all rendered visual diagrams.
+- `index.html` - одна страница со всеми визуальными диаграммами.
 
-Files:
+Исходники:
 
-- `backend-architecture.puml` - runtime and component view of the Django + Channels backend.
-- `backend-domain-model.puml` - core persistent entities and their relationships.
-- `frontend-architecture.puml` - SPA bootstrap, routing, feature, realtime and data access layers.
-- `use-cases.puml` - primary actors and supported user scenarios.
-- `state-chat-session.puml` - end-to-end chat session state machine.
-- `state-message-lifecycle.puml` - message draft, upload, publish, edit and delete lifecycle.
+- `backend-architecture.puml` - обзор архитектуры бэкенда.
+- `backend-domain-model.puml` - обзор доменов бэкенда.
+- `backend-domain-access.puml` - пользователи, идентичности, комнаты и права.
+- `backend-domain-messaging.puml` - сообщения, вложения и чтение.
+- `backend-domain-groups-audit.puml` - группы, приглашения, заявки и аудит.
+- `frontend-architecture.puml` - обзор архитектуры фронтенда.
+- `use-cases.puml` - основные пользовательские сценарии.
+- `state-chat-session.puml` - состояния сессии чата.
+- `state-message-lifecycle.puml` - состояния жизненного цикла сообщения.
 
-Rendered SVG files:
+Готовые SVG:
 
 - `rendered/backend-architecture.svg`
 - `rendered/backend-domain-model.svg`
+- `rendered/backend-domain-access.svg`
+- `rendered/backend-domain-messaging.svg`
+- `rendered/backend-domain-groups-audit.svg`
 - `rendered/frontend-architecture.svg`
 - `rendered/use-cases.svg`
 - `rendered/state-chat-session.svg`
 - `rendered/state-message-lifecycle.svg`
-
-Typical render command:
-
-```bash
-plantuml docs/uml/backend-architecture.puml
-```

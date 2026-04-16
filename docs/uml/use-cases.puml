@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Primary Use Cases
+title Devils Resting - Основные варианты использования
 left to right direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff
@@ -9,6 +9,7 @@ skinparam nodesep 45
 skinparam ranksep 55
 skinparam roundcorner 10
 skinparam ArrowColor #687385
+skinparam defaultFontName Arial
 skinparam packageStyle rectangle
 skinparam package {
   BorderColor #c8d0db
@@ -21,54 +22,54 @@ skinparam usecase {
   FontColor #1f2937
 }
 
-actor Guest
-actor "Authenticated User" as User
-actor Moderator
-actor "Group Owner" as Owner
-actor "System Administrator" as Admin
+actor "Гость" as Guest
+actor "Авторизованный пользователь" as User
+actor "Модератор" as Moderator
+actor "Владелец группы" as Owner
+actor "Системный администратор" as Admin
 actor "Google OAuth" as Google
-actor "Monitoring Stack" as Monitoring
+actor "Стек наблюдаемости" as Monitoring
 
 Moderator --|> User
 Owner --|> Moderator
 Admin --|> User
 
 rectangle "Devils Resting" {
-  package "Guest Access" {
-    usecase "Browse public groups" as UC_PublicGroups
-    usecase "View public room" as UC_PublicRoom
-    usecase "Preview invite link" as UC_InvitePreview
-    usecase "Register account" as UC_Register
-    usecase "Login with password" as UC_Login
-    usecase "Login with Google" as UC_GoogleLogin
+  package "Гостевой доступ" {
+    usecase "Просматривать\nпубличные группы" as UC_PublicGroups
+    usecase "Читать\nпубличную комнату" as UC_PublicRoom
+    usecase "Открывать\nссылку-приглашение" as UC_InvitePreview
+    usecase "Регистрировать\nаккаунт" as UC_Register
+    usecase "Входить по логину\nи паролю" as UC_Login
+    usecase "Входить через\nGoogle" as UC_GoogleLogin
   }
 
-  package "Core Communication" {
-    usecase "Manage profile\nand session" as UC_Profile
-    usecase "Manage friends\nand blocks" as UC_Friends
-    usecase "Resolve chat target" as UC_ResolveTarget
-    usecase "Open direct chat" as UC_Direct
-    usecase "Open group chat" as UC_GroupChat
-    usecase "Send, edit, delete\nand react to message" as UC_Message
-    usecase "Upload attachments" as UC_Attach
-    usecase "Track presence\nand read state" as UC_Realtime
-    usecase "Search users,\ngroups and messages" as UC_Search
+  package "Основное общение" {
+    usecase "Управлять профилем\nи сессией" as UC_Profile
+    usecase "Управлять друзьями\nи блокировками" as UC_Friends
+    usecase "Разрешать внешний\nадрес чата" as UC_ResolveTarget
+    usecase "Открывать\nличный чат" as UC_Direct
+    usecase "Открывать\nгрупповой чат" as UC_GroupChat
+    usecase "Отправлять, редактировать,\nудалять сообщения и ставить реакции" as UC_Message
+    usecase "Загружать\nвложения" as UC_Attach
+    usecase "Получать presence\nи read state" as UC_Realtime
+    usecase "Искать пользователей,\nгруппы и сообщения" as UC_Search
   }
 
-  package "Group Administration" {
-    usecase "Create, update\nand delete group" as UC_GroupCrud
-    usecase "Join or leave group" as UC_GroupMembership
-    usecase "Manage invites" as UC_Invites
-    usecase "Approve join requests" as UC_JoinRequests
-    usecase "Manage roles\nand overrides" as UC_Roles
-    usecase "Moderate members\nkick, ban, mute" as UC_Moderate
-    usecase "Pin and unpin messages" as UC_Pins
-    usecase "Transfer ownership" as UC_Transfer
+  package "Управление группой" {
+    usecase "Создавать, изменять\nи удалять группу" as UC_GroupCrud
+    usecase "Вступать в группу\nили выходить из нее" as UC_GroupMembership
+    usecase "Управлять\nприглашениями" as UC_Invites
+    usecase "Обрабатывать\nзаявки на вступление" as UC_JoinRequests
+    usecase "Управлять ролями\nи overrides прав" as UC_Roles
+    usecase "Модерировать участников\nисключение, бан, мут" as UC_Moderate
+    usecase "Закреплять и откреплять\nсообщения" as UC_Pins
+    usecase "Передавать\nвладение" as UC_Transfer
   }
 
-  package "Operations" {
-    usecase "Review audit trail" as UC_Audit
-    usecase "Collect metrics\nand health" as UC_Metrics
+  package "Эксплуатация" {
+    usecase "Просматривать\nаудит" as UC_Audit
+    usecase "Собирать метрики\nи health-check" as UC_Metrics
   }
 }
 

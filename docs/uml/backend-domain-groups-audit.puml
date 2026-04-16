@@ -1,0 +1,90 @@
+@startuml
+title Devils Resting - Группы и аудит
+left to right direction
+skinparam shadowing false
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam defaultTextAlignment center
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam class {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam package {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+
+package "Базовые сущности" {
+  class "Пользователь\nUser" as User {
+    +id
+    +username
+  }
+
+  class "Комната\nRoom" as Room {
+    +id
+    +kind=group
+  }
+
+  class "Сообщение\nMessage" as Message {
+    +id
+    +message_content
+  }
+}
+
+package "Групповые объекты" {
+  class "Ссылка-приглашение\nInviteLink" as Invite {
+    +code
+    +expires_at
+    +max_uses
+    +is_revoked
+  }
+
+  class "Заявка на вступление\nJoinRequest" as JoinRequest {
+    +status
+    +message
+  }
+
+  class "Закрепленное сообщение\nPinnedMessage" as Pinned {
+    +pinned_at
+  }
+}
+
+package "Аудит" {
+  class "Событие аудита\nAuditEvent" as Audit {
+    +action
+    +protocol
+    +status_code
+    +success
+  }
+}
+
+Room -[hidden]right-> Invite
+Invite -[hidden]down-> JoinRequest
+JoinRequest -[hidden]right-> Pinned
+Pinned -[hidden]right-> Audit
+
+Invite "*" --> "1" Room : приглашение в группу
+Invite "*" --> "0..1" User : создал
+
+JoinRequest "*" --> "1" Room : заявка в группу
+JoinRequest "*" --> "1" User : автор заявки
+JoinRequest "*" --> "0..1" Invite : пришла по ссылке
+JoinRequest "*" --> "0..1" User : проверил
+
+Pinned "*" --> "1" Room : закреплено в группе
+Pinned "*" --> "1" Message : какое сообщение
+Pinned "*" --> "0..1" User : закрепил
+
+Audit "*" --> "0..1" User : инициатор
+Audit ..> Room : room_id в metadata
+Audit ..> Message : message_id в metadata
+@enduml
