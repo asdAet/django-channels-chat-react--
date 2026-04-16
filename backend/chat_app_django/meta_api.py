@@ -22,6 +22,9 @@ def client_config_view(_request):
     """Возвращает runtime-конфигурацию, которую фронтенд читает при загрузке."""
 
     allow_any_type = bool(getattr(settings, "CHAT_ATTACHMENT_ALLOW_ANY_TYPE", True))
+    chat_target_regex = str(
+        getattr(settings, "CHAT_TARGET_REGEX", r"^[A-Za-z0-9_@-]{1,60}$") or ""
+    ).strip() or r"^[A-Za-z0-9_@-]{1,60}$"
     google_oauth_client_id = ""
     if google_oauth_redirect_is_configured():
         google_oauth_client_id = str(getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "") or "")
@@ -29,9 +32,7 @@ def client_config_view(_request):
         {
             "usernameMaxLength": int(getattr(settings, "USERNAME_MAX_LENGTH", 30)),
             "chatMessageMaxLength": int(getattr(settings, "CHAT_MESSAGE_MAX_LENGTH", 1000)),
-            "chatTargetRegex": str(
-                getattr(settings, "CHAT_TARGET_REGEX", r"^[A-Za-z0-9_@-]{1,60}$")
-            ),
+            "chatTargetRegex": chat_target_regex,
             "chatAttachmentMaxSizeMb": int(getattr(settings, "CHAT_ATTACHMENT_MAX_SIZE_MB", 10)),
             "chatAttachmentMaxPerMessage": int(
                 getattr(settings, "CHAT_ATTACHMENT_MAX_PER_MESSAGE", 10)

@@ -46,6 +46,18 @@ class ClientConfigApiTests(TestCase):
         payload = response.json()
         self.assertEqual(payload["googleOAuthClientId"], "")
 
+    @override_settings(
+        CHAT_TARGET_REGEX="",
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="google-client-secret",
+    )
+    def test_client_config_falls_back_to_default_chat_target_regex_when_blank(self):
+        response = self.client.get("/api/meta/client-config/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["chatTargetRegex"], r"^[A-Za-z0-9_@-]{1,60}$")
+        self.assertEqual(payload["googleOAuthClientId"], "google-client-id")
+
 
 class SiteVisitApiTests(TestCase):
     """Проверяет публичный telemetry-endpoint для visitor-событий."""
