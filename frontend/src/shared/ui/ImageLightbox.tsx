@@ -725,7 +725,10 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const handleViewportWheel = useCallback(
     (event: ReactWheelEvent<HTMLDivElement>) => {
       if (!event.ctrlKey) return;
-      event.preventDefault();
+      // Native wheel listeners on the overlay/document already run with
+      // `passive: false` and suppress browser page zoom for Ctrl+wheel and
+      // trackpad pinch gestures. Avoid a second `preventDefault()` through
+      // React's synthetic wheel event, which may be attached as passive.
       event.stopPropagation();
 
       const delta = event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
