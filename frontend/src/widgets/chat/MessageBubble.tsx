@@ -14,7 +14,10 @@ import type {
   ReplyTo,
 } from "../../entities/message/types";
 import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
-import { isVideoAttachment } from "../../shared/lib/attachmentMedia";
+import {
+  isVideoAttachment,
+  resolveResponsiveImageSource,
+} from "../../shared/lib/attachmentMedia";
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
 import { useDevice } from "../../shared/lib/device";
 import { formatTimestamp } from "../../shared/lib/format";
@@ -30,9 +33,7 @@ import {
 import styles from "../../styles/chat/MessageBubble.module.css";
 import {
   buildAttachmentRenderItems,
-  resolveImageAspectRatio,
-  resolveMediaGridVariant,
-  resolveMediaTilePlacement,
+  buildMediaTileLayout,
   splitAttachmentRenderItems,
 } from "./lib/attachmentLayout";
 
@@ -138,13 +139,6 @@ const isAudioType = (ct: string) => ct.startsWith("audio/");
 
 const normalizeActorRef = (value: string) =>
   normalizePublicRef(value).toLowerCase();
-const MEDIA_GRID_VARIANT_CLASS_MAP = {
-  single: styles.mediaGridSingle,
-  two: styles.mediaGridTwo,
-  three: styles.mediaGridThree,
-  four: styles.mediaGridFour,
-  many: styles.mediaGridMany,
-} as const;
 
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
@@ -547,7 +541,8 @@ export function MessageBubble({
           </svg>
         ),
         disabled: !onViewReaders,
-        onClick: () => onViewReaders?.(message, contextMenu ?? { x: 12, y: 12 }),
+        onClick: () =>
+          onViewReaders?.(message, contextMenu ?? { x: 12, y: 12 }),
       });
     }
 
@@ -719,9 +714,7 @@ export function MessageBubble({
           <div className={styles.bubble}>
             {showHeader && (
               <div className={styles.meta}>
-                <span className={styles.username}>
-                  {authorLabel}
-                </span>
+                <span className={styles.username}>{authorLabel}</span>
               </div>
             )}
 
@@ -738,60 +731,76 @@ export function MessageBubble({
             {!isDeleted && message.attachments.length > 0 && (
               <div className={styles.attachments}>
                 {attachmentBuckets.imageGroups.map((imageGroup, groupIndex) => {
-                  const mediaGridVariant = resolveMediaGridVariant(
-                    imageGroup.length,
-                  );
-                  const mediaGridVariantClass =
-                    MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
+                  const mediaLayout = buildMediaTileLayout(imageGroup);
+                  const isSingleTile = imageGroup.length === 1;
 
                   return (
                     <div
                       key={`media-group-${message.id}-${groupIndex}`}
-                      className={[styles.mediaGrid, mediaGridVariantClass]
-                        .filter(Boolean)
-                        .join(" ")}
+                      className={styles.mediaCollage}
                       data-testid="message-media-grid"
                       data-count={imageGroup.length}
+                      style={
+                        {
+                          aspectRatio:
+                            mediaLayout.containerAspectRatio.toFixed(4),
+                        } satisfies CSSProperties
+                      }
                     >
-                      {imageGroup.map(({ attachment, imageSrc }, index) => {
-                        const isSingleTile = imageGroup.length === 1;
-                        const tilePlacement = resolveMediaTilePlacement(
-                          imageGroup.length,
-                          index,
-                        );
-                        const tileStyle = isSingleTile
-                          ? ({
-                              aspectRatio:
-                                resolveImageAspectRatio(attachment).toString(),
-                            } satisfies CSSProperties)
-                          : tilePlacement.gridColumn
-                            ? ({
-                                gridColumn: tilePlacement.gridColumn,
-                              } satisfies CSSProperties)
-                            : undefined;
+                      {mediaLayout.items.map((item) => {
+                        const tileImageSource = resolveResponsiveImageSource({
+                          url: item.attachment.url,
+                          thumbnailUrl: item.attachment.thumbnailUrl,
+                          contentType: item.attachment.contentType,
+                          fileName: item.attachment.originalFilename,
+                          expectedWidthPx: (420 * item.widthPercent) / 100,
+                        });
 
                         return (
                           <button
-                            key={attachment.id}
+                            key={item.attachment.id}
                             type="button"
-                            className={styles.mediaTile}
+                            className={[
+                              styles.mediaTile,
+                              styles.mediaTileAbsolute,
+                              isSingleTile
+                                ? styles.mediaTileSingle
+                                : styles.mediaTileGrouped,
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
                             data-message-menu-ignore="true"
-                            style={tileStyle}
-                            onClick={() =>
-                              openLightboxByAttachmentId(attachment.id)
+                            style={
+                              {
+                                left: `${item.leftPercent.toFixed(4)}%`,
+                                top: `${item.topPercent.toFixed(4)}%`,
+                                width: `${item.widthPercent.toFixed(4)}%`,
+                                height: `${item.heightPercent.toFixed(4)}%`,
+                              } satisfies CSSProperties
                             }
-                            aria-label={`Открыть изображение ${attachment.originalFilename}`}
+                            onClick={() =>
+                              openLightboxByAttachmentId(item.attachment.id)
+                            }
+                            aria-label={`Открыть изображение ${item.attachment.originalFilename}`}
                           >
                             <img
-                              src={imageSrc}
-                              alt={attachment.originalFilename}
+                              src={tileImageSource.src ?? item.imageSrc}
+                              srcSet={tileImageSource.srcSet}
+                              sizes={tileImageSource.sizes}
+                              alt={item.attachment.originalFilename}
+                              width={item.attachment.width ?? undefined}
+                              height={item.attachment.height ?? undefined}
                               className={[
                                 styles.attachImage,
-                                isSingleTile ? styles.attachImageSingle : "",
+                                isSingleTile
+                                  ? styles.attachImageSingle
+                                  : styles.attachImageGrouped,
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
                               loading="lazy"
+                              decoding="async"
+                              draggable={false}
                             />
                           </button>
                         );
@@ -986,18 +995,12 @@ export function MessageBubble({
       {!onOpenMediaAttachment &&
         lightboxOpenIndex !== null &&
         lightboxMediaItems.length > 0 && (
-        <ImageLightbox
-          mediaItems={lightboxMediaItems}
-          initialIndex={lightboxOpenIndex}
-          onClose={() => setLightboxOpenIndex(null)}
-        />
+          <ImageLightbox
+            mediaItems={lightboxMediaItems}
+            initialIndex={lightboxOpenIndex}
+            onClose={() => setLightboxOpenIndex(null)}
+          />
         )}
     </>
   );
 }
-
-
-
-
-
-

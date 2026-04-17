@@ -94,3 +94,60 @@ export const resolveImagePreviewUrl = ({
   }
   return thumbnailUrl ?? url;
 };
+
+/**
+ * Описывает адаптивный набор атрибутов для тега изображения.
+ */
+export type ResponsiveImageSource = {
+  src: string | null;
+  srcSet?: string;
+  sizes?: string;
+};
+
+/**
+ * Подбирает источник изображения для chat media tile.
+ *
+ * Крупные плитки получают оригинальный файл, чтобы не выглядеть мыльно.
+ * Компактные плитки могут использовать thumbnail, но сохраняют `srcSet`,
+ * чтобы плотные экраны при необходимости забирали оригинал.
+ */
+export const resolveResponsiveImageSource = ({
+  url,
+  thumbnailUrl,
+  contentType,
+  fileName,
+  expectedWidthPx,
+}: {
+  url: string | null;
+  thumbnailUrl: string | null;
+  contentType: string | null | undefined;
+  fileName: string | null | undefined;
+  expectedWidthPx: number;
+}): ResponsiveImageSource => {
+  if (!url) {
+    return { src: null };
+  }
+
+  if (isSvgAttachment(contentType, fileName)) {
+    return { src: url };
+  }
+
+  if (!thumbnailUrl || thumbnailUrl === url) {
+    return { src: url };
+  }
+
+  const safeExpectedWidthPx = Math.max(96, Math.round(expectedWidthPx));
+
+  if (safeExpectedWidthPx >= 160) {
+    return {
+      src: url,
+      sizes: `${safeExpectedWidthPx}px`,
+    };
+  }
+
+  return {
+    src: thumbnailUrl,
+    srcSet: `${thumbnailUrl} 1x, ${url} 2x`,
+    sizes: `${safeExpectedWidthPx}px`,
+  };
+};

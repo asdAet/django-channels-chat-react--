@@ -310,6 +310,34 @@
   z-index: 1;
 }
 
+.mediaCollage {
+  position: relative;
+  width: clamp(220px, 58vw, 420px);
+  max-width: min(78vw, 420px);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(11, 17, 25, 0.8);
+  line-height: 0;
+}
+
+.mediaTileAbsolute {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+}
+
+.mediaTileSingle {
+  min-height: 0;
+}
+
+.mediaTileGrouped {
+  min-height: 0;
+}
+
+.attachImageGrouped {
+  object-fit: cover;
+}
+
 .fileAttachments {
   display: flex;
   flex-direction: column;
@@ -569,7 +597,6 @@
     max-width: 86%;
   }
 
-
   .mediaGrid {
     width: clamp(210px, 76vw, 340px);
     max-width: min(82vw, 340px);
@@ -667,7 +694,3 @@
     padding-inline: 6px;
   }
 }
-
-
-
-

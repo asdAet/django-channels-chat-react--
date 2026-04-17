@@ -2,7 +2,6 @@ import { useCallback, useState } from "react";
 
 import type { UserProfile } from "../../entities/user/types";
 import { formatFullName } from "../../shared/lib/format";
-import { formatPublicRef } from "../../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { EmptyState } from "../../shared/ui";
 import styles from "../../styles/pages/SettingsPage.module.css";
@@ -72,8 +71,6 @@ export function SettingsContent({
       user.name,
       (user as { last_name?: string | null }).last_name,
     ) || resolveIdentityLabel(user, "Без имени");
-  const publicRef = (user.publicRef || "").trim();
-
   return (
     <div
       className={[styles.root, compact ? styles.embeddedRoot : ""]
@@ -95,8 +92,6 @@ export function SettingsContent({
         <div className={styles.row}>
           <div>
             <div className={styles.rowLabel}>{fullName}</div>
-            #TODO: Сделать Отображение @username, если publicRef не пустой
-            {/* {publicRef && (<div className={styles.rowDesc}>{formatPublicRef(publicRef)}</div>)} */}
             <div className={styles.rowDesc}>{user.email}</div>
           </div>
           <button
