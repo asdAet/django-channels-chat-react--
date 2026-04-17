@@ -77,20 +77,13 @@ from users.identity import (
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
 GOOGLE_OAUTH_STATE_SESSION_KEY = "auth.google_oauth_state"
 GOOGLE_OAUTH_RETURN_TO_SESSION_KEY = "auth.google_oauth_return_to"
-UNAUTHORIZED_CHAT_MEDIA_FALLBACK_MEDIA_PATH = "avatars/image not found/image_not_found.svg"
+UNAUTHORIZED_CHAT_MEDIA_FALLBACK_MEDIA_PATH = "chat_media_fallbacks/image_not_found.svg"
 UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH = (
     Path(__file__).resolve().parent.parent
     / "users"
     / "static"
     / "users"
     / "media_fallbacks"
-    / "image_not_found.svg"
-)
-LEGACY_UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "media"
-    / "avatars"
-    / "image not found"
     / "image_not_found.svg"
 )
 
@@ -102,14 +95,8 @@ def _build_google_oauth_redirect_uri(request) -> str:
 
 def _resolve_unauthorized_chat_media_fallback_file() -> Path | None:
     """Возвращает физический SVG-файл, который используется как placeholder chat media."""
-    media_root = Path(str(getattr(settings, "MEDIA_ROOT", "") or "")).resolve()
-    media_root_candidate = media_root / "avatars" / "image not found" / "image_not_found.svg"
-    if media_root_candidate.exists():
-        return media_root_candidate
     if UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH.exists():
         return UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH
-    if LEGACY_UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH.exists():
-        return LEGACY_UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH
     return None
 
 
