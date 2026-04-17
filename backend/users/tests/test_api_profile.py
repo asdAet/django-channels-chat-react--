@@ -172,15 +172,6 @@ class ProfileApiTests(TestCase):
         self.assertEqual(payload["publicRef"], user_public_ref(self.user))
         self.assertEqual(payload["user"]["email"], "")
 
-    def test_public_resolve_user_uses_placeholder_avatar_for_guest(self):
-        response = self.client.get("/api/public/resolve/@profileuser/")
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        profile_image = str(payload["user"].get("profileImage") or "")
-        self.assertTrue(profile_image.endswith("/api/auth/media/avatars/image%20not%20found/image_not_found.svg"))
-        self.assertNotIn("sig=", profile_image)
-        self.assertNotIn("exp=", profile_image)
-
     @override_settings(DEBUG=True)
     def test_signed_media_endpoint_allows_valid_and_rejects_invalid_requests(self):
         self.user.profile.image = self._image_upload()
@@ -234,31 +225,6 @@ class ProfileApiTests(TestCase):
 
         response = self.client.get(compat_url)
         self.assertEqual(response.status_code, 200)
-
-    def test_signed_media_endpoint_returns_avatar_fallback_for_anonymous_unsigned_request(self):
-        self.user.profile.image = self._image_upload()
-        self.user.profile.save(update_fields=["image"])
-        stored_profile = Profile.objects.get(pk=self.user.profile.pk)
-
-        media_path = require_stored_file_name(
-            stored_profile.image,
-            field_name="profile.image",
-        )
-        unsigned_url = f"/api/auth/media/{quote(media_path, safe='/')}"
-
-        response = self.client.get(unsigned_url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.headers.get("Content-Type", "").split(";")[0],
-            "image/svg+xml",
-        )
-        payload = (
-            b"".join(response.streaming_content)
-            if getattr(response, "streaming", False)
-            else bytes(response.content)
-        )
-        self.assertIn(b"<svg", payload)
-        response.close()
 
     def test_profile_update_rejects_oversized_image(self):
         api_client = APIClient()
@@ -587,6 +553,35 @@ class AttachmentMediaAccessTests(TestCase):
         )
         response.close()
 
+    def test_attachment_image_media_returns_placeholder_without_access(self):
+        attachment = self._svg_attachment_for_room(self.direct_room, author=self.owner)
+        file_name = _attachment_file_name(attachment)
+
+        unauthenticated = self.client.get(
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(unauthenticated.status_code, 200)
+        self.assertEqual(
+            unauthenticated.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
+        unauthenticated_payload = self._read_response_content(unauthenticated)
+        self.assertIn(b"<svg", unauthenticated_payload)
+        unauthenticated.close()
+
+        self.client.force_login(self.outsider)
+        outsider = self.client.get(
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(outsider.status_code, 200)
+        self.assertEqual(
+            outsider.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
+        outsider_payload = self._read_response_content(outsider)
+        self.assertIn(b"<svg", outsider_payload)
+        outsider.close()
+
     def test_attachment_media_view_serves_png_thumbnail_with_image_content_type(self):
         attachment = self._attachment_with_png_thumbnail_for_room(self.direct_room, author=self.owner)
         self.client.force_login(self.owner)
@@ -810,9 +805,35 @@ class AttachmentMediaAccessTests(TestCase):
                         guest_response = guest_client.get(
                             f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
                         )
-                        self.assertEqual(guest_response.status_code, 404)
-
                         outsider_response = outsider_client.get(
                             f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
                         )
+
+                        expects_placeholder = (
+                            target_path.endswith(".png")
+                            or target_path.endswith(".jpg")
+                            or target_path.endswith(".jpeg")
+                            or target_path.endswith(".gif")
+                            or target_path.endswith(".webp")
+                            or target_path.endswith(".svg")
+                        )
+
+                        if expects_placeholder:
+                            self.assertEqual(guest_response.status_code, 200)
+                            self.assertEqual(
+                                guest_response.headers.get("Content-Type", "").split(";")[0],
+                                "image/svg+xml",
+                            )
+                            self.assertIn(b"<svg", self._read_response_content(guest_response))
+                            self.assertEqual(outsider_response.status_code, 200)
+                            self.assertEqual(
+                                outsider_response.headers.get("Content-Type", "").split(";")[0],
+                                "image/svg+xml",
+                            )
+                            self.assertIn(b"<svg", self._read_response_content(outsider_response))
+                            guest_response.close()
+                            outsider_response.close()
+                            continue
+
+                        self.assertEqual(guest_response.status_code, 404)
                         self.assertEqual(outsider_response.status_code, 404)

@@ -77,8 +77,8 @@ from users.identity import (
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
 GOOGLE_OAUTH_STATE_SESSION_KEY = "auth.google_oauth_state"
 GOOGLE_OAUTH_RETURN_TO_SESSION_KEY = "auth.google_oauth_return_to"
-UNAUTHORIZED_AVATAR_FALLBACK_MEDIA_PATH = "avatars/image not found/image_not_found.svg"
-UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH = (
+UNAUTHORIZED_CHAT_MEDIA_FALLBACK_MEDIA_PATH = "avatars/image not found/image_not_found.svg"
+UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH = (
     Path(__file__).resolve().parent.parent
     / "users"
     / "static"
@@ -86,7 +86,7 @@ UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH = (
     / "media_fallbacks"
     / "image_not_found.svg"
 )
-LEGACY_UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH = (
+LEGACY_UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH = (
     Path(__file__).resolve().parent.parent
     / "media"
     / "avatars"
@@ -100,54 +100,38 @@ def _build_google_oauth_redirect_uri(request) -> str:
     return request.build_absolute_uri("/api/auth/oauth/google/callback/")
 
 
-def _is_avatar_media_path(normalized_path: str) -> bool:
-    """Проверяет, относится ли media-путь к avatar-контенту."""
-    return normalized_path.startswith("avatars/")
-
-
-def _resolve_unauthorized_avatar_fallback_file() -> Path | None:
-    """Возвращает физический SVG-файл, который используется как avatar-fallback."""
+def _resolve_unauthorized_chat_media_fallback_file() -> Path | None:
+    """Возвращает физический SVG-файл, который используется как placeholder chat media."""
     media_root = Path(str(getattr(settings, "MEDIA_ROOT", "") or "")).resolve()
     media_root_candidate = media_root / "avatars" / "image not found" / "image_not_found.svg"
     if media_root_candidate.exists():
         return media_root_candidate
-    if UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH.exists():
-        return UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH
-    if LEGACY_UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH.exists():
-        return LEGACY_UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH
+    if UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH.exists():
+        return UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH
+    if LEGACY_UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH.exists():
+        return LEGACY_UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH
     return None
 
 
-def _build_unsigned_media_url(request, normalized_path: str) -> str:
-    """Собирает абсолютный или относительный URL к media без подписи."""
-    encoded_path = quote(normalized_path, safe="/")
-    path = f"/api/auth/media/{encoded_path}"
-    try:
-        return request.build_absolute_uri(path)
-    except Exception:
-        return path
-
-
-def _anonymous_avatar_fallback_response(request) -> FileResponse | HttpResponse | Response:
-    """Возвращает placeholder-avatar для анонимного запроса к avatar-media."""
-    fallback_file = _resolve_unauthorized_avatar_fallback_file()
+def _unauthorized_chat_media_fallback_response(request) -> FileResponse | HttpResponse | Response:
+    """Возвращает placeholder для image media из чатов при отсутствии доступа."""
+    fallback_file = _resolve_unauthorized_chat_media_fallback_file()
     if fallback_file is None:
         return Response({"error": "Не найдено"}, status=404)
     return _protected_media_response(
         request,
-        UNAUTHORIZED_AVATAR_FALLBACK_MEDIA_PATH,
+        UNAUTHORIZED_CHAT_MEDIA_FALLBACK_MEDIA_PATH,
         cache_control="public, max-age=60",
         preferred_content_type="image/svg+xml",
         file_path_override=fallback_file,
     )
 
 
-def _public_avatar_url_for_request(request, user) -> str | None:
-    """Возвращает avatar URL для публичного профиля с учетом режима гостя."""
-    viewer = getattr(request, "user", None)
-    if not getattr(viewer, "is_authenticated", False):
-        return _build_unsigned_media_url(request, UNAUTHORIZED_AVATAR_FALLBACK_MEDIA_PATH)
-    return resolve_user_avatar_url_from_request(request, user)
+def _is_chat_media_placeholder_candidate(normalized_path: str) -> bool:
+    """Проверяет, имеет ли смысл вернуть placeholder для chat media."""
+    if normalized_path.startswith("chat_thumbnails/"):
+        return True
+    return resolve_media_content_type(normalized_path).startswith("image/")
 
 
 def _sanitize_frontend_return_path(raw_value: object, *, fallback: str = "/login") -> str:
@@ -347,7 +331,6 @@ def _serialize_public_user(request, user):
         Результат вычислений, сформированный в ходе выполнения функции.
     """
     payload = _serialize_user(request, user)
-    payload["profileImage"] = _public_avatar_url_for_request(request, user)
     payload["email"] = ""
     return payload
 
@@ -689,10 +672,6 @@ def media_view(request, file_path: str):
     normalized_path = normalize_media_path(file_path)
     if not normalized_path:
         return Response({"error": "Не найдено"}, status=404)
-    is_anonymous_avatar_request = (
-        _is_avatar_media_path(normalized_path)
-        and not getattr(getattr(request, "user", None), "is_authenticated", False)
-    )
 
     if is_chat_attachment_media_path(normalized_path):
         if request.GET.get("exp") is not None or request.GET.get("sig") is not None:
@@ -705,6 +684,8 @@ def media_view(request, file_path: str):
                 user=getattr(request, "user", None),
             )
         except MediaAccessNotFoundError:
+            if _is_chat_media_placeholder_candidate(normalized_path):
+                return _unauthorized_chat_media_fallback_response(request)
             return Response({"error": "Не найдено"}, status=404)
 
         return _protected_media_response(
@@ -716,15 +697,9 @@ def media_view(request, file_path: str):
 
     exp_raw = request.GET.get("exp")
     signature = request.GET.get("sig")
-    should_fallback_to_avatar_placeholder = (
-        is_anonymous_avatar_request
-        and (not str(exp_raw or "").strip() or not str(signature or "").strip())
-    )
     try:
         expires_at = int(exp_raw)  
     except (TypeError, ValueError):
-        if should_fallback_to_avatar_placeholder:
-            return _anonymous_avatar_fallback_response(request)
         audit_http_event("media.signature.invalid", request, path=file_path, reason="invalid_exp")
         return Response({"error": "Доступ запрещен"}, status=403)
 
