@@ -80,6 +80,14 @@ GOOGLE_OAUTH_RETURN_TO_SESSION_KEY = "auth.google_oauth_return_to"
 UNAUTHORIZED_AVATAR_FALLBACK_MEDIA_PATH = "avatars/image not found/image_not_found.svg"
 UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH = (
     Path(__file__).resolve().parent.parent
+    / "users"
+    / "static"
+    / "users"
+    / "media_fallbacks"
+    / "image_not_found.svg"
+)
+LEGACY_UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH = (
+    Path(__file__).resolve().parent.parent
     / "media"
     / "avatars"
     / "image not found"
@@ -105,6 +113,8 @@ def _resolve_unauthorized_avatar_fallback_file() -> Path | None:
         return media_root_candidate
     if UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH.exists():
         return UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH
+    if LEGACY_UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH.exists():
+        return LEGACY_UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH
     return None
 
 
