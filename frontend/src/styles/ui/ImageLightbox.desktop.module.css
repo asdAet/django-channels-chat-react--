@@ -29,7 +29,10 @@
 }
 
 .desktopImageMediaTransform {
-  max-width: 62vw;
-  max-height: 62vh;
+  width: min(88vw, calc(100vw - 176px));
+  height: min(86vh, calc(100vh - 176px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  flex: 0 0 auto;
   transform-origin: center center;
 }
