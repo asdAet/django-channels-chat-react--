@@ -77,11 +77,49 @@ from users.identity import (
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
 GOOGLE_OAUTH_STATE_SESSION_KEY = "auth.google_oauth_state"
 GOOGLE_OAUTH_RETURN_TO_SESSION_KEY = "auth.google_oauth_return_to"
+UNAUTHORIZED_AVATAR_FALLBACK_MEDIA_PATH = "avatars/image not found/image_not_found.svg"
+UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "media"
+    / "avatars"
+    / "image not found"
+    / "image_not_found.svg"
+)
 
 
 def _build_google_oauth_redirect_uri(request) -> str:
     """Собирает абсолютный callback URL для server-side Google OAuth redirect."""
     return request.build_absolute_uri("/api/auth/oauth/google/callback/")
+
+
+def _is_avatar_media_path(normalized_path: str) -> bool:
+    """Проверяет, относится ли media-путь к avatar-контенту."""
+    return normalized_path.startswith("avatars/")
+
+
+def _resolve_unauthorized_avatar_fallback_file() -> Path | None:
+    """Возвращает физический SVG-файл, который используется как avatar-fallback."""
+    media_root = Path(str(getattr(settings, "MEDIA_ROOT", "") or "")).resolve()
+    media_root_candidate = media_root / "avatars" / "image not found" / "image_not_found.svg"
+    if media_root_candidate.exists():
+        return media_root_candidate
+    if UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH.exists():
+        return UNAUTHORIZED_AVATAR_FALLBACK_FILE_PATH
+    return None
+
+
+def _anonymous_avatar_fallback_response(request) -> FileResponse | Response:
+    """Возвращает placeholder-avatar для анонимного запроса к avatar-media."""
+    fallback_file = _resolve_unauthorized_avatar_fallback_file()
+    if fallback_file is None:
+        return Response({"error": "Не найдено"}, status=404)
+    return _protected_media_response(
+        request,
+        UNAUTHORIZED_AVATAR_FALLBACK_MEDIA_PATH,
+        cache_control="public, max-age=60",
+        preferred_content_type="image/svg+xml",
+        file_path_override=fallback_file,
+    )
 
 
 def _sanitize_frontend_return_path(raw_value: object, *, fallback: str = "/login") -> str:
@@ -622,6 +660,10 @@ def media_view(request, file_path: str):
     normalized_path = normalize_media_path(file_path)
     if not normalized_path:
         return Response({"error": "Не найдено"}, status=404)
+    is_anonymous_avatar_request = (
+        _is_avatar_media_path(normalized_path)
+        and not getattr(getattr(request, "user", None), "is_authenticated", False)
+    )
 
     if is_chat_attachment_media_path(normalized_path):
         if request.GET.get("exp") is not None or request.GET.get("sig") is not None:
@@ -645,9 +687,15 @@ def media_view(request, file_path: str):
 
     exp_raw = request.GET.get("exp")
     signature = request.GET.get("sig")
+    should_fallback_to_avatar_placeholder = (
+        is_anonymous_avatar_request
+        and (not str(exp_raw or "").strip() or not str(signature or "").strip())
+    )
     try:
         expires_at = int(exp_raw)  
     except (TypeError, ValueError):
+        if should_fallback_to_avatar_placeholder:
+            return _anonymous_avatar_fallback_response(request)
         audit_http_event("media.signature.invalid", request, path=file_path, reason="invalid_exp")
         return Response({"error": "Доступ запрещен"}, status=403)
 

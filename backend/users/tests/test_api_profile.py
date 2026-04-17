@@ -226,6 +226,31 @@ class ProfileApiTests(TestCase):
         response = self.client.get(compat_url)
         self.assertEqual(response.status_code, 200)
 
+    def test_signed_media_endpoint_returns_avatar_fallback_for_anonymous_unsigned_request(self):
+        self.user.profile.image = self._image_upload()
+        self.user.profile.save(update_fields=["image"])
+        stored_profile = Profile.objects.get(pk=self.user.profile.pk)
+
+        media_path = require_stored_file_name(
+            stored_profile.image,
+            field_name="profile.image",
+        )
+        unsigned_url = f"/api/auth/media/{quote(media_path, safe='/')}"
+
+        response = self.client.get(unsigned_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
+        payload = (
+            b"".join(response.streaming_content)
+            if getattr(response, "streaming", False)
+            else bytes(response.content)
+        )
+        self.assertIn(b"<svg", payload)
+        response.close()
+
     def test_profile_update_rejects_oversized_image(self):
         api_client = APIClient()
         api_client.force_authenticate(user=self.user)
