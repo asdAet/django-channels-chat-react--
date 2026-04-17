@@ -118,7 +118,17 @@ def _resolve_unauthorized_avatar_fallback_file() -> Path | None:
     return None
 
 
-def _anonymous_avatar_fallback_response(request) -> FileResponse | Response:
+def _build_unsigned_media_url(request, normalized_path: str) -> str:
+    """Собирает абсолютный или относительный URL к media без подписи."""
+    encoded_path = quote(normalized_path, safe="/")
+    path = f"/api/auth/media/{encoded_path}"
+    try:
+        return request.build_absolute_uri(path)
+    except Exception:
+        return path
+
+
+def _anonymous_avatar_fallback_response(request) -> FileResponse | HttpResponse | Response:
     """Возвращает placeholder-avatar для анонимного запроса к avatar-media."""
     fallback_file = _resolve_unauthorized_avatar_fallback_file()
     if fallback_file is None:
@@ -130,6 +140,14 @@ def _anonymous_avatar_fallback_response(request) -> FileResponse | Response:
         preferred_content_type="image/svg+xml",
         file_path_override=fallback_file,
     )
+
+
+def _public_avatar_url_for_request(request, user) -> str | None:
+    """Возвращает avatar URL для публичного профиля с учетом режима гостя."""
+    viewer = getattr(request, "user", None)
+    if not getattr(viewer, "is_authenticated", False):
+        return _build_unsigned_media_url(request, UNAUTHORIZED_AVATAR_FALLBACK_MEDIA_PATH)
+    return resolve_user_avatar_url_from_request(request, user)
 
 
 def _sanitize_frontend_return_path(raw_value: object, *, fallback: str = "/login") -> str:
@@ -329,6 +347,7 @@ def _serialize_public_user(request, user):
         Результат вычислений, сформированный в ходе выполнения функции.
     """
     payload = _serialize_user(request, user)
+    payload["profileImage"] = _public_avatar_url_for_request(request, user)
     payload["email"] = ""
     return payload
 

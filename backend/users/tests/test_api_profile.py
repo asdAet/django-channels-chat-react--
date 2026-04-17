@@ -172,6 +172,15 @@ class ProfileApiTests(TestCase):
         self.assertEqual(payload["publicRef"], user_public_ref(self.user))
         self.assertEqual(payload["user"]["email"], "")
 
+    def test_public_resolve_user_uses_placeholder_avatar_for_guest(self):
+        response = self.client.get("/api/public/resolve/@profileuser/")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        profile_image = str(payload["user"].get("profileImage") or "")
+        self.assertTrue(profile_image.endswith("/api/auth/media/avatars/image%20not%20found/image_not_found.svg"))
+        self.assertNotIn("sig=", profile_image)
+        self.assertNotIn("exp=", profile_image)
+
     @override_settings(DEBUG=True)
     def test_signed_media_endpoint_allows_valid_and_rejects_invalid_requests(self):
         self.user.profile.image = self._image_upload()
