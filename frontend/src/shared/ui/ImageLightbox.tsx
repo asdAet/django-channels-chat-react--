@@ -855,9 +855,9 @@ export function ImageLightbox(props: ImageLightboxProps) {
         const first = getTouchAt(event.touches, 0);
         const second = getTouchAt(event.touches, 1);
         if (!nextDistance || !first || !second) return;
-        if (event.cancelable) {
-          event.preventDefault();
-        }
+        // `touch-action: none` on the viewport already suppresses native
+        // browser scrolling/zooming for this gesture. Avoid `preventDefault()`
+        // here so React's passive touch listeners do not spam the console.
         const centerX = (first.clientX + second.clientX) / 2;
         const centerY = (first.clientY + second.clientY) / 2;
         const scale = nextDistance / pinchStateRef.current.distance;
@@ -877,9 +877,6 @@ export function ImageLightbox(props: ImageLightboxProps) {
       if (!gesture) return;
 
       if (gesture.mode === "pan") {
-        if (event.cancelable) {
-          event.preventDefault();
-        }
         if (
           Math.abs(touch.clientX - gesture.startClientX) > 4 ||
           Math.abs(touch.clientY - gesture.startClientY) > 4
@@ -916,10 +913,6 @@ export function ImageLightbox(props: ImageLightboxProps) {
 
       if (!isMobileLayout) {
         return;
-      }
-
-      if (event.cancelable) {
-        event.preventDefault();
       }
 
       if (gesture.axis === "horizontal") {
