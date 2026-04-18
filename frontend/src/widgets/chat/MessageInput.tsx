@@ -235,6 +235,30 @@ export function MessageInput({
   const hasQueuedFiles = pendingFiles.length > 0;
   const canSend = Boolean(draft.trim() || hasQueuedFiles);
 
+  /**
+   * Открывает системный picker через нативный API браузера, а при его
+   * отсутствии откатывается к безопасному `click()` по input.
+   */
+  const openFilePicker = useCallback(() => {
+    const input = fileInputRef.current;
+    if (!input || disabled || uploading || rateLimitActive) {
+      return;
+    }
+
+    if (typeof input.showPicker === "function") {
+      try {
+        input.showPicker();
+        return;
+      } catch {
+        // Safari и часть embedded-браузеров могут выбросить исключение,
+        // даже когда пользовательский жест уже есть. В этом случае
+        // оставляем стандартный fallback на click.
+      }
+    }
+
+    input.click();
+  }, [disabled, rateLimitActive, uploading]);
+
   const handlePaste = useCallback(
     (e: ClipboardEvent<HTMLTextAreaElement>) => {
       if (!onAttach || disabled || rateLimitActive || uploading) return;
@@ -415,7 +439,7 @@ export function MessageInput({
             <button
               type="button"
               className={styles.attachBtn}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={openFilePicker}
               aria-label="Прикрепить файл"
               data-testid="chat-attach-button"
               disabled={disabled || uploading || rateLimitActive}
