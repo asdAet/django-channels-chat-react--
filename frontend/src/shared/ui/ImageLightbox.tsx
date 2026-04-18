@@ -568,7 +568,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
 
   const beginClose = useCallback(() => {
     videoPlayerRef.current?.pausePlayback();
-    stopAllLightboxVideos();
+    stopAllLightboxVideos({ detachSource: true });
     closeActiveMenu();
     mobileTrackAnimationRef.current = null;
     mobileTrackOffsetRef.current = 0;

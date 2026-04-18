@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -25,6 +26,7 @@ import {
   type LightboxVideoPlayerViewProps,
 } from "./LightboxVideoPlayer.types";
 import {
+  LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE,
   claimActiveLightboxVideo,
   readLightboxVideoAudioState,
   registerLightboxVideo,
@@ -248,7 +250,7 @@ function LightboxVideoPlayerSession({
     );
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const video = videoRef.current;
     if (!video) {
       return;
@@ -595,6 +597,7 @@ function LightboxVideoPlayerSession({
         <video
           ref={videoRef}
           className={[mediaClassName, mediaStyles.mediaVideo].join(" ")}
+          {...{ [LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE]: "true" }}
           src={src}
           title={fileName}
           aria-label={fileName}

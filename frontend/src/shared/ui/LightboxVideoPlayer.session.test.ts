@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE,
   claimActiveLightboxVideo,
   registerLightboxVideo,
   stopAllLightboxVideos,
@@ -59,5 +60,21 @@ describe("LightboxVideoPlayer.session", () => {
 
     unregisterLightboxVideo(first.video);
     unregisterLightboxVideo(second.video);
+  });
+
+  it("stops lightbox videos discovered directly in the DOM even before registration", () => {
+    const first = createVideoDouble();
+    const second = createVideoDouble();
+    first.video.setAttribute(LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE, "true");
+    second.video.setAttribute(LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE, "true");
+    document.body.append(first.video, second.video);
+
+    stopAllLightboxVideos();
+
+    expect(first.pauseSpy).toHaveBeenCalledTimes(1);
+    expect(second.pauseSpy).toHaveBeenCalledTimes(1);
+
+    first.video.remove();
+    second.video.remove();
   });
 });

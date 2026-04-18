@@ -10,8 +10,37 @@ const DEFAULT_AUDIO_STATE: LightboxVideoAudioState = {
   muted: false,
 };
 
+export const LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE = "data-lightbox-video-player";
+
 let activeLightboxVideo: HTMLVideoElement | null = null;
 const registeredLightboxVideos = new Set<HTMLVideoElement>();
+
+const collectLiveLightboxVideos = (): HTMLVideoElement[] => {
+  if (typeof document === "undefined") {
+    return [];
+  }
+
+  return Array.from(
+    document.querySelectorAll<HTMLVideoElement>(
+      `video[${LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE}="true"]`,
+    ),
+  );
+};
+
+const collectKnownLightboxVideos = (
+  preferredVideo?: HTMLVideoElement,
+): HTMLVideoElement[] => {
+  const knownVideos = new Set<HTMLVideoElement>([
+    ...registeredLightboxVideos,
+    ...collectLiveLightboxVideos(),
+  ]);
+
+  if (preferredVideo) {
+    knownVideos.add(preferredVideo);
+  }
+
+  return Array.from(knownVideos);
+};
 
 const clampVolume = (value: unknown): number => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -90,13 +119,13 @@ export const unregisterLightboxVideo = (video: HTMLVideoElement): void => {
  * Гарантирует, что звук может воспроизводить только один активный lightbox-video.
  */
 export const claimActiveLightboxVideo = (video: HTMLVideoElement): void => {
-  for (const registeredVideo of registeredLightboxVideos) {
-    if (registeredVideo === video) {
+  for (const knownVideo of collectKnownLightboxVideos(video)) {
+    if (knownVideo === video) {
       continue;
     }
 
     try {
-      registeredVideo.pause();
+      knownVideo.pause();
     } catch {
       // Соседний stale-инстанс не должен пережить захват аудио новым player.
     }
@@ -148,7 +177,7 @@ export const stopLightboxVideoPlayback = (
 export const stopAllLightboxVideos = (
   options?: { detachSource?: boolean },
 ): void => {
-  for (const video of Array.from(registeredLightboxVideos)) {
+  for (const video of collectKnownLightboxVideos()) {
     stopLightboxVideoPlayback(video, options);
   }
 };
