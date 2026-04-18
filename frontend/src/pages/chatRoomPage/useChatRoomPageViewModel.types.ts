@@ -1,7 +1,6 @@
 import type { Message } from "../../entities/message/types";
 import type { RoomDetails } from "../../entities/room/types";
 import type { UserProfile } from "../../entities/user/types";
-import type { ImageLightboxMediaItem } from "../../shared/ui/ImageLightbox";
 import type { ReadersMenuEntry } from "../../widgets/chat/ReadersMenu";
 import type { ReadersMenuState } from "./types";
 import type {
@@ -81,10 +80,6 @@ export type UseChatRoomPageViewModelOptions = {
    */
   presenceStatus: string;
   /**
-   * Идентификатор вложения, открытого в lightbox.
-   */
-  lightboxAttachmentId: number | null;
-  /**
    * Состояние меню прочтений для текущего сообщения.
    */
   readersMenu: ReadersMenuState | null;
@@ -102,14 +97,6 @@ export type UseChatRoomPageViewModelResult = {
    * Таймлайн сообщений с днями и разделителем непрочитанных.
    */
   timeline: TimelineItem[];
-  /**
-   * Список медиа-элементов для lightbox.
-   */
-  lightboxMediaItems: ImageLightboxMediaItem[];
-  /**
-   * Индекс активного элемента lightbox или `-1`, если он закрыт.
-   */
-  lightboxOpenIndex: number;
   /**
    * Человекочитаемые имена пользователей, которые сейчас печатают.
    */

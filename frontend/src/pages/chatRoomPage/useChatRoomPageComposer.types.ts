@@ -1,6 +1,7 @@
 import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type { Message } from "../../entities/message/types";
 import type { UserProfile } from "../../entities/user/types";
+import type { ChatLightboxSession } from "./mediaLightbox";
 import type {
   JumpToMessageById,
   ReadersMenuState,
@@ -155,13 +156,13 @@ export type UseChatRoomPageComposerResult = {
    */
   joinInProgress: boolean;
   /**
-   * Идентификатор вложения, открытого в lightbox.
+   * Зафиксированная сессия открытого lightbox или `null`, если просмотр закрыт.
    */
-  lightboxAttachmentId: number | null;
+  lightboxSession: ChatLightboxSession | null;
   /**
-   * Setter активного вложения для lightbox.
+   * Setter текущей snapshot-сессии lightbox.
    */
-  setLightboxAttachmentId: (attachmentId: number | null) => void;
+  setLightboxSession: (nextSession: ChatLightboxSession | null) => void;
   /**
    * Отправка текущего текста или вложений.
    */

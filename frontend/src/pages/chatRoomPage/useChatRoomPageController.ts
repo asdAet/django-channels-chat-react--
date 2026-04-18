@@ -182,7 +182,6 @@ export function useChatRoomPageController({
     canJoinRoom,
     presenceOnline,
     presenceStatus,
-    lightboxAttachmentId: composer.lightboxAttachmentId,
     readersMenu: composer.readersMenu,
   });
 
@@ -257,8 +256,8 @@ export function useChatRoomPageController({
       uploadProgress: composer.uploadProgress,
       queuedFiles: composer.queuedFiles,
       joinInProgress: composer.joinInProgress,
-      lightboxAttachmentId: composer.lightboxAttachmentId,
-      setLightboxAttachmentId: composer.setLightboxAttachmentId,
+      lightboxSession: composer.lightboxSession,
+      setLightboxSession: composer.setLightboxSession,
       sendMessage: composer.sendMessage,
       handleReply: composer.handleReply,
       handleEdit: composer.handleEdit,

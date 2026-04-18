@@ -85,8 +85,8 @@ export function ChatRoomPageView({
     uploadProgress,
     queuedFiles,
     joinInProgress,
-    lightboxAttachmentId,
-    setLightboxAttachmentId,
+    lightboxSession,
+    setLightboxSession,
     sendMessage,
     handleReply,
     handleEdit,
@@ -115,8 +115,6 @@ export function ChatRoomPageView({
   const {
     onlineUsernames,
     timeline,
-    lightboxMediaItems,
-    lightboxOpenIndex,
     activeTypingUsers,
     roomTitle,
     roomSubtitle,
@@ -646,13 +644,11 @@ export function ChatRoomPageView({
         </div>
       )}
 
-      {lightboxAttachmentId !== null &&
-        lightboxOpenIndex >= 0 &&
-        lightboxMediaItems.length > 0 && (
+      {lightboxSession && lightboxSession.mediaItems.length > 0 && (
           <ImageLightbox
-            mediaItems={lightboxMediaItems}
-            initialIndex={lightboxOpenIndex}
-            onClose={() => setLightboxAttachmentId(null)}
+            mediaItems={lightboxSession.mediaItems}
+            initialIndex={lightboxSession.initialIndex}
+            onClose={() => setLightboxSession(null)}
           />
         )}
 

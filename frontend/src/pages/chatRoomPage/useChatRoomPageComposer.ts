@@ -7,6 +7,7 @@ import type { Message } from "../../entities/message/types";
 import { debugLog } from "../../shared/lib/debug";
 import { sanitizeText } from "../../shared/lib/sanitize";
 import { useGuardedModalState } from "../../shared/ui/useGuardedModalState";
+import { buildChatLightboxSession, type ChatLightboxSession } from "./mediaLightbox";
 import type {
   UseChatRoomPageComposerOptions,
   UseChatRoomPageComposerResult,
@@ -57,10 +58,10 @@ export function useChatRoomPageComposer({
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [joinInProgress, setJoinInProgress] = useState(false);
   const {
-    activeValue: lightboxAttachmentId,
-    requestOpen: requestOpenLightboxAttachment,
-    setActiveValue: setLightboxAttachmentId,
-  } = useGuardedModalState<number>();
+    activeValue: lightboxSession,
+    requestOpen: requestOpenLightboxSession,
+    setActiveValue: setLightboxSession,
+  } = useGuardedModalState<ChatLightboxSession>();
 
   const uploadAbortRef = useRef<AbortController | null>(null);
   const readersRequestSeqRef = useRef(0);
@@ -468,8 +469,13 @@ export function useChatRoomPageComposer({
   }, [refreshRoomPermissions, reload, roomIdForRequests, setRoomError, user]);
 
   const handleOpenMediaAttachment = useCallback((attachmentId: number) => {
-    requestOpenLightboxAttachment(attachmentId);
-  }, [requestOpenLightboxAttachment]);
+    const nextSession = buildChatLightboxSession(messages, attachmentId);
+    if (!nextSession) {
+      return;
+    }
+
+    requestOpenLightboxSession(nextSession);
+  }, [messages, requestOpenLightboxSession]);
 
   return {
     draft,
@@ -482,8 +488,8 @@ export function useChatRoomPageComposer({
     uploadProgress,
     queuedFiles,
     joinInProgress,
-    lightboxAttachmentId,
-    setLightboxAttachmentId,
+    lightboxSession,
+    setLightboxSession,
     sendMessage,
     handleReply,
     handleEdit,

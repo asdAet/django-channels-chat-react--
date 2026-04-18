@@ -645,6 +645,68 @@ describe("ChatRoomPage", () => {
     ).not.toBeNull();
   });
 
+  it("keeps an opened media lightbox stable across live chat rerenders", async () => {
+    chatRoomMock.messages = [
+      {
+        id: 41,
+        publicRef: "alice",
+        username: "alice",
+        content: "video",
+        profilePic: null,
+        createdAt: "2026-02-13T12:00:00.000Z",
+        editedAt: null,
+        isDeleted: false,
+        replyTo: null,
+        attachments: [
+          {
+            id: 501,
+            originalFilename: "clip.mp4",
+            contentType: "video/mp4",
+            fileSize: 4096,
+            url: "/media/clip.mp4",
+            thumbnailUrl: "/media/thumb-clip.mp4",
+            width: 720,
+            height: 1280,
+          },
+        ],
+        reactions: [],
+      },
+    ];
+
+    const { rerender } = render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Открыть видео clip\.mp4/i }),
+    );
+
+    await screen.findByTestId("lightbox-video-player-desktop");
+    expect(
+      screen.getAllByRole("dialog", { name: /Просмотр видео/i }),
+    ).toHaveLength(1);
+
+    chatRoomMock.messages = [];
+    rerender(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getAllByRole("dialog", { name: /Просмотр видео/i }),
+    ).toHaveLength(1);
+    expect(screen.getByTestId("lightbox-video-player-desktop")).toBeInTheDocument();
+  });
+
   it("groups consecutive messages from the same author", () => {
     chatRoomMock.messages = [
       makeForeignMessage(1, "first"),
