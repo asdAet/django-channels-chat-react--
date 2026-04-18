@@ -6,6 +6,7 @@ import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type { Message } from "../../entities/message/types";
 import { debugLog } from "../../shared/lib/debug";
 import { sanitizeText } from "../../shared/lib/sanitize";
+import { useGuardedModalState } from "../../shared/ui/useGuardedModalState";
 import type {
   UseChatRoomPageComposerOptions,
   UseChatRoomPageComposerResult,
@@ -55,9 +56,11 @@ export function useChatRoomPageComposer({
   );
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [joinInProgress, setJoinInProgress] = useState(false);
-  const [lightboxAttachmentId, setLightboxAttachmentId] = useState<
-    number | null
-  >(null);
+  const {
+    activeValue: lightboxAttachmentId,
+    requestOpen: requestOpenLightboxAttachment,
+    setActiveValue: setLightboxAttachmentId,
+  } = useGuardedModalState<number>();
 
   const uploadAbortRef = useRef<AbortController | null>(null);
   const readersRequestSeqRef = useRef(0);
@@ -465,8 +468,8 @@ export function useChatRoomPageComposer({
   }, [refreshRoomPermissions, reload, roomIdForRequests, setRoomError, user]);
 
   const handleOpenMediaAttachment = useCallback((attachmentId: number) => {
-    setLightboxAttachmentId(attachmentId);
-  }, []);
+    requestOpenLightboxAttachment(attachmentId);
+  }, [requestOpenLightboxAttachment]);
 
   return {
     draft,
