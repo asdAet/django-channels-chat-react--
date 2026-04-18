@@ -70,10 +70,12 @@ const installMockVideoState = (
 
 describe("LightboxVideoPlayer", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() =>
       Promise.resolve(),
     );
     vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -91,9 +93,7 @@ describe("LightboxVideoPlayer", () => {
     const videoState = installMockVideoState(video, { duration: 120 });
     fireEvent.loadedMetadata(video);
 
-    const progressRange = screen.getByRole("slider", {
-      name: /Позиция видео/i,
-    });
+    const [progressRange] = screen.getAllByRole("slider");
 
     fireEvent.pointerDown(progressRange);
     fireEvent.input(progressRange, { target: { value: "45.5" } });
@@ -125,9 +125,7 @@ describe("LightboxVideoPlayer", () => {
     const videoState = installMockVideoState(video, { duration: 39.734 });
     fireEvent.loadedMetadata(video);
 
-    const progressRange = screen.getByRole("slider", {
-      name: /Позиция видео/i,
-    });
+    const [progressRange] = screen.getAllByRole("slider");
 
     fireEvent.pointerDown(progressRange);
     fireEvent.input(progressRange, { target: { value: "9.3" } });
@@ -160,9 +158,7 @@ describe("LightboxVideoPlayer", () => {
     const videoState = installMockVideoState(video, { duration: 120 });
     fireEvent.loadedMetadata(video);
 
-    const progressRange = screen.getByRole("slider", {
-      name: /Позиция видео/i,
-    });
+    const [progressRange] = screen.getAllByRole("slider");
 
     fireEvent.focus(progressRange);
     fireEvent.input(progressRange, { target: { value: "61.2" } });
@@ -196,9 +192,7 @@ describe("LightboxVideoPlayer", () => {
 
     await screen.findByTestId("lightbox-video-player-desktop");
 
-    const speedButton = screen.getByRole("button", {
-      name: /Скорость воспроизведения/i,
-    });
+    const speedButton = screen.getByRole("button", { expanded: false });
 
     fireEvent.click(speedButton);
     expect(screen.getByRole("menu")).toBeInTheDocument();
@@ -218,5 +212,71 @@ describe("LightboxVideoPlayer", () => {
 
     fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("stops playback and detaches the video source on unmount", async () => {
+    const pauseSpy = vi.spyOn(HTMLMediaElement.prototype, "pause");
+    const loadSpy = vi.spyOn(HTMLMediaElement.prototype, "load");
+    const { container, unmount } = render(
+      <LightboxVideoPlayer {...baseProps} layout="desktop" />,
+    );
+
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const video = container.querySelector("video") as HTMLVideoElement;
+    installMockVideoState(video, { duration: 120 });
+    fireEvent.loadedMetadata(video);
+    fireEvent.play(video);
+
+    unmount();
+
+    expect(pauseSpy).toHaveBeenCalled();
+    expect(loadSpy).toHaveBeenCalled();
+    expect(video.getAttribute("src")).toBeNull();
+  });
+
+  it("restores the previously selected volume for the next opened video", async () => {
+    const firstRender = render(
+      <LightboxVideoPlayer {...baseProps} layout="desktop" />,
+    );
+
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const firstVideo = firstRender.container.querySelector(
+      "video",
+    ) as HTMLVideoElement;
+    const firstState = installMockVideoState(firstVideo, { duration: 120 });
+    fireEvent.loadedMetadata(firstVideo);
+
+    const [, firstVolumeRange] = screen.getAllByRole("slider");
+    fireEvent.input(firstVolumeRange, { target: { value: "0.35" } });
+
+    expect(firstState.volume).toBeCloseTo(0.35, 5);
+
+    firstRender.unmount();
+
+    const secondRender = render(
+      <LightboxVideoPlayer
+        {...baseProps}
+        src="/media/video-2.mp4"
+        fileName="video-2.mp4"
+        layout="desktop"
+      />,
+    );
+
+    await screen.findByTestId("lightbox-video-player-desktop");
+
+    const secondVideo = secondRender.container.querySelector(
+      "video",
+    ) as HTMLVideoElement;
+    const secondState = installMockVideoState(secondVideo, { duration: 120 });
+    fireEvent.loadedMetadata(secondVideo);
+
+    const [, secondVolumeRange] = screen.getAllByRole(
+      "slider",
+    ) as HTMLInputElement[];
+
+    expect(secondState.volume).toBeCloseTo(0.35, 5);
+    expect(secondVolumeRange.value).toBe("0.35");
   });
 });

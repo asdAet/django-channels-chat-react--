@@ -830,6 +830,10 @@ export function MessageBubble({
                               preload="metadata"
                               muted
                               playsInline
+                              tabIndex={-1}
+                              aria-hidden="true"
+                              disablePictureInPicture
+                              disableRemotePlayback
                               poster={att.thumbnailUrl ?? undefined}
                               className={styles.attachVideoPreview}
                               onLoadedMetadata={(event) =>

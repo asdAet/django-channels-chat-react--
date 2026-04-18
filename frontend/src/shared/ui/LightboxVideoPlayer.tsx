@@ -25,6 +25,13 @@ import {
   type LightboxVideoPlayerViewProps,
 } from "./LightboxVideoPlayer.types";
 import {
+  claimActiveLightboxVideo,
+  readLightboxVideoAudioState,
+  releaseActiveLightboxVideo,
+  stopLightboxVideoPlayback,
+  writeLightboxVideoAudioState,
+} from "./LightboxVideoPlayer.session";
+import {
   clampNumber,
   formatTime,
   stopPropagation,
@@ -137,6 +144,7 @@ function LightboxVideoPlayerSession({
 }: Props & { imperativeRef?: Ref<LightboxVideoPlayerHandle> }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const initialAudioStateRef = useRef(readLightboxVideoAudioState());
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
@@ -144,8 +152,8 @@ function LightboxVideoPlayerSession({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [seekDraftTime, setSeekDraftTime] = useState<number | null>(null);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(initialAudioStateRef.current.volume);
+  const [isMuted, setIsMuted] = useState(initialAudioStateRef.current.muted);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [internalActiveMenuId, setInternalActiveMenuId] =
     useState<LightboxDropdownMenuId | null>(null);
@@ -182,6 +190,21 @@ function LightboxVideoPlayerSession({
       );
     },
     [menuController],
+  );
+
+  const persistAudioState = useCallback(
+    (nextVolume: number, nextMuted: boolean) => {
+      const normalizedVolume = clampNumber(nextVolume, 0, 1);
+      initialAudioStateRef.current = {
+        volume: normalizedVolume,
+        muted: nextMuted,
+      };
+      writeLightboxVideoAudioState({
+        volume: normalizedVolume,
+        muted: nextMuted,
+      });
+    },
+    [],
   );
 
   useEffect(() => {
@@ -257,6 +280,27 @@ function LightboxVideoPlayerSession({
     };
   }, [src]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    video.volume = volume;
+    video.muted = isMuted || volume === 0;
+  }, [isMuted, volume]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    return () => {
+      if (!video) {
+        return;
+      }
+
+      stopLightboxVideoPlayback(video, { detachSource: true });
+    };
+  }, [src]);
+
   const handleTogglePlayback = useCallback(async () => {
     const video = videoRef.current;
     if (!video) {
@@ -282,6 +326,16 @@ function LightboxVideoPlayerSession({
     () => ({
       togglePlayback: () => {
         void handleTogglePlayback();
+      },
+      pausePlayback: () => {
+        const video = videoRef.current;
+        if (!video) {
+          return;
+        }
+
+        stopLightboxVideoPlayback(video);
+        setIsPlaying(false);
+        setIsControlsVisible(true);
       },
     }),
     [handleTogglePlayback],
@@ -432,19 +486,21 @@ function LightboxVideoPlayerSession({
     (nextValue: number) => {
       const video = videoRef.current;
       const clampedValue = clampNumber(nextValue, 0, 1);
+      const nextMuted = clampedValue === 0;
 
       markControlsActive();
       setVolume(clampedValue);
-      setIsMuted(clampedValue === 0);
+      setIsMuted(nextMuted);
+      persistAudioState(clampedValue, nextMuted);
 
       if (!video) {
         return;
       }
 
       video.volume = clampedValue;
-      video.muted = clampedValue === 0;
+      video.muted = nextMuted;
     },
-    [markControlsActive],
+    [markControlsActive, persistAudioState],
   );
 
   const handleToggleMute = useCallback(() => {
@@ -461,12 +517,14 @@ function LightboxVideoPlayerSession({
       video.volume = restoredVolume;
       setIsMuted(false);
       setVolume(restoredVolume);
+      persistAudioState(restoredVolume, false);
       return;
     }
 
     video.muted = true;
     setIsMuted(true);
-  }, [markControlsActive, volume]);
+    persistAudioState(volume, true);
+  }, [markControlsActive, persistAudioState, volume]);
 
   const handleSetPlaybackRate = useCallback(
     (nextRate: number) => {
@@ -539,16 +597,17 @@ function LightboxVideoPlayerSession({
           playsInline
           preload="metadata"
           autoPlay
+          muted={isMuted || volume === 0}
           tabIndex={-1}
           onLoadedMetadata={(event) => {
             const nextDuration = normalizePlaybackTime(event.currentTarget.duration);
+            event.currentTarget.volume = volume;
+            event.currentTarget.muted = isMuted || volume === 0;
             setDuration(nextDuration);
             clearSeekDraft();
             syncMeasuredCurrentTime(event.currentTarget.currentTime);
             setPlaybackRate(event.currentTarget.playbackRate || 1);
             setIsReady(true);
-            setVolume(event.currentTarget.volume);
-            setIsMuted(event.currentTarget.muted);
             syncPictureInPictureCapability();
           }}
           onTimeUpdate={(event) => {
@@ -562,11 +621,13 @@ function LightboxVideoPlayerSession({
               normalizePlaybackTime(event.currentTarget.duration),
             );
           }}
-          onPlay={() => {
+          onPlay={(event) => {
+            claimActiveLightboxVideo(event.currentTarget);
             setIsPlaying(true);
             markControlsActive();
           }}
-          onPause={() => {
+          onPause={(event) => {
+            releaseActiveLightboxVideo(event.currentTarget);
             setIsPlaying(false);
             setIsControlsVisible(true);
           }}
@@ -586,6 +647,10 @@ function LightboxVideoPlayerSession({
           onVolumeChange={(event) => {
             setVolume(event.currentTarget.volume);
             setIsMuted(event.currentTarget.muted);
+            persistAudioState(
+              event.currentTarget.volume,
+              event.currentTarget.muted,
+            );
           }}
           onCanPlay={syncPictureInPictureCapability}
           onLoadedData={syncPictureInPictureCapability}

@@ -12,6 +12,7 @@ export type LightboxVideoPlayerLayout = "desktop" | "mobile";
  */
 export type LightboxVideoPlayerHandle = {
   togglePlayback: () => void;
+  pausePlayback: () => void;
 };
 
 /**
