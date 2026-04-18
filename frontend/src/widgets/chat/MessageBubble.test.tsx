@@ -387,6 +387,42 @@ describe("MessageBubble", () => {
     expect(await screen.findByText(/1920x1080/i)).toBeInTheDocument();
   });
 
+  it("renders a static thumbnail instead of live inline video for video attachments", () => {
+    const message: Message = {
+      ...baseMessage,
+      attachments: [
+        {
+          id: 191,
+          originalFilename: "video.mp4",
+          contentType: "video/mp4",
+          fileSize: 5 * 1024 * 1024,
+          url: "/media/video.mp4",
+          thumbnailUrl: "/media/video-thumb.jpg",
+          width: 1920,
+          height: 1080,
+        },
+      ],
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /Открыть видео video\.mp4/i }),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        'button[aria-label="Открыть видео video.mp4"] img',
+      )?.tagName,
+    ).toBe("IMG");
+    expect(container.querySelector("video")).toBeNull();
+  });
+
   it("treats known video extensions as video preview even with generic content type", async () => {
     const message: Message = {
       ...baseMessage,

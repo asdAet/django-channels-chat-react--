@@ -400,6 +400,16 @@
   pointer-events: none;
 }
 
+.attachVideoPreviewFallback {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(25, 32, 51, 0.96), rgba(9, 14, 24, 0.98));
+  pointer-events: none;
+}
+
 .videoPreviewPlayIcon {
   position: absolute;
   left: 50%;
@@ -623,6 +633,10 @@
 
   .attachVideoPreview {
     max-height: 220px;
+  }
+
+  .attachVideoPreviewFallback {
+    min-height: 160px;
   }
 
   .fileAttachments {

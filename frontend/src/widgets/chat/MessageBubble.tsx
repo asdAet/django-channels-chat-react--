@@ -105,17 +105,6 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const formatMediaDuration = (totalSeconds: number): string => {
-  const seconds = Math.max(0, Math.floor(totalSeconds));
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainSeconds = seconds % 60;
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainSeconds).padStart(2, "0")}`;
-  }
-  return `${minutes}:${String(remainSeconds).padStart(2, "0")}`;
-};
-
 /**
  * Проверяет, относится ли MIME-тип к видео.
  * @param contentType MIME-тип вложения.
@@ -313,9 +302,6 @@ export function MessageBubble({
   const [lightboxOpenIndex, setLightboxOpenIndex] = useState<number | null>(
     null,
   );
-  const [videoDurations, setVideoDurations] = useState<Record<number, string>>(
-    {},
-  );
   const lastTouchTapTsRef = useRef<number>(0);
   const lastRightMouseDownTsRef = useRef<number>(0);
 
@@ -363,29 +349,6 @@ export function MessageBubble({
       height: attachment.height,
     }),
     [message.createdAt],
-  );
-
-  /**
-   * Запоминает длительность видео, чтобы отобразить ее на превью.
-   *
-   * @param attachmentId Идентификатор вложения.
-   * @param durationSeconds Длительность видео в секундах.
-   */
-  const rememberVideoDuration = useCallback(
-    (attachmentId: number, durationSeconds: number) => {
-      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return;
-      const nextDuration = formatMediaDuration(durationSeconds);
-      setVideoDurations((prev) => {
-        if (prev[attachmentId] === nextDuration) {
-          return prev;
-        }
-        return {
-          ...prev,
-          [attachmentId]: nextDuration,
-        };
-      });
-    },
-    [],
   );
 
   const handleContextMenu = useCallback(
@@ -816,6 +779,8 @@ export function MessageBubble({
                         isVideoType(att.contentType, att.originalFilename) &&
                         att.url
                       ) {
+                        const previewImageSource = att.thumbnailUrl;
+
                         return (
                           <button
                             key={att.id}
@@ -825,26 +790,24 @@ export function MessageBubble({
                             onClick={() => openLightboxByAttachmentId(att.id)}
                             aria-label={`Открыть видео ${att.originalFilename}`}
                           >
-                            <video
-                              src={att.url}
-                              preload="metadata"
-                              muted
-                              playsInline
-                              tabIndex={-1}
-                              aria-hidden="true"
-                              disablePictureInPicture
-                              disableRemotePlayback
-                              poster={att.thumbnailUrl ?? undefined}
-                              className={styles.attachVideoPreview}
-                              onLoadedMetadata={(event) =>
-                                rememberVideoDuration(
-                                  att.id,
-                                  event.currentTarget.duration,
-                                )
-                              }
-                            >
-                              <track kind="captions" />
-                            </video>
+                            {previewImageSource ? (
+                              <img
+                                src={previewImageSource}
+                                alt=""
+                                aria-hidden="true"
+                                className={styles.attachVideoPreview}
+                                draggable={false}
+                                loading="lazy"
+                                decoding="async"
+                                width={att.width ?? undefined}
+                                height={att.height ?? undefined}
+                              />
+                            ) : (
+                              <span
+                                className={styles.attachVideoPreviewFallback}
+                                aria-hidden="true"
+                              />
+                            )}
                             <span className={styles.videoPreviewPlayIcon}>
                               <svg
                                 width="24"
@@ -855,11 +818,6 @@ export function MessageBubble({
                                 <path d="M8 5v14l11-7z" />
                               </svg>
                             </span>
-                            {videoDurations[att.id] && (
-                              <span className={styles.videoPreviewDuration}>
-                                {videoDurations[att.id]}
-                              </span>
-                            )}
                           </button>
                         );
                       }
