@@ -27,8 +27,10 @@ import {
 import {
   claimActiveLightboxVideo,
   readLightboxVideoAudioState,
+  registerLightboxVideo,
   releaseActiveLightboxVideo,
   stopLightboxVideoPlayback,
+  unregisterLightboxVideo,
   writeLightboxVideoAudioState,
 } from "./LightboxVideoPlayer.session";
 import {
@@ -292,11 +294,13 @@ function LightboxVideoPlayerSession({
 
   useEffect(() => {
     const video = videoRef.current;
-    return () => {
-      if (!video) {
-        return;
-      }
+    if (!video) {
+      return;
+    }
 
+    registerLightboxVideo(video);
+    return () => {
+      unregisterLightboxVideo(video);
       stopLightboxVideoPlayback(video, { detachSource: true });
     };
   }, [src]);

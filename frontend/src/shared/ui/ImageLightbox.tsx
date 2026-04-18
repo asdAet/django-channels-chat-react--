@@ -47,6 +47,7 @@ import type {
   LightboxDropdownMenuId,
 } from "./lightboxControls/types";
 import { LightboxVideoPlayer } from "./LightboxVideoPlayer";
+import { stopAllLightboxVideos } from "./LightboxVideoPlayer.session";
 import type { LightboxVideoPlayerHandle } from "./LightboxVideoPlayer.types";
 
 export type {
@@ -567,6 +568,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
 
   const beginClose = useCallback(() => {
     videoPlayerRef.current?.pausePlayback();
+    stopAllLightboxVideos();
     closeActiveMenu();
     mobileTrackAnimationRef.current = null;
     mobileTrackOffsetRef.current = 0;
