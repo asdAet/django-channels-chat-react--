@@ -236,6 +236,65 @@ const createDomRect = ({
     toJSON: () => ({}),
   }) as DOMRect;
 
+const installMobileViewport = () => {
+  const originalMatchMedia = window.matchMedia;
+  const originalInnerWidth = window.innerWidth;
+  const originalInnerHeight = window.innerHeight;
+  const originalMaxTouchPoints = window.navigator.maxTouchPoints;
+
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: 390,
+  });
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: 844,
+  });
+  Object.defineProperty(window.navigator, "maxTouchPoints", {
+    configurable: true,
+    value: 1,
+  });
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches:
+        query.includes("pointer: coarse") ||
+        query.includes("any-pointer: coarse") ||
+        query.includes("hover: none"),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+
+  return () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: originalInnerWidth,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: originalInnerHeight,
+    });
+    Object.defineProperty(window.navigator, "maxTouchPoints", {
+      configurable: true,
+      value: originalMaxTouchPoints,
+    });
+    if (originalMatchMedia) {
+      Object.defineProperty(window, "matchMedia", {
+        configurable: true,
+        value: originalMatchMedia,
+      });
+      return;
+    }
+    Reflect.deleteProperty(window, "matchMedia");
+  };
+};
+
 /**
  * Создает сообщение от другого пользователя для проверки прав.
  * @param id Идентификатор сущности.
@@ -705,6 +764,66 @@ describe("ChatRoomPage", () => {
       screen.getAllByRole("dialog", { name: /Просмотр видео/i }),
     ).toHaveLength(1);
     expect(screen.getByTestId("lightbox-video-player-desktop")).toBeInTheDocument();
+  });
+
+  it("opens only one playable video in mobile lightbox flow", async () => {
+    const restoreViewport = installMobileViewport();
+    chatRoomMock.messages = [
+      {
+        id: 51,
+        publicRef: "alice",
+        username: "alice",
+        content: "video",
+        profilePic: null,
+        createdAt: "2026-02-13T12:00:00.000Z",
+        editedAt: null,
+        isDeleted: false,
+        replyTo: null,
+        attachments: [
+          {
+            id: 601,
+            originalFilename: "clip.mp4",
+            contentType: "video/mp4",
+            fileSize: 4096,
+            url: "/media/clip.mp4",
+            thumbnailUrl: "/media/thumb-clip.jpg",
+            width: 720,
+            height: 1280,
+          },
+          {
+            id: 602,
+            originalFilename: "clip-2.mp4",
+            contentType: "video/mp4",
+            fileSize: 4096,
+            url: "/media/clip-2.mp4",
+            thumbnailUrl: "/media/thumb-clip-2.jpg",
+            width: 720,
+            height: 1280,
+          },
+        ],
+        reactions: [],
+      },
+    ];
+
+    try {
+      const { container } = render(
+        <ChatRoomPage
+          roomId="1"
+          initialRoomKind="public"
+          user={user}
+          onNavigate={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: /clip\.mp4/i }),
+      );
+
+      await screen.findByTestId("image-lightbox-mobile-view");
+      expect(container.querySelectorAll("video")).toHaveLength(1);
+    } finally {
+      restoreViewport();
+    }
   });
 
   it("groups consecutive messages from the same author", () => {

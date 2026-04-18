@@ -68,6 +68,7 @@ export const buildChatLightboxMediaItems = (
       return [
         {
           src: attachment.url,
+          previewSrc: attachment.thumbnailUrl,
           kind: mediaKind,
           alt: attachment.originalFilename,
           metadata: {

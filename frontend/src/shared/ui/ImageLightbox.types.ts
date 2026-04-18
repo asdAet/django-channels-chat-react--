@@ -25,6 +25,7 @@ export type ImageLightboxMetadata = {
 
 export type ImageLightboxMediaItem = {
   src: string;
+  previewSrc?: string | null;
   kind: ImageLightboxMediaKind;
   alt?: string;
   metadata: ImageLightboxMetadata;
@@ -32,6 +33,7 @@ export type ImageLightboxMediaItem = {
 
 export type SingleMediaProps = {
   src: string;
+  previewSrc?: string | null;
   alt?: string;
   kind?: ImageLightboxMediaKind;
   metadata: ImageLightboxMetadata;

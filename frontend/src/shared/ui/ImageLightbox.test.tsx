@@ -32,6 +32,23 @@ const createMediaItem = (attachmentId: number, fileName: string) => ({
   },
 });
 
+const createVideoMediaItem = (
+  attachmentId: number,
+  fileName: string,
+  previewFileName = fileName.replace(/\.[^.]+$/, ".jpg"),
+) => ({
+  src: `/media/${fileName}`,
+  previewSrc: `/media/${previewFileName}`,
+  kind: "video" as const,
+  alt: fileName,
+  metadata: {
+    ...baseMetadata,
+    attachmentId,
+    fileName,
+    contentType: "video/mp4",
+  },
+});
+
 const installDeviceEnvironment = ({
   viewportWidth,
   viewportHeight = 720,
@@ -755,6 +772,32 @@ describe("ImageLightbox", () => {
     });
 
     expect(screen.getByText("two.png")).toBeInTheDocument();
+  });
+
+  it("renders only one playable video in the mobile deck and uses posters for neighbors", async () => {
+    installDeviceEnvironment({ viewportWidth: 390 });
+    const { container } = render(
+      <ImageLightbox
+        mediaItems={[
+          createVideoMediaItem(1, "one.mp4", "one-thumb.jpg"),
+          createVideoMediaItem(2, "two.mp4", "two-thumb.jpg"),
+          createVideoMediaItem(3, "three.mp4", "three-thumb.jpg"),
+        ]}
+        initialIndex={1}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitForMobileView();
+
+    const videos = container.querySelectorAll("video");
+    expect(videos).toHaveLength(1);
+    expect(
+      container.querySelector('img[src="/media/one-thumb.jpg"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('img[src="/media/three-thumb.jpg"]'),
+    ).not.toBeNull();
   });
 
   it("returns to the current mobile item when horizontal swipe is cancelled", async () => {

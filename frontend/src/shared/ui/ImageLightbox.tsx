@@ -229,6 +229,7 @@ const getTouchDistance = (
 
 const buildSingleItem = (props: SingleMediaProps): ImageLightboxMediaItem => ({
   src: props.src,
+  previewSrc: props.previewSrc,
   kind: props.kind ?? "image",
   alt: props.alt,
   metadata: props.metadata,
@@ -1371,25 +1372,34 @@ export function ImageLightbox(props: ImageLightboxProps) {
     [toggleZoomAtPoint],
   );
 
-  const renderMediaElement = useCallback(
-    (item: ImageLightboxMediaItem, isActive: boolean) => {
-      if (item.kind === "video") {
-        return (
-          <video
-            className={mediaStyles.media}
-            src={item.src}
-            controls={isActive}
-            playsInline
-            autoPlay={isActive}
-            muted={!isActive}
-            preload={isActive ? "metadata" : "none"}
-            tabIndex={isActive ? undefined : -1}
-          >
-            <track kind="captions" />
-          </video>
-        );
-      }
+  const renderMediaElement = useCallback((item: ImageLightboxMediaItem) => {
+    if (item.kind === "video") {
+      return (
+        <video
+          className={mediaStyles.media}
+          src={item.src}
+          controls
+          playsInline
+          autoPlay
+          preload="metadata"
+        >
+          <track kind="captions" />
+        </video>
+      );
+    }
 
+    return (
+      <img
+        className={mediaStyles.media}
+        src={item.src}
+        alt={item.alt ?? item.metadata.fileName}
+        draggable={false}
+      />
+    );
+  }, []);
+
+  const renderPreviewMediaPoster = useCallback((item: ImageLightboxMediaItem) => {
+    if (item.kind !== "video") {
       return (
         <img
           className={mediaStyles.media}
@@ -1398,9 +1408,29 @@ export function ImageLightbox(props: ImageLightboxProps) {
           draggable={false}
         />
       );
-    },
-    [],
-  );
+    }
+
+    if (item.previewSrc) {
+      return (
+        <img
+          className={mediaStyles.media}
+          src={item.previewSrc}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+        />
+      );
+    }
+
+    return (
+      <div
+        className={[mediaStyles.media, mediaStyles.videoPreviewFallback]
+          .filter(Boolean)
+          .join(" ")}
+        aria-hidden="true"
+      />
+    );
+  }, []);
 
   const buildTransformClassName = useCallback(
     (extraTransformClassName?: string) =>
@@ -1457,7 +1487,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
           ref={transformRef}
           onClick={handleImageClick}
         >
-          {renderMediaElement(item, true)}
+          {renderMediaElement(item)}
         </div>
       );
     },
@@ -1482,10 +1512,10 @@ export function ImageLightbox(props: ImageLightboxProps) {
         className={buildTransformClassName(extraTransformClassName)}
         style={{ transform: "translate3d(0px, 0px, 0) scale(1)" }}
       >
-        {renderMediaElement(item, false)}
+        {renderPreviewMediaPoster(item)}
       </div>
     ),
-    [buildTransformClassName, renderMediaElement],
+    [buildTransformClassName, renderPreviewMediaPoster],
   );
 
   const metadataLines = useMemo(() => {
