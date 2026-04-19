@@ -406,6 +406,26 @@ export function useChatRoomPageReadState({
     [clearPendingRead, persistPendingRead, readStateEnabled, roomApiRef],
   );
 
+  const isDirectRoomFullyRead = useCallback(
+    (lastReadMessageId: number) => {
+      if (!user || details?.kind !== "direct" || resolvedRoomId === null) {
+        return false;
+      }
+
+      for (let index = messagesRef.current.length - 1; index >= 0; index -= 1) {
+        const message = messagesRef.current[index];
+        if (isOwnMessage(message, currentActorRef)) {
+          continue;
+        }
+
+        return lastReadMessageId >= message.id;
+      }
+
+      return true;
+    },
+    [currentActorRef, details?.kind, resolvedRoomId, user],
+  );
+
   const scheduleMarkRead = useCallback(
     (lastReadMessageId: number | null | undefined) => {
       if (!readStateEnabled || !lastReadMessageId || lastReadMessageId < 1) {
@@ -518,23 +538,6 @@ export function useChatRoomPageReadState({
     },
     [applyViewportRead, persistPendingRead, sendMarkReadIfNeeded],
   );
-
-  function isDirectRoomFullyRead(lastReadMessageId: number) {
-    if (!user || details?.kind !== "direct" || resolvedRoomId === null) {
-      return false;
-    }
-
-    for (let index = messagesRef.current.length - 1; index >= 0; index -= 1) {
-      const message = messagesRef.current[index];
-      if (isOwnMessage(message, currentActorRef)) {
-        continue;
-      }
-
-      return lastReadMessageId >= message.id;
-    }
-
-    return true;
-  }
 
   const scheduleViewportReadSync = useCallback(() => {
     if (!readStateEnabled) {

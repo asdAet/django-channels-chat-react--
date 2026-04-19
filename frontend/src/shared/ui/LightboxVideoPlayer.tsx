@@ -159,7 +159,6 @@ function LightboxVideoPlayerSession({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playbackOwnerId = useId();
-  const initialAudioStateRef = useRef(readLightboxVideoAudioState());
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
@@ -167,10 +166,9 @@ function LightboxVideoPlayerSession({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [seekDraftTime, setSeekDraftTime] = useState<number | null>(null);
-  const [volume, setVolume] = useState(initialAudioStateRef.current.volume);
-  const [isMuted, setIsMuted] = useState(initialAudioStateRef.current.muted);
+  const [volume, setVolume] = useState(() => readLightboxVideoAudioState().volume);
+  const [isMuted, setIsMuted] = useState(() => readLightboxVideoAudioState().muted);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [isPlaybackArmed, setIsPlaybackArmed] = useState(false);
   const [isPlayerViewReady, setIsPlayerViewReady] = useState(false);
   const [mountedVideoElement, setMountedVideoElement] =
     useState<HTMLVideoElement | null>(null);
@@ -187,12 +185,22 @@ function LightboxVideoPlayerSession({
     () => isActiveLightboxPlaybackOwner(playbackOwnerId),
     () => false,
   );
-  const shouldRenderPlayableVideo =
-    isPlayerViewReady && isPlaybackArmed && isPlaybackOwner;
+  const shouldRenderPlayableVideo = isPlayerViewReady && isPlaybackOwner;
 
   const handleVideoElementRef = useCallback((node: HTMLVideoElement | null) => {
     videoRef.current = node;
     setMountedVideoElement(node);
+    if (node !== null) {
+      return;
+    }
+
+    setIsReady(false);
+    setIsPlaying(false);
+    setDuration(0);
+    setCurrentTime(0);
+    setSeekDraftTime(null);
+    setCanUsePictureInPicture(false);
+    setIsInPictureInPicture(false);
   }, []);
 
   const markControlsActive = useCallback(() => {
@@ -226,10 +234,6 @@ function LightboxVideoPlayerSession({
   const persistAudioState = useCallback(
     (nextVolume: number, nextMuted: boolean) => {
       const normalizedVolume = clampNumber(nextVolume, 0, 1);
-      initialAudioStateRef.current = {
-        volume: normalizedVolume,
-        muted: nextMuted,
-      };
       writeLightboxVideoAudioState({
         volume: normalizedVolume,
         muted: nextMuted,
@@ -251,20 +255,6 @@ function LightboxVideoPlayerSession({
       window.clearTimeout(timerId);
     };
   }, [controlsWakeToken, isAnyMenuOpen, isPlaying, isReady, layout]);
-
-  useEffect(() => {
-    if (shouldRenderPlayableVideo) {
-      return;
-    }
-
-    setIsReady(false);
-    setIsPlaying(false);
-    setDuration(0);
-    setCurrentTime(0);
-    setSeekDraftTime(null);
-    setCanUsePictureInPicture(false);
-    setIsInPictureInPicture(false);
-  }, [shouldRenderPlayableVideo]);
 
   const syncPictureInPictureCapability = useCallback(() => {
     if (typeof document === "undefined") {
@@ -337,10 +327,8 @@ function LightboxVideoPlayerSession({
 
   useLayoutEffect(() => {
     claimLightboxPlaybackOwner(playbackOwnerId);
-    setIsPlaybackArmed(true);
 
     return () => {
-      setIsPlaybackArmed(false);
       releaseLightboxPlaybackOwner(playbackOwnerId);
     };
   }, [playbackOwnerId, src]);

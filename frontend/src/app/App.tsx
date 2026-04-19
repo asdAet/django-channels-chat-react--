@@ -25,6 +25,10 @@ type SeoDescriptor = {
   robots: string;
 };
 
+type AuthRouteLocationState = {
+  oauthError?: string | null;
+};
+
 const DEFAULT_SEO: SeoDescriptor = {
   title: "Devils Resting — чат в реальном времени",
   description:
@@ -349,8 +353,24 @@ function AppInner() {
     [navigate],
   );
 
+  const isAuthRoute =
+    location.pathname === "/login" || location.pathname === "/register";
+  const authRouteState =
+    (location.state as AuthRouteLocationState | null) ?? null;
+  const routeOauthError = authRouteState?.oauthError ?? null;
+  const authError = error ?? routeOauthError;
+
+  const clearAuthRouteState = useCallback(() => {
+    if (!isAuthRoute || !routeOauthError) {
+      return;
+    }
+
+    navigate(location.pathname, { replace: true, state: null });
+  }, [isAuthRoute, location.pathname, navigate, routeOauthError]);
+
   const handleLogin = useCallback(
     async (identifier: string, password: string) => {
+      clearAuthRouteState();
       setError(null);
       try {
         await login({ identifier, password });
@@ -361,7 +381,7 @@ function AppInner() {
         setError(extractAuthMessage(err, "Неверный логин или пароль"));
       }
     },
-    [login, onNavigate],
+    [clearAuthRouteState, login, onNavigate],
   );
 
   const handleRegister = useCallback(
@@ -373,6 +393,7 @@ function AppInner() {
       username?: string;
       email?: string;
     }) => {
+      clearAuthRouteState();
       setError(null);
       try {
         await register({
@@ -387,7 +408,7 @@ function AppInner() {
         setError(extractAuthMessage(err, "Проверьте данные регистрации"));
       }
     },
-    [onNavigate, register],
+    [clearAuthRouteState, onNavigate, register],
   );
 
   const isGoogleOAuthConfigured = Boolean(
@@ -401,9 +422,15 @@ function AppInner() {
     if (!runtimeConfig.googleOAuthClientId.trim()) {
       return;
     }
+    clearAuthRouteState();
     setError(null);
     startGoogleAuthRedirect(`${location.pathname}${location.search}`);
-  }, [location.pathname, location.search, runtimeConfig.googleOAuthClientId]);
+  }, [
+    clearAuthRouteState,
+    location.pathname,
+    location.search,
+    runtimeConfig.googleOAuthClientId,
+  ]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -466,9 +493,6 @@ function AppInner() {
     [auth.user, onNavigate, updateProfile],
   );
 
-  const isAuthRoute =
-    location.pathname === "/login" || location.pathname === "/register";
-
   useEffect(() => {
     if (!isAuthRoute) {
       return;
@@ -480,16 +504,18 @@ function AppInner() {
       return;
     }
 
-    setError(oauthError);
-    navigate(location.pathname, { replace: true });
-  }, [isAuthRoute, location.pathname, location.search, navigate]);
+    navigate(location.pathname, {
+      replace: true,
+      state: { ...(authRouteState ?? {}), oauthError },
+    });
+  }, [authRouteState, isAuthRoute, location.pathname, location.search, navigate]);
 
   const realtimeProvidersReady = !auth.loading && !isAuthRoute;
 
   const routesElement = (
       <AppRoutes
         user={auth.user}
-        error={error}
+        error={authError}
         passwordRules={passwordRules}
         googleAuthDisabledReason={googleAuthDisabledReason}
         onNavigate={onNavigate}
@@ -514,7 +540,7 @@ function AppInner() {
               onNavigate={onNavigate}
               onLogout={handleLogout}
               banner={banner}
-              error={error}
+              error={authError}
               isAuthRoute={isAuthRoute}
             >
               {routesElement}

@@ -34,6 +34,7 @@ export function GoogleIdentityButton({
 }: GoogleIdentityButtonProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
+  const isButtonVisible = ready && !disabled && clientId.trim().length > 0;
   const handleSuccess = useEffectEvent((payload: GoogleOAuthSuccess) => {
     void onSuccess(payload);
   });
@@ -45,12 +46,11 @@ export function GoogleIdentityButton({
     const container = containerRef.current;
     const normalizedClientId = clientId.trim();
     if (!container || disabled || !normalizedClientId) {
-      setReady(false);
+      container?.replaceChildren();
       return;
     }
 
     let cancelled = false;
-    setReady(false);
 
     void renderGoogleSignInButton({
       clientId: normalizedClientId,
@@ -96,7 +96,7 @@ export function GoogleIdentityButton({
     <div
       ref={containerRef}
       data-testid="auth-google-button-native"
-      aria-hidden={!ready}
+      aria-hidden={!isButtonVisible}
     />
   );
 }
