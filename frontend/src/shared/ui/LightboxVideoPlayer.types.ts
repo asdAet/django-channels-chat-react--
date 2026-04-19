@@ -57,6 +57,8 @@ export type PlaybackRateOption = {
  * @property onRequestFullscreen Переводит плеер в полноэкранный режим.
  * @property onControlsInteraction Продлевает жизнь controls при взаимодействии с ними.
  * @property onSurfaceInteraction Реагирует на жесты и указатель по медиаповерхности.
+ * @property onViewReady Сообщает родительской сессии, что player-shell уже смонтирован
+ *   и можно безопасно передавать ему реальный playback-элемент.
  */
 export type LightboxVideoPlayerViewProps = {
   rootRef: RefObject<HTMLDivElement | null>;
@@ -89,4 +91,5 @@ export type LightboxVideoPlayerViewProps = {
   onRequestFullscreen: () => void;
   onControlsInteraction: (event: SyntheticEvent<HTMLElement>) => void;
   onSurfaceInteraction: () => void;
+  onViewReady: () => void;
 };

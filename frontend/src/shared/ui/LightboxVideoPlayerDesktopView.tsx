@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import variantStyles from "../../styles/ui/LightboxVideoPlayer.desktop.module.css";
 import desktopControlsStyles from "../../styles/ui/LightboxVideoPlayer.desktop-controls.module.css";
@@ -56,6 +56,7 @@ export default function LightboxVideoPlayerDesktopView({
   onRequestFullscreen,
   onControlsInteraction,
   onSurfaceInteraction,
+  onViewReady,
 }: LightboxVideoPlayerViewProps) {
   const menuWrapRef = useRef<HTMLDivElement | null>(null);
   const isRateMenuOpen = activeMenuId === "speed";
@@ -74,8 +75,12 @@ export default function LightboxVideoPlayerDesktopView({
       onSelect: () => {
         onSetPlaybackRate(option.value);
       },
-    }),
+      }),
   );
+
+  useLayoutEffect(() => {
+    onViewReady();
+  }, [onViewReady]);
 
   return (
     <div

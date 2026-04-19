@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -790,8 +791,9 @@ describe("ImageLightbox", () => {
 
     await waitForMobileView();
 
-    const videos = container.querySelectorAll("video");
-    expect(videos).toHaveLength(1);
+    await waitFor(() => {
+      expect(container.querySelectorAll("video")).toHaveLength(1);
+    });
     expect(
       container.querySelector('img[src="/media/one-thumb.jpg"]'),
     ).not.toBeNull();

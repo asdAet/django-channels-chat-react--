@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import variantStyles from "../../styles/ui/LightboxVideoPlayer.mobile.module.css";
 import mobileControlsStyles from "../../styles/ui/LightboxVideoPlayer.mobile-controls.module.css";
@@ -52,6 +52,7 @@ export default function LightboxVideoPlayerMobileView({
   onRequestFullscreen,
   onControlsInteraction,
   onSurfaceInteraction,
+  onViewReady,
 }: LightboxVideoPlayerViewProps) {
   const menuWrapRef = useRef<HTMLDivElement | null>(null);
   const isRateMenuOpen = activeMenuId === "speed";
@@ -70,8 +71,12 @@ export default function LightboxVideoPlayerMobileView({
       onSelect: () => {
         onSetPlaybackRate(option.value);
       },
-    }),
+      }),
   );
+
+  useLayoutEffect(() => {
+    onViewReady();
+  }, [onViewReady]);
 
   return (
     <div
