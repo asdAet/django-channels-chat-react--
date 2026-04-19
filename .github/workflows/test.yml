@@ -131,7 +131,7 @@ jobs:
       - backend-tests
       - frontend-unit
       - e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/stage')
     steps:
       - name: Deploy to production server
         uses: appleboy/ssh-action@v1.2.0
@@ -143,14 +143,15 @@ jobs:
           script_stop: true
           script: |
             set -e
+            BRANCH_NAME="${{ github.ref_name }}"
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
             if [ -z "$DEPLOY_PATH" ]; then
               DEPLOY_PATH="/opt/devils-resting"
             fi
             cd "$DEPLOY_PATH"
             git fetch --all --prune
-            git checkout main
-            git reset --hard origin/main
+            git checkout "$BRANCH_NAME"
+            git reset --hard "origin/$BRANCH_NAME"
             if docker compose version >/dev/null 2>&1; then
               compose() { docker compose "$@"; }
             elif command -v docker-compose >/dev/null 2>&1; then
