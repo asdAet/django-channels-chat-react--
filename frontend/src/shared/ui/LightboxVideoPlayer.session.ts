@@ -14,6 +14,8 @@ export const LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE = "data-lightbox-video-player";
 
 let activeLightboxVideo: HTMLVideoElement | null = null;
 const registeredLightboxVideos = new Set<HTMLVideoElement>();
+let activeLightboxPlaybackOwnerId: string | null = null;
+const playbackOwnerListeners = new Set<() => void>();
 
 const collectLiveLightboxVideos = (): HTMLVideoElement[] => {
   if (typeof document === "undefined") {
@@ -56,6 +58,12 @@ const normalizeAudioState = (
   volume: clampVolume(value?.volume),
   muted: Boolean(value?.muted),
 });
+
+const notifyPlaybackOwnerListeners = (): void => {
+  for (const listener of playbackOwnerListeners) {
+    listener();
+  }
+};
 
 /**
  * Читает последнее сохраненное состояние громкости lightbox-видео.
@@ -113,6 +121,57 @@ export const registerLightboxVideo = (video: HTMLVideoElement): void => {
 export const unregisterLightboxVideo = (video: HTMLVideoElement): void => {
   registeredLightboxVideos.delete(video);
   releaseActiveLightboxVideo(video);
+};
+
+/**
+ * Подписывает UI на смену владельца активного lightbox-playback.
+ *
+ * В каждый момент времени только один lightbox-video player может быть
+ * владельцем реального `<video>`-элемента. Остальные экземпляры должны
+ * оставаться poster-only preview и не запускать декодер/звук.
+ */
+export const subscribeLightboxPlaybackOwner = (
+  listener: () => void,
+): (() => void) => {
+  playbackOwnerListeners.add(listener);
+  return () => {
+    playbackOwnerListeners.delete(listener);
+  };
+};
+
+/**
+ * Проверяет, принадлежит ли playback-конвейер указанному owner.
+ */
+export const isActiveLightboxPlaybackOwner = (ownerId: string): boolean =>
+  activeLightboxPlaybackOwnerId === ownerId;
+
+/**
+ * Передает право владения реальным video-player новому owner.
+ *
+ * Перед захватом останавливает все уже известные lightbox-видео, чтобы
+ * даже при ошибочном двойном mount в DOM не оставалось второго звучащего
+ * playback-инстанса.
+ */
+export const claimLightboxPlaybackOwner = (ownerId: string): void => {
+  if (activeLightboxPlaybackOwnerId === ownerId) {
+    return;
+  }
+
+  stopAllLightboxVideos({ detachSource: true });
+  activeLightboxPlaybackOwnerId = ownerId;
+  notifyPlaybackOwnerListeners();
+};
+
+/**
+ * Освобождает владельца playback, если закрывается именно он.
+ */
+export const releaseLightboxPlaybackOwner = (ownerId: string): void => {
+  if (activeLightboxPlaybackOwnerId !== ownerId) {
+    return;
+  }
+
+  activeLightboxPlaybackOwnerId = null;
+  notifyPlaybackOwnerListeners();
 };
 
 /**

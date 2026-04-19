@@ -1372,22 +1372,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
     [toggleZoomAtPoint],
   );
 
-  const renderMediaElement = useCallback((item: ImageLightboxMediaItem) => {
-    if (item.kind === "video") {
-      return (
-        <video
-          className={mediaStyles.media}
-          src={item.src}
-          controls
-          playsInline
-          autoPlay
-          preload="metadata"
-        >
-          <track kind="captions" />
-        </video>
-      );
-    }
-
+  const renderImageElement = useCallback((item: ImageLightboxMediaItem) => {
     return (
       <img
         className={mediaStyles.media}
@@ -1400,14 +1385,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
 
   const renderPreviewMediaPoster = useCallback((item: ImageLightboxMediaItem) => {
     if (item.kind !== "video") {
-      return (
-        <img
-          className={mediaStyles.media}
-          src={item.src}
-          alt={item.alt ?? item.metadata.fileName}
-          draggable={false}
-        />
-      );
+      return renderImageElement(item);
     }
 
     if (item.previewSrc) {
@@ -1430,7 +1408,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
         aria-hidden="true"
       />
     );
-  }, []);
+  }, [renderImageElement]);
 
   const buildTransformClassName = useCallback(
     (extraTransformClassName?: string) =>
@@ -1466,6 +1444,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
           <LightboxVideoPlayer
             ref={videoPlayerRef}
             src={item.src}
+            posterSrc={item.previewSrc}
             fileName={item.metadata.fileName}
             mediaClassName={mediaStyles.media}
             mediaTransformClassName={transformClassName}
@@ -1487,7 +1466,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
           ref={transformRef}
           onClick={handleImageClick}
         >
-          {renderMediaElement(item)}
+          {renderImageElement(item)}
         </div>
       );
     },
@@ -1499,7 +1478,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
       isMediaFullscreen,
       isMobileLayout,
       menuController,
-      renderMediaElement,
+      renderImageElement,
     ],
   );
 

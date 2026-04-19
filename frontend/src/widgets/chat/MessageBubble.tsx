@@ -36,6 +36,7 @@ import {
   buildMediaTileLayout,
   splitAttachmentRenderItems,
 } from "./lib/attachmentLayout";
+import { VideoAttachmentPreview } from "./VideoAttachmentPreview";
 
 /**
  * Описывает входные props компонента `Props`.
@@ -781,46 +782,13 @@ export function MessageBubble({
                         isVideoType(att.contentType, att.originalFilename) &&
                         att.url
                       ) {
-                        const previewImageSource = att.thumbnailUrl;
 
                         return (
-                          <button
+                          <VideoAttachmentPreview
                             key={att.id}
-                            type="button"
-                            className={styles.videoPreviewTile}
-                            data-message-menu-ignore="true"
-                            onClick={() => openLightboxByAttachmentId(att.id)}
-                            aria-label={`Открыть видео ${att.originalFilename}`}
-                          >
-                            {previewImageSource ? (
-                              <img
-                                src={previewImageSource}
-                                alt=""
-                                aria-hidden="true"
-                                className={styles.attachVideoPreview}
-                                draggable={false}
-                                loading="lazy"
-                                decoding="async"
-                                width={att.width ?? undefined}
-                                height={att.height ?? undefined}
-                              />
-                            ) : (
-                              <span
-                                className={styles.attachVideoPreviewFallback}
-                                aria-hidden="true"
-                              />
-                            )}
-                            <span className={styles.videoPreviewPlayIcon}>
-                              <svg
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                              >
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </span>
-                          </button>
+                            attachment={att}
+                            onOpen={() => openLightboxByAttachmentId(att.id)}
+                          />
                         );
                       }
                       if (isAudioType(att.contentType) && att.url) {

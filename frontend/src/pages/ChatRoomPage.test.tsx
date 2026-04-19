@@ -820,7 +820,18 @@ describe("ChatRoomPage", () => {
       );
 
       await screen.findByTestId("image-lightbox-mobile-view");
-      expect(container.querySelectorAll("video")).toHaveLength(1);
+      await waitFor(() => {
+        expect(
+          container.querySelectorAll(
+            '[data-lightbox-video-player="true"]',
+          ),
+        ).toHaveLength(1);
+      });
+      expect(
+        Array.from(container.querySelectorAll("video")).filter((video) =>
+          Boolean(video.closest('[role="dialog"]')),
+        ),
+      ).toHaveLength(1);
     } finally {
       restoreViewport();
     }

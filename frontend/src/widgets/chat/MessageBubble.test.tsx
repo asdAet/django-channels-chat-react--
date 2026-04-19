@@ -387,7 +387,7 @@ describe("MessageBubble", () => {
     expect(await screen.findByText(/1920x1080/i)).toBeInTheDocument();
   });
 
-  it("renders a static thumbnail instead of live inline video for video attachments", () => {
+  it.skip("renders inline video preview with duration badge for video attachments", () => {
     const message: Message = {
       ...baseMessage,
       attachments: [
@@ -419,8 +419,58 @@ describe("MessageBubble", () => {
       container.querySelector(
         'button[aria-label="Открыть видео video.mp4"] img',
       )?.tagName,
-    ).toBe("IMG");
-    expect(container.querySelector("video")).toBeNull();
+    ).toBe("VIDEO");
+  });
+
+  it("renders working inline video preview with a bottom-right duration badge", () => {
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+
+    const message: Message = {
+      ...baseMessage,
+      attachments: [
+        {
+          id: 291,
+          originalFilename: "preview-video.mp4",
+          contentType: "video/mp4",
+          fileSize: 5 * 1024 * 1024,
+          url: "/media/preview-video.mp4",
+          thumbnailUrl: "/media/preview-video-thumb.jpg",
+          width: 1920,
+          height: 1080,
+        },
+      ],
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const previewButton = screen.getByRole("button", {
+      name: /preview-video\.mp4/i,
+    });
+    const previewVideo = container.querySelector(
+      'button[aria-label="Открыть видео preview-video.mp4"] video',
+    ) as HTMLVideoElement | null;
+
+    expect(previewButton).toBeInTheDocument();
+    expect(previewVideo?.tagName).toBe("VIDEO");
+    expect(previewVideo?.muted).toBe(true);
+
+    if (!previewVideo) {
+      throw new Error("Expected inline video preview");
+    }
+
+    Object.defineProperty(previewVideo, "duration", {
+      configurable: true,
+      get: () => 95,
+    });
+    fireEvent.loadedMetadata(previewVideo);
+
+    expect(screen.getByText("01:35")).toBeInTheDocument();
   });
 
   it("treats known video extensions as video preview even with generic content type", async () => {

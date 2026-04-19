@@ -1,6 +1,7 @@
 import {
   type CSSProperties,
   forwardRef,
+  useId,
   lazy,
   type Ref,
   Suspense,
@@ -11,6 +12,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import mediaStyles from "../../styles/ui/LightboxVideoPlayer.media.module.css";
@@ -27,9 +29,13 @@ import {
 } from "./LightboxVideoPlayer.types";
 import {
   LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE,
+  claimLightboxPlaybackOwner,
   claimActiveLightboxVideo,
+  isActiveLightboxPlaybackOwner,
   readLightboxVideoAudioState,
+  releaseLightboxPlaybackOwner,
   registerLightboxVideo,
+  subscribeLightboxPlaybackOwner,
   releaseActiveLightboxVideo,
   stopLightboxVideoPlayback,
   unregisterLightboxVideo,
@@ -62,6 +68,7 @@ const clampSeekTime = (value: number, nextDuration: number) => {
 
 type Props = {
   src: string;
+  posterSrc?: string | null;
   fileName: string;
   mediaClassName: string;
   mediaTransformClassName: string;
@@ -103,6 +110,7 @@ export const LightboxVideoPlayer = forwardRef<LightboxVideoPlayerHandle, Props>(
   function LightboxVideoPlayer(
     {
       src,
+      posterSrc,
       fileName,
       mediaClassName,
       mediaTransformClassName,
@@ -118,6 +126,7 @@ export const LightboxVideoPlayer = forwardRef<LightboxVideoPlayerHandle, Props>(
       <LightboxVideoPlayerSession
         key={src}
         src={src}
+        posterSrc={posterSrc}
         fileName={fileName}
         mediaClassName={mediaClassName}
         mediaTransformClassName={mediaTransformClassName}
@@ -136,6 +145,7 @@ LightboxVideoPlayer.displayName = "LightboxVideoPlayer";
 
 function LightboxVideoPlayerSession({
   src,
+  posterSrc,
   fileName,
   mediaClassName,
   mediaTransformClassName,
@@ -148,6 +158,7 @@ function LightboxVideoPlayerSession({
 }: Props & { imperativeRef?: Ref<LightboxVideoPlayerHandle> }) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const playbackOwnerId = useId();
   const initialAudioStateRef = useRef(readLightboxVideoAudioState());
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -159,6 +170,9 @@ function LightboxVideoPlayerSession({
   const [volume, setVolume] = useState(initialAudioStateRef.current.volume);
   const [isMuted, setIsMuted] = useState(initialAudioStateRef.current.muted);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [isPlaybackArmed, setIsPlaybackArmed] = useState(false);
+  const [mountedVideoElement, setMountedVideoElement] =
+    useState<HTMLVideoElement | null>(null);
   const [internalActiveMenuId, setInternalActiveMenuId] =
     useState<LightboxDropdownMenuId | null>(null);
   const [canUsePictureInPicture, setCanUsePictureInPicture] = useState(false);
@@ -167,6 +181,17 @@ function LightboxVideoPlayerSession({
   const pendingSeekTargetRef = useRef<number | null>(null);
   const activeMenuId = menuController?.activeMenuId ?? internalActiveMenuId;
   const isAnyMenuOpen = activeMenuId !== null;
+  const isPlaybackOwner = useSyncExternalStore(
+    subscribeLightboxPlaybackOwner,
+    () => isActiveLightboxPlaybackOwner(playbackOwnerId),
+    () => false,
+  );
+  const shouldRenderPlayableVideo = isPlaybackArmed && isPlaybackOwner;
+
+  const handleVideoElementRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    setMountedVideoElement(node);
+  }, []);
 
   const markControlsActive = useCallback(() => {
     setIsControlsVisible(true);
@@ -224,6 +249,20 @@ function LightboxVideoPlayerSession({
       window.clearTimeout(timerId);
     };
   }, [controlsWakeToken, isAnyMenuOpen, isPlaying, isReady, layout]);
+
+  useEffect(() => {
+    if (shouldRenderPlayableVideo) {
+      return;
+    }
+
+    setIsReady(false);
+    setIsPlaying(false);
+    setDuration(0);
+    setCurrentTime(0);
+    setSeekDraftTime(null);
+    setCanUsePictureInPicture(false);
+    setIsInPictureInPicture(false);
+  }, [shouldRenderPlayableVideo]);
 
   const syncPictureInPictureCapability = useCallback(() => {
     if (typeof document === "undefined") {
@@ -294,18 +333,27 @@ function LightboxVideoPlayerSession({
     video.muted = isMuted || volume === 0;
   }, [isMuted, volume]);
 
+  useLayoutEffect(() => {
+    claimLightboxPlaybackOwner(playbackOwnerId);
+    setIsPlaybackArmed(true);
+
+    return () => {
+      setIsPlaybackArmed(false);
+      releaseLightboxPlaybackOwner(playbackOwnerId);
+    };
+  }, [playbackOwnerId, src]);
+
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) {
+    if (!mountedVideoElement) {
       return;
     }
 
-    registerLightboxVideo(video);
+    registerLightboxVideo(mountedVideoElement);
     return () => {
-      unregisterLightboxVideo(video);
-      stopLightboxVideoPlayback(video, { detachSource: true });
+      unregisterLightboxVideo(mountedVideoElement);
+      stopLightboxVideoPlayback(mountedVideoElement, { detachSource: true });
     };
-  }, [src]);
+  }, [mountedVideoElement]);
 
   const handleTogglePlayback = useCallback(async () => {
     const video = videoRef.current;
@@ -594,76 +642,91 @@ function LightboxVideoPlayerSession({
           void handleTogglePlayback();
         }}
       >
-        <video
-          ref={videoRef}
-          className={[mediaClassName, mediaStyles.mediaVideo].join(" ")}
-          {...{ [LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE]: "true" }}
-          src={src}
-          title={fileName}
-          aria-label={fileName}
-          playsInline
-          preload="metadata"
-          autoPlay
-          muted={isMuted || volume === 0}
-          tabIndex={-1}
-          onLoadedMetadata={(event) => {
-            const nextDuration = normalizePlaybackTime(event.currentTarget.duration);
-            event.currentTarget.volume = volume;
-            event.currentTarget.muted = isMuted || volume === 0;
-            setDuration(nextDuration);
-            clearSeekDraft();
-            syncMeasuredCurrentTime(event.currentTarget.currentTime);
-            setPlaybackRate(event.currentTarget.playbackRate || 1);
-            setIsReady(true);
-            syncPictureInPictureCapability();
-          }}
-          onTimeUpdate={(event) => {
-            markSeekSettled(event.currentTarget.currentTime);
-          }}
-          onSeeked={(event) => {
-            markSeekSettled(event.currentTarget.currentTime);
-          }}
-          onDurationChange={(event) => {
-            setDuration(
-              normalizePlaybackTime(event.currentTarget.duration),
-            );
-          }}
-          onPlay={(event) => {
-            claimActiveLightboxVideo(event.currentTarget);
-            setIsPlaying(true);
-            markControlsActive();
-          }}
-          onPause={(event) => {
-            releaseActiveLightboxVideo(event.currentTarget);
-            setIsPlaying(false);
-            setIsControlsVisible(true);
-          }}
-          onEnded={(event) => {
-            setIsPlaying(false);
-            setIsControlsVisible(true);
-            clearSeekDraft();
-            syncMeasuredCurrentTime(
-              Number.isFinite(event.currentTarget.duration)
-                ? event.currentTarget.duration
-                : duration,
-            );
-          }}
-          onRateChange={(event) => {
-            setPlaybackRate(event.currentTarget.playbackRate || 1);
-          }}
-          onVolumeChange={(event) => {
-            setVolume(event.currentTarget.volume);
-            setIsMuted(event.currentTarget.muted);
-            persistAudioState(
-              event.currentTarget.volume,
-              event.currentTarget.muted,
-            );
-          }}
-          onCanPlay={syncPictureInPictureCapability}
-          onLoadedData={syncPictureInPictureCapability}
-        >
-          <track kind="captions" />
-        </video>
+        {shouldRenderPlayableVideo ? (
+          <video
+            ref={handleVideoElementRef}
+            className={[mediaClassName, mediaStyles.mediaVideo].join(" ")}
+            {...{ [LIGHTBOX_VIDEO_PLAYER_ATTRIBUTE]: "true" }}
+            src={src}
+            title={fileName}
+            aria-label={fileName}
+            playsInline
+            preload="metadata"
+            autoPlay
+            muted={isMuted || volume === 0}
+            tabIndex={-1}
+            onLoadedMetadata={(event) => {
+              const nextDuration = normalizePlaybackTime(event.currentTarget.duration);
+              event.currentTarget.volume = volume;
+              event.currentTarget.muted = isMuted || volume === 0;
+              setDuration(nextDuration);
+              clearSeekDraft();
+              syncMeasuredCurrentTime(event.currentTarget.currentTime);
+              setPlaybackRate(event.currentTarget.playbackRate || 1);
+              setIsReady(true);
+              syncPictureInPictureCapability();
+            }}
+            onTimeUpdate={(event) => {
+              markSeekSettled(event.currentTarget.currentTime);
+            }}
+            onSeeked={(event) => {
+              markSeekSettled(event.currentTarget.currentTime);
+            }}
+            onDurationChange={(event) => {
+              setDuration(
+                normalizePlaybackTime(event.currentTarget.duration),
+              );
+            }}
+            onPlay={(event) => {
+              claimActiveLightboxVideo(event.currentTarget);
+              setIsPlaying(true);
+              markControlsActive();
+            }}
+            onPause={(event) => {
+              releaseActiveLightboxVideo(event.currentTarget);
+              setIsPlaying(false);
+              setIsControlsVisible(true);
+            }}
+            onEnded={(event) => {
+              setIsPlaying(false);
+              setIsControlsVisible(true);
+              clearSeekDraft();
+              syncMeasuredCurrentTime(
+                Number.isFinite(event.currentTarget.duration)
+                  ? event.currentTarget.duration
+                  : duration,
+              );
+            }}
+            onRateChange={(event) => {
+              setPlaybackRate(event.currentTarget.playbackRate || 1);
+            }}
+            onVolumeChange={(event) => {
+              setVolume(event.currentTarget.volume);
+              setIsMuted(event.currentTarget.muted);
+              persistAudioState(
+                event.currentTarget.volume,
+                event.currentTarget.muted,
+              );
+            }}
+            onCanPlay={syncPictureInPictureCapability}
+            onLoadedData={syncPictureInPictureCapability}
+          >
+            <track kind="captions" />
+          </video>
+        ) : posterSrc ? (
+          <img
+            className={[mediaClassName, mediaStyles.mediaVideoPreview].join(" ")}
+            src={posterSrc}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+          />
+        ) : (
+          <div
+            className={[mediaClassName, mediaStyles.mediaVideoFallback].join(" ")}
+            aria-hidden="true"
+          />
+        )}
       </div>
     </div>
   );

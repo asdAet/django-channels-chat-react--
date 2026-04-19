@@ -1,6 +1,8 @@
 import type { Message } from "../../entities/message/types";
 import { isImageAttachment, isVideoAttachment } from "../../shared/lib/attachmentMedia";
 import type { ImageLightboxMediaItem } from "../../shared/ui/ImageLightbox";
+import { preloadImageLightboxViews } from "../../shared/ui/ImageLightbox.loaders";
+import { preloadLightboxVideoPlayerViews } from "../../shared/ui/LightboxVideoPlayer.loaders";
 
 /**
  * Снимок lightbox-сессии, зафиксированный в момент открытия вложения.
@@ -24,6 +26,8 @@ export type ChatLightboxSession = {
    */
   initialIndex: number;
 };
+
+let chatLightboxRuntimePromise: Promise<void> | null = null;
 
 const isMediaAttachment = (
   contentType: string,
@@ -104,6 +108,24 @@ export const findLightboxMediaIndex = (
   return mediaItems.findIndex(
     (item) => item.metadata.attachmentId === attachmentId,
   );
+};
+
+/**
+ * Прогревает весь runtime медиапросмотрщика одним дедуплицированным запросом.
+ *
+ * Открытие медиа в чате должно идти через единый центральный viewer, как в
+ * Telegram-подобной схеме `openInMediaView`. Viewer поднимается только один
+ * раз, а его код прогревается заранее или по первому запросу открытия.
+ */
+export const preloadChatLightboxRuntime = (): Promise<void> => {
+  if (!chatLightboxRuntimePromise) {
+    chatLightboxRuntimePromise = Promise.all([
+      preloadImageLightboxViews(),
+      preloadLightboxVideoPlayerViews(),
+    ]).then(() => undefined);
+  }
+
+  return chatLightboxRuntimePromise;
 };
 
 /**

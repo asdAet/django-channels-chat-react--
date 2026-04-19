@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { chatController } from "../../controllers/ChatController";
 import { groupController } from "../../controllers/GroupController";
@@ -7,7 +7,11 @@ import type { Message } from "../../entities/message/types";
 import { debugLog } from "../../shared/lib/debug";
 import { sanitizeText } from "../../shared/lib/sanitize";
 import { useGuardedModalState } from "../../shared/ui/useGuardedModalState";
-import { buildChatLightboxSession, type ChatLightboxSession } from "./mediaLightbox";
+import {
+  buildChatLightboxSession,
+  preloadChatLightboxRuntime,
+  type ChatLightboxSession,
+} from "./mediaLightbox";
 import type {
   UseChatRoomPageComposerOptions,
   UseChatRoomPageComposerResult,
@@ -64,7 +68,20 @@ export function useChatRoomPageComposer({
   } = useGuardedModalState<ChatLightboxSession>();
 
   const uploadAbortRef = useRef<AbortController | null>(null);
+  const lightboxOpenInFlightRef = useRef<Promise<void> | null>(null);
   const readersRequestSeqRef = useRef(0);
+
+  const hasMediaAttachments = messages.some((message) =>
+    message.attachments.some((attachment) => attachment.url),
+  );
+
+  useEffect(() => {
+    if (!hasMediaAttachments) {
+      return;
+    }
+
+    void preloadChatLightboxRuntime();
+  }, [hasMediaAttachments]);
 
   const sendMessage = useCallback(async () => {
     if (!user) {
@@ -469,12 +486,22 @@ export function useChatRoomPageComposer({
   }, [refreshRoomPermissions, reload, roomIdForRequests, setRoomError, user]);
 
   const handleOpenMediaAttachment = useCallback((attachmentId: number) => {
+    if (lightboxOpenInFlightRef.current) {
+      return;
+    }
+
     const nextSession = buildChatLightboxSession(messages, attachmentId);
     if (!nextSession) {
       return;
     }
 
-    requestOpenLightboxSession(nextSession);
+    lightboxOpenInFlightRef.current = preloadChatLightboxRuntime()
+      .then(() => {
+        requestOpenLightboxSession(nextSession);
+      })
+      .finally(() => {
+        lightboxOpenInFlightRef.current = null;
+      });
   }, [messages, requestOpenLightboxSession]);
 
   return {
