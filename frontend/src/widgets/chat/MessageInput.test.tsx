@@ -44,4 +44,32 @@ describe("MessageInput", () => {
 
     expect(onAttach).toHaveBeenCalledWith([file]);
   });
+
+  it("renders a video thumbnail preview for queued video files", () => {
+    const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
+    const createObjectURL = vi.fn(() => "blob:preview-video");
+    const revokeObjectURL = vi.fn();
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+
+    const { container } = render(
+      <MessageInput
+        draft=""
+        onDraftChange={vi.fn()}
+        onSend={vi.fn()}
+        pendingFiles={[file]}
+      />,
+    );
+
+    const preview = container.querySelector("video");
+    expect(preview).toBeInstanceOf(HTMLVideoElement);
+    expect(screen.queryByText("VIDEO")).not.toBeInTheDocument();
+  });
 });

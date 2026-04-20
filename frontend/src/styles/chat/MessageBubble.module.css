@@ -238,59 +238,6 @@
   align-items: flex-start;
 }
 
-.mediaGrid {
-  --media-gap: 3px;
-  display: grid;
-  gap: var(--media-gap);
-  width: clamp(220px, 58vw, 420px);
-  max-width: min(78vw, 420px);
-  border-radius: 10px;
-  overflow: hidden;
-  background: rgba(11, 17, 25, 0.8);
-}
-
-.mediaGridSingle {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.mediaGridTwo {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.mediaGridThree {
-  grid-template-columns: 1.3fr 1fr;
-  grid-auto-rows: minmax(92px, 1fr);
-}
-
-.mediaGridThree .mediaTile:first-child {
-  grid-row: 1 / span 2;
-}
-
-.mediaGridFour {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(100px, 1fr);
-}
-
-.mediaGridMany {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: minmax(88px, 1fr);
-}
-
-.mediaGridMany[data-count="7"],
-.mediaGridMany[data-count="8"] {
-  grid-auto-rows: minmax(80px, 1fr);
-}
-
-.mediaGridMany[data-count="9"],
-.mediaGridMany[data-count="10"] {
-  grid-auto-rows: minmax(72px, 1fr);
-}
-
-.mediaGridMany .mediaTile:first-child {
-  grid-column: 1 / span 2;
-  grid-row: 1 / span 2;
-}
-
 .mediaTile {
   position: relative;
   display: block;
@@ -370,75 +317,6 @@
   object-fit: contain;
   background: #0a1020;
   max-height: min(56vh, 420px);
-}
-
-.videoPreviewTile {
-  position: relative;
-  width: min(74vw, 360px);
-  max-width: min(74vw, 360px);
-  border: none;
-  margin: 0;
-  padding: 0;
-  border-radius: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  background: #000;
-  line-height: 0;
-}
-
-.videoPreviewTile:focus-visible {
-  outline: 2px solid var(--tg-primary, #2fb3a3);
-  outline-offset: 1px;
-}
-
-.attachVideoPreview {
-  width: 100%;
-  display: block;
-  max-height: 260px;
-  object-fit: cover;
-  filter: brightness(0.86);
-  pointer-events: none;
-}
-
-.attachVideoPreviewFallback {
-  display: block;
-  width: 100%;
-  min-height: 180px;
-  background:
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.08), transparent 38%),
-    linear-gradient(180deg, rgba(25, 32, 51, 0.96), rgba(9, 14, 24, 0.98));
-  pointer-events: none;
-}
-
-.videoPreviewPlayIcon {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 64px;
-  height: 64px;
-  border-radius: 999px;
-  transform: translate(-50%, -50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-}
-
-.videoPreviewDuration {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  padding: 4px 6px;
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 12px;
-  line-height: 1.2;
-  font-weight: 600;
-  background: rgba(0, 0, 0, 0.56);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-  pointer-events: none;
 }
 
 .attachFile {
@@ -611,37 +489,6 @@
     max-width: 86%;
   }
 
-  .mediaGrid {
-    width: clamp(210px, 76vw, 340px);
-    max-width: min(82vw, 340px);
-  }
-
-  .mediaGridFour {
-    grid-auto-rows: minmax(84px, 1fr);
-  }
-
-  .mediaGridMany {
-    grid-auto-rows: minmax(74px, 1fr);
-  }
-
-  .mediaGridMany[data-count="9"],
-  .mediaGridMany[data-count="10"] {
-    grid-auto-rows: minmax(64px, 1fr);
-  }
-
-  .videoPreviewTile {
-    width: min(82vw, 100%);
-    max-width: min(82vw, 100%);
-  }
-
-  .attachVideoPreview {
-    max-height: 220px;
-  }
-
-  .attachVideoPreviewFallback {
-    min-height: 160px;
-  }
-
   .fileAttachments {
     max-width: min(82vw, 300px);
   }
@@ -680,20 +527,6 @@
 
   .body {
     max-width: 92%;
-  }
-
-  .mediaGrid {
-    width: min(84vw, 300px);
-    max-width: min(84vw, 300px);
-  }
-
-  .mediaGridMany {
-    grid-auto-rows: minmax(66px, 1fr);
-  }
-
-  .mediaGridMany[data-count="9"],
-  .mediaGridMany[data-count="10"] {
-    grid-auto-rows: minmax(58px, 1fr);
   }
 
   .attachImageSingle {

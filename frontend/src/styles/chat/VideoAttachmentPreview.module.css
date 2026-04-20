@@ -1,0 +1,83 @@
+.videoPreviewTile {
+  position: relative;
+  width: min(74vw, 360px);
+  max-width: min(74vw, 360px);
+  border: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #000;
+  line-height: 0;
+}
+
+.videoPreviewTile:focus-visible {
+  outline: 2px solid var(--tg-primary, #2fb3a3);
+  outline-offset: 1px;
+}
+
+.attachVideoPreview {
+  width: 100%;
+  display: block;
+  max-height: 260px;
+  object-fit: cover;
+  filter: brightness(0.86);
+  pointer-events: none;
+}
+
+.attachVideoPreviewFallback {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(25, 32, 51, 0.96), rgba(9, 14, 24, 0.98));
+  pointer-events: none;
+}
+
+.videoPreviewPlayIcon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.videoPreviewDuration {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.56);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .videoPreviewTile {
+    width: min(82vw, 100%);
+    max-width: min(82vw, 100%);
+  }
+
+  .attachVideoPreview {
+    max-height: 220px;
+  }
+
+  .attachVideoPreviewFallback {
+    min-height: 160px;
+  }
+}

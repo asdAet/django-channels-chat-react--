@@ -343,10 +343,8 @@ describe("MessageBubble", () => {
       screen.getByRole("dialog", { name: "Просмотр изображения" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("preview.png")).toBeInTheDocument();
-    expect(await screen.findByText(/ID: 90/i)).toBeInTheDocument();
     expect(await screen.findByText(/1\.0 KB/i)).toBeInTheDocument();
-    expect(await screen.findByText(/1280x720/i)).toBeInTheDocument();
-    expect(screen.getByText(/Отправлено:/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1280\s*×\s*720/i)).toBeInTheDocument();
   });
 
   it("opens video preview modal with metadata", async () => {
@@ -382,9 +380,8 @@ describe("MessageBubble", () => {
       screen.getByRole("dialog", { name: "Просмотр видео" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("video.mp4")).toBeInTheDocument();
-    expect(await screen.findByText(/ID: 91/i)).toBeInTheDocument();
     expect(await screen.findByText(/5\.0 MB/i)).toBeInTheDocument();
-    expect(await screen.findByText(/1920x1080/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1920\s*×\s*1080/i)).toBeInTheDocument();
   });
 
   it.skip("renders inline video preview with duration badge for video attachments", () => {

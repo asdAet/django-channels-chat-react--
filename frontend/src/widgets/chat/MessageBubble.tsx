@@ -86,6 +86,7 @@ type LightboxMediaMetadata = {
 type LightboxMediaItem = {
   src: string;
   previewSrc?: string | null;
+  downloadUrl?: string | null;
   kind: LightboxMediaKind;
   alt?: string;
   metadata: LightboxMediaMetadata;
@@ -602,6 +603,7 @@ export function MessageBubble({
         {
           src: attachment.url,
           previewSrc: attachment.thumbnailUrl,
+          downloadUrl: attachment.url,
           kind: isVideo ? "video" : "image",
           alt: attachment.originalFilename,
           metadata: buildLightboxMetadata(attachment),

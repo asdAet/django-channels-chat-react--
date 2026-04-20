@@ -2,29 +2,15 @@ const SVG_EXTENSION_PATTERN = /\.svgz?$/i;
 const VIDEO_EXTENSION_PATTERN =
   /\.(mp4|m4v|mov|webm|mkv|avi|wmv|flv|3gp|mpeg|mpg|ogv|ts|m2ts|m3u8|gifv)$/i;
 
-/**
- * Нормализует content type.
- * @param contentType MIME-тип файла.
- * @returns Нормализованное значение после обработки входа.
- */
 const normalizeContentType = (contentType: string | null | undefined): string =>
   (contentType ?? "").trim().toLowerCase();
 
-/**
- * Проверяет условие has svg extension.
- * @param fileName Имя файла вместе с расширением.
- * @returns Булев результат проверки условия.
- */
 const hasSvgExtension = (fileName: string | null | undefined): boolean =>
   SVG_EXTENSION_PATTERN.test((fileName ?? "").trim());
 
 /**
- * Проверяет условие is svg attachment.
- * @param contentType MIME-тип файла.
- * @param fileName Имя файла вместе с расширением.
- * @returns Булев результат проверки условия.
+ * Returns `true` when the attachment should be treated as SVG media.
  */
-
 export const isSvgAttachment = (
   contentType: string | null | undefined,
   fileName: string | null | undefined,
@@ -34,12 +20,8 @@ export const isSvgAttachment = (
 };
 
 /**
- * Проверяет условие is image attachment.
- * @param contentType MIME-тип файла.
- * @param fileName Имя файла вместе с расширением.
- * @returns Булев результат проверки условия.
+ * Returns `true` when the attachment should be rendered as an image.
  */
-
 export const isImageAttachment = (
   contentType: string | null | undefined,
   fileName: string | null | undefined,
@@ -48,15 +30,16 @@ export const isImageAttachment = (
   if (normalized.startsWith("image/")) {
     return true;
   }
+
   return hasSvgExtension(fileName);
 };
 
 /**
- * Проверяет, относится ли файл к видео по MIME-типу или расширению.
+ * Returns `true` when the attachment should be rendered as a video.
  *
- * @param contentType MIME-тип файла.
- * @param fileName Имя файла вместе с расширением.
- * @returns `true`, если файл должен отображаться как видео.
+ * The viewer intentionally does not second-guess the browser here. If the file
+ * is identified as video by MIME type or file extension, the modal opens a
+ * plain native `<video>` and leaves playback support to the browser runtime.
  */
 export const isVideoAttachment = (
   contentType: string | null | undefined,
@@ -66,15 +49,13 @@ export const isVideoAttachment = (
   if (normalized.startsWith("video/")) {
     return true;
   }
+
   return VIDEO_EXTENSION_PATTERN.test((fileName ?? "").trim());
 };
 
 /**
- * Определяет image preview url.
- *
- * @returns Разрешенное значение с учетом fallback-логики.
+ * Resolves the preview source for image tiles.
  */
-
 export const resolveImagePreviewUrl = ({
   url,
   thumbnailUrl,
@@ -89,14 +70,16 @@ export const resolveImagePreviewUrl = ({
   if (!url) {
     return null;
   }
+
   if (isSvgAttachment(contentType, fileName)) {
     return url;
   }
+
   return thumbnailUrl ?? url;
 };
 
 /**
- * Описывает адаптивный набор атрибутов для тега изображения.
+ * Describes responsive image attributes for grouped media tiles.
  */
 export type ResponsiveImageSource = {
   src: string | null;
@@ -105,11 +88,7 @@ export type ResponsiveImageSource = {
 };
 
 /**
- * Подбирает источник изображения для chat media tile.
- *
- * Крупные плитки получают оригинальный файл, чтобы не выглядеть мыльно.
- * Компактные плитки могут использовать thumbnail, но сохраняют `srcSet`,
- * чтобы плотные экраны при необходимости забирали оригинал.
+ * Picks the best source for an image tile in the chat grid.
  */
 export const resolveResponsiveImageSource = ({
   url,

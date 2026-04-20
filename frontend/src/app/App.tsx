@@ -202,8 +202,16 @@ function AppInner() {
 
   useEffect(() => {
     const root = document.documentElement;
+    let lastViewportHeight = -1;
+    let lastViewportWidth = -1;
+
     /**
-     * Обновляет viewport vars.
+     * Обновляет viewport vars только при реальном изменении размеров viewport.
+     *
+     * Важно: мы намеренно не подписываемся на `visualViewport.scroll`.
+     * Такой scroll срабатывает даже при bounce/toolbar offset и вызывает
+     * микропересчет `--app-height`, из-за чего scroll-контейнеры чата могут
+     * визуально "пружинить" у нижней границы.
      */
     const updateViewportVars = () => {
       const visualViewport = window.visualViewport;
@@ -213,6 +221,16 @@ function AppInner() {
       const viewportWidth = Math.round(
         visualViewport?.width ?? window.innerWidth,
       );
+
+      if (
+        viewportHeight === lastViewportHeight &&
+        viewportWidth === lastViewportWidth
+      ) {
+        return;
+      }
+
+      lastViewportHeight = viewportHeight;
+      lastViewportWidth = viewportWidth;
       root.style.setProperty("--app-height", `${viewportHeight}px`);
       root.style.setProperty("--app-width", `${viewportWidth}px`);
     };
@@ -223,13 +241,11 @@ function AppInner() {
       passive: true,
     });
     window.visualViewport?.addEventListener("resize", updateViewportVars);
-    window.visualViewport?.addEventListener("scroll", updateViewportVars);
 
     return () => {
       window.removeEventListener("resize", updateViewportVars);
       window.removeEventListener("orientationchange", updateViewportVars);
       window.visualViewport?.removeEventListener("resize", updateViewportVars);
-      window.visualViewport?.removeEventListener("scroll", updateViewportVars);
     };
   }, []);
 
@@ -508,22 +524,28 @@ function AppInner() {
       replace: true,
       state: { ...(authRouteState ?? {}), oauthError },
     });
-  }, [authRouteState, isAuthRoute, location.pathname, location.search, navigate]);
+  }, [
+    authRouteState,
+    isAuthRoute,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   const realtimeProvidersReady = !auth.loading && !isAuthRoute;
 
   const routesElement = (
-      <AppRoutes
-        user={auth.user}
-        error={authError}
-        passwordRules={passwordRules}
-        googleAuthDisabledReason={googleAuthDisabledReason}
-        onNavigate={onNavigate}
-        onLogin={handleLogin}
-        onGoogleOAuth={isGoogleOAuthConfigured ? handleGoogleOAuth : undefined}
-        onRegister={handleRegister}
-        onLogout={handleLogout}
-        onProfileSave={handleProfileSave}
+    <AppRoutes
+      user={auth.user}
+      error={authError}
+      passwordRules={passwordRules}
+      googleAuthDisabledReason={googleAuthDisabledReason}
+      onNavigate={onNavigate}
+      onLogin={handleLogin}
+      onGoogleOAuth={isGoogleOAuthConfigured ? handleGoogleOAuth : undefined}
+      onRegister={handleRegister}
+      onLogout={handleLogout}
+      onProfileSave={handleProfileSave}
     />
   );
 

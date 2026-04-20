@@ -1,7 +1,8 @@
-﻿import {
+import {
   type ChangeEvent,
   type ClipboardEvent,
   type KeyboardEvent,
+  type SyntheticEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -137,6 +138,19 @@ const extractFilesFromClipboard = (
   return Array.from(clipboardData.files);
 };
 
+const freezeVideoPreviewPlayback = (
+  event: SyntheticEvent<HTMLVideoElement>,
+): void => {
+  const video = event.currentTarget;
+
+  try {
+    video.pause();
+    video.currentTime = 0;
+  } catch {
+    // Ignore preview-only media cleanup failures.
+  }
+};
+
 /**
  * Компонент MessageInput рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
  *
@@ -172,10 +186,14 @@ export function MessageInput({
     const computed = window.getComputedStyle(textarea);
     const minHeight = Number.parseFloat(computed.minHeight) || 44;
     const maxHeight = minHeight * 3;
-    const nextHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+    const nextHeight = Math.min(
+      Math.max(textarea.scrollHeight, minHeight),
+      maxHeight,
+    );
 
     textarea.style.height = `${nextHeight}px`;
-    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+    textarea.style.overflowY =
+      textarea.scrollHeight > maxHeight ? "auto" : "hidden";
   }, []);
 
   const handleChange = useCallback(
@@ -298,11 +316,7 @@ export function MessageInput({
         .join(" ")}
     >
       {rateLimitActive && (
-        <div
-          className={styles.rateLimitBanner}
-          role="status"
-          aria-live="polite"
-        >
+        <div className={styles.rateLimitBanner} role="status" aria-live="polite">
           Йоу, не так быстро, Вы отправляете сообщения слишком быстро!
         </div>
       )}
@@ -404,10 +418,20 @@ export function MessageInput({
                   <video
                     className={styles.previewThumb}
                     src={item.url}
-                    controls
                     preload="metadata"
+                    muted
                     playsInline
-                  />
+                    disablePictureInPicture
+                    disableRemotePlayback
+                    aria-hidden="true"
+                    tabIndex={-1}
+                    onLoadedMetadata={freezeVideoPreviewPlayback}
+                    onLoadedData={freezeVideoPreviewPlayback}
+                    onCanPlay={freezeVideoPreviewPlayback}
+                    onPlay={freezeVideoPreviewPlayback}
+                  >
+                    <track kind="captions" />
+                  </video>
                 )}
                 {!item.url && (
                   <div className={styles.previewFileBadge}>

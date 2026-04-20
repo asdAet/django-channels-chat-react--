@@ -1,7 +1,7 @@
 import { type SyntheticEvent, useCallback, useState } from "react";
 
 import type { Attachment } from "../../entities/message/types";
-import styles from "../../styles/chat/MessageBubble.module.css";
+import styles from "../../styles/chat/VideoAttachmentPreview.module.css";
 
 const formatPreviewDuration = (value: number): string => {
   const totalSeconds = Math.max(0, Math.floor(value));
@@ -24,33 +24,34 @@ const freezePreviewPlayback = (
     video.pause();
     video.currentTime = 0;
   } catch {
-    // jsdom и часть браузерных teardown-сценариев могут бросать исключение.
+    // Ignore teardown issues in test/runtime edge cases.
   }
 };
 
 type VideoAttachmentPreviewProps = {
   /**
-   * Вложение видео, которое отображается в ленте сообщений.
+   * Видео-вложение, которое отображается в ленте сообщений.
    */
   attachment: Attachment;
   /**
-   * Открывает полноценный lightbox-просмотр.
+   * Открывает полноразмерный viewer.
    */
   onOpen: () => void;
 };
 
 /**
- * Рендерит безопасный inline preview видео для списка сообщений.
+ * Inline preview для видео в ленте сообщений.
  *
- * Preview использует настоящий `<video>` только для чтения metadata и первого
- * кадра, но не владеет playback: он всегда `muted`, без `controls` и без
- * `autoplay`. Полноценное воспроизведение остается только у lightbox-player.
+ * Preview всегда использует обычный браузерный `<video>` без controls и без
+ * playback-ownership: он нужен только для первого кадра и metadata.
  */
 export function VideoAttachmentPreview({
   attachment,
   onOpen,
 }: VideoAttachmentPreviewProps) {
   const [durationLabel, setDurationLabel] = useState<string | null>(null);
+  const fallbackBadge =
+    attachment.originalFilename.split(".").at(-1)?.toUpperCase() ?? "VIDEO";
 
   const handleLoadedMetadata = useCallback(
     (event: SyntheticEvent<HTMLVideoElement>) => {
@@ -71,24 +72,38 @@ export function VideoAttachmentPreview({
       onClick={onOpen}
       aria-label={`Открыть видео ${attachment.originalFilename}`}
     >
-      <video
-        src={attachment.url ?? undefined}
-        poster={attachment.thumbnailUrl ?? undefined}
-        preload="metadata"
-        muted
-        playsInline
-        disablePictureInPicture
-        disableRemotePlayback
-        className={styles.attachVideoPreview}
-        aria-hidden="true"
-        tabIndex={-1}
-        onLoadedMetadata={handleLoadedMetadata}
-        onCanPlay={freezePreviewPlayback}
-        onLoadedData={freezePreviewPlayback}
-        onPlay={freezePreviewPlayback}
-      >
-        <track kind="captions" />
-      </video>
+      {attachment.url ? (
+        <video
+          src={attachment.url}
+          poster={attachment.thumbnailUrl ?? undefined}
+          preload="metadata"
+          muted
+          playsInline
+          disablePictureInPicture
+          disableRemotePlayback
+          className={styles.attachVideoPreview}
+          aria-hidden="true"
+          tabIndex={-1}
+          onLoadedMetadata={handleLoadedMetadata}
+          onCanPlay={freezePreviewPlayback}
+          onLoadedData={freezePreviewPlayback}
+          onPlay={freezePreviewPlayback}
+        >
+          <track kind="captions" />
+        </video>
+      ) : attachment.thumbnailUrl ? (
+        <img
+          src={attachment.thumbnailUrl}
+          alt=""
+          aria-hidden="true"
+          className={styles.attachVideoPreview}
+          draggable={false}
+        />
+      ) : (
+        <div className={styles.attachVideoPreviewFallback} aria-hidden="true">
+          {fallbackBadge}
+        </div>
+      )}
       <span className={styles.videoPreviewPlayIcon}>
         <svg
           width="24"
@@ -99,9 +114,9 @@ export function VideoAttachmentPreview({
           <path d="M8 5v14l11-7z" />
         </svg>
       </span>
-      {durationLabel ? (
-        <span className={styles.videoPreviewDuration}>{durationLabel}</span>
-      ) : null}
+      <span className={styles.videoPreviewDuration}>
+        {durationLabel ?? fallbackBadge}
+      </span>
     </button>
   );
 }
