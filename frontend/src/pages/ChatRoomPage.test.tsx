@@ -819,7 +819,7 @@ describe("ChatRoomPage", () => {
         screen.getByRole("button", { name: /clip\.mp4/i }),
       );
 
-      await screen.findByTestId("image-lightbox-mobile-view");
+      await screen.findByTestId("lightbox-video-player-desktop");
       await waitFor(() => {
         expect(
           container.querySelectorAll(
