@@ -405,6 +405,33 @@ describe("ChatRoomPage", () => {
     window.sessionStorage.clear();
   });
 
+  it("keeps the chat websocket alive with heartbeat while the page stays open", () => {
+    vi.useFakeTimers();
+
+    render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    const initialHeartbeatPayloads = wsState.send.mock.calls
+      .map(([payload]) => JSON.parse(payload))
+      .filter((payload) => payload.type === "ping");
+    expect(initialHeartbeatPayloads).toHaveLength(1);
+
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+
+    const heartbeatPayloads = wsState.send.mock.calls
+      .map(([payload]) => JSON.parse(payload))
+      .filter((payload) => payload.type === "ping");
+    expect(heartbeatPayloads).toHaveLength(2);
+  });
+
   it("shows read-only mode for guest in public room", () => {
     render(<ChatRoomPage roomId="1" initialRoomKind="public" user={null} onNavigate={vi.fn()} />);
 
@@ -598,8 +625,10 @@ describe("ChatRoomPage", () => {
       screen.getByRole("button", { name: "Отправить сообщение" }),
     );
 
-    expect(wsState.send).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(wsState.send.mock.calls[0][0]);
+    const payload = wsState.send.mock.calls
+      .map(([rawPayload]) => JSON.parse(rawPayload))
+      .find((item) => item.message === "Hello from test");
+    expect(payload).toBeTruthy();
     expect(payload.message).toBe("Hello from test");
     expect(payload.username).toBe("demo");
   });

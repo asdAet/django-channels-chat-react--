@@ -346,6 +346,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self._handle_typing()
             return
 
+        if event_type == "ping":
+            observe_ws_event("chat", event_type="ping", result="accepted")
+            return
+
         if event_type == "mark_read":
             observe_ws_event("chat", event_type="mark_read", result="received")
             await self._handle_mark_read(text_data_json)

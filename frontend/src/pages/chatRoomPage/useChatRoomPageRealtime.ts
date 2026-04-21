@@ -15,6 +15,8 @@ import type {
 } from "./useChatRoomPageRealtime.types";
 import { normalizeActorRef, sameAvatarCrop, TYPING_TIMEOUT_MS } from "./utils";
 
+const CHAT_HEARTBEAT_MS = 15_000;
+
 /**
  * Управляет realtime-событиями комнаты через WebSocket.
  *
@@ -294,7 +296,7 @@ export function useChatRoomPageRealtime({
     onMessage: handleMessage,
     onOpen: () => setRoomError(null),
     onClose: (event) => {
-      if (event.code !== 1000 && event.code !== 1001) {
+      if (event.code !== 1000 && event.code !== 1001 && event.code !== 4001) {
         setRoomError("Соединение потеряно. Пытаемся восстановить...");
       }
     },
@@ -302,6 +304,20 @@ export function useChatRoomPageRealtime({
   });
 
   const { sendTyping } = useTypingIndicator(send);
+
+  useEffect(() => {
+    if (status !== "online") {
+      return;
+    }
+
+    const sendHeartbeat = () => {
+      send(JSON.stringify({ type: "ping", ts: Date.now() }));
+    };
+
+    sendHeartbeat();
+    const id = window.setInterval(sendHeartbeat, CHAT_HEARTBEAT_MS);
+    return () => window.clearInterval(id);
+  }, [send, status]);
 
   useEffect(() => {
     if (!typingUsers.size) {
