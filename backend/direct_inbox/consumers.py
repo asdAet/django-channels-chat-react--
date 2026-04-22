@@ -27,6 +27,7 @@ from chat_app_django.security.rate_limit_config import (
 )
 from roles.access import can_read
 from rooms.models import Room
+from chat.unread_push import build_room_unread_state
 
 from .constants import DIRECT_INBOX_CLOSE_IDLE_CODE
 from .state import (
@@ -136,6 +137,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             self._idle_task = asyncio.create_task(self._idle_watchdog())
 
         await self._send_unread_state()
+        await self._send_room_unread_state()
 
     async def disconnect(self, code):
         """Корректно закрывает соединение и освобождает ресурсы.
@@ -310,6 +312,7 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                     }
                 )
             )
+            await self._send_room_unread_state()
             return
 
         observe_ws_event("direct_inbox", event_type="receive", result="rejected")
@@ -339,6 +342,18 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
             text_data=json.dumps(
                 {
                     "type": "direct_unread_state",
+                    "unread": unread,
+                }
+            )
+        )
+
+    async def _send_room_unread_state(self):
+        """Отправляет authoritative unread snapshot по всем комнатам пользователя."""
+        unread = await _to_async(build_room_unread_state)(self.user)
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "room_unread_state",
                     "unread": unread,
                 }
             )

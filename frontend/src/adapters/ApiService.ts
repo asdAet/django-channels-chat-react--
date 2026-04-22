@@ -58,7 +58,6 @@ import { getRoomMessages } from "./apiService/getRoomMessages";
 import { getRoomOverrides } from "./apiService/getRoomOverrides";
 import { getRoomRoles } from "./apiService/getRoomRoles";
 import { getSession } from "./apiService/getSession";
-import { getUnreadCounts } from "./apiService/getUnreadCounts";
 import { getUserProfile } from "./apiService/getUserProfile";
 import { globalSearch } from "./apiService/globalSearch";
 import { joinGroup } from "./apiService/joinGroup";
@@ -517,13 +516,6 @@ class ApiService implements IApiService {
     return this.runWithDecode(async () =>
       getUserProfile(this.apiClient, publicRef),
     );
-  }
-
-  /**
-   * Асинхронно возвращает непрочитанные счетчики.
-   */
-  public async getUnreadCounts() {
-    return this.runWithDecode(async () => getUnreadCounts(this.apiClient));
   }
 
   /**

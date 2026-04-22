@@ -118,6 +118,10 @@ class DirectInboxConsumerTests(TransactionTestCase):
             self.assertIn(self.direct_room.pk, payload['unread']['roomIds'])
             self.assertEqual(payload['unread']['counts'].get(str(self.direct_room.pk)), 1)
 
+            room_payload = json.loads(await communicator.receive_from(timeout=2))
+            self.assertEqual(room_payload.get('type'), 'room_unread_state')
+            self.assertIsInstance(room_payload.get('unread', {}).get('counts'), dict)
+
             await communicator.disconnect()
 
         async_to_sync(run)()
@@ -131,6 +135,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
             """Проверяет сценарий `run`."""
             communicator, connected, _ = await self._connect_inbox(self.member)
             self.assertTrue(connected)
+            await communicator.receive_from(timeout=2)
             await communicator.receive_from(timeout=2)
 
             await communicator.send_to(text_data=json.dumps({'type': 'mark_read', 'roomId': self.direct_room.pk}))
@@ -153,6 +158,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
             communicator, connected, _ = await self._connect_inbox(self.owner)
             self.assertTrue(connected)
             await communicator.receive_from(timeout=2)
+            await communicator.receive_from(timeout=2)
 
             await communicator.send_to(
                 text_data=json.dumps({'type': 'set_active_room', 'roomId': self.unrelated_room.pk})
@@ -171,6 +177,7 @@ class DirectInboxConsumerTests(TransactionTestCase):
             """Проверяет сценарий `run`."""
             inbox, connected, _ = await self._connect_inbox(self.member)
             self.assertTrue(connected)
+            await inbox.receive_from(timeout=2)
             await inbox.receive_from(timeout=2)
 
             await inbox.send_to(

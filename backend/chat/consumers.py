@@ -49,6 +49,7 @@ from users.identity import (
 )
 
 from .constants import CHAT_CLOSE_IDLE_CODE
+from .unread_push import broadcast_room_unread_state_for_room, broadcast_room_unread_state_for_user
 
 logger = logging.getLogger(__name__)
 
@@ -499,6 +500,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "payload": target["payload"],
                     },
                 )
+
+        await sync_to_async(broadcast_room_unread_state_for_room)(self.room)
 
     async def chat_message(self, event):
         """Транслирует событие нового сообщения в WebSocket-клиенты комнаты.
@@ -967,6 +970,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             state = service_mark_read(user, room, last_read_id)
         except Exception:
             return
+        broadcast_room_unread_state_for_user(user)
         from asgiref.sync import async_to_sync
         from channels.layers import get_channel_layer
         channel_layer = get_channel_layer()

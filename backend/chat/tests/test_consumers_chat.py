@@ -373,6 +373,8 @@ class ChatConsumerTests(TransactionTestCase):
             self.assertTrue(connected)
             initial_payload = json.loads(await inbox_member.receive_from(timeout=2))
             self.assertEqual(initial_payload.get('type'), 'direct_unread_state')
+            room_unread_payload = json.loads(await inbox_member.receive_from(timeout=2))
+            self.assertEqual(room_unread_payload.get('type'), 'room_unread_state')
 
             chat_owner, chat_connected, _ = await self._connect(
                 f'/ws/chat/{self.direct_room.pk}/',
@@ -414,6 +416,8 @@ class ChatConsumerTests(TransactionTestCase):
             self.assertTrue(connected)
             initial_payload = json.loads(await inbox_outsider.receive_from(timeout=2))
             self.assertEqual(initial_payload.get('type'), 'direct_unread_state')
+            room_unread_payload = json.loads(await inbox_outsider.receive_from(timeout=2))
+            self.assertEqual(room_unread_payload.get('type'), 'room_unread_state')
 
             chat_owner, chat_connected, _ = await self._connect(
                 f'/ws/chat/{self.direct_room.pk}/',

@@ -106,8 +106,6 @@ const toRoomKey = (roomId: number | null | undefined): string =>
     ? String(Math.trunc(roomId))
     : "";
 
-const SERVER_UNREAD_POLL_MS = 12_000;
-
 /**
  * Собирает и хранит состояние бокового списка диалогов и серверов.
  *
@@ -116,7 +114,11 @@ const SERVER_UNREAD_POLL_MS = 12_000;
  * с единым согласованным снимком состояния.
  */
 export function ConversationListProvider({ user, ready, children }: Props) {
-  const { items: directItems, unreadCounts } = useDirectInbox();
+  const {
+    items: directItems,
+    unreadCounts,
+    roomUnreadCounts,
+  } = useDirectInbox();
   const unreadOverrides = useUnreadOverrides();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -168,62 +170,31 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
   const applyRoomUnreadSnapshot = useCallback(
     (
-      counts: Array<{ roomId: number; unreadCount: number }>,
+      counts: Record<string, number>,
       authoritativeRoomIds: Iterable<string>,
     ) => {
-      const map: Record<string, number> = {};
-      for (const item of counts) {
-        map[String(item.roomId)] = item.unreadCount;
-      }
-
       const settledOverrideRoomIds = collectSettledUnreadOverrideRoomIds({
         authoritativeRoomIds,
-        authoritativeCounts: map,
+        authoritativeCounts: counts,
       });
 
-      setRoomUnreads(map);
+      setRoomUnreads(counts);
       clearUnreadOverridesForRooms(settledOverrideRoomIds);
     },
     [],
   );
 
-  const refreshUnreadCounts = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const counts = await chatController.getUnreadCounts();
-      if (!mountedRef.current) return;
-      applyRoomUnreadSnapshot(counts, knownServerRoomIds);
-    } catch (err) {
-      debugLog("Failed to refresh unread counts", err);
-    }
-  }, [applyRoomUnreadSnapshot, knownServerRoomIds, user]);
-
   const fetchData = useCallback(async () => {
     if (!user) return;
     try {
       setLoading(true);
-      const [counts, groups, publicRoom] = await Promise.all([
-        chatController.getUnreadCounts(),
+      const [groups, publicRoom] = await Promise.all([
         groupController
           .getMyGroups()
           .catch(() => ({ items: [] as GroupListItem[], total: 0 })),
         chatController.resolveChatTarget(PUBLIC_CHAT_TARGET).catch(() => null),
       ]);
       if (!mountedRef.current) return;
-      const nextAuthoritativeRoomIds: string[] = [];
-      const publicRoomKey = toRoomKey(publicRoom?.roomId ?? null);
-      if (publicRoomKey) {
-        nextAuthoritativeRoomIds.push(publicRoomKey);
-      }
-      for (const group of groups.items) {
-        const groupRoomKey = toRoomKey(group.roomId);
-        if (groupRoomKey) {
-          nextAuthoritativeRoomIds.push(groupRoomKey);
-        }
-      }
-
-      applyRoomUnreadSnapshot(counts, nextAuthoritativeRoomIds);
       setGroupItems(groups.items);
       setPublicRoomId(publicRoom?.roomId ?? null);
       setError(null);
@@ -233,7 +204,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [applyRoomUnreadSnapshot, user]);
+  }, [user]);
 
   useEffect(() => {
     if (ready && user) {
@@ -253,26 +224,13 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   }, [fetchData, ready, user]);
 
   useEffect(() => {
-    if (!ready || !user) return;
+    if (!user) {
+      setRoomUnreads({});
+      return;
+    }
 
-    const intervalId = window.setInterval(() => {
-      void refreshUnreadCounts();
-    }, SERVER_UNREAD_POLL_MS);
-
-    const refreshIfVisible = () => {
-      if (document.visibilityState !== "visible") return;
-      void refreshUnreadCounts();
-    };
-
-    window.addEventListener("focus", refreshIfVisible);
-    document.addEventListener("visibilitychange", refreshIfVisible);
-
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener("focus", refreshIfVisible);
-      document.removeEventListener("visibilitychange", refreshIfVisible);
-    };
-  }, [ready, refreshUnreadCounts, user]);
+    applyRoomUnreadSnapshot(roomUnreadCounts, knownServerRoomIds);
+  }, [applyRoomUnreadSnapshot, knownServerRoomIds, roomUnreadCounts, user]);
 
   const isGlobalMode = searchQuery.trim().length >= 2;
   const canRunGlobalSearch = canRunGlobalSearchQuery(searchQuery);
@@ -349,7 +307,10 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
     if (filter !== "groups") {
       for (const dm of directItems) {
-        const dmUnread = resolveUnreadCount(dm.roomId, unreadCounts[String(dm.roomId)]);
+        const dmUnread = resolveUnreadCount(
+          dm.roomId,
+          unreadCounts[String(dm.roomId)] ?? roomUnreadCounts[String(dm.roomId)],
+        );
         const peerRef = dm.peer.publicRef;
         conversations.push({
           type: "direct",
@@ -410,6 +371,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     publicRoomId,
     resolveUnreadCount,
     searchQuery,
+    roomUnreadCounts,
     unreadCounts,
   ]);
 

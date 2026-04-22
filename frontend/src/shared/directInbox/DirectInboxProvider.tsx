@@ -77,6 +77,9 @@ export function DirectInboxProvider({
   const [error, setError] = useState<string | null>(null);
   const [, setUnreadRoomIds] = useState<string[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [roomUnreadCounts, setRoomUnreadCounts] = useState<
+    Record<string, number>
+  >({});
   const unreadOverrides = useUnreadOverrides();
 
   const activeRoomRef = useRef<string | number | null>(null);
@@ -152,6 +155,9 @@ export function DirectInboxProvider({
         }
         case "direct_mark_read_ack":
           applyUnreadState(decoded.unread);
+          break;
+        case "room_unread_state":
+          setRoomUnreadCounts(decoded.unread.counts);
           break;
         case "error":
           if (decoded.code === "forbidden") {
@@ -238,6 +244,7 @@ export function DirectInboxProvider({
         setItems([]);
         setUnreadRoomIds([]);
         setUnreadCounts({});
+        setRoomUnreadCounts({});
         setLoading(false);
         setError(null);
       });
@@ -287,6 +294,7 @@ export function DirectInboxProvider({
       unreadRoomIds: unreadRoomIdsWithOverrides,
       unreadCounts: unreadCountsWithOverrides,
       unreadDialogsCount: unreadDialogsCountWithOverrides,
+      roomUnreadCounts,
       setActiveRoom,
       markRead,
       refresh,
@@ -302,6 +310,7 @@ export function DirectInboxProvider({
       unreadCountsWithOverrides,
       unreadDialogsCountWithOverrides,
       unreadRoomIdsWithOverrides,
+      roomUnreadCounts,
     ],
   );
 

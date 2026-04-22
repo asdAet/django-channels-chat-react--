@@ -1,4 +1,5 @@
 ﻿import { act, renderHook, waitFor } from "@testing-library/react";
+import { createElement, StrictMode, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useReconnectingWebSocket } from "./useReconnectingWebSocket";
@@ -183,8 +184,8 @@ describe("useReconnectingWebSocket", () => {
       }),
     );
 
-    await act(async () => {
-      await Promise.resolve();
+    act(() => {
+      vi.advanceTimersByTime(0);
     });
     /**
      * Выполняет метод `expect`.
@@ -282,8 +283,8 @@ describe("useReconnectingWebSocket", () => {
       }),
     );
 
-    await act(async () => {
-      await Promise.resolve();
+    act(() => {
+      vi.advanceTimersByTime(0);
     });
 
     /**
@@ -307,6 +308,49 @@ describe("useReconnectingWebSocket", () => {
      */
 
     expect(result.current.lastError).toBe("reconnect_limit");
+  });
+
+  it("does not open a canceled startup connection under StrictMode", () => {
+    vi.useFakeTimers();
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      createElement(StrictMode, null, children);
+
+    renderHook(
+      () =>
+        useReconnectingWebSocket({
+          url: "ws://localhost/ws",
+        }),
+      { wrapper },
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  it("does not open a stale startup connection after url changes", () => {
+    vi.useFakeTimers();
+
+    const { rerender } = renderHook(
+      ({ url }: { url: string }) =>
+        useReconnectingWebSocket({
+          url,
+        }),
+      {
+        initialProps: { url: "ws://localhost/ws/old" },
+      },
+    );
+
+    rerender({ url: "ws://localhost/ws/new" });
+
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(MockWebSocket.instances[0].url).toBe("ws://localhost/ws/new");
   });
 
   /**

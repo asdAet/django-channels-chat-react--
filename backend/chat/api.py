@@ -42,9 +42,12 @@ from .services import (
     edit_message,
     get_room_last_read_message_id,
     get_message_readers,
-    get_unread_counts,
     mark_read as service_mark_read,
     remove_reaction,
+)
+from .unread_push import (
+    broadcast_room_unread_state_for_room,
+    broadcast_room_unread_state_for_user,
 )
 from rooms.services import (
     direct_pair_key,
@@ -1467,6 +1470,7 @@ def upload_attachments(request, room_id: int):
         "replyTo": _serialize_reply_to(message.reply_to),
         "attachments": attachments_data,
     })
+    broadcast_room_unread_state_for_room(room)
 
     return Response(
         {
@@ -1849,24 +1853,10 @@ def mark_read_view(request, room_id: int):
         "lastReadAt": state.last_read_at.isoformat() if state.last_read_at else None,
         "roomId": room.pk,
     })
+    broadcast_room_unread_state_for_user(request.user)
 
     return Response({
         "roomId": room.pk,
         "lastReadMessageId": state.last_read_message_id,
         "lastReadAt": state.last_read_at.isoformat() if state.last_read_at else None,
     })
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def unread_counts(request):
-    """Возвращает счетчики непрочитанных сообщений по комнатам.
-    
-    Args:
-        request: HTTP-запрос с контекстом пользователя и входными данными.
-    
-    Returns:
-        Результат вычислений, сформированный в ходе выполнения функции.
-    """
-    items = get_unread_counts(request.user)
-    return Response({"items": items})

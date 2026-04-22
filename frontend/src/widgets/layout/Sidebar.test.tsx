@@ -8,6 +8,7 @@ import { Sidebar } from "./Sidebar";
 const directInboxMock = vi.hoisted(() => ({
   unreadDialogsCount: 2,
   unreadCounts: { "1": 2 },
+  roomUnreadCounts: { "1": 2 },
   items: [
     {
       roomId: 1,

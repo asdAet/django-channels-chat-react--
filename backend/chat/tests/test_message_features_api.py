@@ -18,6 +18,7 @@ from django.utils import timezone
 from chat import api, attachment_uploads
 from chat.services import MessageForbiddenError
 from chat.tests.media_utils import workspace_media_root
+from chat.unread_push import build_room_unread_state
 from messages.models import (
     Message,
     MessageAttachment,
@@ -1150,7 +1151,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertIn(first.pk, ids)
         self.assertNotIn(second.pk, ids)
 
-    def test_mark_read_validation_public_room_and_unread_counts(self):
+    def test_mark_read_validation_public_room_and_ws_unread_state(self):
         message = Message.objects.create(
             username=self.peer.username,
             user=self.peer,
@@ -1173,20 +1174,20 @@ class ChatMessageFeatureApiTests(TestCase):
         )
         self.assertEqual(negative_payload.status_code, 400)
 
-        unread_before = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_before.status_code, 200)
-        self.assertTrue(any(item["roomId"] == self.direct_room.pk for item in unread_before.json()["items"]))
+        unread_before = build_room_unread_state(self.owner)
+        self.assertIn(str(self.direct_room.pk), unread_before["counts"])
 
-        read_ok = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/read/",
-            data=json.dumps({"lastReadMessageId": message.pk}),
-            content_type="application/json",
-        )
+        with patch("chat.api.broadcast_room_unread_state_for_user") as push_unread:
+            read_ok = self.client.post(
+                f"/api/chat/{self.direct_room.pk}/read/",
+                data=json.dumps({"lastReadMessageId": message.pk}),
+                content_type="application/json",
+            )
         self.assertEqual(read_ok.status_code, 200)
+        push_unread.assert_called_once_with(self.owner)
 
-        unread_after = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_after.status_code, 200)
-        self.assertFalse(any(item["roomId"] == self.direct_room.pk for item in unread_after.json()["items"]))
+        unread_after = build_room_unread_state(self.owner)
+        self.assertNotIn(str(self.direct_room.pk), unread_after["counts"])
 
         public_room = api._public_room()
         public_message = Message.objects.create(
@@ -1195,11 +1196,8 @@ class ChatMessageFeatureApiTests(TestCase):
             room=public_room,
             message_content="public unread",
         )
-        unread_public_before = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_public_before.status_code, 200)
-        self.assertFalse(
-            any(item["roomId"] == public_room.pk for item in unread_public_before.json()["items"])
-        )
+        unread_public_before = build_room_unread_state(self.owner)
+        self.assertNotIn(str(public_room.pk), unread_public_before["counts"])
 
         public_details = self.client.get(f"/api/chat/{public_room.pk}/")
         self.assertEqual(public_details.status_code, 200)
@@ -1212,11 +1210,8 @@ class ChatMessageFeatureApiTests(TestCase):
             ).exists()
         )
 
-        unread_public_after_first_visit = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_public_after_first_visit.status_code, 200)
-        self.assertFalse(
-            any(item["roomId"] == public_room.pk for item in unread_public_after_first_visit.json()["items"])
-        )
+        unread_public_after_first_visit = build_room_unread_state(self.owner)
+        self.assertNotIn(str(public_room.pk), unread_public_after_first_visit["counts"])
 
         later_public_message = Message.objects.create(
             username=self.peer.username,
@@ -1225,21 +1220,17 @@ class ChatMessageFeatureApiTests(TestCase):
             message_content="public unread later",
         )
 
-        unread_public_after_new_message = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_public_after_new_message.status_code, 200)
-        self.assertTrue(
-            any(
-                item["roomId"] == public_room.pk and item["unreadCount"] == 1
-                for item in unread_public_after_new_message.json()["items"]
-            )
-        )
+        unread_public_after_new_message = build_room_unread_state(self.owner)
+        self.assertEqual(unread_public_after_new_message["counts"].get(str(public_room.pk)), 1)
 
-        public_short = self.client.post(
-            f"/api/chat/{public_room.pk}/read/",
-            data=json.dumps({"lastReadMessageId": later_public_message.pk}),
-            content_type="application/json",
-        )
+        with patch("chat.api.broadcast_room_unread_state_for_user") as push_unread:
+            public_short = self.client.post(
+                f"/api/chat/{public_room.pk}/read/",
+                data=json.dumps({"lastReadMessageId": later_public_message.pk}),
+                content_type="application/json",
+            )
         self.assertEqual(public_short.status_code, 200)
+        push_unread.assert_called_once_with(self.owner)
         self.assertEqual(public_short.json()["lastReadMessageId"], later_public_message.pk)
         self.assertIsNotNone(public_short.json()["lastReadAt"])
         self.assertTrue(
@@ -1250,11 +1241,15 @@ class ChatMessageFeatureApiTests(TestCase):
             ).exists()
         )
 
-        unread_public_after = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_public_after.status_code, 200)
-        self.assertFalse(
-            any(item["roomId"] == public_room.pk for item in unread_public_after.json()["items"])
-        )
+        unread_public_after = build_room_unread_state(self.owner)
+        self.assertNotIn(str(public_room.pk), unread_public_after["counts"])
+
+    def test_unread_counts_rest_endpoint_is_removed(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get("/api/chat/unread/")
+
+        self.assertEqual(response.status_code, 404)
 
     def test_message_readers_endpoint_returns_direct_read_at_for_author(self):
         message = Message.objects.create(

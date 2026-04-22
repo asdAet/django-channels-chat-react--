@@ -89,6 +89,9 @@ function Probe() {
       <p data-testid="loading">{String(inbox.loading)}</p>
       <p data-testid="unread-count">{inbox.unreadDialogsCount}</p>
       <p data-testid="unread-counts">{JSON.stringify(inbox.unreadCounts)}</p>
+      <p data-testid="room-unread-counts">
+        {JSON.stringify(inbox.roomUnreadCounts)}
+      </p>
       <p data-testid="items-order">
         {inbox.items.map((item) => item.roomId).join(",")}
       </p>
@@ -226,6 +229,33 @@ describe("DirectInboxProvider", () => {
     expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
   });
 
+  it("stores authoritative room unread counts from inbox websocket", async () => {
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    );
+
+    await waitFor(() => {
+      expect(chatMock.getDirectChats).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "room_unread_state",
+            unread: { dialogs: 2, roomIds: [1, 5], counts: { "1": 3, "5": 1 } },
+          }),
+        }),
+      );
+    });
+
+    expect(screen.getByTestId("room-unread-counts").textContent).toBe(
+      '{"1":3,"5":1}',
+    );
+  });
+
   /**
    * Выполняет метод `it`.
    * @returns Результат выполнения операции.
@@ -317,6 +347,7 @@ describe("DirectInboxProvider", () => {
     expect(screen.getByTestId("unread-counts").textContent).toBe(
       '{"1":3}',
     );
+    expect(chatMock.getDirectChats).toHaveBeenCalledTimes(1);
   });
 
   /**

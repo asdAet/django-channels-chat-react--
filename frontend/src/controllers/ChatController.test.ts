@@ -6,7 +6,6 @@ import type {
   ReadStateResult,
   RoomAttachmentsResult,
   SearchResult,
-  UnreadCountItem,
   UploadAttachmentsOptions,
   UploadResult,
 } from "../domain/interfaces/IApiService";
@@ -27,7 +26,6 @@ const apiMocks = vi.hoisted(() => ({
       ) => Promise<RoomMessagesDto>
     >(),
   getDirectChats: vi.fn<() => Promise<DirectChatsResponseDto>>(),
-  getUnreadCounts: vi.fn<() => Promise<UnreadCountItem[]>>(),
   editMessage:
     vi.fn<
       (
@@ -269,7 +267,6 @@ describe("ChatController", () => {
         blocked: false,
       },
     };
-    const unreadCounts: UnreadCountItem[] = [{ roomId: 101, unreadCount: 3 }];
     const editedMessage = {
       id: 7,
       content: "edited",
@@ -371,7 +368,6 @@ describe("ChatController", () => {
     };
 
     apiMocks.resolveChatTarget.mockResolvedValue(resolvedChatTarget);
-    apiMocks.getUnreadCounts.mockResolvedValue(unreadCounts);
     apiMocks.editMessage.mockResolvedValue(editedMessage);
     apiMocks.deleteMessage.mockResolvedValue(undefined);
     apiMocks.addReaction.mockResolvedValue(reaction);
@@ -387,9 +383,6 @@ describe("ChatController", () => {
 
     await expect(chatController.resolveChatTarget("@alice")).resolves.toEqual(
       resolvedChatTarget,
-    );
-    await expect(chatController.getUnreadCounts()).resolves.toEqual(
-      unreadCounts,
     );
     await expect(
       chatController.editMessage("room_1", 7, "edited"),
@@ -426,7 +419,6 @@ describe("ChatController", () => {
     ).resolves.toEqual(attachments);
 
     expect(apiMocks.resolveChatTarget).toHaveBeenCalledWith("@alice");
-    expect(apiMocks.getUnreadCounts).toHaveBeenCalledTimes(1);
     expect(apiMocks.editMessage).toHaveBeenCalledWith("room_1", 7, "edited");
     expect(apiMocks.deleteMessage).toHaveBeenCalledWith("room_1", 7);
     expect(apiMocks.addReaction).toHaveBeenCalledWith("room_1", 7, "🔥");

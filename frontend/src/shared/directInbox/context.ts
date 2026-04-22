@@ -11,6 +11,7 @@ export type DirectInboxContextValue = {
   unreadRoomIds: string[];
   unreadCounts: Record<string, number>;
   unreadDialogsCount: number;
+  roomUnreadCounts: Record<string, number>;
   setActiveRoom: (roomRef: string | number | null) => void;
   markRead: (roomRef: string | number) => void;
   refresh: () => Promise<void>;
@@ -30,6 +31,7 @@ export const FALLBACK_DIRECT_INBOX: DirectInboxContextValue = {
   unreadRoomIds: [],
   unreadCounts: {},
   unreadDialogsCount: 0,
+  roomUnreadCounts: {},
   setActiveRoom: noop,
   markRead: noop,
   refresh: noopAsync,

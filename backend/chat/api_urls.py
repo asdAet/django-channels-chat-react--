@@ -8,7 +8,6 @@ urlpatterns = [
     path("resolve/", api.chat_resolve, name="api-chat-resolve"),
     path("inbox/", api.direct_chats, name="api-chat-inbox"),
     path("search/global/", api.global_search, name="api-global-search"),
-    path("unread/", api.unread_counts, name="api-unread-counts"),
     path("<int:room_id>/", include("roles.interfaces.urls")),
     path("<int:room_id>/messages/search/", api.search_messages, name="api-search-messages"),
     path("<int:room_id>/messages/<int:message_id>/reactions/<str:emoji>/", api.message_reaction_remove, name="api-message-reaction-remove"),
