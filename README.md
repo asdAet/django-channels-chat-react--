@@ -1,9 +1,10 @@
 ﻿<div align="center">
-  <img src="frontend/public/MINI-direct-logo-avatar.png" alt="Devils Resting logo" width="180">
-  <h1>Devils Resting</h1>
+  <img src="frontend/public/MINI-direct-logo-avatar.png" alt="Devil logo" width="180">
+  <h1>Devil</h1>
   <p><strong>Full-stack real-time чат-платформа на Django, Channels, React и TypeScript</strong></p>
   <p>
     <a href="https://github.com/asdAet/django-channels-chat-react">
+
       <img src="https://myhits.vercel.app/api/hit/https%3A%2F%2Fgithub.com%2FasdAet%2Fdjango-channels-chat-react?label=%D0%BF%D1%80%D0%BE%D1%81%D0%BC%D0%BE%D1%82%D1%80%D1%8B&color=0d1117&size=small" alt="Счетчик просмотров репозитория">
     </a>
   </p>
@@ -43,6 +44,7 @@
 ## Структура репозитория
 
 ```text
+
 backend/                  Django-приложение и доменная логика
 frontend/                 React-приложение
 deploy/                   Nginx, TLS и observability-конфигурация

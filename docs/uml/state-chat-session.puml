@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Состояния сессии чата
+title Devil - Состояния сессии чата
 skinparam shadowing false
 skinparam backgroundColor #ffffff
 skinparam linetype ortho

@@ -66,7 +66,7 @@ class SiteVisitApiTests(TestCase):
         payload = {
             "visitorId": "visitor-12345678",
             "pagePath": "/",
-            "pageTitle": "Devils Resting",
+            "pageTitle": "Devil",
             "referrer": "https://slowed.sbs/login",
             "viewportWidth": 393,
             "viewportHeight": 852,
@@ -131,7 +131,7 @@ class VisitorTelemetryNormalizationTests(TestCase):
         payload = {
             "visitorId": "visitor-firefox-12345678",
             "pagePath": "/",
-            "pageTitle": "Devils Resting",
+            "pageTitle": "Devil",
             "referrer": "https://slowed.sbs/",
             "viewportWidth": 1536,
             "viewportHeight": 864,

@@ -1,8 +1,8 @@
 ﻿# Справочник Frontend
 
-Сгенерировано: 2026-04-09T17:14:03Z
+Сгенерировано: 2026-04-22T14:14:13Z
 
-Всего модулей: 258
+Всего модулей: 253
 
 ## `frontend/src/adapters/apiService/acceptFriendRequest.ts`
 
@@ -985,24 +985,6 @@
     - Описание: Параметр `apiClient` в формате `AxiosInstance`.
 - Возвращает: `Promise<SessionResponse>`
   - Описание: Промис с результатом операции в формате `SessionResponse`.
-
-## `frontend/src/adapters/apiService/getUnreadCounts.ts`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export async function getUnreadCounts( apiClient: AxiosInstance, ): Promise<UnreadCountItem[]> {`
-
-- Вид: асинхронная функция
-- Кратко: Асинхронная функция `getUnreadCounts`.
-- Параметры: 1
-  - `apiClient`
-    - Формат: `AxiosInstance`
-    - Вид: обязательный
-    - Описание: Параметр `apiClient` в формате `AxiosInstance`.
-- Возвращает: `Promise<UnreadCountItem[]>`
-  - Описание: Промис с результатом операции в формате `UnreadCountItem[]`.
 
 ## `frontend/src/adapters/apiService/getUserProfile.ts`
 
@@ -2218,7 +2200,7 @@
 
 ## `frontend/src/dto/http/chat.ts`
 
-- Экспортируемые объявления: 13
+- Экспортируемые объявления: 12
 
 ### Объявления
 
@@ -2340,18 +2322,6 @@
     - Вид: обязательный
     - Описание: Входной объект с параметрами операции.
 - Возвращает: `MessageReadersResponse`
-  - Описание: Нормализованные данные после декодирования.
-
-#### `export const decodeUnreadCountsResponse = ( input: unknown, ): UnreadCountItem[] => {`
-
-- Вид: функция
-- Кратко: Функция `decodeUnreadCountsResponse`.
-- Параметры: 1
-  - `input`
-    - Формат: `unknown`
-    - Вид: обязательный
-    - Описание: Входной объект с параметрами операции.
-- Возвращает: `UnreadCountItem[]`
   - Описание: Нормализованные данные после декодирования.
 
 #### `export const decodeRoomAttachmentsResponse = ( input: unknown, ): RoomAttachmentsResponse => {`
@@ -3187,7 +3157,7 @@
 
 ## `frontend/src/pages/chatRoomPage/mediaLightbox.ts`
 
-- Экспортируемые объявления: 2
+- Экспортируемые объявления: 3
 
 ### Объявления
 
@@ -3199,25 +3169,41 @@
   - `messages`
     - Формат: `Message[]`
     - Вид: обязательный
-    - Описание: Сообщения текущей комнаты вместе с вложениями.
+    - Описание: Параметр `messages` в формате `Message[]`.
 - Возвращает: `ImageLightboxMediaItem[]`
-  - Описание: Список изображений и видео в формате, который понимает lightbox-слой.
+  - Описание: Результат функции в формате `ImageLightboxMediaItem[]`.
 
 #### `export const findLightboxMediaIndex = ( mediaItems: ImageLightboxMediaItem[], attachmentId: number | null, ): number => {`
 
 - Вид: функция
-- Кратко: Находит индекс конкретного вложения в уже подготовленном списке медиа для лайтбокса.
+- Кратко: Функция `findLightboxMediaIndex`.
 - Параметры: 2
   - `mediaItems`
     - Формат: `ImageLightboxMediaItem[]`
     - Вид: обязательный
-    - Описание: Список элементов, который показывает lightbox.
+    - Описание: Параметр `mediaItems` в формате `ImageLightboxMediaItem[]`.
   - `attachmentId`
     - Формат: `number | null`
     - Вид: обязательный
-    - Описание: Идентификатор вложения, с которого нужно открыть просмотр.
+    - Описание: Параметр `attachmentId` в формате `number | null`.
 - Возвращает: `number`
-  - Описание: Индекс элемента в массиве или `-1`, если вложение в списке не найдено.
+  - Описание: Числовое значение результата.
+
+#### `export const buildChatLightboxSession = ( messages: Message[], attachmentId: number, ): ChatLightboxSession | null => {`
+
+- Вид: функция
+- Кратко: Функция `buildChatLightboxSession`.
+- Параметры: 2
+  - `messages`
+    - Формат: `Message[]`
+    - Вид: обязательный
+    - Описание: Параметр `messages` в формате `Message[]`.
+  - `attachmentId`
+    - Формат: `number`
+    - Вид: обязательный
+    - Описание: Параметр `attachmentId` в формате `number`.
+- Возвращает: `ChatLightboxSession | null`
+  - Описание: Результат функции в формате `ChatLightboxSession | null`.
 
 ## `frontend/src/pages/chatRoomPage/types.ts`
 
@@ -3357,12 +3343,12 @@
 
 ### Объявления
 
-#### `export function useChatRoomPageViewModel({ details, roomIdForRequests, messages, unreadDividerRenderTarget, typingUsers, typingDisplayNames, readReceipts, currentActorRef, user, permissionsLoading, canWriteToRoom, canJoinRoom, presenceOnline, presenceStatus, lightboxAttachmentId, readersMenu, }: UseChatRoomPageViewModelOptions): UseChatRoomPageViewModelResult {`
+#### `export function useChatRoomPageViewModel({ details, roomIdForRequests, messages, unreadDividerRenderTarget, typingUsers, typingDisplayNames, readReceipts, currentActorRef, user, permissionsLoading, canWriteToRoom, canJoinRoom, presenceOnline, presenceStatus, readersMenu, }: UseChatRoomPageViewModelOptions): UseChatRoomPageViewModelResult {`
 
 - Вид: функция
 - Кратко: Собирает производные данные, нужные только для отображения страницы.
 - Параметры: 1
-  - `{ details, roomIdForRequests, messages, unreadDividerRenderTarget, typingUsers, typingDisplayNames, readReceipts, currentActorRef, user, permissionsLoading, canWriteToRoom, canJoinRoom, presenceOnline, presenceStatus, lightboxAttachmentId, readersMenu, }`
+  - `{ details, roomIdForRequests, messages, unreadDividerRenderTarget, typingUsers, typingDisplayNames, readReceipts, currentActorRef, user, permissionsLoading, canWriteToRoom, canJoinRoom, presenceOnline, presenceStatus, readersMenu, }`
     - Формат: `UseChatRoomPageViewModelOptions`
     - Вид: обязательный
     - Описание: Объект параметров в формате `UseChatRoomPageViewModelOptions`.
@@ -3752,7 +3738,7 @@
 #### `export function LoginPage({ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, }: Props) {`
 
 - Вид: функция
-- Кратко: React-компонент `LoginPage`.
+- Кратко: Рендерит экран входа и прокидывает действия пользователя в auth-форму.
 - Параметры: 1
   - `{ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, }`
     - Формат: `Props`
@@ -3807,7 +3793,7 @@
 #### `export function RegisterPage({ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], }: Props) {`
 
 - Вид: функция
-- Кратко: React-компонент `RegisterPage`.
+- Кратко: Рендерит экран регистрации и передает действия пользователя в auth-форму.
 - Параметры: 1
   - `{ onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], }`
     - Формат: `Props`
@@ -3862,7 +3848,7 @@
 
 ## `frontend/src/shared/auth/googleIdentity.ts`
 
-- Экспортируемые объявления: 2
+- Экспортируемые объявления: 3
 
 ### Объявления
 
@@ -3873,6 +3859,19 @@
 - Параметры: нет
 - Возвращает: не указан
   - Описание: Возвращает результат выполнения функции.
+
+#### `export const renderGoogleSignInButton = async ({ clientId, container, onSuccess, }: GoogleSignInButtonRenderOptions): Promise<void> => {`
+
+- Вид: функция
+- Кратко: Функция `renderGoogleSignInButton`.
+- Детали: Основной production-путь использует официальный GIS button вместо ручного popup token flow. Это уменьшает шум в консоли вокруг `window.closed` и оставляет совместимый fallback только для браузеров, где GIS button недоступен.
+- Параметры: 1
+  - `{ clientId, container, onSuccess, }`
+    - Формат: `GoogleSignInButtonRenderOptions`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `GoogleSignInButtonRenderOptions`.
+- Возвращает: `Promise<void>`
+  - Описание: Промис, который завершается после успешного выполнения операции `render google sign in button`.
 
 #### `export const signInWithGoogle = async ( clientId: string, ): Promise<GoogleOAuthSuccess> => {`
 
@@ -3886,6 +3885,56 @@
     - Описание: Идентификатор Google OAuth-клиента, выданный для фронтенда.
 - Возвращает: `Promise<GoogleOAuthSuccess>`
   - Описание: Данные успешной авторизации, которые затем передаются на backend для обмена на сессию.
+
+## `frontend/src/shared/auth/GoogleIdentityButton.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function GoogleIdentityButton({ clientId, disabled = false, onSuccess, onUnavailable, }: GoogleIdentityButtonProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `GoogleIdentityButton`.
+- Детали: Если GIS SDK или сам button недоступны, компонент сообщает родителю о необходимости включить fallback-сценарий. Ошибка в этом случае не показывается пользователю автоматически: fallback должен отработать прозрачно, без лишнего шума.
+- Параметры: 1
+  - `{ clientId, disabled = false, onSuccess, onUnavailable, }`
+    - Формат: `GoogleIdentityButtonProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `GoogleIdentityButtonProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `GoogleIdentityButton`.
+
+## `frontend/src/shared/auth/googleRedirect.ts`
+
+- Экспортируемые объявления: 2
+
+### Объявления
+
+#### `export const buildGoogleAuthRedirectUrl = (returnTo: string): string => {`
+
+- Вид: функция
+- Кратко: Функция `buildGoogleAuthRedirectUrl`.
+- Параметры: 1
+  - `returnTo`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Путь SPA, к которому backend может вернуть пользователя при ошибке.
+- Возвращает: `string`
+  - Описание: Абсолютно безопасный относительный URL для перехода на backend.
+
+#### `export const startGoogleAuthRedirect = (returnTo: string): void => {`
+
+- Вид: функция
+- Кратко: Функция `startGoogleAuthRedirect`.
+- Детали: Фронтенд не получает OAuth-токены напрямую и не открывает popup-окно. Вместо этого браузер уходит на backend endpoint, который сам начинает Google OAuth, принимает callback и создает серверную сессию.
+- Параметры: 1
+  - `returnTo`
+    - Формат: `string`
+    - Вид: обязательный
+    - Описание: Путь SPA, к которому backend может вернуть пользователя при ошибке.
+- Возвращает: `void`
+  - Описание: Ничего не возвращает; эффект достигается побочным действием.
 
 ## `frontend/src/shared/cache/cacheConfig.ts`
 
@@ -4253,7 +4302,7 @@
 #### `export const emitConversationListRefresh = (): void => {`
 
 - Вид: функция
-- Кратко: Функция `emitConversationListRefresh`.
+- Кратко: Немедленно уведомляет sidebar-провайдер о необходимости обновить данные.
 - Параметры: нет
 - Возвращает: `void`
   - Описание: Ничего не возвращает; эффект достигается побочным действием.
@@ -4377,7 +4426,7 @@
 
 ## `frontend/src/shared/lib/attachmentMedia.ts`
 
-- Экспортируемые объявления: 4
+- Экспортируемые объявления: 5
 
 ### Объявления
 
@@ -4389,13 +4438,13 @@
   - `contentType`
     - Формат: `string | null | undefined`
     - Вид: обязательный
-    - Описание: MIME-тип файла.
+    - Описание: Параметр `contentType` в формате `string | null | undefined`.
   - `fileName`
     - Формат: `string | null | undefined`
     - Вид: обязательный
-    - Описание: Имя файла вместе с расширением.
+    - Описание: Параметр `fileName` в формате `string | null | undefined`.
 - Возвращает: `boolean`
-  - Описание: Булев результат проверки условия.
+  - Описание: Булево значение, отражающее результат проверки.
 
 #### `export const isImageAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
 
@@ -4405,29 +4454,30 @@
   - `contentType`
     - Формат: `string | null | undefined`
     - Вид: обязательный
-    - Описание: MIME-тип файла.
+    - Описание: Параметр `contentType` в формате `string | null | undefined`.
   - `fileName`
     - Формат: `string | null | undefined`
     - Вид: обязательный
-    - Описание: Имя файла вместе с расширением.
+    - Описание: Параметр `fileName` в формате `string | null | undefined`.
 - Возвращает: `boolean`
-  - Описание: Булев результат проверки условия.
+  - Описание: Булево значение, отражающее результат проверки.
 
 #### `export const isVideoAttachment = ( contentType: string | null | undefined, fileName: string | null | undefined, ): boolean => {`
 
 - Вид: функция
-- Кратко: Проверяет, относится ли файл к видео по MIME-типу или расширению.
+- Кратко: Функция `isVideoAttachment`.
+- Детали: The viewer intentionally does not second-guess the browser here. If the file is identified as video by MIME type or file extension, the modal opens a plain native `<video>` and leaves playback support to the browser runtime.
 - Параметры: 2
   - `contentType`
     - Формат: `string | null | undefined`
     - Вид: обязательный
-    - Описание: MIME-тип файла.
+    - Описание: Параметр `contentType` в формате `string | null | undefined`.
   - `fileName`
     - Формат: `string | null | undefined`
     - Вид: обязательный
-    - Описание: Имя файла вместе с расширением.
+    - Описание: Параметр `fileName` в формате `string | null | undefined`.
 - Возвращает: `boolean`
-  - Описание: `true`, если файл должен отображаться как видео.
+  - Описание: Булево значение, отражающее результат проверки.
 
 #### `export const resolveImagePreviewUrl = ({ url, thumbnailUrl, contentType, fileName, }: { url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; }): string | null => {`
 
@@ -4439,7 +4489,19 @@
     - Вид: обязательный
     - Описание: Объект параметров в формате `{ url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; }`.
 - Возвращает: `string | null`
-  - Описание: Разрешенное значение с учетом fallback-логики.
+  - Описание: Результат функции в формате `string | null`.
+
+#### `export const resolveResponsiveImageSource = ({ url, thumbnailUrl, contentType, fileName, expectedWidthPx, }: { url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; expectedWidthPx: number; }): ResponsiveImageSource => {`
+
+- Вид: функция
+- Кратко: Функция `resolveResponsiveImageSource`.
+- Параметры: 1
+  - `{ url, thumbnailUrl, contentType, fileName, expectedWidthPx, }`
+    - Формат: `{ url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; expectedWidthPx: number; }`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `{ url: string | null; thumbnailUrl: string | null; contentType: string | null | undefined; fileName: string | null | undefined; expectedWidthPx: number; }`.
+- Возвращает: `ResponsiveImageSource`
+  - Описание: Результат функции в формате `ResponsiveImageSource`.
 
 ## `frontend/src/shared/lib/attachmentTypeLabel.ts`
 
@@ -5283,47 +5345,6 @@
 - Возвращает: не указан
   - Описание: React-элемент, который отрисовывает компонент `EmptyState`.
 
-## `frontend/src/shared/ui/ImageLightbox.dragRelease.ts`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export const consumePendingDesktopMediaDragRelease = ({ isMobileLayout, currentKind, pointerMovedRef, }: { isMobileLayout: boolean; currentKind: "image" | "video" | undefined; pointerMovedRef: { current: boolean }; }): boolean => {`
-
-- Вид: функция
-- Кратко: Функция `consumePendingDesktopMediaDragRelease`.
-- Детали: Возвращает `true`, только если действительно был drag на desktop-версии изображения или видео. На мобильном layout и без движения указателя функция ничего не меняет и возвращает `false`.
-- Параметры: 1
-  - `{ isMobileLayout, currentKind, pointerMovedRef, }`
-    - Формат: `{ isMobileLayout: boolean; currentKind: "image" | "video" | undefined; pointerMovedRef: { current: boolean }; }`
-    - Вид: обязательный
-    - Описание: Объект параметров в формате `{ isMobileLayout: boolean; currentKind: "image" | "video" | undefined; pointerMovedRef: { current: boolean }; }`.
-- Возвращает: `boolean`
-  - Описание: Булево значение, отражающее результат проверки.
-
-## `frontend/src/shared/ui/ImageLightbox.loaders.ts`
-
-- Экспортируемые объявления: 2
-
-### Объявления
-
-#### `export const loadImageLightboxDesktopView = () =>`
-
-- Вид: функция
-- Кратко: Функция `loadImageLightboxDesktopView`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: Возвращает результат выполнения функции.
-
-#### `export const loadImageLightboxMobileView = () =>`
-
-- Вид: функция
-- Кратко: Функция `loadImageLightboxMobileView`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: Возвращает результат выполнения функции.
-
 ## `frontend/src/shared/ui/ImageLightbox.tsx`
 
 - Экспортируемые объявления: 1
@@ -5334,6 +5355,7 @@
 
 - Вид: функция
 - Кратко: React-компонент `ImageLightbox`.
+- Детали: The shell restores the earlier fullscreen stage presentation for images and videos while keeping the current native `<video controls>` implementation.
 - Параметры: 1
   - `props`
     - Формат: `ImageLightboxProps`
@@ -5346,361 +5368,9 @@
 
 - Экспортируемые объявления: 0
 
-## `frontend/src/shared/ui/ImageLightboxDesktopView.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export default function ImageLightboxDesktopView({ chrome, currentItem, isClosing, dialogLabel, overlayStyle, resolvedFrameStyle, metadataLines, hasNavigation, canGoPrevious, canGoNext, overlayRef, frameRef, viewportRef, onViewportWheel, onPointerDown, onPointerMove, onEndPointerDrag, onViewportBackgroundClick, onViewportDoubleClick,`
-
-- Вид: функция
-- Кратко: React-компонент `ImageLightboxDesktopView`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ImageLightboxDesktopView`.
-
-## `frontend/src/shared/ui/ImageLightboxMobileView.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export default function ImageLightboxMobileView({ chrome, mediaItems, normalizedCurrentIndex, normalizedDisplayIndex, isClosing, dialogLabel, overlayStyle, resolvedFrameStyle, metadataLines, hasNavigation, canGoPrevious, canGoNext, overlayRef, frameRef, viewportRef, mobileTrackRef, mobileTrackStyle, onMobileTrackTransitionEnd,`
-
-- Вид: функция
-- Кратко: React-компонент `ImageLightboxMobileView`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ImageLightboxMobileView`.
-
 ## `frontend/src/shared/ui/index.ts`
 
 - Экспортируемые объявления: 0
-
-## `frontend/src/shared/ui/lightboxControls/LightboxChrome.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export function LightboxChrome({ layout, title, subtitle, counterLabel, directActions = [], menuActions = [], menuController, onClose, }: Props) {`
-
-- Вид: функция
-- Кратко: React-компонент `LightboxChrome`.
-- Детали: Компонент объединяет прямые действия, выпадающее меню и кнопку закрытия, сохраняя единый вид для desktop- и mobile-режимов.
-- Параметры: 1
-  - `{ layout, title, subtitle, counterLabel, directActions = [], menuActions = [], menuController, onClose, }`
-    - Формат: `Props`
-    - Вид: обязательный
-    - Описание: Объект параметров в формате `Props`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `LightboxChrome`.
-
-## `frontend/src/shared/ui/lightboxControls/LightboxDropdownMenu.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export function LightboxDropdownMenu({ anchorRef, layout, items, onClose, }: Props) {`
-
-- Вид: функция
-- Кратко: Показывает выпадающее меню действий lightbox рядом с кнопкой-источником.
-- Детали: Компонент сам вычисляет позицию относительно viewport, закрывается по клику снаружи и по `Escape`, а выбор конкретного действия делегирует item-обработчикам.
-- Параметры: 1
-  - `{ anchorRef, layout, items, onClose, }`
-    - Формат: `Props`
-    - Вид: обязательный
-    - Описание: Объект параметров в формате `Props`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `LightboxDropdownMenu`.
-
-## `frontend/src/shared/ui/lightboxControls/LightboxIconButton.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export function LightboxIconButton({ layout, label, icon, active = false, tone = "default", className, suppressAriaLabel = false, type = "button", ...props }: Props) {`
-
-- Вид: функция
-- Кратко: React-компонент `LightboxIconButton`.
-- Детали: Компонент инкапсулирует layout-зависимые стили, активное состояние, цветовой тон и aria-label, чтобы остальные части lightbox не собирали этот шаблон вручную.
-- Параметры: 1
-  - `{ layout, label, icon, active = false, tone = "default", className, suppressAriaLabel = false, type = "button", ...props }`
-    - Формат: `Props`
-    - Вид: обязательный
-    - Описание: Объект параметров в формате `Props`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `LightboxIconButton`.
-
-## `frontend/src/shared/ui/lightboxControls/LightboxIcons.tsx`
-
-- Экспортируемые объявления: 18
-
-### Объявления
-
-#### `export function CloseIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: React-компонент `CloseIcon`.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `CloseIcon`.
-
-#### `export function MoreIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка вызова дополнительного меню действий.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `MoreIcon`.
-
-#### `export function DownloadIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка скачивания текущего медиафайла.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `DownloadIcon`.
-
-#### `export function RotateIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка поворота изображения или видео.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `RotateIcon`.
-
-#### `export function ExpandIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка перехода в полноэкранный или расширенный режим просмотра.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ExpandIcon`.
-
-#### `export function OpenInBrowserIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка открытия текущего медиа в отдельной вкладке браузера.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `OpenInBrowserIcon`.
-
-#### `export function CopyLinkIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка копирования ссылки на текущее медиа.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `CopyLinkIcon`.
-
-#### `export function ZoomInIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка увеличения масштаба.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ZoomInIcon`.
-
-#### `export function ZoomOutIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка уменьшения масштаба.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ZoomOutIcon`.
-
-#### `export function ResetZoomIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка сброса масштаба к исходному значению.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ResetZoomIcon`.
-
-#### `export function PlayIcon({ layout = "desktop", ...props }: IconProps) {`
-
-- Вид: функция
-- Кратко: React-компонент `PlayIcon`.
-- Параметры: 1
-  - `{ layout = "desktop", ...props }`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект параметров в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `PlayIcon`.
-
-#### `export function PauseIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка паузы для видеоплеера.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `PauseIcon`.
-
-#### `export function VolumeIcon({ muted, layout = "desktop", ...props }: IconProps & { muted: boolean }) {`
-
-- Вид: функция
-- Кратко: React-компонент `VolumeIcon`.
-- Параметры: 1
-  - `{ muted, layout = "desktop", ...props }`
-    - Формат: `IconProps & { muted: boolean }`
-    - Вид: обязательный
-    - Описание: Объект параметров в формате `IconProps & { muted: boolean }`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `VolumeIcon`.
-
-#### `export function SettingsIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: Иконка открытия настроек просмотра.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `SettingsIcon`.
-
-#### `export function PictureInPictureIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: React-компонент `PictureInPictureIcon`.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `PictureInPictureIcon`.
-
-#### `export function FullscreenIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: React-компонент `FullscreenIcon`.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `FullscreenIcon`.
-
-#### `export function ChevronLeftIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: React-компонент `ChevronLeftIcon`.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ChevronLeftIcon`.
-
-#### `export function ChevronRightIcon(props: IconProps) {`
-
-- Вид: функция
-- Кратко: React-компонент `ChevronRightIcon`.
-- Параметры: 1
-  - `props`
-    - Формат: `IconProps`
-    - Вид: обязательный
-    - Описание: Объект props в формате `IconProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `ChevronRightIcon`.
-
-## `frontend/src/shared/ui/lightboxControls/types.ts`
-
-- Экспортируемые объявления: 0
-
-## `frontend/src/shared/ui/LightboxVideoPlayer.loaders.ts`
-
-- Экспортируемые объявления: 2
-
-### Объявления
-
-#### `export const loadLightboxVideoPlayerDesktopView = () =>`
-
-- Вид: функция
-- Кратко: Функция `loadLightboxVideoPlayerDesktopView`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: Возвращает результат выполнения функции.
-
-#### `export const loadLightboxVideoPlayerMobileView = () =>`
-
-- Вид: функция
-- Кратко: Функция `loadLightboxVideoPlayerMobileView`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: Возвращает результат выполнения функции.
-
-## `frontend/src/shared/ui/LightboxVideoPlayer.shared.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export function LightboxVideoTimeline({ displayTime, remainingLabel, isReady, duration, progressStyle, onSeekPreview, onSeekCommit, onSeekInteractionStart, onSeekInteractionEnd, className, }: LightboxVideoTimelineProps) {`
-
-- Вид: функция
-- Кратко: Отрисовывает таймлайн видеоплеера с текущим временем и range-контролом.
-- Детали: Компонент сам не хранит состояние перемотки: он только отображает переданные значения и прокидывает наружу события preview/commit для синхронизации с родительским контроллером плеера.
-- Параметры: 1
-  - `{ displayTime, remainingLabel, isReady, duration, progressStyle, onSeekPreview, onSeekCommit, onSeekInteractionStart, onSeekInteractionEnd, className, }`
-    - Формат: `LightboxVideoTimelineProps`
-    - Вид: обязательный
-    - Описание: Объект параметров в формате `LightboxVideoTimelineProps`.
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `LightboxVideoTimeline`.
 
 ## `frontend/src/shared/ui/LightboxVideoPlayer.tsx`
 
@@ -5708,104 +5378,18 @@
 
 ### Объявления
 
-#### `export const LightboxVideoPlayer = forwardRef<LightboxVideoPlayerHandle, Props>( function LightboxVideoPlayer( { src, fileName, mediaClassName, mediaTransformClassName, mediaTransformRef, consumeMediaClickSuppression, menuController, onRequestFullscreen, layout, }, ref, ) { return ( <LightboxVideoPlayerSession key={src}`
+#### `export function LightboxVideoPlayer({ src, poster, fileName, }: LightboxVideoPlayerProps) {`
 
 - Вид: функция
 - Кратко: React-компонент `LightboxVideoPlayer`.
-- Параметры: нет
+- Детали: The component deliberately stays close to the browser's default player: there are no custom playback layers, no third-party runtime and no detached player session. Closing the viewer always tears the media element down.
+- Параметры: 1
+  - `{ src, poster, fileName, }`
+    - Формат: `LightboxVideoPlayerProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `LightboxVideoPlayerProps`.
 - Возвращает: не указан
   - Описание: React-элемент, который отрисовывает компонент `LightboxVideoPlayer`.
-
-## `frontend/src/shared/ui/LightboxVideoPlayer.types.ts`
-
-- Экспортируемые объявления: 0
-
-## `frontend/src/shared/ui/LightboxVideoPlayer.utils.ts`
-
-- Экспортируемые объявления: 4
-
-### Объявления
-
-#### `export const PLAYBACK_RATE_OPTIONS: PlaybackRateOption[] = [ { value: 0.5, label: "Медленно" },`
-
-- Вид: константа
-- Кратко: Хранит константное значение `PLAYBACK_RATE_OPTIONS`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: Возвращает результат выполнения функции.
-
-#### `export const formatTime = (value: number): string => {`
-
-- Вид: функция
-- Кратко: Функция `formatTime`.
-- Параметры: 1
-  - `value`
-    - Формат: `number`
-    - Вид: обязательный
-    - Описание: Параметр `value` в формате `number`.
-- Возвращает: `string`
-  - Описание: Строковое значение результата.
-
-#### `export const clampNumber = (value: number, min: number, max: number) =>`
-
-- Вид: функция
-- Кратко: Функция `clampNumber`.
-- Параметры: 3
-  - `value`
-    - Формат: `number`
-    - Вид: обязательный
-    - Описание: Параметр `value` в формате `number`.
-  - `min`
-    - Формат: `number`
-    - Вид: обязательный
-    - Описание: Параметр `min` в формате `number`.
-  - `max`
-    - Формат: `number`
-    - Вид: обязательный
-    - Описание: Параметр `max` в формате `number`.
-- Возвращает: не указан
-  - Описание: Возвращает результат выполнения функции.
-
-#### `export const stopPropagation = (event: SyntheticEvent<HTMLElement>) => {`
-
-- Вид: функция
-- Кратко: Функция `stopPropagation`.
-- Параметры: 1
-  - `event`
-    - Формат: `SyntheticEvent<HTMLElement>`
-    - Вид: обязательный
-    - Описание: Параметр `event` в формате `SyntheticEvent<HTMLElement>`.
-- Возвращает: не указан
-  - Описание: Возвращает результат выполнения функции.
-
-## `frontend/src/shared/ui/LightboxVideoPlayerDesktopView.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export default function LightboxVideoPlayerDesktopView({ rootRef, mediaViewport, isReady, isPlaying, isControlsVisible, duration, displayTime, volume, isMuted, playbackRate, activeMenuId, canUsePictureInPicture, isInPictureInPicture, progressStyle, volumeStyle, remainingLabel, onTogglePlayback, onSeekPreview, onSeekCommit,`
-
-- Вид: функция
-- Кратко: React-компонент `LightboxVideoPlayerDesktopView`.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `LightboxVideoPlayerDesktopView`.
-
-## `frontend/src/shared/ui/LightboxVideoPlayerMobileView.tsx`
-
-- Экспортируемые объявления: 1
-
-### Объявления
-
-#### `export default function LightboxVideoPlayerMobileView({ rootRef, mediaViewport, isReady, isPlaying, duration, displayTime, volume, isMuted, playbackRate, activeMenuId, progressStyle, remainingLabel, onTogglePlayback, onSeekPreview, onSeekCommit, onSeekInteractionStart, onSeekInteractionEnd, onToggleMute, onSetPlaybackRate,`
-
-- Вид: функция
-- Кратко: Отрисовывает мобильную версию оверлея управления видеоплеером.
-- Детали: В этой версии элементы управления собраны в нижний dock: таймлайн, транспорт, переключение звука, выбор скорости и переход в полный экран. Само состояние воспроизведения приходит извне через общий контракт пропсов.
-- Параметры: нет
-- Возвращает: не указан
-  - Описание: React-элемент, который отрисовывает компонент `LightboxVideoPlayerMobileView`.
 
 ## `frontend/src/shared/ui/Modal.tsx`
 
@@ -5879,9 +5463,43 @@
 - Возвращает: не указан
   - Описание: React-элемент, который отрисовывает компонент `Toast`.
 
+## `frontend/src/shared/ui/useGuardedModalState.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function useGuardedModalState<T>(): GuardedModalState<T> {`
+
+- Вид: функция
+- Кратко: Хук `useGuardedModalState`.
+- Детали: Такой guard нужен для быстрых повторных кликов, тачей и event replay после reload, когда UI должен открыть только один экземпляр модального слоя.
+- Параметры: нет
+- Возвращает: `GuardedModalState<T>`
+  - Описание: Guard с синхронным lock-before-render и безопасным освобождением.
+
+## `frontend/src/shared/ui/ZoomableImageStage.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function ZoomableImageStage({ src, alt, onRequestClose, }: ZoomableImageStageProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `ZoomableImageStage`.
+- Детали: The stage keeps fit-to-screen as the base state. Every zoom step is applied around the visual center of the viewer, while pan stays unrestricted after the image has already been scaled.
+- Параметры: 1
+  - `{ src, alt, onRequestClose, }`
+    - Формат: `ZoomableImageStageProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `ZoomableImageStageProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `ZoomableImageStage`.
+
 ## `frontend/src/shared/unreadOverrides/store.ts`
 
-- Экспортируемые объявления: 4
+- Экспортируемые объявления: 6
 
 ### Объявления
 
@@ -5889,7 +5507,7 @@
 
 - Вид: функция
 - Кратко: Функция `setUnreadOverride`.
-- Детали: Используется, когда UI уже знает новое число непрочитанных сообщений раньше, чем его подтвердит backend или WebSocket-ack.
+- Детали: Store хранит и положительные значения, и явный `0`. Это позволяет сразу обновлять бейдж текущего чата после прочтения, не дожидаясь отдельного refetch списка комнат.
 - Параметры: 1
   - `{ roomId, unreadCount }`
     - Формат: `UnreadOverride`
@@ -5910,6 +5528,32 @@
 - Возвращает: не указан
   - Описание: Возвращает результат выполнения функции.
 
+#### `export const clearUnreadOverridesForRooms = (roomIds: Iterable<string>) => {`
+
+- Вид: функция
+- Кратко: Функция `clearUnreadOverridesForRooms`.
+- Детали: После этого UI снова начинает опираться на backend/WebSocket-снимок, а временный локальный override больше не влияет на бейдж.
+- Параметры: 1
+  - `roomIds`
+    - Формат: `Iterable<string>`
+    - Вид: обязательный
+    - Описание: Параметр `roomIds` в формате `Iterable<string>`.
+- Возвращает: не указан
+  - Описание: Возвращает результат выполнения функции.
+
+#### `export const collectSettledUnreadOverrideRoomIds = ({ authoritativeRoomIds, authoritativeCounts, }: SettledUnreadOverrideParams): string[] => {`
+
+- Вид: функция
+- Кратко: Функция `collectSettledUnreadOverrideRoomIds`.
+- Детали: Правило слияния намеренно сохраняет локальный `0`, если пришедший с сервера снапшот unread ещё сообщает положительный unread по этой комнате. Это защищает текущий чат от отката бейджа назад, когда локальное чтение уже зафиксировано, а авторитативный push-снимок ещё не догнал только что отправленный `mark_read`. Override снимается только в двух случаях: 1. сервер явно подтвердил ноль unread для комнаты; 2. локальный override был положительным, и сервер прислал свой авторитативный count.
+- Параметры: 1
+  - `{ authoritativeRoomIds, authoritativeCounts, }`
+    - Формат: `SettledUnreadOverrideParams`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `SettledUnreadOverrideParams`.
+- Возвращает: `string[]`
+  - Описание: Результат функции в формате `string[]`.
+
 #### `export const resetUnreadOverrides = () => {`
 
 - Вид: функция
@@ -5922,10 +5566,82 @@
 
 - Вид: функция
 - Кратко: Хук `useUnreadOverrides`.
-- Детали: Хук построен на `useSyncExternalStore`, чтобы React корректно синхронизировал состояние unread badge с внешним in-memory store.
+- Детали: `useSyncExternalStore` нужен, чтобы React видел консистентный снимок даже при одновременных рендерах и внешних обновлениях store.
 - Параметры: нет
 - Возвращает: не указан
   - Описание: Состояние, вычисленные значения и колбэки, возвращаемые хуком.
+
+## `frontend/src/shared/visitorTelemetry/buildSiteVisitPayload.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export const buildSiteVisitPayload = ( snapshot: DeviceSnapshot, ): SiteVisitPayload => ({ visitorId: getOrCreateVisitorId(), pagePath: `${window.location.pathname}${window.location.search}`, pageTitle: document.title.trim() || null, referrer: document.referrer || null, viewportWidth: snapshot.viewportWidth, viewportHeight: snapshot.viewportHeight,`
+
+- Вид: функция
+- Кратко: Функция `buildSiteVisitPayload`.
+- Параметры: 1
+  - `snapshot`
+    - Формат: `DeviceSnapshot`
+    - Вид: обязательный
+    - Описание: Параметр `snapshot` в формате `DeviceSnapshot`.
+- Возвращает: `SiteVisitPayload`
+  - Описание: Результат функции в формате `SiteVisitPayload`.
+
+## `frontend/src/shared/visitorTelemetry/index.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/visitorTelemetry/sendSiteVisit.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export const sendSiteVisit = async ( payload: SiteVisitPayload, ): Promise<boolean> => {`
+
+- Вид: функция
+- Кратко: Функция `sendSiteVisit`.
+- Параметры: 1
+  - `payload`
+    - Формат: `SiteVisitPayload`
+    - Вид: обязательный
+    - Описание: Параметр `payload` в формате `SiteVisitPayload`.
+- Возвращает: `Promise<boolean>`
+  - Описание: Промис с результатом операции в формате `boolean`.
+
+## `frontend/src/shared/visitorTelemetry/SiteVisitTelemetry.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function SiteVisitTelemetry() {`
+
+- Вид: функция
+- Кратко: Отправляет одно visitor-событие на каждый полный заход в приложение.
+- Параметры: нет
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `SiteVisitTelemetry`.
+
+## `frontend/src/shared/visitorTelemetry/types.ts`
+
+- Экспортируемые объявления: 0
+
+## `frontend/src/shared/visitorTelemetry/visitorId.ts`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export const getOrCreateVisitorId = (): string => {`
+
+- Вид: функция
+- Кратко: Возвращает стабильный анонимный visitorId для одного браузера.
+- Параметры: нет
+- Возвращает: `string`
+  - Описание: Строковое значение результата.
 
 ## `frontend/src/shared/wsAuth/context.ts`
 
@@ -6030,6 +5746,7 @@
 
 - Вид: функция
 - Кратко: React-компонент `AuthForm`.
+- Детали: Google-вход здесь намеренно не использует popup. Кнопка запускает server-side redirect flow: браузер уходит на backend endpoint, backend сам завершает Google OAuth и затем возвращает пользователя обратно уже с готовой серверной сессией.
 - Параметры: 1
   - `{ mode, title, submitLabel, onSubmit, onGoogleAuth, googleAuthDisabledReason = null, onNavigate, error = null, passwordRules = [], className, }`
     - Формат: `AuthFormProps`
@@ -6076,9 +5793,21 @@
 
 ## `frontend/src/widgets/chat/lib/attachmentLayout.ts`
 
-- Экспортируемые объявления: 5
+- Экспортируемые объявления: 4
 
 ### Объявления
+
+#### `export const resolveImageAspectRatio = (attachment: Attachment): number => {`
+
+- Вид: функция
+- Кратко: Функция `resolveImageAspectRatio`.
+- Параметры: 1
+  - `attachment`
+    - Формат: `Attachment`
+    - Вид: обязательный
+    - Описание: Параметр `attachment` в формате `Attachment`.
+- Возвращает: `number`
+  - Описание: Числовое значение результата.
 
 #### `export const buildAttachmentRenderItems = ( attachments: Attachment[], ): AttachmentRenderItem[] =>`
 
@@ -6095,7 +5824,7 @@
 #### `export const splitAttachmentRenderItems = ( items: AttachmentRenderItem[], maxVisibleImages: number, ): AttachmentBuckets => {`
 
 - Вид: функция
-- Кратко: Делит вложения на медиа-сетки и остальные файлы. Большие пачки изображений режутся на группы, чтобы UI не оставлял пустую нижнюю правую ячейку и не рисовал `+N` поверх последней картинки.
+- Кратко: Делит вложения на группы изображений и остальные файлы.
 - Параметры: 2
   - `items`
     - Формат: `AttachmentRenderItem[]`
@@ -6108,45 +5837,18 @@
 - Возвращает: `AttachmentBuckets`
   - Описание: Результат функции в формате `AttachmentBuckets`.
 
-#### `export const resolveMediaGridVariant = (count: number): MediaGridVariant => {`
+#### `export const buildMediaTileLayout = ( items: ImageAttachmentRenderItem[], ): MediaTileLayout => {`
 
 - Вид: функция
-- Кратко: Выбирает шаблон сетки по размеру текущей группы изображений.
+- Кратко: Функция `buildMediaTileLayout`.
+- Детали: Layout сохраняет порядок изображений и ближе к Telegram, чем обычный CSS grid: portrait и landscape кадры получают разные прямоугольники вместо равных колонок.
 - Параметры: 1
-  - `count`
-    - Формат: `number`
+  - `items`
+    - Формат: `ImageAttachmentRenderItem[]`
     - Вид: обязательный
-    - Описание: Параметр `count` в формате `number`.
-- Возвращает: `MediaGridVariant`
-  - Описание: Результат функции в формате `MediaGridVariant`.
-
-#### `export const resolveMediaTilePlacement = ( count: number, index: number, ): MediaTilePlacement => {`
-
-- Вид: функция
-- Кратко: Для отдельных размеров группы расширяет последнюю плитку, чтобы не оставлять пустой угол в правом нижнем углу сетки.
-- Параметры: 2
-  - `count`
-    - Формат: `number`
-    - Вид: обязательный
-    - Описание: Параметр `count` в формате `number`.
-  - `index`
-    - Формат: `number`
-    - Вид: обязательный
-    - Описание: Параметр `index` в формате `number`.
-- Возвращает: `MediaTilePlacement`
-  - Описание: Результат функции в формате `MediaTilePlacement`.
-
-#### `export const resolveImageAspectRatio = (attachment: Attachment): number => {`
-
-- Вид: функция
-- Кратко: Функция `resolveImageAspectRatio`.
-- Параметры: 1
-  - `attachment`
-    - Формат: `Attachment`
-    - Вид: обязательный
-    - Описание: Параметр `attachment` в формате `Attachment`.
-- Возвращает: `number`
-  - Описание: Числовое значение результата.
+    - Описание: Параметр `items` в формате `ImageAttachmentRenderItem[]`.
+- Возвращает: `MediaTileLayout`
+  - Описание: Результат функции в формате `MediaTileLayout`.
 
 ## `frontend/src/widgets/chat/MessageBubble.tsx`
 
@@ -6238,6 +5940,25 @@
     - Описание: Объект параметров в формате `Props`.
 - Возвращает: не указан
   - Описание: React-элемент, который отрисовывает компонент `UserProfilePanel`.
+
+## `frontend/src/widgets/chat/VideoAttachmentPreview.tsx`
+
+- Экспортируемые объявления: 1
+
+### Объявления
+
+#### `export function VideoAttachmentPreview({ attachment, onOpen, }: VideoAttachmentPreviewProps) {`
+
+- Вид: функция
+- Кратко: React-компонент `VideoAttachmentPreview`.
+- Детали: Preview всегда использует обычный браузерный `<video>` без controls и без playback-ownership: он нужен только для первого кадра и metadata.
+- Параметры: 1
+  - `{ attachment, onOpen, }`
+    - Формат: `VideoAttachmentPreviewProps`
+    - Вид: обязательный
+    - Описание: Объект параметров в формате `VideoAttachmentPreviewProps`.
+- Возвращает: не указан
+  - Описание: React-элемент, который отрисовывает компонент `VideoAttachmentPreview`.
 
 ## `frontend/src/widgets/friends/AddFriendDialog.tsx`
 

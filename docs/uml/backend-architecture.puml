@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Архитектура бэкенда
+title Devil - Архитектура бэкенда
 top to bottom direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff

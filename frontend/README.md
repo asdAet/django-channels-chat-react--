@@ -1,8 +1,9 @@
 ﻿# Devil Frontend
 
-SPA-клиент на `React + TypeScript + Vite` для `Devil Resting`.
+SPA-клиент на `React + TypeScript + Vite` для `Devil`.
 
 ## Что важно сейчас
+
 - Chat routing prefixless: используется `/:target`
 - Канонические chat routes:
   - `/public`
@@ -14,21 +15,25 @@ SPA-клиент на `React + TypeScript + Vite` для `Devil Resting`.
 - Inbox диалогов использует `GET /api/chat/inbox/` и `ws://<host>/ws/inbox/`
 
 ## Локальный запуск
+
 ```bash
 npm install
 npm run dev
 ```
 
 Vite проксирует:
+
 - `/api` -> `http://127.0.0.1:8000`
 - `/ws` -> `ws://127.0.0.1:8000`
 
 Для production build:
+
 ```bash
 npm run build
 ```
 
 ## Структура
+
 - `src/adapters` — HTTP API layer
 - `src/app` — shell и routing
 - `src/controllers` — orchestration layer
@@ -39,6 +44,7 @@ npm run build
 - `src/widgets` — composed UI blocks
 
 ## Основные frontend routes
+
 - `/`
 - `/login`
 - `/register`
@@ -51,9 +57,9 @@ npm run build
 - `/:target`
 
 ## Основные chat API, которые использует frontend
+
 - `POST /api/chat/resolve/`
 - `GET /api/chat/inbox/`
-- `GET /api/chat/unread/`
 - `GET /api/chat/<room_id>/`
 - `GET /api/chat/<room_id>/messages/`
 - `POST /api/chat/<room_id>/attachments/`
@@ -61,6 +67,7 @@ npm run build
 - `GET /api/chat/search/global/`
 
 ## Качество
+
 ```bash
 npm run lint
 npm run lint:css

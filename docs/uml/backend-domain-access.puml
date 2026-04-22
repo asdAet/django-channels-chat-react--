@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Пользователи и доступ
+title Devil - Пользователи и доступ
 left to right direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff

@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Сообщения и чтение
+title Devil - Сообщения и чтение
 left to right direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff

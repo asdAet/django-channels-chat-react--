@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Обзор доменной модели бэкенда
+title Devil - Обзор доменной модели бэкенда
 top to bottom direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff

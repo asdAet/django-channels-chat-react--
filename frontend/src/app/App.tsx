@@ -30,16 +30,16 @@ type AuthRouteLocationState = {
 };
 
 const DEFAULT_SEO: SeoDescriptor = {
-  title: "Devils Resting — чат в реальном времени",
+  title: "Devil",
   description:
-    "Devils Resting — защищенный чат в реальном времени: личные сообщения, группы, обмен файлами и управление доступом.",
+    "Devil",
   robots:
     "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
 };
 
 const PRIVATE_ROUTE_SEO: SeoDescriptor = {
-  title: "Devils Resting — личный раздел",
-  description: "Личный раздел пользователя Devils Resting.",
+  title: "Devil — личный раздел",
+  description: "Личный раздел пользователя Devil.",
   robots: "noindex,nofollow",
 };
 
@@ -62,42 +62,42 @@ const MATCHED_ROUTE_SEO: Array<{
   {
     match: (pathname) => pathname === "/friends",
     meta: {
-      title: "Друзья — Devils Resting",
+      title: "Друзья — Devil",
       description:
-        "Управляйте списком друзей, заявками и личными контактами в Devils Resting.",
+        "Управляйте списком друзей, заявками и личными контактами в Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => pathname === "/groups",
     meta: {
-      title: "Группы — Devils Resting",
+      title: "Группы — Devil",
       description:
-        "Создавайте и администрируйте групповые чаты в Devils Resting.",
+        "Создавайте и администрируйте групповые чаты в Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => isPrefixlessChatPath(pathname),
     meta: {
-      title: "Чат — Devils Resting",
-      description: "Личные и групповые чаты Devils Resting.",
+      title: "Чат — Devil",
+      description: "Личные и групповые чаты Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/invite/"),
     meta: {
-      title: "Приглашение в группу — Devils Resting",
-      description: "Просмотр приглашения в группу Devils Resting.",
+      title: "Приглашение в группу — Devil",
+      description: "Просмотр приглашения в группу Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/users/"),
     meta: {
-      title: "Профиль пользователя — Devils Resting",
-      description: "Публичный профиль пользователя Devils Resting.",
+      title: "Профиль пользователя — Devil",
+      description: "Публичный профиль пользователя Devil.",
       robots: "noindex,nofollow",
     },
   },

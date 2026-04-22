@@ -1,5 +1,5 @@
 @startuml
-title Devils Resting - Архитектура фронтенда
+title Devil - Архитектура фронтенда
 top to bottom direction
 skinparam shadowing false
 skinparam backgroundColor #ffffff
