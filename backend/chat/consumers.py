@@ -112,7 +112,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.room = None
         self.room_id = None
         self.room_name = ""
-        self.room_group_name = None
+        self.room_group_name: str | None = None
 
     def _refresh_metrics_context(self) -> None:
         scope = getattr(self, "scope", None)
@@ -514,6 +514,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
             audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_user")
             return
         room_id = int(active_room.pk)
+        room_group_name = self.room_group_name
+        if not room_group_name:
+            observe_ws_event("chat", event_type="message_send", result="rejected")
+            observe_chat_message_rejected(room_kind=self._metrics_room_kind, reason="room_not_selected")
+            audit_ws_event(
+                "ws.message.rejected",
+                self.scope,
+                endpoint="chat",
+                reason="room_not_selected",
+                room_id=active_room.pk,
+            )
+            return
 
         avatar_source, avatar_crop = await self._get_profile_avatar_state(user)
         profile_url = build_profile_url(self.scope, avatar_source)
@@ -541,7 +553,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         reply_to_data = await self._get_reply_data(saved_message) if reply_to_id else None
 
         await self.channel_layer.group_send(
-            self.room_group_name,
+            room_group_name,
             {
                 "type": "chat_message",
                 "message": message,
@@ -915,9 +927,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
         display_name = (await self._resolve_display_name(user)).strip()
         self.actor_display_name = display_name
+        room_group_name = self.room_group_name
+        if not room_group_name:
+            observe_ws_event("chat", event_type="typing", result="rejected")
+            return
         observe_ws_event("chat", event_type="typing", result="accepted")
         await self.channel_layer.group_send(
-            self.room_group_name,
+            room_group_name,
             {
                 "type": "chat_typing",
                 "roomId": int(room.pk),
