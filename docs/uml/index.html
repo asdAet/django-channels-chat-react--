@@ -3,215 +3,304 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Devil UML</title>
+    <link rel="icon" href="data:," />
+    <title>Devil UML - набор для защиты</title>
     <style>
       :root {
         color-scheme: dark;
-        --bg: #111418;
-        --panel: #1a1f26;
-        --border: #2c3440;
-        --text: #ecf2f8;
-        --muted: #a9b5c3;
-        --link: #7cc4ff;
+        --bg: #101419;
+        --panel: #171e27;
+        --panel-strong: #202936;
+        --border: #2f3b4b;
+        --text: #eef4fb;
+        --muted: #a8b4c2;
+        --link: #91ccff;
+        --accent: #8fb3ff;
+        --diagram-bg: #fbfcfe;
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
         margin: 0;
-        font-family: Arial, sans-serif;
+        font-family: Inter, Manrope, "Segoe UI", Arial, sans-serif;
         background: var(--bg);
         color: var(--text);
       }
 
       main {
-        max-width: 1400px;
+        width: min(1380px, 100%);
         margin: 0 auto;
-        padding: 24px;
+        padding: 28px clamp(14px, 3vw, 32px) 48px;
+      }
+
+      header {
+        margin-bottom: 18px;
       }
 
       h1 {
         margin: 0 0 8px;
-        font-size: 32px;
+        font-size: clamp(28px, 4vw, 42px);
+        line-height: 1.08;
+        letter-spacing: 0;
       }
 
-      p {
-        margin: 0 0 24px;
+      .lead {
+        max-width: 880px;
+        margin: 0;
         color: var(--muted);
+        font-size: 16px;
+        line-height: 1.6;
       }
 
       nav {
+        position: sticky;
+        top: 0;
+        z-index: 10;
         display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin: 0 0 24px;
+        gap: 8px;
+        margin: 0 0 18px;
+        padding: 10px 0 14px;
+        overflow-x: auto;
+        background: rgba(16, 20, 25, 0.96);
+        backdrop-filter: blur(12px);
+      }
+
+      nav a,
+      .meta a {
+        color: var(--link);
+        text-decoration: none;
       }
 
       nav a {
-        color: var(--link);
-        text-decoration: none;
-        padding: 8px 10px;
+        flex: 0 0 auto;
+        padding: 8px 11px;
         border: 1px solid var(--border);
+        border-radius: 8px;
         background: var(--panel);
-        border-radius: 6px;
+        color: var(--text);
+        font-size: 13px;
       }
 
-      section {
-        margin: 0 0 28px;
-        padding: 16px;
+      nav a:hover,
+      .meta a:hover {
+        color: #ffffff;
+        border-color: rgba(145, 204, 255, 0.65);
+      }
+
+      .diagram-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr));
+        gap: 18px;
+      }
+
+      .diagram-card {
         border: 1px solid var(--border);
+        border-radius: 12px;
         background: var(--panel);
-        border-radius: 6px;
+        overflow: hidden;
+      }
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      .diagram-header {
+        display: grid;
+        gap: 8px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel-strong);
+      }
+
+      .diagram-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
       }
 
       h2 {
-        margin: 0 0 8px;
-        font-size: 22px;
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+
+      .tag {
+        flex: 0 0 auto;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(143, 179, 255, 0.16);
+        color: #d4e0ff;
+        font-size: 12px;
+      }
+
+      .summary {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 14px;
       }
 
       .meta {
-        margin: 0 0 12px;
-        font-size: 14px;
-        color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 0;
+        font-size: 13px;
       }
 
-      .meta a {
-        color: var(--link);
+      .diagram-frame {
+        padding: 12px;
+        background: var(--diagram-bg);
+        overflow: auto;
       }
 
-      img {
+      .diagram-frame img {
         display: block;
         width: 100%;
+        min-width: 660px;
         height: auto;
-        background: #fff;
+        margin: 0 auto;
+        background: var(--diagram-bg);
+      }
+
+      @media (max-width: 760px) {
+        main {
+          padding-inline: 12px;
+        }
+
+        .diagram-title-row {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .diagram-frame img {
+          min-width: 760px;
+        }
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>Devil UML</h1>
-      <p>Готовые визуальные UML-диаграммы проекта в формате SVG.</p>
+      <header>
+        <h1>Devil UML - набор для защиты</h1>
+        <p class="lead">
+          Компактный набор из пяти диаграмм: каждая отвечает на отдельный вопрос
+          комиссии и не дублирует остальные. Для презентации лучше идти по порядку
+          сверху вниз.
+        </p>
+      </header>
 
-      <nav>
-        <a href="#backend-architecture">Архитектура бэкенда</a>
-        <a href="#backend-domain-model">Обзор доменов</a>
-        <a href="#backend-domain-access">Пользователи и доступ</a>
-        <a href="#backend-domain-messaging">Сообщения</a>
-        <a href="#backend-domain-groups-audit">Группы и аудит</a>
-        <a href="#frontend-architecture">Архитектура фронтенда</a>
-        <a href="#use-cases">Варианты использования</a>
-        <a href="#state-chat-session">Состояния чата</a>
-        <a href="#state-message-lifecycle">Состояния сообщения</a>
+      <nav aria-label="Диаграммы для защиты">
+        <a href="#context">Контекст</a>
+        <a href="#use-cases">Сценарии</a>
+        <a href="#architecture">Архитектура</a>
+        <a href="#sequence">Последовательность</a>
+        <a href="#domain">Доменная модель</a>
       </nav>
 
-      <section id="backend-architecture">
-        <h2>Архитектура бэкенда</h2>
-        <div class="meta">
-          <a href="./rendered/backend-architecture.svg">Открыть SVG</a> |
-          <a href="./backend-architecture.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/backend-architecture.svg"
-          alt="Архитектура бэкенда"
-        />
-      </section>
+      <section class="diagram-grid" aria-label="Основной UML-набор">
+        <article class="diagram-card" id="context">
+          <div class="diagram-header">
+            <div class="diagram-title-row">
+              <h2>1. Контекст системы</h2>
+              <span class="tag">зачем и с кем</span>
+            </div>
+            <p class="summary">
+              Показывает границу Devil, внешних участников и основные интеграции.
+            </p>
+            <p class="meta">
+              <a href="./rendered/system-context.svg">Открыть SVG</a>
+              <a href="./system-context.puml">Открыть исходник</a>
+            </p>
+          </div>
+          <div class="diagram-frame">
+            <img src="./rendered/system-context.svg" alt="Контекст системы Devil" />
+          </div>
+        </article>
 
-      <section id="backend-domain-model">
-        <h2>Обзор доменов бэкенда</h2>
-        <div class="meta">
-          <a href="./rendered/backend-domain-model.svg">Открыть SVG</a> |
-          <a href="./backend-domain-model.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/backend-domain-model.svg"
-          alt="Обзор доменов бэкенда"
-        />
-      </section>
+        <article class="diagram-card" id="use-cases">
+          <div class="diagram-header">
+            <div class="diagram-title-row">
+              <h2>2. Пользовательские сценарии</h2>
+              <span class="tag">что делает</span>
+            </div>
+            <p class="summary">
+              Крупная карта возможностей без перегруза внутренними API и экранами.
+            </p>
+            <p class="meta">
+              <a href="./rendered/use-cases.svg">Открыть SVG</a>
+              <a href="./use-cases.puml">Открыть исходник</a>
+            </p>
+          </div>
+          <div class="diagram-frame">
+            <img src="./rendered/use-cases.svg" alt="Карта пользовательских сценариев" />
+          </div>
+        </article>
 
-      <section id="backend-domain-access">
-        <h2>Пользователи и доступ</h2>
-        <div class="meta">
-          <a href="./rendered/backend-domain-access.svg">Открыть SVG</a> |
-          <a href="./backend-domain-access.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/backend-domain-access.svg"
-          alt="Пользователи и доступ"
-        />
-      </section>
+        <article class="diagram-card wide" id="architecture">
+          <div class="diagram-header">
+            <div class="diagram-title-row">
+              <h2>3. Компонентная архитектура</h2>
+              <span class="tag">как устроено</span>
+            </div>
+            <p class="summary">
+              Основной серверный путь: edge, HTTP/WebSocket delivery, домены и инфраструктура.
+            </p>
+            <p class="meta">
+              <a href="./rendered/backend-architecture.svg">Открыть SVG</a>
+              <a href="./backend-architecture.puml">Открыть исходник</a>
+            </p>
+          </div>
+          <div class="diagram-frame">
+            <img src="./rendered/backend-architecture.svg" alt="Компонентная архитектура Devil" />
+          </div>
+        </article>
 
-      <section id="backend-domain-messaging">
-        <h2>Сообщения и чтение</h2>
-        <div class="meta">
-          <a href="./rendered/backend-domain-messaging.svg">Открыть SVG</a> |
-          <a href="./backend-domain-messaging.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/backend-domain-messaging.svg"
-          alt="Сообщения и чтение"
-        />
-      </section>
+        <article class="diagram-card" id="sequence">
+          <div class="diagram-header">
+            <div class="diagram-title-row">
+              <h2>4. Отправка сообщения</h2>
+              <span class="tag">ключевой поток</span>
+            </div>
+            <p class="summary">
+              End-to-end путь от composer до WebSocket consumer, проверки прав, БД и fan-out.
+            </p>
+            <p class="meta">
+              <a href="./rendered/sequence-send-message.svg">Открыть SVG</a>
+              <a href="./sequence-send-message.puml">Открыть исходник</a>
+            </p>
+          </div>
+          <div class="diagram-frame">
+            <img src="./rendered/sequence-send-message.svg" alt="Сценарий отправки сообщения" />
+          </div>
+        </article>
 
-      <section id="backend-domain-groups-audit">
-        <h2>Группы и аудит</h2>
-        <div class="meta">
-          <a href="./rendered/backend-domain-groups-audit.svg">Открыть SVG</a> |
-          <a href="./backend-domain-groups-audit.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/backend-domain-groups-audit.svg"
-          alt="Группы и аудит"
-        />
-      </section>
-
-      <section id="frontend-architecture">
-        <h2>Архитектура фронтенда</h2>
-        <div class="meta">
-          <a href="./rendered/frontend-architecture.svg">Открыть SVG</a> |
-          <a href="./frontend-architecture.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/frontend-architecture.svg"
-          alt="Архитектура фронтенда"
-        />
-      </section>
-
-      <section id="use-cases">
-        <h2>Варианты использования</h2>
-        <div class="meta">
-          <a href="./rendered/use-cases.svg">Открыть SVG</a> |
-          <a href="./use-cases.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/use-cases.svg"
-          alt="Диаграмма вариантов использования"
-        />
-      </section>
-
-      <section id="state-chat-session">
-        <h2>Состояния сессии чата</h2>
-        <div class="meta">
-          <a href="./rendered/state-chat-session.svg">Открыть SVG</a> |
-          <a href="./state-chat-session.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/state-chat-session.svg"
-          alt="Состояния сессии чата"
-        />
-      </section>
-
-      <section id="state-message-lifecycle">
-        <h2>Состояния сообщения</h2>
-        <div class="meta">
-          <a href="./rendered/state-message-lifecycle.svg">Открыть SVG</a> |
-          <a href="./state-message-lifecycle.puml">Открыть исходник</a>
-        </div>
-        <img
-          src="./rendered/state-message-lifecycle.svg"
-          alt="Состояния сообщения"
-        />
+        <article class="diagram-card" id="domain">
+          <div class="diagram-header">
+            <div class="diagram-title-row">
+              <h2>5. Доменная модель</h2>
+              <span class="tag">данные</span>
+            </div>
+            <p class="summary">
+              Главные сущности: пользователь, комната, участие, роли, сообщения, вложения и аудит.
+            </p>
+            <p class="meta">
+              <a href="./rendered/domain-core.svg">Открыть SVG</a>
+              <a href="./domain-core.puml">Открыть исходник</a>
+            </p>
+          </div>
+          <div class="diagram-frame">
+            <img src="./rendered/domain-core.svg" alt="Ключевая доменная модель Devil" />
+          </div>
+        </article>
       </section>
     </main>
   </body>

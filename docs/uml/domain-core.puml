@@ -1,0 +1,76 @@
+@startuml
+!include _theme.puml
+title Devil - Ключевая доменная модель
+left to right direction
+skinparam classAttributeIconSize 0
+
+class "Пользователь\nUser" as User {
+  +id
+  +username
+}
+
+class "Профиль\nProfile" as Profile {
+  +name
+  +avatar
+}
+
+class "Комната\nRoom" as Room {
+  +kind
+  +is_public
+}
+
+class "Участие\nMembership" as Membership {
+  +nickname
+  +is_banned
+  +muted_until
+}
+
+class "Роль\nRole" as Role {
+  +name
+  +permissions
+}
+
+class "Сообщение\nMessage" as Message {
+  +content
+  +edited_at
+  +is_deleted
+}
+
+class "Вложение\nAttachment" as Attachment {
+  +filename
+  +content_type
+  +file_size
+}
+
+class "Прочтение\nReadState" as ReadState {
+  +last_read_at
+}
+
+class "Аудит\nAuditEvent" as Audit {
+  +action
+  +success
+  +request_id
+}
+
+User "1" -- "1" Profile
+User "1" -- "*" Membership
+Room "1" -- "*" Membership
+Room "1" -- "*" Role
+Membership "*" -- "*" Role
+
+Room "1" -- "*" Message
+User "0..1" -- "*" Message : автор
+Message "1" -- "*" Attachment
+User "1" -- "*" ReadState
+Room "1" -- "*" ReadState
+
+Audit ..> User : actor
+Audit ..> Room : room metadata
+Audit ..> Message : message metadata
+
+legend right
+  Цель слайда:
+  объяснить, какие сущности лежат
+  в основе чата, доступа и аудита.
+endlegend
+@enduml

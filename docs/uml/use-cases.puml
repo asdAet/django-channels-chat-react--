@@ -1,111 +1,63 @@
 @startuml
-title Devil - Основные варианты использования
+!include _theme.puml
+title Devil - Карта пользовательских сценариев
 left to right direction
-skinparam shadowing false
-skinparam backgroundColor #ffffff
-skinparam linetype ortho
-skinparam defaultTextAlignment center
-skinparam nodesep 45
-skinparam ranksep 55
-skinparam roundcorner 10
-skinparam ArrowColor #687385
-skinparam defaultFontName Arial
-skinparam packageStyle rectangle
-skinparam package {
-  BorderColor #c8d0db
-  BackgroundColor #f7f9fc
-  FontColor #1f2937
-}
-skinparam usecase {
-  BorderColor #9fb0c7
-  BackgroundColor #ffffff
-  FontColor #1f2937
-}
 
 actor "Гость" as Guest
-actor "Авторизованный пользователь" as User
+actor "Пользователь" as User
 actor "Модератор" as Moderator
 actor "Владелец группы" as Owner
-actor "Системный администратор" as Admin
-actor "Google OAuth" as Google
-actor "Стек наблюдаемости" as Monitoring
+actor "Администратор" as Admin
+actor "Наблюдаемость" as Monitoring
 
 Moderator --|> User
 Owner --|> Moderator
 Admin --|> User
 
 rectangle "Devil" {
-  package "Гостевой доступ" {
-    usecase "Просматривать\nпубличные группы" as UC_PublicGroups
-    usecase "Читать\nпубличную комнату" as UC_PublicRoom
-    usecase "Открывать\nссылку-приглашение" as UC_InvitePreview
-    usecase "Регистрировать\nаккаунт" as UC_Register
-    usecase "Входить по логину\nи паролю" as UC_Login
-    usecase "Входить через\nGoogle" as UC_GoogleLogin
+  package "Вход и доступ" as PAuth {
+    usecase "Читать публичный чат" as UC_PublicRead
+    usecase "Создать аккаунт\nили войти" as UC_Auth
   }
 
-  package "Основное общение" {
-    usecase "Управлять профилем\nи сессией" as UC_Profile
-    usecase "Управлять друзьями\nи блокировками" as UC_Friends
-    usecase "Разрешать внешний\nадрес чата" as UC_ResolveTarget
-    usecase "Открывать\nличный чат" as UC_Direct
-    usecase "Открывать\nгрупповой чат" as UC_GroupChat
-    usecase "Отправлять, редактировать,\nудалять сообщения и ставить реакции" as UC_Message
-    usecase "Загружать\nвложения" as UC_Attach
-    usecase "Получать presence\nи read state" as UC_Realtime
-    usecase "Искать пользователей,\nгруппы и сообщения" as UC_Search
+  package "Личное общение" as PChat {
+    usecase "Открыть чат" as UC_OpenChat
+    usecase "Отправлять сообщения\nи вложения" as UC_Message
+    usecase "Получать realtime\nи read state" as UC_Realtime
   }
 
-  package "Управление группой" {
-    usecase "Создавать, изменять\nи удалять группу" as UC_GroupCrud
-    usecase "Вступать в группу\nили выходить из нее" as UC_GroupMembership
-    usecase "Управлять\nприглашениями" as UC_Invites
-    usecase "Обрабатывать\nзаявки на вступление" as UC_JoinRequests
-    usecase "Управлять ролями\nи overrides прав" as UC_Roles
-    usecase "Модерировать участников\nисключение, бан, мут" as UC_Moderate
-    usecase "Закреплять и откреплять\nсообщения" as UC_Pins
-    usecase "Передавать\nвладение" as UC_Transfer
+  package "Группы" as PGroups {
+    usecase "Вступать в группу\nили выходить" as UC_Membership
+    usecase "Управлять группой" as UC_GroupAdmin
+    usecase "Модерировать участников" as UC_Moderation
   }
 
-  package "Эксплуатация" {
-    usecase "Просматривать\nаудит" as UC_Audit
-    usecase "Собирать метрики\nи health-check" as UC_Metrics
+  package "Эксплуатация" as POps {
+    usecase "Просматривать аудит" as UC_Audit
+    usecase "Собирать health\nи метрики" as UC_Metrics
   }
 }
 
-Guest --> UC_PublicGroups
-Guest --> UC_PublicRoom
-Guest --> UC_InvitePreview
-Guest --> UC_Register
-Guest --> UC_Login
-Guest --> UC_GoogleLogin
-
-User --> UC_Profile
-User --> UC_Friends
-User --> UC_Direct
-User --> UC_GroupChat
+Guest --> UC_PublicRead
+Guest --> UC_Auth
+User --> UC_OpenChat
 User --> UC_Message
-User --> UC_Attach
 User --> UC_Realtime
-User --> UC_Search
-User --> UC_GroupMembership
-
-Moderator --> UC_Invites
-Moderator --> UC_JoinRequests
-Moderator --> UC_Roles
-Moderator --> UC_Moderate
-Moderator --> UC_Pins
-
-Owner --> UC_GroupCrud
-Owner --> UC_Transfer
-
+User --> UC_Membership
+Moderator --> UC_Moderation
+Owner --> UC_GroupAdmin
 Admin --> UC_Audit
 Monitoring --> UC_Metrics
-Google --> UC_GoogleLogin
 
-UC_Direct .> UC_ResolveTarget : <<include>>
-UC_GroupChat .> UC_ResolveTarget : <<include>>
-UC_Attach .> UC_Message : <<extend>>
-UC_Message .> UC_Realtime : <<include>>
-UC_Moderate .> UC_Roles : <<include>>
+UC_Auth .> UC_OpenChat : открывает доступ
+UC_OpenChat .> UC_Message : выбирает room
+UC_Message .> UC_Realtime : синхронизируется
+UC_GroupAdmin .> UC_Moderation : настраивает правила
+UC_Moderation .> UC_Audit : фиксируется
+
+legend right
+  Слайд показывает только крупные сценарии,
+  без детализации экранов и внутренних API.
+  Его задача - объяснить границы продукта.
+endlegend
 @enduml

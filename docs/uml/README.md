@@ -1,31 +1,27 @@
 # UML-диаграммы
 
-В этой папке лежат исходники PlantUML и уже сгенерированные SVG-диаграммы.
+Главная точка входа: [index.html](index.html).
 
-Быстрый вход:
+## Набор для защиты
 
-- `index.html` - одна страница со всеми визуальными диаграммами.
+В презентации используется компактный набор из пяти диаграмм. Этого достаточно,
+чтобы показать продукт, архитектуру, ключевой поток и модель данных без перегруза.
 
-Исходники:
+1. `system-context.puml` - границы системы, внешние участники и интеграции.
+2. `use-cases.puml` - основные пользовательские сценарии.
+3. `backend-architecture.puml` - компонентная архитектура серверного контура.
+4. `sequence-send-message.puml` - основной end-to-end поток отправки сообщения.
+5. `domain-core.puml` - ключевые доменные сущности и связи.
 
-- `backend-architecture.puml` - обзор архитектуры бэкенда.
-- `backend-domain-model.puml` - обзор доменов бэкенда.
-- `backend-domain-access.puml` - пользователи, идентичности, комнаты и права.
-- `backend-domain-messaging.puml` - сообщения, вложения и чтение.
-- `backend-domain-groups-audit.puml` - группы, приглашения, заявки и аудит.
-- `frontend-architecture.puml` - обзор архитектуры фронтенда.
-- `use-cases.puml` - основные пользовательские сценарии.
-- `state-chat-session.puml` - состояния сессии чата.
-- `state-message-lifecycle.puml` - состояния жизненного цикла сообщения.
+## Готовые SVG
 
-Готовые SVG:
-
-- `rendered/backend-architecture.svg`
-- `rendered/backend-domain-model.svg`
-- `rendered/backend-domain-access.svg`
-- `rendered/backend-domain-messaging.svg`
-- `rendered/backend-domain-groups-audit.svg`
-- `rendered/frontend-architecture.svg`
+- `rendered/system-context.svg`
 - `rendered/use-cases.svg`
-- `rendered/state-chat-session.svg`
-- `rendered/state-message-lifecycle.svg`
+- `rendered/backend-architecture.svg`
+- `rendered/sequence-send-message.svg`
+- `rendered/domain-core.svg`
+
+## Служебные файлы
+
+- `_theme.puml` - общая визуальная тема PlantUML.
+- `index.html` - статический просмотрщик защитного набора.
