@@ -1,0 +1,101 @@
+' Shared PlantUML style for readable Devil diagrams.
+skinparam shadowing false
+skinparam backgroundColor #fbfcfe
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+skinparam linetype ortho
+skinparam nodesep 58
+skinparam ranksep 64
+skinparam roundcorner 12
+skinparam ArrowColor #5f6f86
+skinparam ArrowFontColor #4b5563
+skinparam ArrowFontSize 12
+skinparam ArrowThickness 1.15
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+
+skinparam actor {
+  BorderColor #64748b
+  BackgroundColor #ffffff
+  FontColor #111827
+}
+
+skinparam rectangle {
+  BorderColor #c7d2e3
+  BackgroundColor #f5f8fc
+  FontColor #111827
+}
+
+skinparam package {
+  BorderColor #c7d2e3
+  BackgroundColor #f5f8fc
+  FontColor #111827
+}
+
+skinparam component {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam class {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam usecase {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam state {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam database {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam queue {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam folder {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam node {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam cloud {
+  BorderColor #8ea3bd
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+
+skinparam note {
+  BorderColor #d6deea
+  BackgroundColor #ffffff
+  FontColor #465569
+}
+
+skinparam legend {
+  BorderColor #d6deea
+  BackgroundColor #ffffff
+  FontColor #465569
+}

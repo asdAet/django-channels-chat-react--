@@ -407,7 +407,9 @@
 
 .scrollFab {
   position: absolute;
-  bottom: calc(80px + var(--safe-bottom, 0px));
+  bottom: calc(
+    80px + var(--safe-bottom, 0px) + var(--keyboard-inset-bottom, 0px)
+  );
   right: 20px;
   z-index: 15;
   display: flex;
@@ -546,7 +548,9 @@
   }
 
   .scrollFab {
-    bottom: calc(72px + var(--safe-bottom, 0px));
+    bottom: calc(
+      72px + var(--safe-bottom, 0px) + var(--keyboard-inset-bottom, 0px)
+    );
     right: 12px;
   }
 

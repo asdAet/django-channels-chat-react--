@@ -66,6 +66,11 @@
   --bp-tablet: 1024px;
   --app-height: 100vh;
   --app-width: 100vw;
+  --visual-viewport-height: var(--app-height);
+  --visual-viewport-width: var(--app-width);
+  --keyboard-inset-bottom: 0px;
+  --viewport-offset-top: 0px;
+  --viewport-offset-left: 0px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

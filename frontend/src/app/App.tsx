@@ -3,6 +3,7 @@ import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
 import { usePasswordRules } from "../hooks/usePasswordRules";
+import { HomePage } from "../pages/HomePage";
 import type { ApiError } from "../shared/api/types";
 import { startGoogleAuthRedirect } from "../shared/auth/googleRedirect";
 import { ChatRealtimeProvider } from "../shared/chatRealtime";
@@ -13,6 +14,7 @@ import { isPrefixlessChatPath } from "../shared/lib/chatTarget";
 import { debugLog } from "../shared/lib/debug";
 import { DeviceProvider } from "../shared/lib/device";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
+import { useViewportCssVars } from "../shared/lib/viewport/useViewportCssVars";
 import { PresenceProvider } from "../shared/presence";
 import { SiteVisitTelemetry } from "../shared/visitorTelemetry";
 import { WsAuthProvider } from "../shared/wsAuth";
@@ -31,9 +33,9 @@ type AuthRouteLocationState = {
 };
 
 const DEFAULT_SEO: SeoDescriptor = {
-  title: "Devil",
+  title: "Devil — realtime-мессенджер",
   description:
-    "Devil",
+    "Devil — мессенджер для личных и групповых чатов с вложениями, ролями, модерацией и realtime-статусами.",
   robots:
     "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
 };
@@ -73,8 +75,7 @@ const MATCHED_ROUTE_SEO: Array<{
     match: (pathname) => pathname === "/groups",
     meta: {
       title: "Группы — Devil",
-      description:
-        "Создавайте и администрируйте групповые чаты в Devil.",
+      description: "Создавайте и администрируйте групповые чаты в Devil.",
       robots: "noindex,nofollow",
     },
   },
@@ -169,9 +170,9 @@ type ProfileSaveResult =
   | { ok: false; errors?: ProfileFieldErrors; message?: string };
 
 /**
- * React-компонент AppInner отвечает за отрисовку и обработку UI-сценария.
+ * React-компонент AppWorkspace отвечает за отрисовку рабочей части приложения.
  */
-function AppInner() {
+function AppWorkspace() {
   const navigate = useNavigate();
   const location = useLocation();
   const { config: runtimeConfig } = useRuntimeConfig();
@@ -181,74 +182,6 @@ function AppInner() {
   );
   const [banner, setBanner] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const meta = resolveSeoDescriptor(location.pathname);
-    const canonicalUrl = new URL(
-      location.pathname,
-      window.location.origin,
-    ).toString();
-
-    document.title = meta.title;
-    upsertMetaByName("description", meta.description);
-    upsertMetaByName("robots", meta.robots);
-    upsertCanonicalLink(canonicalUrl);
-
-    upsertMetaByProperty("og:title", meta.title);
-    upsertMetaByProperty("og:description", meta.description);
-    upsertMetaByProperty("og:url", canonicalUrl);
-    upsertMetaByName("twitter:title", meta.title);
-    upsertMetaByName("twitter:description", meta.description);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    let lastViewportHeight = -1;
-    let lastViewportWidth = -1;
-
-    /**
-     * Обновляет viewport vars только при реальном изменении размеров viewport.
-     *
-     * Важно: мы намеренно не подписываемся на `visualViewport.scroll`.
-     * Такой scroll срабатывает даже при bounce/toolbar offset и вызывает
-     * микропересчет `--app-height`, из-за чего scroll-контейнеры чата могут
-     * визуально "пружинить" у нижней границы.
-     */
-    const updateViewportVars = () => {
-      const visualViewport = window.visualViewport;
-      const viewportHeight = Math.round(
-        visualViewport?.height ?? window.innerHeight,
-      );
-      const viewportWidth = Math.round(
-        visualViewport?.width ?? window.innerWidth,
-      );
-
-      if (
-        viewportHeight === lastViewportHeight &&
-        viewportWidth === lastViewportWidth
-      ) {
-        return;
-      }
-
-      lastViewportHeight = viewportHeight;
-      lastViewportWidth = viewportWidth;
-      root.style.setProperty("--app-height", `${viewportHeight}px`);
-      root.style.setProperty("--app-width", `${viewportWidth}px`);
-    };
-
-    updateViewportVars();
-    window.addEventListener("resize", updateViewportVars, { passive: true });
-    window.addEventListener("orientationchange", updateViewportVars, {
-      passive: true,
-    });
-    window.visualViewport?.addEventListener("resize", updateViewportVars);
-
-    return () => {
-      window.removeEventListener("resize", updateViewportVars);
-      window.removeEventListener("orientationchange", updateViewportVars);
-      window.visualViewport?.removeEventListener("resize", updateViewportVars);
-    };
-  }, []);
 
   useEffect(() => {
     if (!banner) return;
@@ -392,7 +325,7 @@ function AppInner() {
       try {
         await login({ identifier, password });
         setBanner("Добро пожаловать обратно!");
-        onNavigate("/");
+        onNavigate("/public");
       } catch (err) {
         debugLog("Login failed", err);
         setError(extractAuthMessage(err, "Неверный логин или пароль"));
@@ -419,7 +352,7 @@ function AppInner() {
           email: payload.email,
         });
         setBanner("Аккаунт создан. Можно общаться!");
-        onNavigate("/");
+        onNavigate("/public");
       } catch (err) {
         debugLog("Registration failed", err);
         setError(extractAuthMessage(err, "Проверьте данные регистрации"));
@@ -552,7 +485,6 @@ function AppInner() {
 
   return (
     <WsAuthProvider token={auth.wsAuthToken}>
-      <SiteVisitTelemetry />
       <ChatRealtimeProvider ready={realtimeProvidersReady}>
         <PresenceProvider user={auth.user} ready={realtimeProvidersReady}>
           <DirectInboxProvider user={auth.user} ready={realtimeProvidersReady}>
@@ -578,6 +510,59 @@ function AppInner() {
 }
 
 /**
+ * React-компонент AppInner разделяет публичный промо-экран и рабочее приложение.
+ */
+function AppInner() {
+  useViewportCssVars();
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isPromoRoute = location.pathname === "/";
+
+  useEffect(() => {
+    const meta = resolveSeoDescriptor(location.pathname);
+    const canonicalUrl = new URL(
+      location.pathname,
+      window.location.origin,
+    ).toString();
+
+    document.title = meta.title;
+    upsertMetaByName("description", meta.description);
+    upsertMetaByName("robots", meta.robots);
+    upsertCanonicalLink(canonicalUrl);
+
+    upsertMetaByProperty("og:title", meta.title);
+    upsertMetaByProperty("og:description", meta.description);
+    upsertMetaByProperty("og:url", canonicalUrl);
+    upsertMetaByName("twitter:title", meta.title);
+    upsertMetaByName("twitter:description", meta.description);
+  }, [location.pathname]);
+
+  const handlePromoNavigate = useCallback(
+    (path: string) => {
+      navigate(path);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [navigate],
+  );
+
+  return (
+    <>
+      {isPromoRoute ? (
+        <HomePage onNavigate={handlePromoNavigate} />
+      ) : (
+        <RuntimeConfigProvider>
+          <DeviceProvider>
+            <SiteVisitTelemetry />
+            <AppWorkspace />
+          </DeviceProvider>
+        </RuntimeConfigProvider>
+      )}
+    </>
+  );
+}
+
+/**
  * React-компонент App отвечает за отрисовку и обработку UI-сценария.
  */
 export function App() {
@@ -585,11 +570,7 @@ export function App() {
     <BrowserRouter
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
-      <RuntimeConfigProvider>
-        <DeviceProvider>
-          <AppInner />
-        </DeviceProvider>
-      </RuntimeConfigProvider>
+      <AppInner />
     </BrowserRouter>
   );
 }

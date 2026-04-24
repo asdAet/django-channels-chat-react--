@@ -290,12 +290,22 @@
   opacity: 0.35;
   cursor: default;
 }
+.editorShell {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  --message-editor-padding-block: 10px;
+  --message-editor-padding-inline: 14px;
+}
 
 .editor {
   flex: 1;
+  width: 100%;
   min-height: var(--touch-target-min, 44px);
   max-height: calc(var(--touch-target-min, 44px) * 3);
-  padding: 10px 14px;
+  padding: var(--message-editor-padding-block)
+    var(--message-editor-padding-inline);
   border-radius: 22px;
   border: 0;
   background: var(--tg-bg-input, #2b2b2b);
@@ -320,10 +330,21 @@
   color: var(--tg-text-primary, #fff);
 }
 
-.editorEmpty::before {
-  content: attr(data-placeholder);
+.editorPlaceholder {
+  position: absolute;
+  z-index: 1;
+  top: var(--message-editor-padding-block);
+  right: var(--message-editor-padding-inline);
+  left: var(--message-editor-padding-inline);
+  overflow: hidden;
   color: var(--tg-text-secondary, #aaa);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   pointer-events: none;
+  user-select: none;
 }
 
 .editorDisabled {
@@ -352,10 +373,6 @@
   color: transparent;
   user-select: none;
   vertical-align: baseline;
-}
-
-.editorEmpty {
-  color: var(--tg-text-secondary, #aaa);
 }
 
 .sendBtn {
@@ -438,6 +455,7 @@
   .wrapper {
     position: relative;
     bottom: auto;
+    margin-bottom: var(--keyboard-inset-bottom, 0px);
   }
 
   .inputRow {
@@ -445,10 +463,18 @@
     gap: 6px;
   }
 
+  .editorShell {
+    --message-editor-padding-block: 10px;
+    --message-editor-padding-inline: 12px;
+  }
+
   .editor {
     font-size: 16px; /* prevent zoom on iOS */
     min-height: var(--touch-target-min, 44px);
-    padding: 10px 12px;
+  }
+
+  .editorPlaceholder {
+    font-size: 16px;
   }
 
   .sendBtn {

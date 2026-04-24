@@ -1,0 +1,39 @@
+@startuml
+!include _theme.puml
+title Devil - Контекст системы
+left to right direction
+
+actor "Гость" as Guest
+actor "Пользователь" as User
+actor "Модератор /\nвладелец группы" as Moderator
+actor "Администратор" as Admin
+
+rectangle "Devil\nRealtime-мессенджер" as Devil {
+  component "Web SPA" as Spa
+  component "Backend API\nи WebSocket" as Backend
+}
+
+cloud "Google OAuth" as Google
+database "PostgreSQL" as Db
+queue "Redis" as Redis
+folder "Media storage" as Media
+node "Observability\nmetrics, logs,\nalerts" as Observability
+
+Guest --> Spa : читает публичный чат\nи приглашения
+User --> Spa : общается,\nуправляет профилем
+Moderator --> Spa : управляет группой\nи модерацией
+Admin --> Spa : смотрит аудит\nи состояние системы
+
+Spa --> Backend : HTTPS API\nWSS realtime
+Backend --> Google : OAuth-проверка
+Backend --> Db : доменные данные
+Backend --> Redis : channel layer\npresence
+Backend --> Media : аватары\nи вложения
+Backend --> Observability : health,\nmetrics, logs
+
+legend right
+  Цель слайда:
+  показать границы системы,
+  внешних участников и основные интеграции.
+endlegend
+@enduml

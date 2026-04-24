@@ -1,0 +1,46 @@
+@startuml
+!include _theme.puml
+title Devil - Сценарий отправки сообщения
+autonumber
+
+actor "Пользователь" as User
+participant "MessageInput\nReact" as Composer
+participant "ChatRoomPage\ncontroller" as Controller
+participant "Chat WebSocket\n/ws/chat/" as Ws
+participant "ChatConsumer" as Consumer
+participant "Permission service" as Permission
+database "PostgreSQL" as Db
+queue "Redis\nchannel layer" as Redis
+participant "Другие клиенты" as Clients
+
+User -> Composer : вводит текст\nили вложения
+Composer -> Controller : onDraftChange / onSend
+
+alt есть вложения
+  Controller -> Controller : загрузить файлы\nи получить upload id
+end
+
+Controller -> Ws : chat_message\nroomId, content, upload ids
+Ws -> Consumer : событие сообщения
+Consumer -> Permission : can_send_message?
+Permission -> Db : membership, role,\noverrides, ban/mute
+Db --> Permission : результат проверки
+
+alt доступ разрешен
+  Consumer -> Db : создать Message\nи привязать attachments
+  Db --> Consumer : message payload
+  Consumer -> Redis : broadcast room event
+  Redis -> Clients : message.created
+  Redis -> Controller : message.created
+  Controller -> Composer : очистить draft
+else доступ запрещен или rate limit
+  Consumer --> Controller : error\npermission/rate_limit
+  Controller -> Composer : показать состояние ошибки\nи сохранить draft
+end
+
+legend right
+  Цель слайда:
+  показать основной end-to-end путь:
+  UI -> WS -> проверка прав -> БД -> fan-out.
+endlegend
+@enduml

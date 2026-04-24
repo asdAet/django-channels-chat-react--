@@ -3,10 +3,40 @@ import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 const customEmojiAssetPatterns = ["**/*.tgs", "**/*.webp", "**/*.webm"];
+const DEFAULT_BACKEND_ORIGIN = "http://127.0.0.1:8000";
+
+const normalizeOrigin = (
+  value: string | undefined,
+  defaultProtocol: "http" | "ws",
+) => {
+  const raw = String(value ?? "")
+    .trim()
+    .replace(/\/+$/, "");
+  if (!raw) return null;
+
+  const url = new URL(
+    /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `${defaultProtocol}://${raw}`,
+  );
+  url.pathname = "";
+  url.search = "";
+  url.hash = "";
+  return url.origin;
+};
+
+const toWsOrigin = (httpOrigin: string) => {
+  const url = new URL(httpOrigin);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.origin;
+};
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const enablePwa = String(env.VITE_ENABLE_PWA ?? "").trim() === "1";
+  const backendOrigin =
+    normalizeOrigin(env.VITE_BACKEND_ORIGIN, "http") ?? DEFAULT_BACKEND_ORIGIN;
+  const backendWsOrigin =
+    normalizeOrigin(env.VITE_WS_BACKEND_ORIGIN, "ws") ??
+    toWsOrigin(backendOrigin);
 
   return {
     assetsInclude: customEmojiAssetPatterns,
@@ -52,11 +82,11 @@ export default defineConfig(({ mode }) => {
 
       proxy: {
         "/api": {
-          target: "http://127.0.0.1:8000",
+          target: backendOrigin,
           changeOrigin: true,
         },
         "/ws": {
-          target: "ws://127.0.0.1:8000",
+          target: backendWsOrigin,
           ws: true,
           changeOrigin: true,
           secure: false,
