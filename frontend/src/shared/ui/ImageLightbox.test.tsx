@@ -1,6 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  DEFAULT_DEVICE_SNAPSHOT,
+  type DeviceSnapshot,
+} from "../lib/device";
+import { DeviceContext } from "../lib/device/device-context";
 import { ImageLightbox } from "./ImageLightbox";
 
 const baseMetadata = {
@@ -12,6 +17,14 @@ const baseMetadata = {
   width: 1280,
   height: 720,
 };
+
+const renderWithDevice = (
+  device: DeviceSnapshot,
+  ui: Parameters<typeof render>[0],
+) =>
+  render(
+    <DeviceContext.Provider value={device}>{ui}</DeviceContext.Provider>,
+  );
 
 describe("ImageLightbox", () => {
   beforeEach(() => {
@@ -52,6 +65,53 @@ describe("ImageLightbox", () => {
     vi.advanceTimersByTime(221);
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses desktop zoom interactions for fine pointer screens", () => {
+    renderWithDevice(
+      {
+        ...DEFAULT_DEVICE_SNAPSHOT,
+        viewportWidth: 1280,
+        viewportHeight: 800,
+        canHover: true,
+        primaryPointer: "fine",
+      },
+      <ImageLightbox
+        src="/media/photo.png"
+        alt="photo"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("image-lightbox-stage")).toHaveAttribute(
+      "data-zoom-mode",
+      "desktop",
+    );
+  });
+
+  it("uses mobile zoom interactions for coarse pointer screens", () => {
+    renderWithDevice(
+      {
+        ...DEFAULT_DEVICE_SNAPSHOT,
+        viewportWidth: 390,
+        viewportHeight: 844,
+        isMobileViewport: true,
+        hasTouch: true,
+        primaryPointer: "coarse",
+      },
+      <ImageLightbox
+        src="/media/photo.png"
+        alt="photo"
+        metadata={baseMetadata}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("image-lightbox-stage")).toHaveAttribute(
+      "data-zoom-mode",
+      "mobile",
+    );
   });
 
   it("closes on Escape", () => {
