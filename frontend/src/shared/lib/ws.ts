@@ -8,11 +8,32 @@
 const resolveDevWsOrigin = (scheme: "ws" | "wss"): string => {
   const raw = String(import.meta.env.VITE_WS_BACKEND_ORIGIN ?? "").trim();
   if (!raw) {
+    const backendOrigin = String(
+      import.meta.env.VITE_BACKEND_ORIGIN ?? "",
+    ).trim();
+    if (backendOrigin) {
+      return coerceWsOrigin(backendOrigin, scheme);
+    }
+
     return `${scheme}://${window.location.hostname}:8000`;
   }
 
+  return coerceWsOrigin(raw, scheme);
+};
+
+const coerceWsOrigin = (rawOrigin: string, scheme: "ws" | "wss"): string => {
+  const raw = rawOrigin.trim();
   if (/^wss?:\/\//i.test(raw)) {
     return raw.replace(/\/+$/, "");
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    const url = new URL(raw);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    url.pathname = "";
+    url.search = "";
+    url.hash = "";
+    return url.origin;
   }
 
   return `${scheme}://${raw.replace(/\/+$/, "")}`;
