@@ -16,8 +16,11 @@ const wsState = vi.hoisted(() => ({
   lastError: null as string | null,
   send: vi.fn<(payload: string) => boolean>(),
   options: null as {
-    url?: string | null;
+    roomId?: number | null;
     onMessage?: (event: MessageEvent) => void;
+    onOpen?: () => void;
+    onClose?: (event: CloseEvent) => void;
+    onError?: (event: Event) => void;
   } | null,
 }));
 
@@ -113,6 +116,19 @@ const chatControllerMock = vi.hoisted(() => ({
   }),
 }));
 
+const customEmojiMock = vi.hoisted(() => ({
+  emoji: {
+    id: "Animated/1.tgs",
+    packId: "Animated",
+    packName: "Animated",
+    fileName: "1.tgs",
+    assetKind: "tgs",
+    label: "Animated 1",
+    src: "/mock/custom-emoji.tgs",
+    token: "[[ce:Animated%2F1.tgs]]",
+  },
+}));
+
 vi.mock("react-router-dom", () => ({
   useLocation: () => locationMock,
 }));
@@ -125,17 +141,19 @@ vi.mock("../hooks/useOnlineStatus", () => ({
   useOnlineStatus: () => true,
 }));
 
-vi.mock("../hooks/useReconnectingWebSocket", () => ({
-  useReconnectingWebSocket: (options: unknown) => {
+vi.mock("../shared/chatRealtime", () => ({
+  useChatRealtimeRoom: (options: unknown) => {
     wsState.options = options as {
-      url?: string | null;
+      roomId?: number | null;
       onMessage?: (event: MessageEvent) => void;
+      onOpen?: () => void;
+      onClose?: (event: CloseEvent) => void;
+      onError?: (event: Event) => void;
     };
     return {
       status: wsState.status,
       lastError: wsState.lastError,
       send: wsState.send,
-      reconnect: vi.fn(),
     };
   },
 }));
@@ -188,7 +206,19 @@ vi.mock("../controllers/GroupController", () => ({
   groupController: groupControllerMock,
 }));
 
-import { WsAuthProvider } from "../shared/wsAuth";
+vi.mock("../widgets/chat/TelegramEmojiPicker", () => ({
+  TelegramEmojiPicker: ({
+    onSelect,
+  }: {
+    onSelect: (emoji: typeof customEmojiMock.emoji) => void;
+    onClose: () => void;
+  }) => (
+    <button type="button" onClick={() => onSelect(customEmojiMock.emoji)}>
+      Mock custom emoji
+    </button>
+  ),
+}));
+
 import { ChatRoomPage } from "./ChatRoomPage";
 
 const user = {
@@ -235,6 +265,23 @@ const createDomRect = ({
     bottom: top + height,
     toJSON: () => ({}),
   }) as DOMRect;
+
+const setComposerText = (value: string) => {
+  const input = screen.getByTestId("chat-message-input");
+  input.textContent = value;
+  fireEvent.input(input);
+  return input;
+};
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+};
 
 const installMobileViewport = () => {
   const originalMatchMedia = window.matchMedia;
@@ -365,6 +412,8 @@ describe("ChatRoomPage", () => {
     permissionsMock.isAdmin = false;
     permissionsMock.refresh.mockReset().mockResolvedValue(undefined);
     groupControllerMock.joinGroup.mockReset().mockResolvedValue(undefined);
+    chatControllerMock.addReaction.mockReset().mockResolvedValue({});
+    chatControllerMock.removeReaction.mockReset().mockResolvedValue(undefined);
     chatControllerMock.uploadAttachments.mockReset().mockResolvedValue({});
     chatControllerMock.markRead.mockReset().mockResolvedValue({});
     chatControllerMock.searchMessages.mockReset().mockResolvedValue({
@@ -405,33 +454,6 @@ describe("ChatRoomPage", () => {
     window.sessionStorage.clear();
   });
 
-  it("keeps the chat websocket alive with heartbeat while the page stays open", () => {
-    vi.useFakeTimers();
-
-    render(
-      <ChatRoomPage
-        roomId="1"
-        initialRoomKind="public"
-        user={user}
-        onNavigate={vi.fn()}
-      />,
-    );
-
-    const initialHeartbeatPayloads = wsState.send.mock.calls
-      .map(([payload]) => JSON.parse(payload))
-      .filter((payload) => payload.type === "ping");
-    expect(initialHeartbeatPayloads).toHaveLength(1);
-
-    act(() => {
-      vi.advanceTimersByTime(15_000);
-    });
-
-    const heartbeatPayloads = wsState.send.mock.calls
-      .map(([payload]) => JSON.parse(payload))
-      .filter((payload) => payload.type === "ping");
-    expect(heartbeatPayloads).toHaveLength(2);
-  });
-
   it("shows read-only mode for guest in public room", () => {
     render(<ChatRoomPage roomId="1" initialRoomKind="public" user={null} onNavigate={vi.fn()} />);
 
@@ -439,23 +461,7 @@ describe("ChatRoomPage", () => {
     expect(screen.queryByLabelText("Сообщение")).toBeNull();
   });
 
-  it("appends ws auth token to chat websocket url for authenticated user", () => {
-    render(
-      <WsAuthProvider token="auth-token">
-        <ChatRoomPage
-          roomId="1"
-          initialRoomKind="public"
-          user={user}
-          onNavigate={vi.fn()}
-        />
-      </WsAuthProvider>,
-    );
-
-    expect(wsState.options?.url).toContain("/ws/chat/1/");
-    expect(wsState.options?.url).toContain("wst=auth-token");
-  });
-
-  it("uses resolved numeric room id for websocket even if initial route target is text", () => {
+  it("binds realtime to the resolved numeric room id", () => {
     chatRoomMock.details = {
       roomId: 7,
       name: "General",
@@ -465,18 +471,15 @@ describe("ChatRoomPage", () => {
     } as RoomDetails;
 
     render(
-      <WsAuthProvider token="auth-token">
-        <ChatRoomPage
-          roomId="general"
-          initialRoomKind="public"
-          user={user}
-          onNavigate={vi.fn()}
-        />
-      </WsAuthProvider>,
+      <ChatRoomPage
+        roomId="general"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
     );
 
-    expect(wsState.options?.url).toContain("/ws/chat/7/");
-    expect(wsState.options?.url).not.toContain("/ws/chat/general/");
+    expect(wsState.options?.roomId).toBe(7);
   });
 
   it("opens the mobile drawer from room chats", () => {
@@ -618,9 +621,7 @@ describe("ChatRoomPage", () => {
   it("sends message for authenticated user", () => {
     render(<ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />);
 
-    fireEvent.change(screen.getByLabelText("Сообщение"), {
-      target: { value: "Hello from test" },
-    });
+    setComposerText("Hello from test");
     fireEvent.click(
       screen.getByRole("button", { name: "Отправить сообщение" }),
     );
@@ -633,13 +634,121 @@ describe("ChatRoomPage", () => {
     expect(payload.username).toBe("demo");
   });
 
+  it("inserts selected custom emoji into the rich message input", () => {
+    render(<ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />);
+
+    const sendCallsBeforeSelect = wsState.send.mock.calls.length;
+
+    fireEvent.click(screen.getByTestId("chat-emoji-button"));
+    fireEvent.click(screen.getByRole("button", { name: "Mock custom emoji" }));
+
+    expect(
+      screen.getByTestId("chat-message-input").querySelector(
+        `[data-custom-emoji-id="${customEmojiMock.emoji.id}"]`,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByTestId("chat-message-input")).not.toHaveTextContent(
+      customEmojiMock.emoji.token,
+    );
+    expect(wsState.send.mock.calls).toHaveLength(sendCallsBeforeSelect);
+  });
+
+  it("serializes rapid toggles for the same reaction to the latest intended state", async () => {
+    const removeDeferred = createDeferred<void>();
+    const addDeferred = createDeferred<Record<string, never>>();
+
+    chatRoomMock.messages = [
+      {
+        id: 41,
+        publicRef: "alice",
+        username: "alice",
+        content: "react target",
+        profilePic: null,
+        createdAt: "2026-02-13T12:00:00.000Z",
+        editedAt: null,
+        isDeleted: false,
+        replyTo: null,
+        attachments: [],
+        reactions: [{ emoji: "👍", count: 1, me: true }],
+      },
+    ];
+    chatControllerMock.removeReaction.mockReturnValueOnce(removeDeferred.promise);
+    chatControllerMock.addReaction.mockReturnValueOnce(addDeferred.promise);
+
+    render(<ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />);
+
+    const reactionChip = screen.getByRole("button", { name: "👍 1" });
+
+    fireEvent.click(reactionChip);
+    fireEvent.click(reactionChip);
+
+    expect(chatControllerMock.removeReaction).toHaveBeenCalledTimes(1);
+    expect(chatControllerMock.removeReaction).toHaveBeenCalledWith("1", 41, "👍");
+    expect(chatControllerMock.addReaction).not.toHaveBeenCalled();
+
+    await act(async () => {
+      removeDeferred.resolve(undefined);
+      await removeDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(chatControllerMock.addReaction).toHaveBeenCalledTimes(1);
+    });
+    expect(chatControllerMock.addReaction).toHaveBeenCalledWith("1", 41, "👍");
+
+    await act(async () => {
+      addDeferred.resolve({});
+      await addDeferred.promise;
+    });
+  });
+
+  it("keeps pending reaction operations isolated per concrete emoji", () => {
+    const removeDeferred = createDeferred<void>();
+
+    chatRoomMock.messages = [
+      {
+        id: 42,
+        publicRef: "alice",
+        username: "alice",
+        content: "react target",
+        profilePic: null,
+        createdAt: "2026-02-13T12:00:00.000Z",
+        editedAt: null,
+        isDeleted: false,
+        replyTo: null,
+        attachments: [],
+        reactions: [{ emoji: "👍", count: 1, me: true }],
+      },
+    ];
+    chatControllerMock.removeReaction.mockReturnValueOnce(removeDeferred.promise);
+
+    const { container } = render(
+      <ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "👍 1" }));
+    expect(chatControllerMock.removeReaction).toHaveBeenCalledTimes(1);
+
+    const article = container.querySelector(
+      'article[data-message-id="42"]',
+    ) as HTMLElement;
+    fireEvent.contextMenu(article);
+    fireEvent.click(screen.getByText("Реакция"));
+    fireEvent.click(screen.getByRole("button", { name: "Mock custom emoji" }));
+
+    expect(chatControllerMock.addReaction).toHaveBeenCalledTimes(1);
+    expect(chatControllerMock.addReaction).toHaveBeenCalledWith(
+      "1",
+      42,
+      customEmojiMock.emoji.token,
+    );
+  });
+
   it("disables submit while websocket is not online", () => {
     wsState.status = "connecting";
 
     render(<ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("Сообщение"), {
-      target: { value: "text" },
-    });
+    setComposerText("text");
 
     expect(
       screen.getByRole("button", { name: "Отправить сообщение" }),
@@ -649,9 +758,7 @@ describe("ChatRoomPage", () => {
   it("activates local rate limit cooldown from ws error event", () => {
     render(<ChatRoomPage roomId="1" initialRoomKind="public" user={user} onNavigate={vi.fn()} />);
 
-    fireEvent.change(screen.getByLabelText("Сообщение"), {
-      target: { value: "text" },
-    });
+    setComposerText("text");
     expect(
       screen.getByRole("button", { name: "Отправить сообщение" }),
     ).toBeEnabled();
@@ -1643,9 +1750,7 @@ describe("ChatRoomPage", () => {
 
     expect(chatLog.querySelector("[data-unread-divider]")).not.toBeNull();
 
-    fireEvent.change(screen.getByLabelText("Сообщение"), {
-      target: { value: "my message" },
-    });
+    setComposerText("my message");
     fireEvent.click(
       screen.getByRole("button", { name: "Отправить сообщение" }),
     );
@@ -2712,9 +2817,7 @@ describe("ChatRoomPage", () => {
       value: 840,
     });
 
-    fireEvent.change(screen.getByLabelText("Сообщение"), {
-      target: { value: "scroll test" },
-    });
+    setComposerText("scroll test");
     fireEvent.click(
       screen.getByRole("button", { name: "Отправить сообщение" }),
     );

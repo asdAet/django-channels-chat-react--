@@ -323,7 +323,10 @@ export function ChatRoomPageView({
             <p className={styles.muted}>{roomSubtitle}</p>
           </div>
 
-          <div className={styles.directHeaderActions} data-testid="chat-header-actions">
+          <div
+            className={styles.directHeaderActions}
+            data-testid="chat-header-actions"
+          >
             <button
               ref={searchAnchorRef}
               type="button"
@@ -399,7 +402,6 @@ export function ChatRoomPageView({
                 </svg>
               </button>
             )}
-
           </div>
         </div>
       </div>
@@ -645,12 +647,12 @@ export function ChatRoomPageView({
       )}
 
       {lightboxSession && lightboxSession.mediaItems.length > 0 && (
-          <ImageLightbox
-            mediaItems={lightboxSession.mediaItems}
-            initialIndex={lightboxSession.initialIndex}
-            onClose={() => setLightboxSession(null)}
-          />
-        )}
+        <ImageLightbox
+          mediaItems={lightboxSession.mediaItems}
+          initialIndex={lightboxSession.initialIndex}
+          onClose={() => setLightboxSession(null)}
+        />
+      )}
 
       <Modal
         open={!!deleteConfirm}

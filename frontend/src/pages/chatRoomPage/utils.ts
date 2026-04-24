@@ -423,7 +423,18 @@ export const buildTimeline = (
   }
 
   for (const msg of messages) {
-    if (!unreadInserted && unreadDividerId && msg.id === unreadDividerId) {
+    const isUnreadDividerTarget =
+      !unreadInserted && unreadDividerId && msg.id === unreadDividerId;
+
+    if (msg.isDeleted) {
+      if (isUnreadDividerTarget) {
+        items.push({ type: "unread" });
+        unreadInserted = true;
+      }
+      continue;
+    }
+
+    if (isUnreadDividerTarget) {
       items.push({ type: "unread" });
       unreadInserted = true;
     }
