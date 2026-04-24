@@ -123,12 +123,12 @@ export function HomePage({ onNavigate }: Props) {
             </div>
           </div>
 
-          <div className={styles.activityPanel}>
+          {/* <div className={styles.activityPanel}>
             <strong>Сейчас рядом</strong>
             <span>4 пишут в чате</span>
             <span>2 смотрят вложения</span>
             <span>presence online</span>
-          </div>
+          </div> */}
         </div>
       </section>
 
