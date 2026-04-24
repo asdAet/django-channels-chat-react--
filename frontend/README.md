@@ -7,11 +7,12 @@ SPA-клиент на `React + TypeScript + Vite` для `Devil`.
 - Chat routing prefixless: используется `/:target`
 - Канонические chat routes:
   - `/public`
-  - `/@username`
-  - `/<userPublicId>`
-  - `/<groupPublicRef>`
-  - `/<groupPublicId>`
+- `/@username`
+- `/<userPublicId>`
+- `/<groupPublicRef>`
+- `/<groupPublicId>`
 - Внешний target сначала резолвится через `POST /api/chat/resolve/`, затем весь runtime работает по внутреннему `roomId`
+- Chat realtime использует единый websocket `/ws/chat/`, а смена комнаты происходит через `set_active_room`
 - Inbox диалогов использует `GET /api/chat/inbox/` и `ws://<host>/ws/inbox/`
 
 ## Локальный запуск

@@ -37,7 +37,7 @@
 - Внешняя навигация по чатам строится через публичные идентификаторы `publicRef` / `publicId`
 - Внутренний транспорт работает только через `roomId`
 - Канонический resolve внешней цели чата выполняется через `POST /api/chat/resolve/`
-- WebSocket чата использует путь `/ws/chat/<room_id>/`, а inbox работает через `/ws/inbox/`
+- Chat transport использует единый app-level websocket `/ws/chat/` с переключением active room через команды, а inbox работает через `/ws/inbox/`
 - Старые внешние маршруты вида `/direct/*` и `/rooms/*` не считаются каноническими
 - Медиа отдаются по подписанным URL с ограниченным временем жизни
 
@@ -271,7 +271,7 @@ python tools/generate_project_docs.py
 ## Что важно знать перед изменениями
 
 - Канонический внешний вход в чат идет через `publicRef` / `publicId` и `/api/chat/resolve/`
-- Внутренние REST и WebSocket операции используют `roomId`
+- Внутренние REST операции используют `roomId`, а chat WebSocket переключает комнату через `set_active_room`
 - `ws/inbox` является текущим endpoint для inbox-сценария
 - Подписанные media URL имеют TTL и не должны заменяться на публичные постоянные ссылки
 
