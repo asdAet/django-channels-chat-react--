@@ -245,7 +245,9 @@ describe("MessageBubble", () => {
     expect(
       screen.getByText((content, element) => {
         const className = String(element?.className ?? "");
-        return className.includes("attachFileSize") && /\bcustom\b/i.test(content);
+        return (
+          className.includes("attachFileSize") && /\bcustom\b/i.test(content)
+        );
       }),
     ).toBeInTheDocument();
   });
@@ -323,7 +325,9 @@ describe("MessageBubble", () => {
 
     const bubble = container.querySelector("[class*='bubble']");
     expect(bubble?.className).toContain("customEmojiOnlyBubble");
-    expect(container.querySelector("[class*='footerInfo']")).toBeInTheDocument();
+    expect(
+      container.querySelector("[class*='footerInfo']"),
+    ).toBeInTheDocument();
   });
 
   it("copies a sent custom emoji with the rich clipboard payload", () => {
@@ -521,7 +525,7 @@ describe("MessageBubble", () => {
     expect(content?.className).not.toContain("customEmojiOnlyContent");
   });
 
-  it("renders custom emoji reactions as animated reaction glyphs", () => {
+  it("renders custom emoji reactions as Animated reaction glyphs", () => {
     const firstEmoji = getTestEmoji();
 
     const message: Message = {

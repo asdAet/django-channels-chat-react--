@@ -15,8 +15,13 @@ describe("customEmoji", () => {
     const summaries = getCustomEmojiPackSummaries();
 
     expect(summaries.length).toBeGreaterThan(0);
-    expect(summaries.map((pack) => pack.name)).toContain("Animated");
-    expect(summaries.map((pack) => pack.name)).toContain("CreepyEmoji");
+    const packNames = summaries.map((pack) => pack.name);
+    expect(packNames.some((name) => name.toLowerCase() === "Animated")).toBe(
+      true,
+    );
+    expect(packNames.some((name) => name.toLowerCase() === "creepyemoji")).toBe(
+      true,
+    );
 
     const firstPack = await loadCustomEmojiPack(summaries[0]?.id ?? "");
     expect(firstPack).toBeTruthy();

@@ -118,14 +118,14 @@ const chatControllerMock = vi.hoisted(() => ({
 
 const customEmojiMock = vi.hoisted(() => ({
   emoji: {
-    id: "Animated/1.tgs",
-    packId: "Animated",
-    packName: "Animated",
-    fileName: "1.tgs",
-    assetKind: "tgs",
-    label: "Animated 1",
-    src: "/mock/custom-emoji.tgs",
-    token: "[[ce:Animated%2F1.tgs]]",
+    id: "adaptive/1.webp",
+    packId: "Adaptive",
+    packName: "Adaptive",
+    fileName: "1.webp",
+    assetKind: "webp" as const,
+    label: "Adaptive 1",
+    src: null,
+    token: "[[ce:adaptive%2F1.webp]]",
   },
 }));
 
@@ -218,22 +218,6 @@ vi.mock("../widgets/chat/TelegramEmojiPicker", () => ({
     </button>
   ),
 }));
-
-vi.mock("../shared/customEmoji", async () => {
-  const actual = await vi.importActual<typeof import("../shared/customEmoji")>(
-    "../shared/customEmoji",
-  );
-  return {
-    ...actual,
-    getCustomEmojiById: (id: string) => {
-      if (id === customEmojiMock.emoji.id) {
-        return customEmojiMock.emoji;
-      }
-      return actual.getCustomEmojiById(id);
-    },
-    hasCustomEmojiPacks: () => true,
-  };
-});
 
 import { ChatRoomPage } from "./ChatRoomPage";
 

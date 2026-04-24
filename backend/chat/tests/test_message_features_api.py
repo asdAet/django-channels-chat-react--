@@ -1117,7 +1117,7 @@ class ChatMessageFeatureApiTests(TestCase):
             room=self.direct_room,
             message_content="custom reaction",
         )
-        custom_emoji = "[[ce:animated%2F014_5371073319107827779.tgs]]"
+        custom_emoji = "[[ce:Animated%2F014_5371073319107827779.tgs]]"
         self.assertGreater(len(custom_emoji), 32)
         self.client.force_login(self.peer)
 

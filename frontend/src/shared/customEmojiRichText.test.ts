@@ -144,7 +144,7 @@ describe("customEmojiRichText", () => {
   });
 
   it("maps legacy emoji tokens by their raw token length", () => {
-    const legacyToken = "[[ce:animated%2F001_5372954454653933911.tgs]]";
+    const legacyToken = "[[ce:Animated%2F001_5372954454653933911.tgs]]";
 
     expect(getCustomEmojiDraftLength(`A${legacyToken}B`)).toBe(3);
     expect(

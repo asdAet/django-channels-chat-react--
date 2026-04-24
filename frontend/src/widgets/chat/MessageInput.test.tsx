@@ -8,31 +8,20 @@ import {
   CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
   type CustomEmoji,
   getCustomEmojiDraftLength,
+  getCustomEmojiPackSummaries,
   serializeCustomEmojiRoot,
   setCustomEmojiDraftSelection,
 } from "../../shared/customEmoji";
 import * as customEmojiModule from "../../shared/customEmoji";
 import { MessageInput } from "./MessageInput";
 
-const mockCustomEmoji: CustomEmoji = {
-  id: "Animated/1.tgs",
-  packId: "Animated",
-  packName: "Animated",
-  fileName: "1.tgs",
-  assetKind: "tgs",
-  label: "Animated 1",
-  src: "/mock/custom-emoji.tgs",
-  token: "[[ce:Animated%2F1.tgs]]",
-};
+// Use the actual first emoji from the catalog to ensure consistency
+const firstEmojiPackPreview = getCustomEmojiPackSummaries()[0]?.preview;
+if (!firstEmojiPackPreview) {
+  throw new Error("No custom emoji packs available for testing");
+}
 
-vi.spyOn(customEmojiModule, "getCustomEmojiById").mockImplementation((id) => {
-  if (id === mockCustomEmoji.id) {
-    return mockCustomEmoji;
-  }
-  return null;
-});
-
-vi.spyOn(customEmojiModule, "hasCustomEmojiPacks").mockReturnValue(true);
+const mockCustomEmoji: CustomEmoji = firstEmojiPackPreview;
 
 vi.mock("./TelegramEmojiPicker", () => ({
   TelegramEmojiPicker: ({
