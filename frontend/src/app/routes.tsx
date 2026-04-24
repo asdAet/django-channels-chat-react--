@@ -13,7 +13,10 @@ import { ProfilePage } from "../pages/ProfilePage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { UserProfilePage } from "../pages/UserProfilePage";
-import { isReservedChatTarget, normalizeChatTarget } from "../shared/lib/chatTarget";
+import {
+  isReservedChatTarget,
+  normalizeChatTarget,
+} from "../shared/lib/chatTarget";
 
 type ProfileFieldErrors = Record<string, string[]>;
 type ProfileSaveResult =
@@ -137,10 +140,7 @@ export function AppRoutes({
 }: AppRoutesProps) {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<HomePage user={user} onNavigate={onNavigate} />}
-      />
+      <Route path="/" element={<HomePage onNavigate={onNavigate} />} />
       <Route
         path="/login"
         element={

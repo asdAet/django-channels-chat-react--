@@ -4,6 +4,10 @@
     <script>
       const yandexMetrikaId = "108160241";
       const googleTagId = "G-CYFZ1JQNSR";
+      const analyticsHostnames = new Set(["slowed.sbs", "www.slowed.sbs"]);
+      const shouldLoadAnalytics =
+        window.location.protocol === "https:" &&
+        analyticsHostnames.has(window.location.hostname);
 
       const appendScript = (id, src) => {
         if (document.getElementById(id)) {
@@ -17,7 +21,7 @@
         document.head.appendChild(script);
       };
 
-      if (yandexMetrikaId) {
+      if (shouldLoadAnalytics && yandexMetrikaId) {
         appendScript(
           "yandex-metrika",
           `https://mc.yandex.ru/metrika/tag.js?id=${encodeURIComponent(yandexMetrikaId)}`,
@@ -44,7 +48,7 @@
         });
       }
 
-      if (googleTagId) {
+      if (shouldLoadAnalytics && googleTagId) {
         appendScript(
           "google-tag-manager",
           `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(googleTagId)}`,
@@ -66,10 +70,7 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <title>Devil — чат</title>
-    <meta
-      name="description"
-      content="Devil"
-    />
+    <meta name="description" content="Devil" />
     <meta
       name="robots"
       content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
@@ -79,10 +80,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Devil" />
     <meta property="og:locale" content="ru_RU" />
-    <meta
-      property="og:title"
-      content="Devil — чат"
-    />
+    <meta property="og:title" content="Devil — чат" />
     <meta
       property="og:description"
       content="Личные и групповые чаты с безопасным обменом медиа и файлами."
@@ -91,10 +89,7 @@
     <meta property="og:image" content="https://slowed.sbs/Devil.svg" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="Devil"
-    />
+    <meta name="twitter:title" content="Devil" />
     <meta
       name="twitter:description"
       content="Личные и групповые чаты с безопасным обменом медиа и файлами."
