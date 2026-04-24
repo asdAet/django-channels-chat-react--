@@ -15,6 +15,7 @@ from messages.models import (
     MessageReadReceipt,
     MessageReadState,
     Reaction,
+    REACTION_EMOJI_MAX_LENGTH,
 )
 from roles.access import has_permission
 from roles.permissions import Perm
@@ -281,7 +282,7 @@ def add_reaction(user, room: Room, message_id: int, emoji: str) -> Reaction:
         Объект типа Reaction, сформированный в ходе выполнения.
     """
     emoji = emoji.strip()
-    if not emoji or len(emoji) > 32:
+    if not emoji or len(emoji) > REACTION_EMOJI_MAX_LENGTH:
         raise MessageValidationError("Некорректный эмодзи")
 
     if not has_permission(room, user, Perm.ADD_REACTIONS):
@@ -294,10 +295,11 @@ def add_reaction(user, room: Room, message_id: int, emoji: str) -> Reaction:
     reaction, _created = Reaction.objects.get_or_create(
         message=msg, user=user, emoji=emoji,
     )
+    setattr(reaction, "_was_created", _created)
     return reaction
 
 
-def remove_reaction(user, room: Room, message_id: int, emoji: str) -> None:
+def remove_reaction(user, room: Room, message_id: int, emoji: str) -> bool:
     """Удаляет reaction из целевого набора данных.
     
     Args:
@@ -306,9 +308,10 @@ def remove_reaction(user, room: Room, message_id: int, emoji: str) -> None:
         message_id: Идентификатор message, используемый для выборки данных.
         emoji: Эмодзи-реакция, которую нужно добавить или удалить.
     """
-    Reaction.objects.filter(
+    deleted_count, _details = Reaction.objects.filter(
         message_id=message_id, message__room=room, user=user, emoji=emoji,
     ).delete()
+    return deleted_count > 0
 
 
 # ── Read State ─────────────────────────────────────────────────────────

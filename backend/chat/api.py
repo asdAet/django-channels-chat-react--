@@ -839,6 +839,7 @@ def message_detail(request, room_id: int, message_id):
             _broadcast_to_room(room, {
                 "type": "chat_message_edit",
                 "messageId": msg.pk,
+                "roomId": room.pk,
                 "content": msg.message_content,
                 "editedAt": edited_at.isoformat(),
                 "editedByRef": user_public_ref(request.user),
@@ -854,6 +855,7 @@ def message_detail(request, room_id: int, message_id):
             _broadcast_to_room(room, {
                 "type": "chat_message_delete",
                 "messageId": msg.pk,
+                "roomId": room.pk,
                 "deletedByRef": user_public_ref(request.user),
                 "deletedBy": user_public_username(request.user),
             })
@@ -943,15 +945,17 @@ def message_reactions(request, room_id: int, message_id):
 
     try:
         reaction = add_reaction(request.user, room, message_id, emoji)
-        _broadcast_to_room(room, {
-            "type": "chat_reaction_add",
-            "messageId": message_id,
-            "emoji": reaction.emoji,
-            "userId": request.user.pk,
-            "publicRef": user_public_ref(request.user),
-            "username": user_public_username(request.user),
-            "displayName": user_display_name(request.user),
-        })
+        if getattr(reaction, "_was_created", True):
+            _broadcast_to_room(room, {
+                "type": "chat_reaction_add",
+                "messageId": message_id,
+                "roomId": room.pk,
+                "emoji": reaction.emoji,
+                "userId": request.user.pk,
+                "publicRef": user_public_ref(request.user),
+                "username": user_public_username(request.user),
+                "displayName": user_display_name(request.user),
+            })
         return Response({
             "messageId": message_id,
             "emoji": reaction.emoji,
@@ -993,16 +997,18 @@ def message_reaction_remove(request, room_id: int, message_id, emoji):
     except Http404:
         return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
-    remove_reaction(request.user, room, message_id, emoji)
-    _broadcast_to_room(room, {
-        "type": "chat_reaction_remove",
-        "messageId": message_id,
-        "emoji": emoji,
-        "userId": request.user.pk,
-        "publicRef": user_public_ref(request.user),
-        "username": user_public_username(request.user),
-        "displayName": user_display_name(request.user),
-    })
+    removed = remove_reaction(request.user, room, message_id, emoji)
+    if removed:
+        _broadcast_to_room(room, {
+            "type": "chat_reaction_remove",
+            "messageId": message_id,
+            "roomId": room.pk,
+            "emoji": emoji,
+            "userId": request.user.pk,
+            "publicRef": user_public_ref(request.user),
+            "username": user_public_username(request.user),
+            "displayName": user_display_name(request.user),
+        })
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 

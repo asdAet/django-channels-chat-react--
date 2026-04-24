@@ -9,6 +9,8 @@ from django.db.models.fields.files import FieldFile
 
 from rooms.models import Room
 
+REACTION_EMOJI_MAX_LENGTH: int
+
 
 class Message(models.Model):
     username: str

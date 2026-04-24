@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import json
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 from contextlib import AbstractContextManager
 from typing import Any, cast
 from unittest.mock import patch
@@ -1109,6 +1109,120 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertFalse(
             Reaction.objects.filter(message=message, user=self.peer, emoji="👍").exists()
         )
+
+    def test_message_reactions_accept_custom_emoji_token(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="custom reaction",
+        )
+        custom_emoji = "[[ce:animated%2F014_5371073319107827779.tgs]]"
+        self.assertGreater(len(custom_emoji), 32)
+        self.client.force_login(self.peer)
+
+        added = self.client.post(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            data=json.dumps({"emoji": custom_emoji}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(added.status_code, 200)
+        self.assertEqual(added.json()["emoji"], custom_emoji)
+        self.assertTrue(
+            Reaction.objects.filter(
+                message=message,
+                user=self.peer,
+                emoji=custom_emoji,
+            ).exists()
+        )
+
+        removed = self.client.delete(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/"
+            f"{quote(custom_emoji, safe='')}/"
+        )
+
+        self.assertEqual(removed.status_code, 204)
+        self.assertFalse(
+            Reaction.objects.filter(
+                message=message,
+                user=self.peer,
+                emoji=custom_emoji,
+            ).exists()
+        )
+
+    def test_message_reactions_are_idempotent_for_the_same_emoji(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="reaction idempotency",
+        )
+        self.client.force_login(self.peer)
+
+        with patch("chat.api._broadcast_to_room") as broadcast_mock:
+            first_add = self.client.post(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+                data=json.dumps({"emoji": "👍"}),
+                content_type="application/json",
+            )
+            second_add = self.client.post(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+                data=json.dumps({"emoji": "👍"}),
+                content_type="application/json",
+            )
+            first_remove = self.client.delete(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
+            )
+            second_remove = self.client.delete(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
+            )
+
+        self.assertEqual(first_add.status_code, 200)
+        self.assertEqual(second_add.status_code, 200)
+        self.assertEqual(first_remove.status_code, 204)
+        self.assertEqual(second_remove.status_code, 204)
+        self.assertEqual(
+            Reaction.objects.filter(message=message, user=self.peer, emoji="👍").count(),
+            0,
+        )
+        self.assertEqual(broadcast_mock.call_count, 2)
+        self.assertEqual(broadcast_mock.call_args_list[0].args[1]["type"], "chat_reaction_add")
+        self.assertEqual(broadcast_mock.call_args_list[1].args[1]["type"], "chat_reaction_remove")
+
+    def test_message_reactions_allow_multiple_distinct_emojis_for_same_user(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="multiple reactions",
+        )
+        self.client.force_login(self.peer)
+
+        first_add = self.client.post(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            data=json.dumps({"emoji": "👍"}),
+            content_type="application/json",
+        )
+        second_add = self.client.post(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            data=json.dumps({"emoji": "😂"}),
+            content_type="application/json",
+        )
+        remove_first = self.client.delete(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
+        )
+
+        self.assertEqual(first_add.status_code, 200)
+        self.assertEqual(second_add.status_code, 200)
+        self.assertEqual(remove_first.status_code, 204)
+        self.assertFalse(
+            Reaction.objects.filter(message=message, user=self.peer, emoji="👍").exists()
+        )
+        self.assertTrue(
+            Reaction.objects.filter(message=message, user=self.peer, emoji="😂").exists()
+        )
+        self.assertEqual(Reaction.objects.filter(message=message, user=self.peer).count(), 1)
 
     def test_search_messages_handles_validation_and_pagination(self):
         first = Message.objects.create(

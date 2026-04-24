@@ -8,6 +8,8 @@ import uuid
 
 from rooms.models import Room
 
+REACTION_EMOJI_MAX_LENGTH = 255
+
 
 class Message(models.Model):
     """Модель Message описывает структуру и поведение данных в приложении."""
@@ -85,7 +87,7 @@ class Reaction(models.Model):
         on_delete=models.CASCADE,
         related_name="reactions",
     )
-    emoji = models.CharField(max_length=32)
+    emoji = models.CharField(max_length=REACTION_EMOJI_MAX_LENGTH)
     created_at = models.DateTimeField(auto_now_add=True)
     message_id: int
     user_id: int
