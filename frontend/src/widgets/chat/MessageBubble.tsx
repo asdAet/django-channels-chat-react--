@@ -1,9 +1,11 @@
 import {
+  type ClipboardEvent as ReactClipboardEvent,
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -14,6 +16,16 @@ import type {
   ReplyTo,
 } from "../../entities/message/types";
 import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
+import {
+  type CustomEmoji,
+  CustomEmojiNode,
+  getSelectedCustomEmojiNodeIndexes,
+  getSingleCustomEmojiOnly,
+  parseCustomEmojiText,
+  serializeCustomEmojiSelection,
+  writeCustomEmojiClipboardContent,
+  writeCustomEmojiClipboardData,
+} from "../../shared/customEmoji";
 import {
   isVideoAttachment,
   resolveResponsiveImageSource,
@@ -36,6 +48,7 @@ import {
   buildMediaTileLayout,
   splitAttachmentRenderItems,
 } from "./lib/attachmentLayout";
+import { TelegramEmojiPicker } from "./TelegramEmojiPicker";
 import { VideoAttachmentPreview } from "./VideoAttachmentPreview";
 
 /**
@@ -93,14 +106,28 @@ type LightboxMediaItem = {
 };
 
 /**
- * Константа `QUICK_REACTIONS` хранит используемое в модуле значение.
- */
-const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "👎", "🔥", "🎉", "😢"];
-/**
  * Форматирует размер файла для отображения рядом с вложением.
  * @param bytes Размер файла в байтах.
  * @returns Строка в отформатированном виде.
  */
+
+const IconEmoji = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+    <line x1="9" y1="9" x2="9.01" y2="9" />
+    <line x1="15" y1="9" x2="15.01" y2="9" />
+  </svg>
+);
 
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -145,6 +172,113 @@ const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(MOBILE_MENU_IGNORE_SELECTOR));
 };
+
+const areSetsEqual = (first: Set<number>, second: Set<number>) => {
+  if (first.size !== second.size) {
+    return false;
+  }
+
+  for (const value of first) {
+    if (!second.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+function MessageContent({ content }: { content: string }) {
+  const contentRef = useRef<HTMLParagraphElement>(null);
+  const parts = parseCustomEmojiText(content);
+  const singleEmoji = getSingleCustomEmojiOnly(content);
+  const [selectedEmojiIndexes, setSelectedEmojiIndexes] = useState<Set<number>>(
+    () => new Set(),
+  );
+
+  const updateSelectedEmojiIndexes = useCallback(() => {
+    const root = contentRef.current;
+    const nextIndexes = root
+      ? getSelectedCustomEmojiNodeIndexes(root)
+      : new Set<number>();
+
+    setSelectedEmojiIndexes((currentIndexes) =>
+      areSetsEqual(currentIndexes, nextIndexes) ? currentIndexes : nextIndexes,
+    );
+  }, []);
+
+  useEffect(() => {
+    const ownerDocument = contentRef.current?.ownerDocument ?? document;
+
+    ownerDocument.addEventListener(
+      "selectionchange",
+      updateSelectedEmojiIndexes,
+    );
+    return () => {
+      ownerDocument.removeEventListener(
+        "selectionchange",
+        updateSelectedEmojiIndexes,
+      );
+    };
+  }, [updateSelectedEmojiIndexes]);
+
+  const handleCopy = useCallback(
+    (event: ReactClipboardEvent<HTMLParagraphElement>) => {
+      const selectedContent = serializeCustomEmojiSelection(
+        event.currentTarget,
+      );
+      if (!selectedContent) {
+        return;
+      }
+
+      event.preventDefault();
+      writeCustomEmojiClipboardData(event.clipboardData, selectedContent);
+    },
+    [],
+  );
+
+  const emojiIndexByPartIndex = new Map(
+    parts
+      .map((part, index) => ({ index, part }))
+      .filter(({ part }) => part.type === "emoji")
+      .map(({ index }, emojiIndex) => [index, emojiIndex] as const),
+  );
+
+  return (
+    <p
+      ref={contentRef}
+      className={[
+        styles.content,
+        singleEmoji ? styles.customEmojiOnlyContent : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onCopy={handleCopy}
+    >
+      {parts.map((part, index) => {
+        if (part.type === "text") {
+          return <span key={`text-${index}`}>{part.value}</span>;
+        }
+
+        const emojiIndex = emojiIndexByPartIndex.get(index) ?? -1;
+        const emojiSelected = selectedEmojiIndexes.has(emojiIndex);
+
+        return (
+          <CustomEmojiNode
+            key={`${part.value.id}-${index}`}
+            emoji={part.value}
+            size={singleEmoji ? 72 : 26}
+            className={[
+              singleEmoji ? styles.customEmojiLarge : styles.customEmojiInline,
+              emojiSelected ? styles.customEmojiSelected : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          />
+        );
+      })}
+    </p>
+  );
+}
 /**
  * Компонент ReplyQuote рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
  */
@@ -188,6 +322,9 @@ function ReactionChip({
   reaction: ReactionSummary;
   onToggle: () => void;
 }) {
+  const customEmoji = getSingleCustomEmojiOnly(reaction.emoji);
+  const reactionLabel = customEmoji?.label ?? reaction.emoji;
+
   return (
     <button
       type="button"
@@ -195,9 +332,19 @@ function ReactionChip({
         .filter(Boolean)
         .join(" ")}
       onClick={onToggle}
-      aria-label={`${reaction.emoji} ${reaction.count}`}
+      aria-label={`${reactionLabel} ${reaction.count}`}
     >
-      <span>{reaction.emoji}</span>
+      <span className={styles.reactionGlyph}>
+        {customEmoji ? (
+          <CustomEmojiNode
+            emoji={customEmoji}
+            size={22}
+            className={styles.reactionCustomEmoji}
+          />
+        ) : (
+          reaction.emoji
+        )}
+      </span>
       <span className={styles.reactionCount}>{reaction.count}</span>
     </button>
   );
@@ -233,44 +380,6 @@ function CheckMark({ isRead }: { isRead: boolean }) {
         />
       </svg>
     </span>
-  );
-}
-/**
- * Компонент EmojiPicker рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- */
-function EmojiPicker({
-  onPick,
-  onClose,
-}: {
-  onPick: (emoji: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div
-        className={styles.emojiBackdrop}
-        onClick={onClose}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onClose();
-        }}
-      />
-      <div className={styles.emojiPicker} onClick={(e) => e.stopPropagation()}>
-        {QUICK_REACTIONS.map((emoji) => (
-          <button
-            key={emoji}
-            type="button"
-            className={styles.emojiBtn}
-            onClick={() => {
-              onPick(emoji);
-              onClose();
-            }}
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
-    </>
   );
 }
 /**
@@ -333,6 +442,10 @@ export function MessageBubble({
   const handleReact = useCallback(
     (emoji: string) => onReact?.(message.id, emoji),
     [message.id, onReact],
+  );
+  const handleCustomReactionSelect = useCallback(
+    (emoji: CustomEmoji) => handleReact(emoji.token),
+    [handleReact],
   );
 
   /**
@@ -474,13 +587,13 @@ export function MessageBubble({
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
         ),
-        onClick: () => void navigator.clipboard.writeText(messageText),
+        onClick: () => void writeCustomEmojiClipboardContent(messageText),
       });
     }
 
     contextMenuItems.push({
       label: "Реакция",
-      icon: <span style={{ fontSize: 14 }}>{"👍"}</span>,
+      icon: <IconEmoji />,
       disabled: !onReact,
       onClick: () => {
         if (!onReact) return;
@@ -577,15 +690,21 @@ export function MessageBubble({
       });
     }
   }
-  const isDeleted = message.isDeleted;
-  const authorLabel = resolveIdentityLabel(message);
   const maxVisibleImageAttachments = useChatAttachmentMaxPerMessage();
+  if (message.isDeleted) {
+    return null;
+  }
+
+  const authorLabel = resolveIdentityLabel(message);
+  const isCustomEmojiOnlyMessage =
+    Boolean(getSingleCustomEmojiOnly(message.content)) &&
+    message.attachments.length === 0 &&
+    !message.replyTo;
   const attachmentItems = buildAttachmentRenderItems(message.attachments);
   const attachmentBuckets = splitAttachmentRenderItems(
     attachmentItems,
     maxVisibleImageAttachments,
   );
-  const showFooterInfo = !isDeleted;
   const lightboxMediaItems: LightboxMediaItem[] = attachmentItems.flatMap(
     (item) => {
       const { attachment } = item;
@@ -632,7 +751,6 @@ export function MessageBubble({
           styles.message,
           isOwn ? styles.messageOwn : "",
           grouped ? styles.messageGrouped : "",
-          isDeleted ? styles.deleted : "",
           highlighted ? styles.highlighted : "",
         ]
           .filter(Boolean)
@@ -679,24 +797,23 @@ export function MessageBubble({
             />
           )}
 
-          <div className={styles.bubble}>
+          <div
+            className={[
+              styles.bubble,
+              isCustomEmojiOnlyMessage ? styles.customEmojiOnlyBubble : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
             {showHeader && (
               <div className={styles.meta}>
                 <span className={styles.username}>{authorLabel}</span>
               </div>
             )}
 
-            {isDeleted ? (
-              <p className={styles.deletedContent}>Сообщение удалено</p>
-            ) : (
-              <>
-                {message.content && (
-                  <p className={styles.content}>{message.content}</p>
-                )}
-              </>
-            )}
+            {message.content && <MessageContent content={message.content} />}
 
-            {!isDeleted && message.attachments.length > 0 && (
+            {message.attachments.length > 0 && (
               <div className={styles.attachments}>
                 {attachmentBuckets.imageGroups.map((imageGroup, groupIndex) => {
                   const mediaLayout = buildMediaTileLayout(imageGroup);
@@ -784,7 +901,6 @@ export function MessageBubble({
                         isVideoType(att.contentType, att.originalFilename) &&
                         att.url
                       ) {
-
                         return (
                           <VideoAttachmentPreview
                             key={att.id}
@@ -885,20 +1001,18 @@ export function MessageBubble({
               </div>
             )}
 
-            {showFooterInfo && (
-              <div className={styles.footerInfo}>
-                {message.editedAt && (
-                  <span className={styles.editedTag}>ред.</span>
-                )}
-                <span className={styles.time}>
-                  {formatTimestamp(message.createdAt)}
-                </span>
-                {isOwn && <CheckMark isRead={isRead} />}
-              </div>
-            )}
+            <div className={styles.footerInfo}>
+              {message.editedAt && (
+                <span className={styles.editedTag}>ред.</span>
+              )}
+              <span className={styles.time}>
+                {formatTimestamp(message.createdAt)}
+              </span>
+              {isOwn && <CheckMark isRead={isRead} />}
+            </div>
           </div>
 
-          {!isDeleted && message.reactions.length > 0 && (
+          {message.reactions.length > 0 && (
             <div className={styles.reactions}>
               {message.reactions.map((r) => (
                 <ReactionChip
@@ -921,8 +1035,9 @@ export function MessageBubble({
         />
       )}
       {emojiPickerOpen && (
-        <EmojiPicker
-          onPick={handleReact}
+        <TelegramEmojiPicker
+          placement="overlay"
+          onSelect={handleCustomReactionSelect}
           onClose={() => setEmojiPickerOpen(false)}
         />
       )}

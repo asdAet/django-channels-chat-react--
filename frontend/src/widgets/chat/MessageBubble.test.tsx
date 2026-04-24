@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Message } from "../../entities/message/types";
@@ -6,6 +12,12 @@ import {
   DEFAULT_RUNTIME_CONFIG,
   setRuntimeConfig,
 } from "../../shared/config/runtimeConfig";
+import {
+  CUSTOM_EMOJI_CLIPBOARD_MIME,
+  CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
+  type CustomEmoji,
+  getCustomEmojiPackSummaries,
+} from "../../shared/customEmoji";
 import { MessageBubble } from "./MessageBubble";
 
 const baseMessage: Message = {
@@ -33,6 +45,39 @@ const createImageAttachment = (id: number, filename: string) => ({
   width: 1280,
   height: 720,
 });
+
+const getTestEmoji = (index = 0) => {
+  const emoji = getCustomEmojiPackSummaries()[index]?.preview;
+  if (!emoji) {
+    throw new Error("Expected custom emoji test fixture");
+  }
+
+  return emoji;
+};
+
+const mockPickerEmoji: CustomEmoji = {
+  id: "Animated/1.tgs",
+  packId: "Animated",
+  packName: "Animated",
+  fileName: "1.tgs",
+  assetKind: "tgs",
+  label: "Animated 1",
+  src: "/mock/custom-emoji.tgs",
+  token: "[[ce:Animated%2F1.tgs]]",
+};
+
+vi.mock("./TelegramEmojiPicker", () => ({
+  TelegramEmojiPicker: ({
+    onSelect,
+  }: {
+    onSelect: (emoji: CustomEmoji) => void;
+    onClose: () => void;
+  }) => (
+    <button type="button" onClick={() => onSelect(mockPickerEmoji)}>
+      Pick custom emoji reaction
+    </button>
+  ),
+}));
 
 /**
  * Настраивает эмуляцию touch-устройства через matchMedia.
@@ -124,6 +169,19 @@ const installDesktopInputModel = () => {
 describe("MessageBubble", () => {
   beforeEach(() => {
     setRuntimeConfig({ ...DEFAULT_RUNTIME_CONFIG });
+  });
+
+  it("renders nothing for deleted messages", () => {
+    const { container } = render(
+      <MessageBubble
+        message={{ ...baseMessage, isDeleted: true, content: "" }}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    expect(container.querySelector("[data-message-id]")).toBeNull();
+    expect(screen.queryByText("Сообщение удалено")).toBeNull();
   });
 
   it("renders AudioAttachmentPlayer for audio attachments", () => {
@@ -220,6 +278,311 @@ describe("MessageBubble", () => {
     const image = screen.getByAltText("pizza.svg");
     expect(image.tagName).toBe("IMG");
     expect(image).toHaveAttribute("src", "/media/pizza.svg");
+  });
+
+  it("renders a strictly single custom emoji in the large variant", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const content = container.querySelector("p");
+
+    expect(emoji?.className).toContain("customEmojiLarge");
+    expect(content?.className).toContain("customEmojiOnlyContent");
+  });
+
+  it("renders single custom emoji messages without the regular bubble background", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const bubble = container.querySelector("[class*='bubble']");
+    expect(bubble?.className).toContain("customEmojiOnlyBubble");
+    expect(container.querySelector("[class*='footerInfo']")).toBeInTheDocument();
+  });
+
+  it("copies a sent custom emoji with the rich clipboard payload", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const content = container.querySelector("p");
+    const placeholder = container.querySelector(
+      "[data-custom-emoji-copy-placeholder]",
+    );
+    const placeholderText = placeholder?.firstChild;
+    if (!content || !placeholderText) {
+      throw new Error("Expected rendered custom emoji copy placeholder");
+    }
+
+    const range = document.createRange();
+    range.setStart(placeholderText, 0);
+    range.setEnd(placeholderText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+
+    const clipboardData = {
+      setData: vi.fn(),
+    };
+    fireEvent.copy(content, { clipboardData });
+
+    expect(clipboardData.setData).toHaveBeenCalledWith(
+      CUSTOM_EMOJI_CLIPBOARD_MIME,
+      firstEmoji.token,
+    );
+    expect(clipboardData.setData).toHaveBeenCalledWith(
+      "text/plain",
+      CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
+    );
+  });
+
+  it("visually marks sent custom emoji inside the browser selection", async () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: `A${firstEmoji.token}B`,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const content = container.querySelector("p");
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const firstText = content?.childNodes[0]?.firstChild;
+    const secondText = content?.childNodes[2]?.firstChild;
+    if (!content || !emoji || !firstText || !secondText) {
+      throw new Error("Expected mixed text and custom emoji content");
+    }
+
+    const range = document.createRange();
+    range.setStart(firstText, 0);
+    range.setEnd(secondText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+
+    await waitFor(() => {
+      expect(emoji.className).toContain("customEmojiSelected");
+    });
+  });
+
+  it("visually marks sent custom emoji when selection starts on the emoji itself", async () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: `A${firstEmoji.token}B`,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const placeholder = emoji?.querySelector<HTMLElement>(
+      "[data-custom-emoji-copy-placeholder]",
+    );
+    const placeholderText = placeholder?.firstChild;
+    if (!emoji || !placeholder || !placeholderText) {
+      throw new Error("Expected selectable custom emoji hit area");
+    }
+
+    expect(emoji.className).toContain("customEmojiInline");
+    expect(placeholder.style.position).toBe("absolute");
+    expect(placeholder.style.pointerEvents).toBe("auto");
+    expect(placeholder.style.width).toBe("100%");
+
+    const range = document.createRange();
+    range.setStart(placeholderText, 0);
+    range.setEnd(placeholderText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+
+    await waitFor(() => {
+      expect(emoji.className).toContain("customEmojiSelected");
+    });
+  });
+
+  it("visually marks a directly selected large custom emoji", async () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const placeholderText = emoji?.querySelector(
+      "[data-custom-emoji-copy-placeholder]",
+    )?.firstChild;
+    if (!emoji || !placeholderText) {
+      throw new Error("Expected selectable large custom emoji hit area");
+    }
+
+    expect(emoji.className).toContain("customEmojiLarge");
+
+    const range = document.createRange();
+    range.setStart(placeholderText, 0);
+    range.setEnd(placeholderText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+
+    await waitFor(() => {
+      expect(emoji.className).toContain("customEmojiSelected");
+    });
+  });
+
+  it("renders multiple custom emoji in the compact variant", () => {
+    const firstEmoji = getTestEmoji();
+    const secondEmoji = getTestEmoji(1);
+
+    const message: Message = {
+      ...baseMessage,
+      content: `${firstEmoji.token}${secondEmoji.token}`,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emojis = container.querySelectorAll("[data-custom-emoji-token]");
+    const content = container.querySelector("p");
+
+    expect(emojis).toHaveLength(2);
+    emojis.forEach((emoji) => {
+      expect(emoji.className).toContain("customEmojiInline");
+    });
+    expect(content?.className).not.toContain("customEmojiOnlyContent");
+  });
+
+  it("renders custom emoji reactions as animated reaction glyphs", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      reactions: [{ emoji: firstEmoji.token, count: 2, me: true }],
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+        onReact={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: `${firstEmoji.label} 2` }),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(`[data-custom-emoji-id="${firstEmoji.id}"]`),
+    ).toBeTruthy();
+    expect(screen.queryByText(firstEmoji.token)).not.toBeInTheDocument();
+  });
+
+  it("adds a custom emoji reaction from the reaction picker", async () => {
+    const restoreDesktopInputModel = installDesktopInputModel();
+
+    try {
+      const onReact = vi.fn();
+      const { container } = render(
+        <MessageBubble
+          message={baseMessage}
+          isOwn={false}
+          onlineUsernames={new Set<string>()}
+          onReply={vi.fn()}
+          onReact={onReact}
+        />,
+      );
+
+      const article = container.querySelector(
+        'article[data-message-id="1"]',
+      ) as HTMLElement;
+
+      fireEvent.contextMenu(article);
+      fireEvent.click(screen.getByText("Реакция"));
+      fireEvent.click(
+        await screen.findByRole("button", {
+          name: "Pick custom emoji reaction",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(onReact).toHaveBeenCalledWith(
+          baseMessage.id,
+          mockPickerEmoji.token,
+        );
+      });
+    } finally {
+      restoreDesktopInputModel();
+    }
   });
 
   it("splits more than ten image attachments into consecutive media grids preserving order", () => {

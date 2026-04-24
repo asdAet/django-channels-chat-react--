@@ -86,7 +86,7 @@
   width: fit-content;
   max-width: 100%;
   align-self: flex-start;
-  border-radius: 18px 18px 18px 6px;
+  border-radius: 6px 6px 6px 6px;
   background: var(--tg-msg-in-bg, #212121);
   position: relative;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
@@ -94,12 +94,54 @@
 
 .messageOwn .bubble {
   align-self: flex-end;
-  border-radius: 18px 18px 6px 18px;
+  border-radius: 6px 6px 6px 6px;
   background: #364368;
 }
 
-.deleted .bubble {
-  opacity: 0.5;
+.customEmojiOnlyBubble {
+  padding: 0 0 2px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.messageOwn .customEmojiOnlyBubble {
+  background: transparent;
+}
+
+/* ---- footer info (time + checks) ---- */
+
+.footerInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  align-self: flex-end;
+  margin-left: auto;
+  margin-top: 2px;
+  position: static;
+}
+
+.customEmojiOnlyBubble .footerInfo {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  transform: translateY(2px);
+  transition:
+    opacity var(--tg-transition-fast, 150ms ease),
+    transform var(--tg-transition-fast, 150ms ease);
+}
+
+.customEmojiOnlyBubble:focus-within .footerInfo,
+.message:hover .customEmojiOnlyBubble .footerInfo {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ---- reply quote ---- */
@@ -172,28 +214,50 @@
   color: var(--tg-text-primary, #fff);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  word-break: break-word;
   font-size: 14px;
   line-height: 1.45;
 }
 
-.deletedContent {
-  color: var(--tg-text-secondary, #aaa);
-  font-style: italic;
-  font-size: 14px;
-}
-
-/* ---- footer info (time + checks) ---- */
-
-.footerInfo {
+.customEmojiInline {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  margin-inline: 1px;
+  border-radius: 6px;
+  cursor: text;
+  user-select: text;
+  vertical-align: middle;
+}
+
+.customEmojiOnlyContent {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 4px;
-  justify-content: flex-end;
-  align-self: flex-end;
-  margin-left: auto;
-  margin-top: 2px;
-  position: static;
+  min-width: 76px;
+  min-height: 76px;
+  line-height: 1;
+}
+
+.customEmojiLarge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: -4px 0;
+  border-radius: 10px;
+  cursor: text;
+  user-select: text;
+}
+
+.customEmojiInline :where(*),
+.customEmojiLarge :where(*) {
+  cursor: text;
+}
+
+.customEmojiSelected {
+  background: Highlight;
+  box-shadow: 0 0 0 2px Highlight;
+  color: HighlightText;
 }
 
 .time {
@@ -398,6 +462,22 @@
   transform: scale(1.1);
 }
 
+.reactionGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  line-height: 1;
+}
+
+.reactionCustomEmoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: -2px 0;
+  line-height: 0;
+}
+
 .reactionMine {
   border-color: rgba(88, 101, 242, 0.4);
   background: rgba(88, 101, 242, 0.16);
@@ -414,67 +494,6 @@
 }
 
 /* ---- emoji picker popup ---- */
-
-.emojiBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.emojiPicker {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 10px;
-  border-radius: 12px;
-  background: var(--tg-bg-surface, #2b2b2b);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  z-index: 1000;
-  animation: emojiIn 150ms ease;
-  max-width: 280px;
-}
-
-@keyframes emojiIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-.emojiBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 8px;
-  background: none;
-  font-size: 22px;
-  cursor: pointer;
-  transition:
-    background 120ms ease,
-    transform 120ms ease;
-}
-
-.emojiBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: scale(1.15);
-}
-
-.emojiBtn:active {
-  transform: scale(0.95);
-}
 
 @media (max-width: 768px) {
   .message {
@@ -514,17 +533,6 @@
 }
 
 @media (max-width: 480px) {
-  .emojiPicker {
-    max-width: 260px;
-    padding: 8px;
-  }
-
-  .emojiBtn {
-    width: 44px;
-    height: 44px;
-    font-size: 24px;
-  }
-
   .body {
     max-width: 92%;
   }
