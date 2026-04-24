@@ -109,6 +109,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self._last_activity = 0.0
         self._last_typing_broadcast = 0.0
         self._idle_task = None
+        self.room = None
+        self.room_id = None
+        self.room_name = ""
+        self.room_group_name = None
 
     def _refresh_metrics_context(self) -> None:
         scope = getattr(self, "scope", None)
@@ -117,10 +121,70 @@ class ChatConsumer(AsyncWebsocketConsumer):
         room = getattr(self, "room", None)
         self._metrics_room_kind = normalize_room_kind(getattr(room, "kind", None))
 
+    @staticmethod
+    def _parse_room_id(raw_value: object | None) -> int | None:
+        if isinstance(raw_value, int):
+            room_id = raw_value
+        elif isinstance(raw_value, str):
+            try:
+                room_id = int(raw_value)
+            except ValueError:
+                return None
+        else:
+            return None
+        return room_id if room_id > 0 else None
+
+    async def _set_actor_identity(self, user) -> None:
+        is_authenticated = bool(getattr(user, "is_authenticated", False))
+        if is_authenticated:
+            self.actor_username = await self._resolve_public_username(user)
+            self.actor_public_ref = await self._resolve_public_ref(user)
+            self.actor_display_name = await self._resolve_display_name(user)
+            return
+        self.actor_username = ""
+        self.actor_public_ref = ""
+        self.actor_display_name = ""
+
+    async def _activate_room(self, room: Room) -> None:
+        next_room_id = int(room.pk)
+        next_group_name = f"chat_room_{next_room_id}"
+        current_group_name = getattr(self, "room_group_name", None)
+
+        if current_group_name == next_group_name:
+            self.room = room
+            self.room_id = next_room_id
+            self.room_name = str(next_room_id)
+            self._refresh_metrics_context()
+            return
+
+        if current_group_name:
+            await self.channel_layer.group_discard(current_group_name, self.channel_name)
+
+        self.room = room
+        self.room_id = next_room_id
+        self.room_name = str(next_room_id)
+        self.room_group_name = next_group_name
+        await self.channel_layer.group_add(next_group_name, self.channel_name)
+        self._refresh_metrics_context()
+
+    async def _deactivate_room(self) -> None:
+        current_group_name = getattr(self, "room_group_name", None)
+        if current_group_name:
+            await self.channel_layer.group_discard(current_group_name, self.channel_name)
+        self.room = None
+        self.room_id = None
+        self.room_name = ""
+        self.room_group_name = None
+        self._refresh_metrics_context()
+
     async def connect(self):
         """Устанавливает соединение и выполняет проверки доступа."""
         self._connection_closed = False
         self._metrics_connected = False
+        self.room = None
+        self.room_id = None
+        self.room_name = ""
+        self.room_group_name = None
         self._refresh_metrics_context()
         user = self.scope.get("user")
         if user is None:
@@ -142,26 +206,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if isinstance(kwargs, dict):
                 room_id_raw = kwargs.get("room_id")
 
-        room_id = 0
-        if isinstance(room_id_raw, int):
-            room_id = room_id_raw
-        elif isinstance(room_id_raw, str):
-            try:
-                room_id = int(room_id_raw)
-            except ValueError:
-                room_id = 0
-        if room_id < 1:
-            observe_ws_connect(
-                "chat",
-                auth_state=self._metrics_auth_state,
-                room_kind=self._metrics_room_kind,
-                result="rejected",
-                reason="invalid_room_id",
-            )
-            audit_ws_event("ws.connect.denied", self.scope, endpoint="chat", reason="invalid_room_id", code=4404)
-            await self.close(code=4404)
-            return
-
         if await sync_to_async(_ws_connect_rate_limited)(self.scope, "chat"):
             observe_ws_connect(
                 "chat",
@@ -174,62 +218,69 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.close(code=4429)
             return
 
-        room = await self._load_room(room_id)
-        if not room:
-            observe_ws_connect(
-                "chat",
-                auth_state=self._metrics_auth_state,
-                room_kind=self._metrics_room_kind,
-                result="rejected",
-                reason="room_not_found",
-            )
-            audit_ws_event(
-                "ws.connect.denied",
-                self.scope,
-                endpoint="chat",
-                reason="room_not_found",
-                code=4404,
-                room_id=room_id,
-            )
-            await self.close(code=4404)
-            return
+        initial_room = None
+        if room_id_raw is not None:
+            room_id = self._parse_room_id(room_id_raw)
+            if room_id is None:
+                observe_ws_connect(
+                    "chat",
+                    auth_state=self._metrics_auth_state,
+                    room_kind=self._metrics_room_kind,
+                    result="rejected",
+                    reason="invalid_room_id",
+                )
+                audit_ws_event("ws.connect.denied", self.scope, endpoint="chat", reason="invalid_room_id", code=4404)
+                await self.close(code=4404)
+                return
 
-        self.room = room
-        self._refresh_metrics_context()
-        if not await self._can_read(room, user):
-            observe_ws_connect(
-                "chat",
-                auth_state=self._metrics_auth_state,
-                room_kind=self._metrics_room_kind,
-                result="rejected",
-                reason="forbidden",
-            )
-            audit_ws_event(
-                "ws.connect.denied",
-                self.scope,
-                endpoint="chat",
-                reason="forbidden",
-                code=4403,
-                room_id=room_id,
-            )
-            await self.close(code=4403)
-            return
+            room = await self._load_room(room_id)
+            if not room:
+                observe_ws_connect(
+                    "chat",
+                    auth_state=self._metrics_auth_state,
+                    room_kind=self._metrics_room_kind,
+                    result="rejected",
+                    reason="room_not_found",
+                )
+                audit_ws_event(
+                    "ws.connect.denied",
+                    self.scope,
+                    endpoint="chat",
+                    reason="room_not_found",
+                    code=4404,
+                    room_id=room_id,
+                )
+                await self.close(code=4404)
+                return
 
-        is_authenticated = bool(getattr(user, "is_authenticated", False))
-        if is_authenticated:
-            self.actor_username = await self._resolve_public_username(user)
-            self.actor_public_ref = await self._resolve_public_ref(user)
-            self.actor_display_name = await self._resolve_display_name(user)
-        else:
-            self.actor_username = ""
-            self.actor_public_ref = ""
-            self.actor_display_name = ""
-        self.room_id = int(room.pk)
-        self.room_name = str(self.room_id)
-        self.room_group_name = f"chat_room_{self.room_id}"
+            self.room = room
+            self._refresh_metrics_context()
+            if not await self._can_read(room, user):
+                observe_ws_connect(
+                    "chat",
+                    auth_state=self._metrics_auth_state,
+                    room_kind=self._metrics_room_kind,
+                    result="rejected",
+                    reason="forbidden",
+                )
+                audit_ws_event(
+                    "ws.connect.denied",
+                    self.scope,
+                    endpoint="chat",
+                    reason="forbidden",
+                    code=4403,
+                    room_id=room_id,
+                )
+                await self.close(code=4403)
+                return
+            initial_room = room
+            self.room = None
+            self._refresh_metrics_context()
 
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self._set_actor_identity(user)
         await self.accept()
+        if initial_room is not None:
+            await self._activate_room(initial_room)
         self._metrics_connected = True
         observe_ws_connect(
             "chat",
@@ -242,7 +293,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             auth_state=self._metrics_auth_state,
             room_kind=self._metrics_room_kind,
         )
-        audit_ws_event("ws.connect.accepted", self.scope, endpoint="chat", room_id=self.room_id)
+        audit_ws_event(
+            "ws.connect.accepted",
+            self.scope,
+            endpoint="chat",
+            room_id=getattr(self, "room_id", None),
+        )
 
         self._last_activity = time.monotonic()
         self._last_typing_broadcast = 0.0
@@ -266,13 +322,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             except asyncio.CancelledError:
                 pass
 
-        if hasattr(self, "room_group_name"):
-            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        active_room_id = getattr(self, "room_id", None)
+        disconnect_auth_state = self._metrics_auth_state
+        disconnect_room_kind = self._metrics_room_kind
+        await self._deactivate_room()
         if getattr(self, "_metrics_connected", False):
             dec_ws_open_connection(
                 "chat",
-                auth_state=self._metrics_auth_state,
-                room_kind=self._metrics_room_kind,
+                auth_state=disconnect_auth_state,
+                room_kind=disconnect_room_kind,
             )
             observe_ws_event("chat", event_type="disconnect", result="accepted")
         audit_ws_event(
@@ -280,7 +338,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.scope,
             endpoint="chat",
             code=code,
-            room_id=getattr(self, "room_id", None),
+            room_id=active_room_id,
         )
 
     @staticmethod
@@ -342,6 +400,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         event_type = text_data_json.get("type")
 
+        if event_type == "set_active_room":
+            observe_ws_event("chat", event_type="set_active_room", result="received")
+            await self._handle_set_active_room(text_data_json)
+            return
+
         if event_type == "typing":
             observe_ws_event("chat", event_type="typing", result="received")
             await self._handle_typing()
@@ -354,6 +417,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if event_type == "mark_read":
             observe_ws_event("chat", event_type="mark_read", result="received")
             await self._handle_mark_read(text_data_json)
+            return
+
+        active_room = getattr(self, "room", None)
+        if active_room is None:
+            observe_ws_event("chat", event_type="message_send", result="rejected")
+            observe_chat_message_rejected(room_kind=self._metrics_room_kind, reason="room_not_selected")
+            audit_ws_event(
+                "ws.message.rejected",
+                self.scope,
+                endpoint="chat",
+                reason="room_not_selected",
+            )
             return
 
         message = text_data_json.get("message", "")
@@ -378,7 +453,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.scope,
                 endpoint="chat",
                 reason="message_too_long",
-                room_id=self.room.pk,
+                room_id=active_room.pk,
                 message_length=len(message),
             )
             await self._send_json({"error": "message_too_long"})
@@ -391,13 +466,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="unauthorized")
             return
 
-        if self.room.kind == Room.Kind.DIRECT and await self._is_blocked_in_dm(self.room, user):
+        if active_room.kind == Room.Kind.DIRECT and await self._is_blocked_in_dm(active_room, user):
             observe_ws_event("chat", event_type="message_send", result="rejected")
             observe_chat_message_rejected(room_kind=self._metrics_room_kind, reason="forbidden")
             await self._send_json({"error": "forbidden"})
             return
 
-        if not await self._can_write(self.room, user):
+        if not await self._can_write(active_room, user):
             observe_ws_event("chat", event_type="message_send", result="rejected")
             observe_chat_message_rejected(room_kind=self._metrics_room_kind, reason="forbidden")
             audit_ws_event(
@@ -405,7 +480,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.scope,
                 endpoint="chat",
                 reason="forbidden",
-                room_id=self.room.pk,
+                room_id=active_room.pk,
             )
             await self._send_json({"error": "forbidden"})
             return
@@ -413,7 +488,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if await self._rate_limited(user):
             observe_ws_event("chat", event_type="message_send", result="rejected")
             observe_chat_message_rejected(room_kind=self._metrics_room_kind, reason="rate_limited")
-            audit_ws_event("ws.message.rate_limited", self.scope, endpoint="chat", room_id=self.room.pk)
+            audit_ws_event("ws.message.rate_limited", self.scope, endpoint="chat", room_id=active_room.pk)
             payload: dict[str, object] = {"error": "rate_limited"}
             retry_after = await self._rate_limit_retry_after_seconds(user)
             if isinstance(retry_after, int) and retry_after > 0:
@@ -438,7 +513,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             observe_chat_message_rejected(room_kind=self._metrics_room_kind, reason="invalid_user")
             audit_ws_event("ws.message.rejected", self.scope, endpoint="chat", reason="invalid_user")
             return
-        room_id = int(self.room.pk)
+        room_id = int(active_room.pk)
 
         avatar_source, avatar_crop = await self._get_profile_avatar_state(user)
         profile_url = build_profile_url(self.scope, avatar_source)
@@ -452,13 +527,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             except (TypeError, ValueError):
                 reply_to_id = None
 
-        saved_message = await self.save_message(message, user, username, avatar_source, self.room, reply_to_id)
+        saved_message = await self.save_message(message, user, username, avatar_source, active_room, reply_to_id)
         created_at = saved_message.date_added.isoformat()
         audit_ws_event(
             "ws.message.sent",
             self.scope,
             endpoint="chat",
-            room_id=self.room.pk,
+            room_id=active_room.pk,
             message_length=len(message),
         )
         observe_ws_event("chat", event_type="message_send", result="accepted")
@@ -482,12 +557,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             },
         )
 
-        if self.room.kind == Room.Kind.DIRECT:
+        if active_room.kind == Room.Kind.DIRECT:
             sender_id = getattr(user, "pk", None)
             if sender_id is None:
                 return
             targets = await self._build_direct_inbox_targets(
-                room_id=self.room.pk,
+                room_id=active_room.pk,
                 sender_id=int(sender_id),
                 message=message,
                 created_at=created_at,
@@ -501,7 +576,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     },
                 )
 
-        await sync_to_async(broadcast_room_unread_state_for_room)(self.room)
+        await sync_to_async(broadcast_room_unread_state_for_room)(active_room)
 
     async def chat_message(self, event):
         """Транслирует событие нового сообщения в WebSocket-клиенты комнаты.
@@ -757,12 +832,74 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return DbRateLimiter.is_limited(scope_key=scope_key, policy=policy)
     # Обработка индикатора набора текста.
 
+    async def _handle_set_active_room(self, data):
+        """Переключает активную комнату текущей websocket-сессии."""
+        user = self.scope.get("user")
+        raw_room_id = data.get("roomId")
+        if raw_room_id is None:
+            await self._deactivate_room()
+            observe_ws_event("chat", event_type="set_active_room", result="accepted")
+            audit_ws_event(
+                "ws.chat.set_active_room.accepted",
+                self.scope,
+                endpoint="chat",
+                room_id=None,
+            )
+            return
+
+        room_id = self._parse_room_id(raw_room_id)
+        if room_id is None:
+            observe_ws_event("chat", event_type="set_active_room", result="rejected")
+            audit_ws_event(
+                "ws.chat.set_active_room.rejected",
+                self.scope,
+                endpoint="chat",
+                reason="invalid_room_id",
+                room_id=raw_room_id,
+            )
+            return
+
+        room = await self._load_room(room_id)
+        if not room:
+            observe_ws_event("chat", event_type="set_active_room", result="rejected")
+            audit_ws_event(
+                "ws.chat.set_active_room.rejected",
+                self.scope,
+                endpoint="chat",
+                reason="room_not_found",
+                room_id=room_id,
+            )
+            return
+
+        if user is None or not await self._can_read(room, user):
+            observe_ws_event("chat", event_type="set_active_room", result="rejected")
+            audit_ws_event(
+                "ws.chat.set_active_room.rejected",
+                self.scope,
+                endpoint="chat",
+                reason="forbidden",
+                room_id=room_id,
+            )
+            return
+
+        await self._activate_room(room)
+        observe_ws_event("chat", event_type="set_active_room", result="accepted")
+        audit_ws_event(
+            "ws.chat.set_active_room.accepted",
+            self.scope,
+            endpoint="chat",
+            room_id=room_id,
+        )
+
     async def _handle_typing(self):
         """Обрабатывает событие typing и выполняет связанную бизнес-логику."""
         user = self.scope.get("user")
         if user is None or not getattr(user, "is_authenticated", False):
             return
-        if not await self._can_write(self.room, user):
+        room = getattr(self, "room", None)
+        if room is None:
+            return
+        if not await self._can_write(room, user):
             return
         now = time.monotonic()
         if now - self._last_typing_broadcast < 3.0:
@@ -783,6 +920,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 "type": "chat_typing",
+                "roomId": int(room.pk),
                 "publicRef": public_ref,
                 "username": username,
                 "displayName": display_name or username,
@@ -801,6 +939,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return
         await self._send_json({
             "type": "typing",
+            "roomId": event.get("roomId"),
             "publicRef": event.get("publicRef") or event["username"],
             "username": event["username"],
             "displayName": event.get("displayName") or event["username"],
@@ -848,6 +987,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self._send_json({
             "type": "message_edit",
             "messageId": event["messageId"],
+            "roomId": event.get("roomId"),
             "content": event["content"],
             "editedAt": event["editedAt"],
             "editedByRef": event.get("editedByRef") or event.get("editedBy"),
@@ -864,6 +1004,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self._send_json({
             "type": "message_delete",
             "messageId": event["messageId"],
+            "roomId": event.get("roomId"),
             "deletedByRef": event.get("deletedByRef") or event.get("deletedBy"),
             "deletedBy": event["deletedBy"],
         })
@@ -878,6 +1019,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self._send_json({
             "type": "reaction_add",
             "messageId": event["messageId"],
+            "roomId": event.get("roomId"),
             "emoji": event["emoji"],
             "userId": event["userId"],
             "publicRef": event.get("publicRef") or event["username"],
@@ -895,6 +1037,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self._send_json({
             "type": "reaction_remove",
             "messageId": event["messageId"],
+            "roomId": event.get("roomId"),
             "emoji": event["emoji"],
             "userId": event["userId"],
             "publicRef": event.get("publicRef") or event["username"],
@@ -950,11 +1093,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         user = self.scope.get("user")
         if user is None or not getattr(user, "is_authenticated", False):
             return
+        room = getattr(self, "room", None)
+        if room is None:
+            return
         last_read_id = data.get("lastReadMessageId")
         if not isinstance(last_read_id, int) or last_read_id < 1:
             return
         observe_ws_event("chat", event_type="mark_read", result="accepted")
-        await self._do_mark_read(user, self.room, last_read_id)
+        await self._do_mark_read(user, room, last_read_id)
 
     @sync_to_async
     def _do_mark_read(self, user, room, last_read_id):

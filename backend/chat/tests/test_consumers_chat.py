@@ -81,6 +81,67 @@ class ChatConsumerTests(TransactionTestCase):
 
         async_to_sync(run)()
 
+    def test_session_route_connects_without_room(self):
+        """Global chat transport accepts a session route without room binding."""
+
+        async def run():
+            communicator, connected, _ = await self._connect('/ws/chat/', user=self.member)
+            self.assertTrue(connected)
+            await communicator.disconnect()
+
+        async_to_sync(run)()
+
+    def test_session_route_switches_active_room_without_reconnect(self):
+        """Session route resubscribes to a new room without reopening the socket."""
+
+        async def run():
+            session, connected, _ = await self._connect('/ws/chat/', user=self.member)
+            self.assertTrue(connected)
+
+            await session.send_to(
+                text_data=json.dumps({'type': 'set_active_room', 'roomId': self.private_room.pk})
+            )
+
+            private_sender, private_connected, _ = await self._connect(
+                f'/ws/chat/{self.private_room.pk}/',
+                user=self.owner,
+            )
+            self.assertTrue(private_connected)
+
+            await private_sender.send_to(text_data=json.dumps({'message': 'room-one'}))
+            await private_sender.receive_from(timeout=2)
+
+            first_payload = json.loads(await session.receive_from(timeout=2))
+            self.assertEqual(first_payload.get('message'), 'room-one')
+            self.assertEqual(first_payload.get('roomId'), self.private_room.pk)
+
+            await session.send_to(
+                text_data=json.dumps({'type': 'set_active_room', 'roomId': self.public_room.pk})
+            )
+
+            await private_sender.send_to(text_data=json.dumps({'message': 'room-one-late'}))
+            await private_sender.receive_from(timeout=2)
+            self.assertTrue(await session.receive_nothing(timeout=0.3))
+
+            public_sender, public_connected, _ = await self._connect(
+                f'/ws/chat/{self.public_room.pk}/',
+                user=self.owner,
+            )
+            self.assertTrue(public_connected)
+
+            await public_sender.send_to(text_data=json.dumps({'message': 'room-two'}))
+            await public_sender.receive_from(timeout=2)
+
+            second_payload = json.loads(await session.receive_from(timeout=2))
+            self.assertEqual(second_payload.get('message'), 'room-two')
+            self.assertEqual(second_payload.get('roomId'), self.public_room.pk)
+
+            await public_sender.disconnect()
+            await private_sender.disconnect()
+            await session.disconnect()
+
+        async_to_sync(run)()
+
     @override_settings(
         RATE_LIMITS={
             "ws_connect_default": {"limit": 1, "window_seconds": 60},
