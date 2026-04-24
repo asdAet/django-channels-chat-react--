@@ -12,7 +12,6 @@ import {
   serializeCustomEmojiRoot,
   setCustomEmojiDraftSelection,
 } from "../../shared/customEmoji";
-import * as customEmojiModule from "../../shared/customEmoji";
 import { MessageInput } from "./MessageInput";
 
 // Use the actual first emoji from the catalog to ensure consistency

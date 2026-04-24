@@ -16,7 +16,7 @@ describe("customEmoji", () => {
 
     expect(summaries.length).toBeGreaterThan(0);
     const packNames = summaries.map((pack) => pack.name);
-    expect(packNames.some((name) => name.toLowerCase() === "Animated")).toBe(
+    expect(packNames.some((name) => name.toLowerCase() === "animated")).toBe(
       true,
     );
     expect(packNames.some((name) => name.toLowerCase() === "creepyemoji")).toBe(

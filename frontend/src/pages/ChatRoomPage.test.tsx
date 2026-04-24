@@ -118,14 +118,14 @@ const chatControllerMock = vi.hoisted(() => ({
 
 const customEmojiMock = vi.hoisted(() => ({
   emoji: {
-    id: "adaptive/1.webp",
+    id: "Adaptive/1.webp",
     packId: "Adaptive",
     packName: "Adaptive",
     fileName: "1.webp",
     assetKind: "webp" as const,
     label: "Adaptive 1",
     src: null,
-    token: "[[ce:adaptive%2F1.webp]]",
+    token: "[[ce:Adaptive%2F1.webp]]",
   },
 }));
 
