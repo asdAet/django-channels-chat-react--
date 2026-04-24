@@ -277,10 +277,6 @@
   padding: 0;
 }
 
-.memberMainBtn:hover .memberMeta strong {
-  text-decoration: underline;
-}
-
 .memberMeta {
   display: flex;
   flex-direction: column;
@@ -315,10 +311,6 @@
   background: rgba(255, 255, 255, 0.08);
   color: var(--tg-text-primary, #fff);
   cursor: pointer;
-}
-
-.memberActions button:hover {
-  background: rgba(255, 255, 255, 0.14);
 }
 
 .GroupData {
@@ -357,10 +349,6 @@
   font-size: 12px;
   text-align: left;
   cursor: pointer;
-}
-
-.avatarButtons button:hover {
-  background: rgba(255, 255, 255, 0.14);
 }
 
 .field {
@@ -458,6 +446,10 @@
   white-space: nowrap;
 }
 
+.memberMainBtn:hover .memberMeta strong {
+  text-decoration: underline;
+}
+
 .inviteMeta span,
 .requestMeta span {
   color: var(--tg-text-secondary, #aaa);
@@ -480,6 +472,13 @@
   background: rgba(255, 255, 255, 0.08);
   color: var(--tg-text-primary, #fff);
   cursor: pointer;
+}
+
+.avatarButtons button:hover,
+.memberActions button:hover,
+.inviteActions button:hover,
+.requestActions button:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .permissionsList {

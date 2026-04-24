@@ -85,7 +85,7 @@
   line-height: 1.5;
   color: var(--tg-text-primary, #fff);
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .profileActions {
@@ -198,7 +198,7 @@
 .fileName {
   font-size: 13px;
   line-height: 1.3;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .fileMeta {

@@ -26,10 +26,9 @@ body {
   margin: 0;
   width: 100%;
   min-height: var(--app-height);
-  background: var(--tg-bg-secondary);
+  background: var(--tg-bg-secondary, #2b2d31);
   color: var(--tg-text-primary);
   overflow-x: hidden;
-  background: #2b2d31;
 }
 
 #root {
