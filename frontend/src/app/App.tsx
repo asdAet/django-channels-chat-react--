@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { usePasswordRules } from "../hooks/usePasswordRules";
 import type { ApiError } from "../shared/api/types";
 import { startGoogleAuthRedirect } from "../shared/auth/googleRedirect";
+import { ChatRealtimeProvider } from "../shared/chatRealtime";
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
@@ -552,24 +553,26 @@ function AppInner() {
   return (
     <WsAuthProvider token={auth.wsAuthToken}>
       <SiteVisitTelemetry />
-      <PresenceProvider user={auth.user} ready={realtimeProvidersReady}>
-        <DirectInboxProvider user={auth.user} ready={realtimeProvidersReady}>
-          {isAuthRoute ? (
-            <div className={appStyles.authPage}>{routesElement}</div>
-          ) : (
-            <AppShell
-              user={auth.user}
-              onNavigate={onNavigate}
-              onLogout={handleLogout}
-              banner={banner}
-              error={authError}
-              isAuthRoute={isAuthRoute}
-            >
-              {routesElement}
-            </AppShell>
-          )}
-        </DirectInboxProvider>
-      </PresenceProvider>
+      <ChatRealtimeProvider ready={realtimeProvidersReady}>
+        <PresenceProvider user={auth.user} ready={realtimeProvidersReady}>
+          <DirectInboxProvider user={auth.user} ready={realtimeProvidersReady}>
+            {isAuthRoute ? (
+              <div className={appStyles.authPage}>{routesElement}</div>
+            ) : (
+              <AppShell
+                user={auth.user}
+                onNavigate={onNavigate}
+                onLogout={handleLogout}
+                banner={banner}
+                error={authError}
+                isAuthRoute={isAuthRoute}
+              >
+                {routesElement}
+              </AppShell>
+            )}
+          </DirectInboxProvider>
+        </PresenceProvider>
+      </ChatRealtimeProvider>
     </WsAuthProvider>
   );
 }
