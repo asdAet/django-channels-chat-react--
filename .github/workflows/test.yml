@@ -76,9 +76,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    needs:
-      - backend-tests
-      - frontend-unit
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
