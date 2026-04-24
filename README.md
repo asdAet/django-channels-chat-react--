@@ -1,8 +1,8 @@
 <div align="center">
   <img src="frontend/public/MINI-direct-logo-avatar.png" alt="Devil logo" width="180">
   <h1>Devil</h1>
-  <p><strong>Платформа для realtime-чатов на Django Channels и React</strong></p>
-  <p>Личные и групповые чаты, WebSocket realtime, presence, роли, вложения и production deployment.</p>
+  <p><strong>Realtime-мессенджер для личного и командного общения</strong></p>
+  <p>Devil — веб-приложение для закрытых диалогов, групповых комнат и быстрого обмена сообщениями в реальном времени. Проект объединяет чат, presence, роли, вложения и production-инфраструктуру в одной системе.</p>
 </div>
 
 ---
@@ -85,7 +85,7 @@ npm run test:e2e
 Создать `.env` на основе [example.env](example.env), заполнить секреты и запустить:
 
 ```powershell
-docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.prod.yml -f deploy/observability/compose.yml up --build -d
 ```
 
 Обязательные production-переменные:
