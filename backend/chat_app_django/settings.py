@@ -609,18 +609,32 @@ AUDIT_API_DEFAULT_LIMIT = env_int("AUDIT_API_DEFAULT_LIMIT", 50, minimum=1)
 AUDIT_API_MAX_LIMIT = env_int("AUDIT_API_MAX_LIMIT", 200, minimum=1)
 
 if REDIS_URL:
+    redis_cache_config = {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
     CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
-        }
+        "default": dict(redis_cache_config),
+        "ws_auth": dict(redis_cache_config),
     }
 else:
+    ws_auth_cache_dir = Path(
+        os.getenv("DJANGO_WS_AUTH_CACHE_DIR", "").strip()
+        or (BASE_DIR / ".cache" / "ws_auth")
+    )
+    ws_auth_cache_dir.mkdir(parents=True, exist_ok=True)
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        }
+        },
+        # WebSocket auth tokens must survive dev autoreload / multi-process runs.
+        "ws_auth": {
+            "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+            "LOCATION": str(ws_auth_cache_dir),
+        },
     }
+
+WS_AUTH_CACHE_ALIAS = "ws_auth"
 
 
 LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "INFO").upper()

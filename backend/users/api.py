@@ -142,10 +142,10 @@ def _build_frontend_error_redirect(request, message: str) -> str:
 
 
 def _ensure_session_key(request) -> str:
-    """Возвращает существующий session key или создает его перед выдачей WS token."""
+    """Возвращает session key и принудительно сохраняет измененную сессию."""
     session = request.session
     key = getattr(session, "session_key", None)
-    if key:
+    if key and not session.modified:
         return str(key)
     session.save()
     key = getattr(session, "session_key", None)
