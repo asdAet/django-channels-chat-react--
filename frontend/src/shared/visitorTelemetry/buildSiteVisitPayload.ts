@@ -1,5 +1,4 @@
 import type { DeviceSnapshot } from "../lib/device";
-
 import type { SiteVisitPayload } from "./types";
 import { getOrCreateVisitorId } from "./visitorId";
 

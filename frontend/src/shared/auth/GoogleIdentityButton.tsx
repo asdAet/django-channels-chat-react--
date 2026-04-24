@@ -2,8 +2,8 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import {
   GoogleOAuthError,
-  renderGoogleSignInButton,
   type GoogleOAuthSuccess,
+  renderGoogleSignInButton,
 } from "./googleIdentity";
 
 /**

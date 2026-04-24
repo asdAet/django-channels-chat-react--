@@ -1,5 +1,5 @@
 ﻿import { act, renderHook, waitFor } from "@testing-library/react";
-import { createElement, StrictMode, type ReactNode } from "react";
+import { createElement, type ReactNode, StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useReconnectingWebSocket } from "./useReconnectingWebSocket";

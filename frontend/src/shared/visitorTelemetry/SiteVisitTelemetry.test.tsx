@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DeviceContext } from "../lib/device/device-context";
 import type { DeviceSnapshot } from "../lib/device/types";
-
 import { SiteVisitTelemetry } from "./SiteVisitTelemetry";
 
 const snapshot: DeviceSnapshot = {

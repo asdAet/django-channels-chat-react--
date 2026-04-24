@@ -27,8 +27,8 @@ import { normalizePublicRef } from "../lib/publicRef";
 import { resolveIdentityLabel } from "../lib/userIdentity";
 import { usePresence } from "../presence";
 import {
-  collectSettledUnreadOverrideRoomIds,
   clearUnreadOverridesForRooms,
+  collectSettledUnreadOverrideRoomIds,
   useUnreadOverrides,
 } from "../unreadOverrides/store";
 import { CONVERSATION_LIST_REFRESH_EVENT } from "./events";
