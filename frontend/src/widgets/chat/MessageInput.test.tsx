@@ -11,6 +11,7 @@ import {
   serializeCustomEmojiRoot,
   setCustomEmojiDraftSelection,
 } from "../../shared/customEmoji";
+import * as customEmojiModule from "../../shared/customEmoji";
 import { MessageInput } from "./MessageInput";
 
 const mockCustomEmoji: CustomEmoji = {
@@ -23,6 +24,15 @@ const mockCustomEmoji: CustomEmoji = {
   src: "/mock/custom-emoji.tgs",
   token: "[[ce:Animated%2F1.tgs]]",
 };
+
+vi.spyOn(customEmojiModule, "getCustomEmojiById").mockImplementation((id) => {
+  if (id === mockCustomEmoji.id) {
+    return mockCustomEmoji;
+  }
+  return null;
+});
+
+vi.spyOn(customEmojiModule, "hasCustomEmojiPacks").mockReturnValue(true);
 
 vi.mock("./TelegramEmojiPicker", () => ({
   TelegramEmojiPicker: ({
@@ -65,7 +75,12 @@ describe("MessageInput", () => {
     });
 
     render(
-      <MessageInput draft="" onDraftChange={vi.fn()} onSend={vi.fn()} onAttach={vi.fn()} />,
+      <MessageInput
+        draft=""
+        onDraftChange={vi.fn()}
+        onSend={vi.fn()}
+        onAttach={vi.fn()}
+      />,
     );
 
     fireEvent.click(screen.getByTestId("chat-attach-button"));
@@ -77,7 +92,12 @@ describe("MessageInput", () => {
     const onAttach = vi.fn();
 
     render(
-      <MessageInput draft="" onDraftChange={vi.fn()} onSend={vi.fn()} onAttach={onAttach} />,
+      <MessageInput
+        draft=""
+        onDraftChange={vi.fn()}
+        onSend={vi.fn()}
+        onAttach={onAttach}
+      />,
     );
 
     const input = document.querySelector('input[type="file"]');
@@ -132,9 +152,9 @@ describe("MessageInput", () => {
       mockCustomEmoji.token,
     );
     expect(
-      screen.getByTestId("chat-message-input").querySelector(
-        `[data-custom-emoji-id="${mockCustomEmoji.id}"]`,
-      ),
+      screen
+        .getByTestId("chat-message-input")
+        .querySelector(`[data-custom-emoji-id="${mockCustomEmoji.id}"]`),
     ).toBeTruthy();
     expect(screen.getByTestId("chat-message-input")).not.toHaveTextContent(
       mockCustomEmoji.token,
@@ -215,9 +235,9 @@ describe("MessageInput", () => {
       mockCustomEmoji.token,
     );
     expect(
-      screen.getByTestId("chat-message-input").querySelector(
-        `[data-custom-emoji-id="${mockCustomEmoji.id}"]`,
-      ),
+      screen
+        .getByTestId("chat-message-input")
+        .querySelector(`[data-custom-emoji-id="${mockCustomEmoji.id}"]`),
     ).toBeTruthy();
   });
 
@@ -289,7 +309,9 @@ describe("MessageInput", () => {
   });
 
   it("highlights a selected custom emoji in the rich editor", () => {
-    render(<ControlledMessageInput initialDraft={`A${mockCustomEmoji.token}B`} />);
+    render(
+      <ControlledMessageInput initialDraft={`A${mockCustomEmoji.token}B`} />,
+    );
 
     const editor = screen.getByTestId("chat-message-input");
     setCustomEmojiDraftSelection(editor, {
@@ -321,9 +343,9 @@ describe("MessageInput", () => {
       `hello ${mockCustomEmoji.token} `,
     );
     expect(
-      screen.getByTestId("chat-message-input").querySelector(
-        `[data-custom-emoji-id="${mockCustomEmoji.id}"]`,
-      ),
+      screen
+        .getByTestId("chat-message-input")
+        .querySelector(`[data-custom-emoji-id="${mockCustomEmoji.id}"]`),
     ).toBeTruthy();
   });
 });

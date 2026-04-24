@@ -15,17 +15,16 @@ describe("customEmoji", () => {
     const summaries = getCustomEmojiPackSummaries();
 
     expect(summaries.length).toBeGreaterThan(0);
-    expect(summaries.map((pack) => pack.name)).toEqual(
-      expect.arrayContaining(["Animated", "CreepyEmoji"]),
-    );
+    expect(summaries.map((pack) => pack.name)).toContain("Animated");
+    expect(summaries.map((pack) => pack.name)).toContain("CreepyEmoji");
 
     const firstPack = await loadCustomEmojiPack(summaries[0]?.id ?? "");
     expect(firstPack).toBeTruthy();
     expect(firstPack?.preview).toEqual(firstPack?.emojis[0]);
     expect(firstPack?.emojis[0]?.src).toBeNull();
-    expect(getCustomEmojiPacks().some((pack) => pack.id === firstPack?.id)).toBe(
-      true,
-    );
+    expect(
+      getCustomEmojiPacks().some((pack) => pack.id === firstPack?.id),
+    ).toBe(true);
   });
 
   it("parses custom emoji tokens inline and detects emoji-only content", () => {
@@ -86,34 +85,38 @@ describe("customEmoji", () => {
       src: null,
       token: "[[ce:Mixed%2F003.webm]]",
     };
-    const catalog = buildCustomEmojiCatalog([
-      {
-        id: "Mixed",
-        name: "Mixed",
-        preview,
-        emojiCount: 2,
-      },
-    ], {
-      Mixed: async () => ({
-        customEmojiPack: {
+    const catalog = buildCustomEmojiCatalog(
+      [
+        {
           id: "Mixed",
           name: "Mixed",
           preview,
-          emojis: [preview, webpEmoji, webmEmoji],
+          emojiCount: 2,
         },
-      }),
-    }, {
-      mixed_000: async () => ({
-        resolveCustomEmojiAssetSrc: (id) =>
-          id === "Mixed/001.tgs"
-            ? "/assets/001.tgs"
-            : id === "Mixed/002.webp"
-              ? "/assets/002.webp"
-              : id === "Mixed/003.webm"
-                ? "/assets/003.webm"
-                : null,
-      }),
-    });
+      ],
+      {
+        Mixed: async () => ({
+          customEmojiPack: {
+            id: "Mixed",
+            name: "Mixed",
+            preview,
+            emojis: [preview, webpEmoji, webmEmoji],
+          },
+        }),
+      },
+      {
+        mixed_000: async () => ({
+          resolveCustomEmojiAssetSrc: (id) =>
+            id === "Mixed/001.tgs"
+              ? "/assets/001.tgs"
+              : id === "Mixed/002.webp"
+                ? "/assets/002.webp"
+                : id === "Mixed/003.webm"
+                  ? "/assets/003.webm"
+                  : null,
+        }),
+      },
+    );
     const packs = await catalog.loadCustomEmojiPack("Mixed");
     const tgsEmoji = await catalog.loadCustomEmojiById("Mixed/001.tgs");
     const unresolvedWebpEmoji = catalog.getCustomEmojiById("Mixed/002.webp");
@@ -149,38 +152,39 @@ describe("customEmoji", () => {
       src: null,
       token: "[[ce:Mixed%2F1.tgs]]",
     };
-    const catalog = buildCustomEmojiCatalog([
-      {
-        id: "Mixed",
-        name: "Mixed",
-        preview,
-        emojiCount: 1,
-      },
-    ], {
-      Mixed: async () => ({
-        customEmojiPack: {
+    const catalog = buildCustomEmojiCatalog(
+      [
+        {
           id: "Mixed",
           name: "Mixed",
           preview,
-          emojis: [preview],
+          emojiCount: 1,
         },
-      }),
-    }, {
-      mixed_000: async () => ({
-        resolveCustomEmojiAssetSrc: (id) =>
-          id === "Mixed/1.tgs" ? "/assets/1.tgs" : null,
-      }),
-    });
-
-    const legacyEmoji = catalog.getCustomEmojiById(
-      "mixed/001_123456789.tgs",
+      ],
+      {
+        Mixed: async () => ({
+          customEmojiPack: {
+            id: "Mixed",
+            name: "Mixed",
+            preview,
+            emojis: [preview],
+          },
+        }),
+      },
+      {
+        mixed_000: async () => ({
+          resolveCustomEmojiAssetSrc: (id) =>
+            id === "Mixed/1.tgs" ? "/assets/1.tgs" : null,
+        }),
+      },
     );
+
+    const legacyEmoji = catalog.getCustomEmojiById("mixed/001_123456789.tgs");
     const loadedEmoji = await catalog.loadCustomEmojiById(
       "mixed/001_123456789.tgs",
     );
-    const loadedCanonicalEmoji = await catalog.loadCustomEmojiById(
-      "Mixed/1.tgs",
-    );
+    const loadedCanonicalEmoji =
+      await catalog.loadCustomEmojiById("Mixed/1.tgs");
 
     expect(legacyEmoji?.id).toBe("Mixed/1.tgs");
     expect(legacyEmoji?.fileName).toBe("1.tgs");
