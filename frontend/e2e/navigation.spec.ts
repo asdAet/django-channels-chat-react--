@@ -6,8 +6,9 @@ test("basic navigation between home and public chat", async ({ page }) => {
   if (isNarrowViewport) {
     await expect(page.getByLabel("Поиск")).toBeVisible();
   } else {
+    const appRoot = page.locator("#root");
     await expect(
-      page.getByRole("heading", { name: "Devil", exact: true }),
+      appRoot.getByRole("heading", { name: "Devil", exact: true }),
     ).toBeVisible();
   }
 
