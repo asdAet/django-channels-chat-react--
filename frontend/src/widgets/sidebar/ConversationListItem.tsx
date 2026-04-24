@@ -1,7 +1,9 @@
 import type { ConversationItem } from "../../entities/conversation/types";
 import { formatTimestamp } from "../../shared/lib/format";
 import { Avatar } from "../../shared/ui";
-import styles from "../../styles/sidebar/ConversationList.module.css";
+import styles from "../../styles/sidebar/ConversationListItem.module.css";
+
+const EMPTY_PREVIEW = String.fromCharCode(160);
 
 /**
  * Описывает входные props компонента `Props`.
@@ -45,7 +47,7 @@ export function ConversationListItem({ item, isActive, onClick }: Props) {
           )}
         </div>
         <div className={styles.itemBottom}>
-          <p className={styles.itemPreview}>{item.lastMessage || "\u00A0"}</p>
+          <p className={styles.itemPreview}>{item.lastMessage || EMPTY_PREVIEW}</p>
           {item.unreadCount > 0 && (
             <span className={styles.badge}>{item.unreadCount}</span>
           )}

@@ -1,6 +1,12 @@
 ﻿import { expect, type Locator, type Page,test } from "@playwright/test";
 
 import { loginWithRetry, registerWithRetry } from "./helpers/auth";
+import {
+  expectChatDraft,
+  getChatComposer,
+  sendChatDraft,
+  typeChatDraft,
+} from "./helpers/chatComposer";
 
 const hasNoHorizontalOverflow = async (page: Page) =>
   page.evaluate(() => {
@@ -39,7 +45,7 @@ test("mobile shell switches between list and chat without clipping", async ({
   await register(page, username, password);
   await page.goto("/public");
 
-  const chatInput = page.locator("textarea").first();
+  const composer = getChatComposer(page);
   const joinCallout = page.getByTestId("group-join-callout");
   const readOnlyCallout = page.getByTestId("group-readonly-callout");
   const authCallout = page.getByTestId("chat-auth-callout");
@@ -47,7 +53,7 @@ test("mobile shell switches between list and chat without clipping", async ({
   await expect
     .poll(
       async () =>
-        (await chatInput.isVisible()) ||
+        (await composer.editor.isVisible()) ||
         (await joinCallout.isVisible()) ||
         (await readOnlyCallout.isVisible()) ||
         (await authCallout.isVisible()),
@@ -81,8 +87,7 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
   await register(page, username, password);
   await page.goto("/public");
 
-  const chatInput = page.getByTestId("chat-message-input");
-  const sendButton = page.getByTestId("chat-send-button");
+  const composer = getChatComposer(page);
   const chatLog = page.locator('[aria-live="polite"]').first();
   const joinCallout = page.getByTestId("group-join-callout");
   const authCallout = page.getByTestId("chat-auth-callout");
@@ -91,7 +96,7 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
   await expect
     .poll(
       async () =>
-        (await chatInput.isVisible()) ||
+        (await composer.editor.isVisible()) ||
         (await joinCallout.isVisible()) ||
         (await authCallout.isVisible()) ||
         (await readOnlyCallout.isVisible()),
@@ -110,16 +115,17 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
       .getByRole("button", { name: /Присоединиться|Join/i })
       .click();
   }
-  await expect(chatInput).toBeVisible({ timeout: 15_000 });
-  await expect.poll(async () => isElementInViewport(chatInput)).toBeTruthy();
+  await expect(composer.editor).toBeVisible({ timeout: 15_000 });
+  await expect
+    .poll(async () => isElementInViewport(composer.editor))
+    .toBeTruthy();
 
   const ownMessageText = `mobile viewport stability ${Date.now()}-${Math.random()
     .toString(36)
     .slice(2, 8)}`;
-  await chatInput.fill(ownMessageText);
-  await expect(sendButton).toBeEnabled({ timeout: 15_000 });
-  await sendButton.click();
-  await expect.poll(async () => chatInput.inputValue()).toBe("");
+  await typeChatDraft(composer, ownMessageText);
+  await sendChatDraft(composer);
+  await expectChatDraft(composer, "", { timeout: 15_000 });
 
   const ownMessage = page
     .locator("article")
@@ -130,21 +136,27 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
   await chatLog.evaluate((el) => {
     el.scrollTop = Math.max(0, el.scrollHeight - el.clientHeight);
   });
-  await expect.poll(async () => isElementInViewport(chatInput)).toBeTruthy();
+  await expect
+    .poll(async () => isElementInViewport(composer.editor))
+    .toBeTruthy();
 
-  await chatInput.fill("keyboard visible draft");
+  await typeChatDraft(composer, "keyboard visible draft");
   const originalViewport = page.viewportSize();
-  await chatInput.focus();
+  await composer.editor.focus();
   if (originalViewport) {
     await page.setViewportSize({
       width: originalViewport.width,
       height: Math.max(420, originalViewport.height - 220),
     });
-    await expect.poll(async () => isElementInViewport(chatInput)).toBeTruthy();
-    await expect(chatInput).toHaveValue("keyboard visible draft");
+    await expect
+      .poll(async () => isElementInViewport(composer.editor))
+      .toBeTruthy();
+    await expectChatDraft(composer, "keyboard visible draft");
     await page.setViewportSize(originalViewport);
   }
-  await expect.poll(async () => isElementInViewport(chatInput)).toBeTruthy();
+  await expect
+    .poll(async () => isElementInViewport(composer.editor))
+    .toBeTruthy();
 
   const supportsTouchInput = await page.evaluate(
     () =>

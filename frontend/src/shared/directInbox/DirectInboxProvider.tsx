@@ -9,7 +9,12 @@ import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import { invalidateDirectChats } from "../cache/cacheManager";
 import { debugLog } from "../lib/debug";
 import { appendWebSocketAuthToken, getWebSocketBase } from "../lib/ws";
-import { clearUnreadOverride, useUnreadOverrides } from "../unreadOverrides/store";
+import {
+  clearUnreadOverride,
+  clearUnreadOverridesForRooms,
+  collectSettledUnreadOverrideRoomIds,
+  useUnreadOverrides,
+} from "../unreadOverrides/store";
 import { useWsAuthToken } from "../wsAuth/useWsAuthToken";
 import { DirectInboxContext } from "./context";
 
@@ -55,6 +60,12 @@ const parseRoomIdRef = (
   return Math.trunc(parsed);
 };
 
+/**
+ * Поддерживает список личных чатов и их unread-состояние в реальном времени.
+ *
+ * Провайдер загружает начальный inbox по HTTP, затем синхронизирует его через
+ * `ws/inbox`, применяя ack/unread update события и локальные unread overrides.
+ */
 export function DirectInboxProvider({
   user,
   ready = true,
@@ -66,9 +77,16 @@ export function DirectInboxProvider({
   const [error, setError] = useState<string | null>(null);
   const [, setUnreadRoomIds] = useState<string[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [roomUnreadCounts, setRoomUnreadCounts] = useState<
+    Record<string, number>
+  >({});
   const unreadOverrides = useUnreadOverrides();
 
   const activeRoomRef = useRef<string | number | null>(null);
+  const knownDirectRoomIds = useMemo(
+    () => items.map((item) => String(item.roomId)),
+    [items],
+  );
 
   const wsUrl = useMemo(() => {
     if (!ready || !user) return null;
@@ -84,10 +102,19 @@ export function DirectInboxProvider({
       roomIds: string[];
       counts: Record<string, number>;
     }) => {
+      const settledOverrideRoomIds = collectSettledUnreadOverrideRoomIds({
+        authoritativeRoomIds: new Set([
+          ...knownDirectRoomIds,
+          ...Object.keys(next.counts),
+        ]),
+        authoritativeCounts: next.counts,
+      });
+
       setUnreadRoomIds(next.roomIds);
       setUnreadCounts(next.counts);
+      clearUnreadOverridesForRooms(settledOverrideRoomIds);
     },
-    [],
+    [knownDirectRoomIds],
   );
 
   const refresh = useCallback(async () => {
@@ -128,6 +155,9 @@ export function DirectInboxProvider({
         }
         case "direct_mark_read_ack":
           applyUnreadState(decoded.unread);
+          break;
+        case "room_unread_state":
+          setRoomUnreadCounts(decoded.unread.counts);
           break;
         case "error":
           if (decoded.code === "forbidden") {
@@ -184,7 +214,7 @@ export function DirectInboxProvider({
     const nextCounts = { ...unreadCounts };
 
     for (const [roomId, overrideCount] of Object.entries(unreadOverrides)) {
-      if (!knownDirectRoomIds.has(roomId) && !(roomId in nextCounts)) continue;
+      if (!knownDirectRoomIds.has(roomId)) continue;
       if (overrideCount > 0) {
         nextCounts[roomId] = overrideCount;
       } else {
@@ -214,6 +244,7 @@ export function DirectInboxProvider({
         setItems([]);
         setUnreadRoomIds([]);
         setUnreadCounts({});
+        setRoomUnreadCounts({});
         setLoading(false);
         setError(null);
       });
@@ -263,6 +294,7 @@ export function DirectInboxProvider({
       unreadRoomIds: unreadRoomIdsWithOverrides,
       unreadCounts: unreadCountsWithOverrides,
       unreadDialogsCount: unreadDialogsCountWithOverrides,
+      roomUnreadCounts,
       setActiveRoom,
       markRead,
       refresh,
@@ -278,6 +310,7 @@ export function DirectInboxProvider({
       unreadCountsWithOverrides,
       unreadDialogsCountWithOverrides,
       unreadRoomIdsWithOverrides,
+      roomUnreadCounts,
     ],
   );
 

@@ -18,7 +18,7 @@ import {
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { usePresence } from "../../shared/presence";
 import { Avatar, Spinner } from "../../shared/ui";
-import styles from "../../styles/chat/DirectInfoPanel.module.css";
+import styles from "../../styles/chat/UserProfilePanel.module.css";
 
 /**
  * Описывает входные props компонента `Props`.

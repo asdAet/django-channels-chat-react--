@@ -260,7 +260,7 @@ class ChatResolveApiTests(TestCase):
         self.assertEqual(payload["targetKind"], "direct")
         self.assertEqual(payload["peer"]["publicRef"], user_public_ref(self.peer))
 
-    def test_group_resolve_rejects_removed_legacy_target(self):
+    def test_group_resolve_rejects_non_canonical_text_target(self):
         response = self._post_resolve("crew-room")
         self.assertEqual(response.status_code, 404)
 

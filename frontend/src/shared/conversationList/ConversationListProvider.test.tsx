@@ -2,8 +2,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const chatMock = vi.hoisted(() => ({
-  getUnreadCounts:
-    vi.fn<() => Promise<Array<{ roomId: number; unreadCount: number }>>>(),
+  resolveChatTarget: vi.fn<
+    (target: string) => Promise<{ roomId: number; resolvedTarget: string }>
+  >(),
   globalSearch: vi.fn<
     (query: string) => Promise<{
       users: Array<{
@@ -51,6 +52,12 @@ const groupMock = vi.hoisted(() => ({
   >(),
 }));
 
+const directInboxMock = vi.hoisted(() => ({
+  items: [] as Array<never>,
+  unreadCounts: {} as Record<string, number>,
+  roomUnreadCounts: {} as Record<string, number>,
+}));
+
 vi.mock("../../controllers/ChatController", () => ({
   chatController: chatMock,
 }));
@@ -60,10 +67,7 @@ vi.mock("../../controllers/GroupController", () => ({
 }));
 
 vi.mock("../directInbox", () => ({
-  useDirectInbox: () => ({
-    items: [],
-    unreadCounts: {},
-  }),
+  useDirectInbox: () => directInboxMock,
 }));
 
 vi.mock("../presence", () => ({
@@ -75,6 +79,8 @@ vi.mock("../presence", () => ({
 
 vi.mock("../unreadOverrides/store", () => ({
   useUnreadOverrides: () => ({}),
+  collectSettledUnreadOverrideRoomIds: () => [],
+  clearUnreadOverridesForRooms: vi.fn(),
 }));
 
 import {
@@ -95,9 +101,11 @@ const user = {
  * Проверяет состояние провайдера в тестовом окружении.
  */
 function Probe() {
-  const { setSearchQuery } = useConversationList();
+  const { serverItems, setSearchQuery } = useConversationList();
+  const publicItem = serverItems.find((item) => item.isPublic);
   return (
     <div>
+      <p data-testid="public-unread">{publicItem?.unreadCount ?? 0}</p>
       <button type="button" onClick={() => setSearchQuery("@a")}>
         short-handle
       </button>
@@ -110,13 +118,18 @@ function Probe() {
 
 describe("ConversationListProvider global search validation", () => {
   beforeEach(() => {
-    chatMock.getUnreadCounts.mockReset().mockResolvedValue([]);
+    chatMock.resolveChatTarget
+      .mockReset()
+      .mockResolvedValue({ roomId: 1, resolvedTarget: "public" });
     chatMock.globalSearch
       .mockReset()
       .mockResolvedValue({ users: [], groups: [], messages: [] });
     groupMock.getMyGroups
       .mockReset()
       .mockResolvedValue({ items: [], total: 0 });
+    directInboxMock.items = [];
+    directInboxMock.unreadCounts = {};
+    directInboxMock.roomUnreadCounts = {};
   });
 
   it("does not call global search for too short @handle query", async () => {
@@ -127,7 +140,7 @@ describe("ConversationListProvider global search validation", () => {
     );
 
     await waitFor(() => {
-      expect(chatMock.getUnreadCounts).toHaveBeenCalledTimes(1);
+      expect(chatMock.resolveChatTarget).toHaveBeenCalledTimes(1);
     });
 
     fireEvent.click(screen.getByRole("button", { name: "short-handle" }));
@@ -144,7 +157,7 @@ describe("ConversationListProvider global search validation", () => {
     );
 
     await waitFor(() => {
-      expect(chatMock.getUnreadCounts).toHaveBeenCalledTimes(1);
+      expect(chatMock.resolveChatTarget).toHaveBeenCalledTimes(1);
     });
 
     fireEvent.click(screen.getByRole("button", { name: "valid-handle" }));
@@ -153,5 +166,36 @@ describe("ConversationListProvider global search validation", () => {
     await waitFor(() => {
       expect(chatMock.globalSearch).toHaveBeenCalledWith("@ab");
     });
+  });
+
+  it("updates room unread badges from inbox websocket state without refetching", async () => {
+    directInboxMock.roomUnreadCounts = { "1": 4 };
+
+    const { rerender } = render(
+      <ConversationListProvider user={user} ready>
+        <Probe />
+      </ConversationListProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("public-unread").textContent).toBe("4");
+    });
+
+    expect(chatMock.resolveChatTarget).toHaveBeenCalledTimes(1);
+    expect(groupMock.getMyGroups).toHaveBeenCalledTimes(1);
+
+    directInboxMock.roomUnreadCounts = { "1": 7 };
+    rerender(
+      <ConversationListProvider user={user} ready>
+        <Probe />
+      </ConversationListProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("public-unread").textContent).toBe("7");
+    });
+
+    expect(chatMock.resolveChatTarget).toHaveBeenCalledTimes(1);
+    expect(groupMock.getMyGroups).toHaveBeenCalledTimes(1);
   });
 });

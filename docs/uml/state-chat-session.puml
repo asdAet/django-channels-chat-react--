@@ -1,0 +1,92 @@
+@startuml
+title Devil - Состояния сессии чата
+skinparam shadowing false
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam ArrowThickness 1.1
+skinparam defaultFontName Arial
+skinparam state {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam note {
+  BorderColor #d7dee8
+  BackgroundColor #fbfcfe
+  FontColor #445066
+}
+
+state "Ожидание" as Idle
+state "Разрешение адреса чата" as ResolveTarget
+state "Доступ запрещен" as AccessDenied
+state "Загрузка комнаты" as LoadRoom
+state "Пассивный просмотр" as PassiveView
+state "Подключение realtime" as ConnectRealtime
+state "Переподключение" as Reconnecting
+state "Деградированный режим" as Degraded
+state "Членство отозвано" as MembershipRevoked
+
+[*] --> Idle
+
+Idle --> ResolveTarget : переход на /:target
+ResolveTarget : POST /api/chat/resolve/
+ResolveTarget --> AccessDenied : 400 / 401 / 403 / 404
+ResolveTarget --> LoadRoom : найден roomId
+
+LoadRoom : GET room details + messages
+LoadRoom --> PassiveView : гость в публичной комнате
+LoadRoom --> ConnectRealtime : есть сессия\nили нужен WS
+
+PassiveView --> ConnectRealtime : сессия стала доступна
+PassiveView --> [*] : уход со страницы
+
+ConnectRealtime : подключение к /ws/chat/<roomId>/
+ConnectRealtime --> Active : сокет открыт
+ConnectRealtime --> Reconnecting : ошибка или close
+
+state "Активная сессия" as Active {
+  state "Синхронизировано" as Synced
+  state "Набор текста" as Typing
+  state "Загрузка вложений" as Uploading
+  state "Ошибка composer" as ComposerError
+  state "Синхронизация прочтения" as ReadSync
+  state "Ограничение отправки" as RateLimited
+
+  [*] --> Synced
+  Synced --> Typing : событие набора
+  Typing --> Synced : таймаут или отправка
+
+  Synced --> Uploading : очередь вложений
+  Uploading --> Synced : загрузка завершена
+  Uploading --> ComposerError : ошибка или отмена
+  ComposerError --> Synced : retry или clear
+
+  Synced --> ReadSync : mark_read
+  ReadSync --> Synced : получен ack
+
+  Synced --> RateLimited : slow mode или 429
+  RateLimited --> Synced : истек retry_after
+}
+
+Active --> Reconnecting : сокет закрыт / offline
+Reconnecting --> ConnectRealtime : повтор с backoff
+Reconnecting --> Degraded : достигнут лимит retry
+Degraded --> ConnectRealtime : ручной reconnect\nили сеть восстановилась
+
+Active --> MembershipRevoked : исключен / забанен /\nдоступ отозван
+AccessDenied --> [*]
+MembershipRevoked --> [*]
+Active --> [*] : logout или уход
+Degraded --> [*] : закрытие страницы
+
+note right of Active
+Тот же reconnecting WebSocket
+используется для presence
+и direct inbox.
+end note
+@enduml

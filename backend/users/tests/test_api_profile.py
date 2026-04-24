@@ -17,10 +17,19 @@ from chat import utils
 from messages.models import Message, MessageAttachment
 from rooms.models import Room
 from rooms.services import ensure_membership
+from testsupport.files import require_stored_file_name
 from users.application import auth_service
 from users.avatar_service import user_password_default_avatar_path
 from users.identity import user_public_ref
-from users.models import MAX_PROFILE_IMAGE_SIDE
+from users.models import MAX_PROFILE_IMAGE_SIDE, Profile
+
+
+def _attachment_file_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.file, field_name="attachment.file")
+
+
+def _attachment_thumbnail_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.thumbnail, field_name="attachment.thumbnail")
 
 
 class ProfileApiTests(TestCase):
@@ -167,8 +176,12 @@ class ProfileApiTests(TestCase):
     def test_signed_media_endpoint_allows_valid_and_rejects_invalid_requests(self):
         self.user.profile.image = self._image_upload()
         self.user.profile.save(update_fields=["image"])
+        stored_profile = Profile.objects.get(pk=self.user.profile.pk)
 
-        media_path = self.user.profile.image.name
+        media_path = require_stored_file_name(
+            stored_profile.image,
+            field_name="profile.image",
+        )
         expires_at = int(time.time()) + 300
         signed_url = utils._signed_media_url_path(media_path, expires_at=expires_at)
         self.assertIsNotNone(signed_url)
@@ -194,8 +207,12 @@ class ProfileApiTests(TestCase):
     def test_signed_media_endpoint_accepts_double_encoded_path(self):
         self.user.profile.image = self._image_upload()
         self.user.profile.save(update_fields=["image"])
+        stored_profile = Profile.objects.get(pk=self.user.profile.pk)
 
-        media_path = self.user.profile.image.name
+        media_path = require_stored_file_name(
+            stored_profile.image,
+            field_name="profile.image",
+        )
         signed_url = utils._signed_media_url_path(media_path, expires_at=int(time.time()) + 300)
         self.assertIsNotNone(signed_url)
         if signed_url is None:
@@ -414,12 +431,14 @@ class AttachmentMediaAccessTests(TestCase):
     def test_attachment_media_view_returns_200_for_room_participant(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
         self.client.force_login(self.owner)
+        file_name = _attachment_file_name(attachment)
+        thumbnail_name = _attachment_thumbnail_name(attachment)
 
         file_response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
         thumb_response = self.client.get(
-            f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{thumbnail_name}?roomId={self.direct_room.pk}",
         )
 
         self.assertEqual(file_response.status_code, 200)
@@ -432,9 +451,10 @@ class AttachmentMediaAccessTests(TestCase):
     def test_attachment_media_view_returns_200_for_non_owner_direct_participant(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
         self.client.force_login(self.peer)
+        file_name = _attachment_file_name(attachment)
 
         response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -442,28 +462,29 @@ class AttachmentMediaAccessTests(TestCase):
 
     def test_attachment_media_view_returns_404_for_invalid_access_context(self):
         attachment = self._attachment_for_room(self.direct_room, author=self.owner)
+        file_name = _attachment_file_name(attachment)
 
         unauthenticated = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
         self.assertEqual(unauthenticated.status_code, 404)
 
         self.client.force_login(self.outsider)
         outsider = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
         self.assertEqual(outsider.status_code, 404)
 
-        missing_room = self.client.get(f"/api/auth/media/{attachment.file.name}")
+        missing_room = self.client.get(f"/api/auth/media/{file_name}")
         self.assertEqual(missing_room.status_code, 404)
 
         wrong_room = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk + 999}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk + 999}",
         )
         self.assertEqual(wrong_room.status_code, 404)
 
         signed_query = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}&exp=1&sig=abc",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}&exp=1&sig=abc",
         )
         self.assertEqual(signed_query.status_code, 404)
 
@@ -478,16 +499,18 @@ class AttachmentMediaAccessTests(TestCase):
         )
         ensure_membership(other_room, self.owner)
         foreign_attachment = self._attachment_for_room(other_room, author=self.owner)
+        foreign_file_name = _attachment_file_name(foreign_attachment)
+        file_name = _attachment_file_name(attachment)
 
         wrong_path = self.client.get(
-            f"/api/auth/media/{foreign_attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{foreign_file_name}?roomId={self.direct_room.pk}",
         )
         self.assertEqual(wrong_path.status_code, 404)
 
         attachment.message.is_deleted = True
         attachment.message.save(update_fields=["is_deleted"])
         deleted_message = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
         self.assertEqual(deleted_message.status_code, 404)
 
@@ -499,16 +522,17 @@ class AttachmentMediaAccessTests(TestCase):
         )
         attachment = self._attachment_for_room(public_room, author=self.owner)
         self.client.force_login(self.outsider)
+        file_name = _attachment_file_name(attachment)
 
         outsider_response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={public_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={public_room.pk}",
         )
         self.assertEqual(outsider_response.status_code, 200)
         outsider_response.close()
 
         ensure_membership(public_room, self.outsider)
         member_response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={public_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={public_room.pk}",
         )
         self.assertEqual(member_response.status_code, 200)
         member_response.close()
@@ -516,9 +540,10 @@ class AttachmentMediaAccessTests(TestCase):
     def test_attachment_media_view_serves_svg_with_image_content_type(self):
         attachment = self._svg_attachment_for_room(self.direct_room, author=self.owner)
         self.client.force_login(self.owner)
+        file_name = _attachment_file_name(attachment)
 
         response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -528,12 +553,42 @@ class AttachmentMediaAccessTests(TestCase):
         )
         response.close()
 
+    def test_attachment_image_media_returns_placeholder_without_access(self):
+        attachment = self._svg_attachment_for_room(self.direct_room, author=self.owner)
+        file_name = _attachment_file_name(attachment)
+
+        unauthenticated = self.client.get(
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(unauthenticated.status_code, 200)
+        self.assertEqual(
+            unauthenticated.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
+        unauthenticated_payload = self._read_response_content(unauthenticated)
+        self.assertIn(b"<svg", unauthenticated_payload)
+        unauthenticated.close()
+
+        self.client.force_login(self.outsider)
+        outsider = self.client.get(
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
+        )
+        self.assertEqual(outsider.status_code, 200)
+        self.assertEqual(
+            outsider.headers.get("Content-Type", "").split(";")[0],
+            "image/svg+xml",
+        )
+        outsider_payload = self._read_response_content(outsider)
+        self.assertIn(b"<svg", outsider_payload)
+        outsider.close()
+
     def test_attachment_media_view_serves_png_thumbnail_with_image_content_type(self):
         attachment = self._attachment_with_png_thumbnail_for_room(self.direct_room, author=self.owner)
         self.client.force_login(self.owner)
+        thumbnail_name = _attachment_thumbnail_name(attachment)
 
         response = self.client.get(
-            f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{thumbnail_name}?roomId={self.direct_room.pk}",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -563,8 +618,9 @@ class AttachmentMediaAccessTests(TestCase):
                     thumbnail_content_type=thumbnail_content_type,
                     thumbnail_payload=thumbnail_payload,
                 )
+                thumbnail_path = _attachment_thumbnail_name(attachment)
                 response = self.client.get(
-                    f"/api/auth/media/{attachment.thumbnail.name}?roomId={self.direct_room.pk}",
+                    f"/api/auth/media/{thumbnail_path}?roomId={self.direct_room.pk}",
                 )
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(
@@ -584,7 +640,10 @@ class AttachmentMediaAccessTests(TestCase):
             file_payload=payload,
         )
         self.client.force_login(self.owner)
-        target_url = f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}"
+        target_url = (
+            f"/api/auth/media/{_attachment_file_name(attachment)}"
+            f"?roomId={self.direct_room.pk}"
+        )
 
         test_cases = [
             ("bytes=0-3", payload[:4], f"bytes 0-3/{len(payload)}"),
@@ -617,9 +676,10 @@ class AttachmentMediaAccessTests(TestCase):
             file_payload=payload,
         )
         self.client.force_login(self.owner)
+        file_name = _attachment_file_name(attachment)
 
         response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
             HTTP_RANGE="bytes=999-1001",
         )
 
@@ -640,9 +700,10 @@ class AttachmentMediaAccessTests(TestCase):
             file_payload=payload,
         )
         self.client.force_login(self.owner)
+        file_name = _attachment_file_name(attachment)
 
         response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
 
         self.assertEqual(response.status_code, 200)
@@ -665,16 +726,17 @@ class AttachmentMediaAccessTests(TestCase):
             file_payload=payload,
         )
         self.client.force_login(self.owner)
+        file_name = _attachment_file_name(attachment)
 
         response = self.client.get(
-            f"/api/auth/media/{attachment.file.name}?roomId={self.direct_room.pk}",
+            f"/api/auth/media/{file_name}?roomId={self.direct_room.pk}",
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Accept-Ranges"), "bytes")
         self.assertEqual(
             response.headers.get("X-Accel-Redirect"),
-            f"/_protected_media/{quote(attachment.file.name, safe='/')}",
+            f"/_protected_media/{quote(file_name, safe='/')}",
         )
         response.close()
 
@@ -728,9 +790,9 @@ class AttachmentMediaAccessTests(TestCase):
                     file_payload=case["file_payload"],
                     thumbnail_name=case["thumbnail_name"],
                 )
-                target_paths = [attachment.file.name]
+                target_paths = [_attachment_file_name(attachment)]
                 if attachment.thumbnail:
-                    target_paths.append(attachment.thumbnail.name)
+                    target_paths.append(_attachment_thumbnail_name(attachment))
 
                 for target_path in target_paths:
                     with self.subTest(path=target_path):
@@ -743,9 +805,35 @@ class AttachmentMediaAccessTests(TestCase):
                         guest_response = guest_client.get(
                             f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
                         )
-                        self.assertEqual(guest_response.status_code, 404)
-
                         outsider_response = outsider_client.get(
                             f"/api/auth/media/{target_path}?roomId={self.direct_room.pk}",
                         )
+
+                        expects_placeholder = (
+                            target_path.endswith(".png")
+                            or target_path.endswith(".jpg")
+                            or target_path.endswith(".jpeg")
+                            or target_path.endswith(".gif")
+                            or target_path.endswith(".webp")
+                            or target_path.endswith(".svg")
+                        )
+
+                        if expects_placeholder:
+                            self.assertEqual(guest_response.status_code, 200)
+                            self.assertEqual(
+                                guest_response.headers.get("Content-Type", "").split(";")[0],
+                                "image/svg+xml",
+                            )
+                            self.assertIn(b"<svg", self._read_response_content(guest_response))
+                            self.assertEqual(outsider_response.status_code, 200)
+                            self.assertEqual(
+                                outsider_response.headers.get("Content-Type", "").split(";")[0],
+                                "image/svg+xml",
+                            )
+                            self.assertIn(b"<svg", self._read_response_content(outsider_response))
+                            guest_response.close()
+                            outsider_response.close()
+                            continue
+
+                        self.assertEqual(guest_response.status_code, 404)
                         self.assertEqual(outsider_response.status_code, 404)

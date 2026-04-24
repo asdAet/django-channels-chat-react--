@@ -13,9 +13,9 @@ import type { ReadReceipt } from "./utils";
  */
 export type UseChatRoomPageRealtimeOptions = {
   /**
-   * WebSocket URL активной комнаты или `null`, если realtime отключен.
+   * Числовой идентификатор активной комнаты для session-level realtime.
    */
-  wsUrl: string | null;
+  roomRealtimeId: number | null;
   /**
    * Стабильный идентификатор комнаты для инвалидации кэша.
    */

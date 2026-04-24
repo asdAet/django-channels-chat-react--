@@ -1,7 +1,9 @@
 /**
- * Обрабатывает as big int.
- * @param value Входное значение для преобразования.
- * @returns Логический флаг наличия условия.
+ * Приводит числовое значение permission-маски к `bigint`, чтобы безопасно выполнять
+ * побитовые операции без потери точности.
+ *
+ * @param value Исходное числовое значение маски или отдельного флага.
+ * @returns Нормализованное значение в формате `bigint`.
  */
 const asBigInt = (value: number): bigint => {
   if (!Number.isFinite(value)) return 0n;
@@ -9,14 +11,12 @@ const asBigInt = (value: number): bigint => {
 };
 
 /**
- * Проверяет наличие permission flag.
+ * Проверяет, присутствует ли конкретный permission-флаг в битовой маске.
  *
  * @param mask Битовая маска разрешений.
- * @param flag Флаг разрешения.
- *
- * @returns Логический флаг наличия условия.
+ * @param flag Флаг разрешения, наличие которого нужно проверить.
+ * @returns `true`, если указанный флаг полностью содержится в маске.
  */
-
 export const hasPermissionFlag = (mask: number, flag: number): boolean => {
   const maskBig = asBigInt(mask);
   const flagBig = asBigInt(flag);
@@ -25,13 +25,12 @@ export const hasPermissionFlag = (mask: number, flag: number): boolean => {
 };
 
 /**
- * Выполняет permission flags.
+ * Объединяет набор флагов прав доступа в одну битовую маску для передачи в API и хранения
+ * в локальном состоянии.
  *
- * @param flags Набор флагов разрешений.
- *
-
+ * @param flags Набор числовых флагов прав доступа.
+ * @returns Итоговая битовая маска, в которой выставлены все переданные флаги.
  */
-
 export const combinePermissionFlags = (flags: Iterable<number>): number => {
   let next = 0n;
   for (const flag of flags) {
@@ -44,12 +43,12 @@ export const combinePermissionFlags = (flags: Iterable<number>): number => {
 };
 
 /**
- * Обрабатывает flags from mask.
+ * Возвращает только те флаги, которые реально присутствуют в переданной битовой маске.
+ *
  * @param mask Битовая маска разрешений.
- * @param flags Набор флагов разрешений.
- * @returns Числовое значение результата.
+ * @param flags Список флагов, которые нужно проверить на наличие в маске.
+ * @returns Подмножество исходных флагов, найденных в `mask`.
  */
-
 export const flagsFromMask = (
   mask: number,
   flags: readonly number[],

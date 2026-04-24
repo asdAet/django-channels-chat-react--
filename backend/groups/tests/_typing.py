@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol, cast
 
+from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 
@@ -21,3 +22,16 @@ class TypedAPIClient(APIClient):
 
     def delete(self, *args: Any, **kwargs: Any) -> Any:
         return super().delete(*args, **kwargs)
+
+
+class UserFactoryProtocol(Protocol):
+    def create_user(self, *args: Any, **kwargs: Any) -> Any: ...
+    def create_superuser(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
+class UserModelProtocol(Protocol):
+    objects: UserFactoryProtocol
+
+
+def typed_user_model() -> UserModelProtocol:
+    return cast(UserModelProtocol, get_user_model())

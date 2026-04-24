@@ -59,6 +59,13 @@ const markReadAckEventSchema = z
   })
   .passthrough();
 
+const roomUnreadStateEventSchema = z
+  .object({
+    type: z.literal("room_unread_state"),
+    unread: unreadSchema.optional(),
+  })
+  .passthrough();
+
 const errorEventSchema = z
   .object({
     type: z.literal("error"),
@@ -156,6 +163,14 @@ export type DirectInboxWsEvent =
         counts: Record<string, number>;
       };
     }
+  | {
+      type: "room_unread_state";
+      unread: {
+        dialogs: number;
+        roomIds: string[];
+        counts: Record<string, number>;
+      };
+    }
   | { type: "error"; code: string }
   | { type: "unknown" };
 
@@ -193,6 +208,14 @@ export const decodeDirectInboxWsEvent = (raw: string): DirectInboxWsEvent => {
     return {
       type: "direct_mark_read_ack",
       unread: normalizeUnread(markReadAck.unread),
+    };
+  }
+
+  const roomUnreadState = safeDecode(roomUnreadStateEventSchema, payload);
+  if (roomUnreadState) {
+    return {
+      type: "room_unread_state",
+      unread: normalizeUnread(roomUnreadState.unread),
     };
   }
 

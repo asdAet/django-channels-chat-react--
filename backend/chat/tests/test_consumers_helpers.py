@@ -214,6 +214,19 @@ class ChatConsumerInternalTests(TestCase):
         payload = json.loads(consumer.send.await_args.kwargs['text_data'])
         self.assertEqual(payload['error'], 'rate_limited')
 
+    def test_receive_ping_refreshes_activity_without_message_flow(self):
+        """Heartbeat ping должен обновлять активность без message/error веток."""
+        consumer = self._consumer()
+        consumer.save_message = AsyncMock()
+
+        with patch("chat.consumers.time.monotonic", return_value=42.0):
+            async_to_sync(consumer.receive)(json.dumps({"type": "ping"}))
+
+        self.assertEqual(consumer._last_activity, 42.0)
+        consumer.save_message.assert_not_awaited()
+        consumer.send.assert_not_awaited()
+        consumer.close.assert_not_awaited()
+
     def test_disconnect_without_group_name_is_safe(self):
         """Проверяет сценарий `test_disconnect_without_group_name_is_safe`."""
         consumer = self._consumer()

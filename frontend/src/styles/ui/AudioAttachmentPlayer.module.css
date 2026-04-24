@@ -35,13 +35,13 @@
   transition: filter var(--tg-transition-fast, 150ms ease);
 }
 
-.playButton:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-
 .playButton:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.playButton:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 .meta {

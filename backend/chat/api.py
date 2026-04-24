@@ -17,7 +17,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from messages.models import Message, MessageAttachment, MessageAttachmentUpload, MessageReadState
+from messages.models import Message, MessageAttachment, MessageAttachmentUpload
 from messages.serializers import MessageSerializer
 from roles.access import ensure_can_read_or_404, has_permission
 from roles.models import Membership
@@ -40,10 +40,14 @@ from .services import (
     add_reaction,
     delete_message,
     edit_message,
+    get_room_last_read_message_id,
     get_message_readers,
-    get_unread_counts,
     mark_read as service_mark_read,
     remove_reaction,
+)
+from .unread_push import (
+    broadcast_room_unread_state_for_room,
+    broadcast_room_unread_state_for_user,
 )
 from rooms.services import (
     direct_pair_key,
@@ -478,10 +482,11 @@ def _serialize_room_details(request, room: Room, created: bool):
     }
 
     if request.user and request.user.is_authenticated:
-        read_state = MessageReadState.objects.filter(
-            user=request.user, room=room
-        ).values_list("last_read_message_id", flat=True).first()
-        payload["lastReadMessageId"] = read_state
+        payload["lastReadMessageId"] = get_room_last_read_message_id(
+            request.user,
+            room,
+            initialize_public_on_first_visit=True,
+        )
 
     if room.kind == Room.Kind.DIRECT and request.user and request.user.is_authenticated:
         peer = direct_peer_for_user(room, request.user)
@@ -664,6 +669,13 @@ def room_messages(request, room_id: int):
         except Http404:
             return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
+    if room.kind == Room.Kind.PUBLIC and request.user and request.user.is_authenticated:
+        get_room_last_read_message_id(
+            request.user,
+            room,
+            initialize_public_on_first_visit=True,
+        )
+
     try:
         default_page_size = max(1, int(getattr(settings, "CHAT_MESSAGES_PAGE_SIZE", 50)))
         max_page_size = max(
@@ -827,6 +839,7 @@ def message_detail(request, room_id: int, message_id):
             _broadcast_to_room(room, {
                 "type": "chat_message_edit",
                 "messageId": msg.pk,
+                "roomId": room.pk,
                 "content": msg.message_content,
                 "editedAt": edited_at.isoformat(),
                 "editedByRef": user_public_ref(request.user),
@@ -842,6 +855,7 @@ def message_detail(request, room_id: int, message_id):
             _broadcast_to_room(room, {
                 "type": "chat_message_delete",
                 "messageId": msg.pk,
+                "roomId": room.pk,
                 "deletedByRef": user_public_ref(request.user),
                 "deletedBy": user_public_username(request.user),
             })
@@ -931,15 +945,17 @@ def message_reactions(request, room_id: int, message_id):
 
     try:
         reaction = add_reaction(request.user, room, message_id, emoji)
-        _broadcast_to_room(room, {
-            "type": "chat_reaction_add",
-            "messageId": message_id,
-            "emoji": reaction.emoji,
-            "userId": request.user.pk,
-            "publicRef": user_public_ref(request.user),
-            "username": user_public_username(request.user),
-            "displayName": user_display_name(request.user),
-        })
+        if getattr(reaction, "_was_created", True):
+            _broadcast_to_room(room, {
+                "type": "chat_reaction_add",
+                "messageId": message_id,
+                "roomId": room.pk,
+                "emoji": reaction.emoji,
+                "userId": request.user.pk,
+                "publicRef": user_public_ref(request.user),
+                "username": user_public_username(request.user),
+                "displayName": user_display_name(request.user),
+            })
         return Response({
             "messageId": message_id,
             "emoji": reaction.emoji,
@@ -981,16 +997,18 @@ def message_reaction_remove(request, room_id: int, message_id, emoji):
     except Http404:
         return Response({"error": "Не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
 
-    remove_reaction(request.user, room, message_id, emoji)
-    _broadcast_to_room(room, {
-        "type": "chat_reaction_remove",
-        "messageId": message_id,
-        "emoji": emoji,
-        "userId": request.user.pk,
-        "publicRef": user_public_ref(request.user),
-        "username": user_public_username(request.user),
-        "displayName": user_display_name(request.user),
-    })
+    removed = remove_reaction(request.user, room, message_id, emoji)
+    if removed:
+        _broadcast_to_room(room, {
+            "type": "chat_reaction_remove",
+            "messageId": message_id,
+            "roomId": room.pk,
+            "emoji": emoji,
+            "userId": request.user.pk,
+            "publicRef": user_public_ref(request.user),
+            "username": user_public_username(request.user),
+            "displayName": user_display_name(request.user),
+        })
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
@@ -1458,6 +1476,7 @@ def upload_attachments(request, room_id: int):
         "replyTo": _serialize_reply_to(message.reply_to),
         "attachments": attachments_data,
     })
+    broadcast_room_unread_state_for_room(room)
 
     return Response(
         {
@@ -1840,24 +1859,10 @@ def mark_read_view(request, room_id: int):
         "lastReadAt": state.last_read_at.isoformat() if state.last_read_at else None,
         "roomId": room.pk,
     })
+    broadcast_room_unread_state_for_user(request.user)
 
     return Response({
         "roomId": room.pk,
         "lastReadMessageId": state.last_read_message_id,
         "lastReadAt": state.last_read_at.isoformat() if state.last_read_at else None,
     })
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def unread_counts(request):
-    """Возвращает счетчики непрочитанных сообщений по комнатам.
-    
-    Args:
-        request: HTTP-запрос с контекстом пользователя и входными данными.
-    
-    Returns:
-        Результат вычислений, сформированный в ходе выполнения функции.
-    """
-    items = get_unread_counts(request.user)
-    return Response({"items": items})

@@ -5,12 +5,12 @@ const csrfTokenSchema = z.string().trim().min(1);
 const cookieNameSchema = z.string().trim().min(1);
 
 /**
- * Извлекает значение cookie по имени.
- * @param cookie Строка cookie, из которой извлекается значение.
- * @param name Отображаемое имя.
- * @returns Нормализованные данные после декодирования.
+ * Извлекает значение cookie по имени и возвращает только валидные непустые токены.
+ *
+ * @param cookie Строка `document.cookie` или ее часть.
+ * @param name Имя cookie, которое нужно найти.
+ * @returns Значение cookie либо `null`, если ключ отсутствует или значение не прошло проверку.
  */
-
 export const readCookieValue = (
   cookie: string | null | undefined,
   name: string,
@@ -29,21 +29,21 @@ export const readCookieValue = (
 };
 
 /**
- * Читает csrf token из document.cookie в браузере.
- * @returns Нормализованные данные после декодирования.
+ * Читает CSRF-токен из `document.cookie`, если код выполняется в браузере.
+ *
+ * @returns Нормализованное значение CSRF-токена или `null`, если токен недоступен.
  */
-
 export const readCsrfFromCookie = (): string | null => {
   if (typeof document === "undefined") return null;
   return readCookieValue(document.cookie, "csrftoken");
 };
 
 /**
- * Читает csrf token из sessionStorage.
- * @param storageKey Аргумент `storageKey` текущего вызова.
- * @returns Нормализованные данные после декодирования.
+ * Читает ранее сохраненный CSRF-токен из `sessionStorage`.
+ *
+ * @param storageKey Ключ, под которым токен хранится в браузерной сессии.
+ * @returns Нормализованный токен или `null`, если запись отсутствует либо повреждена.
  */
-
 export const readCsrfFromSessionStorage = (
   storageKey: string,
 ): string | null => {
@@ -54,11 +54,12 @@ export const readCsrfFromSessionStorage = (
 };
 
 /**
- * Сохраняет csrf token в sessionStorage.
- * @param storageKey Аргумент `storageKey` текущего вызова.
- * @param token Токен OAuth-провайдера.
+ * Сохраняет CSRF-токен в `sessionStorage` и удаляет запись, если токен отсутствует
+ * или не проходит локальную валидацию.
+ *
+ * @param storageKey Ключ, под которым токен хранится в `sessionStorage`.
+ * @param token Новый CSRF-токен или `null`, если сохраненное значение нужно удалить.
  */
-
 export const writeCsrfToSessionStorage = (
   storageKey: string,
   token: string | null,

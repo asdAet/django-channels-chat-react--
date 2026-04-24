@@ -93,13 +93,13 @@
   color: #fff;
 }
 
-.dialogSubmitBtn:hover:not(:disabled) {
-  background: var(--friends-green-hover, #2bbd68);
-}
-
 .dialogSubmitBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.dialogSubmitBtn:hover:not(:disabled) {
+  background: var(--friends-green-hover, #2bbd68);
 }
 
 @media (max-width: 768px) {

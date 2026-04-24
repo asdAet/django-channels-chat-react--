@@ -1,8 +1,18 @@
 import type { Message } from "../../entities/message/types";
 import { isImageAttachment, isVideoAttachment } from "../../shared/lib/attachmentMedia";
-import type { ImageLightboxMediaItem } from "../../shared/ui/ImageLightbox";
+import type { ImageLightboxMediaItem } from "../../shared/ui/ImageLightbox.types";
 
-const isMediaAttachment = (
+/**
+ * Snapshot of the chat media gallery captured at the moment the user opens a
+ * media attachment. The viewer keeps this snapshot stable across live rerenders.
+ */
+export type ChatLightboxSession = {
+  attachmentId: number;
+  mediaItems: ImageLightboxMediaItem[];
+  initialIndex: number;
+};
+
+const resolveMediaKind = (
   contentType: string,
   fileName: string,
 ): "image" | "video" | null => {
@@ -24,11 +34,11 @@ export const buildChatLightboxMediaItems = (
 
   return messages.flatMap((message) =>
     message.attachments.flatMap((attachment) => {
-      const mediaKind = isMediaAttachment(
+      const kind = resolveMediaKind(
         attachment.contentType,
         attachment.originalFilename,
       );
-      if (!mediaKind || !attachment.url || seenAttachmentIds.has(attachment.id)) {
+      if (!kind || !attachment.url || seenAttachmentIds.has(attachment.id)) {
         return [];
       }
 
@@ -37,7 +47,9 @@ export const buildChatLightboxMediaItems = (
       return [
         {
           src: attachment.url,
-          kind: mediaKind,
+          previewSrc: attachment.thumbnailUrl,
+          downloadUrl: attachment.url,
+          kind,
           alt: attachment.originalFilename,
           metadata: {
             attachmentId: attachment.id,
@@ -65,4 +77,22 @@ export const findLightboxMediaIndex = (
   return mediaItems.findIndex(
     (item) => item.metadata.attachmentId === attachmentId,
   );
+};
+
+export const buildChatLightboxSession = (
+  messages: Message[],
+  attachmentId: number,
+): ChatLightboxSession | null => {
+  const mediaItems = buildChatLightboxMediaItems(messages);
+  const initialIndex = findLightboxMediaIndex(mediaItems, attachmentId);
+
+  if (initialIndex < 0) {
+    return null;
+  }
+
+  return {
+    attachmentId,
+    mediaItems,
+    initialIndex,
+  };
 };

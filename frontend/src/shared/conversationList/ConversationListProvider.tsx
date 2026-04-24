@@ -26,7 +26,11 @@ import { debugLog } from "../lib/debug";
 import { normalizePublicRef } from "../lib/publicRef";
 import { resolveIdentityLabel } from "../lib/userIdentity";
 import { usePresence } from "../presence";
-import { useUnreadOverrides } from "../unreadOverrides/store";
+import {
+  clearUnreadOverridesForRooms,
+  collectSettledUnreadOverrideRoomIds,
+  useUnreadOverrides,
+} from "../unreadOverrides/store";
 import { CONVERSATION_LIST_REFRESH_EVENT } from "./events";
 
 type FilterTab = "all" | "personal" | "groups";
@@ -102,8 +106,19 @@ const toRoomKey = (roomId: number | null | undefined): string =>
     ? String(Math.trunc(roomId))
     : "";
 
+/**
+ * Собирает и хранит состояние бокового списка диалогов и серверов.
+ *
+ * Провайдер объединяет данные из direct inbox, групп, публичной комнаты,
+ * presence и глобального поиска, чтобы sidebar и связанные виджеты работали
+ * с единым согласованным снимком состояния.
+ */
 export function ConversationListProvider({ user, ready, children }: Props) {
-  const { items: directItems, unreadCounts } = useDirectInbox();
+  const {
+    items: directItems,
+    unreadCounts,
+    roomUnreadCounts,
+  } = useDirectInbox();
   const unreadOverrides = useUnreadOverrides();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -117,6 +132,22 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     useState<GlobalSearchResult>(EMPTY_GLOBAL_RESULTS);
   const [globalLoading, setGlobalLoading] = useState(false);
   const mountedRef = useRef(true);
+  const knownServerRoomIds = useMemo(() => {
+    const roomIds: string[] = [];
+    const publicRoomKey = toRoomKey(publicRoomId);
+    if (publicRoomKey) {
+      roomIds.push(publicRoomKey);
+    }
+
+    for (const group of groupItems) {
+      const groupRoomKey = toRoomKey(group.roomId);
+      if (groupRoomKey) {
+        roomIds.push(groupRoomKey);
+      }
+    }
+
+    return roomIds;
+  }, [groupItems, publicRoomId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -137,23 +168,33 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     [presenceOnline, presenceStatus],
   );
 
+  const applyRoomUnreadSnapshot = useCallback(
+    (
+      counts: Record<string, number>,
+      authoritativeRoomIds: Iterable<string>,
+    ) => {
+      const settledOverrideRoomIds = collectSettledUnreadOverrideRoomIds({
+        authoritativeRoomIds,
+        authoritativeCounts: counts,
+      });
+
+      setRoomUnreads(counts);
+      clearUnreadOverridesForRooms(settledOverrideRoomIds);
+    },
+    [],
+  );
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     try {
       setLoading(true);
-      const [counts, groups, publicRoom] = await Promise.all([
-        chatController.getUnreadCounts(),
+      const [groups, publicRoom] = await Promise.all([
         groupController
           .getMyGroups()
           .catch(() => ({ items: [] as GroupListItem[], total: 0 })),
         chatController.resolveChatTarget(PUBLIC_CHAT_TARGET).catch(() => null),
       ]);
       if (!mountedRef.current) return;
-      const map: Record<string, number> = {};
-      for (const item of counts) {
-        map[String(item.roomId)] = item.unreadCount;
-      }
-      setRoomUnreads(map);
       setGroupItems(groups.items);
       setPublicRoomId(publicRoom?.roomId ?? null);
       setError(null);
@@ -181,6 +222,15 @@ export function ConversationListProvider({ user, ready, children }: Props) {
       window.removeEventListener(CONVERSATION_LIST_REFRESH_EVENT, onRefresh);
     };
   }, [fetchData, ready, user]);
+
+  useEffect(() => {
+    if (!user) {
+      setRoomUnreads({});
+      return;
+    }
+
+    applyRoomUnreadSnapshot(roomUnreadCounts, knownServerRoomIds);
+  }, [applyRoomUnreadSnapshot, knownServerRoomIds, roomUnreadCounts, user]);
 
   const isGlobalMode = searchQuery.trim().length >= 2;
   const canRunGlobalSearch = canRunGlobalSearchQuery(searchQuery);
@@ -257,7 +307,10 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
     if (filter !== "groups") {
       for (const dm of directItems) {
-        const dmUnread = resolveUnreadCount(dm.roomId, unreadCounts[String(dm.roomId)]);
+        const dmUnread = resolveUnreadCount(
+          dm.roomId,
+          unreadCounts[String(dm.roomId)] ?? roomUnreadCounts[String(dm.roomId)],
+        );
         const peerRef = dm.peer.publicRef;
         conversations.push({
           type: "direct",
@@ -318,6 +371,7 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     publicRoomId,
     resolveUnreadCount,
     searchQuery,
+    roomUnreadCounts,
     unreadCounts,
   ]);
 
@@ -375,6 +429,9 @@ export function ConversationListProvider({ user, ready, children }: Props) {
   );
 }
 
+/**
+ * React-хук `useConversationList`.
+ */
 export function useConversationList() {
   return useContext(ConversationListCtx);
 }

@@ -45,9 +45,5 @@ test("direct chat by username opens and delivers messages between users", async 
     page.getByRole("article").filter({ hasText: text }).first(),
   ).toBeVisible({ timeout: 15_000 });
 
-  await bobPage.goto("/direct");
-  await expect(bobPage).toHaveURL("/direct");
-  await expect(bobPage.getByTestId("not-found-page")).toBeVisible();
-
   await bobContext.close();
 });

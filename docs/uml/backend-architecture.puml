@@ -1,0 +1,133 @@
+@startuml
+title Devil - Архитектура бэкенда
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam ArrowThickness 1.1
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam rectangle {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam package {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam component {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam database {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+}
+skinparam queue {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+}
+skinparam folder {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+}
+skinparam note {
+  BorderColor #d7dee8
+  BackgroundColor #fbfcfe
+  FontColor #445066
+}
+
+actor "Клиент" as Browser
+cloud "Google OAuth" as Google
+
+rectangle "Внешний контур" {
+  node "Nginx\nTLS и проксирование" as Nginx
+}
+
+rectangle "Слой доставки" {
+  component "HTTP API\nмаршруты /api/*" as Rest
+  component "Шлюз WebSocket\nмаршруты /ws/*" as Ws
+  component "ASGI-маршрутизация\nProtocolTypeRouter" as Asgi
+}
+
+rectangle "Прикладной слой" {
+  component "Идентификация и сессии\nusers, profile,\nзащищенный доступ к media" as Identity
+  component "Чаты и социальные функции\nchat, messages,\nfriends, groups" as Collaboration
+  component "Realtime-обработчики\nchat consumer,\npresence, direct inbox" as Realtime
+  component "Права доступа и аудит\nroles, permissions,\nauditlog" as Control
+}
+
+rectangle "Инфраструктура" {
+  database "PostgreSQL" as Db
+  queue "Redis\nchannel layer и presence" as Redis
+  folder "Media-хранилище\nаватары и вложения" as Media
+  node "Наблюдаемость\nPrometheus, Grafana,\nLoki, Alertmanager" as Observability
+}
+
+Rest -[hidden]down-> Ws
+Ws -[hidden]down-> Asgi
+Identity -[hidden]right-> Collaboration
+Collaboration -[hidden]right-> Realtime
+Realtime -[hidden]right-> Control
+Db -[hidden]right-> Redis
+Redis -[hidden]right-> Media
+Media -[hidden]right-> Observability
+
+Browser --> Nginx : HTTP и WebSocket
+Nginx --> Rest : запросы /api
+Nginx --> Ws : соединения /ws
+Ws --> Asgi : диспетчеризация WS
+
+Rest --> Identity : вход, профиль, media
+Rest --> Collaboration : чаты, друзья, группы
+Rest --> Control : роли и аудит
+
+Asgi --> Identity : токен и сессия WS
+Asgi --> Realtime : realtime-события
+
+Collaboration ..> Control : проверка прав
+Identity ..> Control : события безопасности
+Realtime ..> Control : аудит и блокировки
+
+Identity --> Db : пользователи и идентичности
+Identity --> Media : аватары и подписанные ссылки
+Collaboration --> Db : комнаты, группы, сообщения
+Collaboration --> Media : вложения
+Realtime --> Redis : fan-out и presence
+Realtime --> Db : read state и room data
+Control --> Db : роли и аудит
+
+Google --> Identity : проверка OAuth-токена
+Observability ..> Rest : health и metrics
+
+note right of Rest
+Каноническая внешняя точка входа в чат:
+POST /api/chat/resolve/
+
+Все room-scoped HTTP вызовы используют roomId.
+end note
+
+note right of Realtime
+WebSocket-маршруты:
+- /ws/chat/<room_id>/
+- /ws/presence/
+- /ws/inbox/
+end note
+
+note bottom of Collaboration
+Групповые сценарии включают:
+приглашения, заявки на вступление,
+закрепление сообщений, модерацию
+и передачу владения.
+end note
+@enduml

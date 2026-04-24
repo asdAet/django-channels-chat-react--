@@ -1,0 +1,808 @@
+{
+  "items": {
+    "1": {
+      "index": 1,
+      "doc_id": "5357427366194849097",
+      "filename": "1.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 6046
+    },
+    "2": {
+      "index": 2,
+      "doc_id": "5355336107963720210",
+      "filename": "2.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 23348
+    },
+    "3": {
+      "index": 3,
+      "doc_id": "5330403668191618210",
+      "filename": "3.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 5549
+    },
+    "4": {
+      "index": 4,
+      "doc_id": "5337241874602140493",
+      "filename": "4.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 37590
+    },
+    "5": {
+      "index": 5,
+      "doc_id": "5354891385575057901",
+      "filename": "5.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 28205
+    },
+    "6": {
+      "index": 6,
+      "doc_id": "5357593469760059395",
+      "filename": "6.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 34429
+    },
+    "7": {
+      "index": 7,
+      "doc_id": "5400105756135536934",
+      "filename": "7.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 31242
+    },
+    "8": {
+      "index": 8,
+      "doc_id": "5316679430909732521",
+      "filename": "8.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 37936
+    },
+    "9": {
+      "index": 9,
+      "doc_id": "5341369544332026066",
+      "filename": "9.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 14298
+    },
+    "10": {
+      "index": 10,
+      "doc_id": "5386835505486772123",
+      "filename": "10.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 16731
+    },
+    "11": {
+      "index": 11,
+      "doc_id": "5355015823662522952",
+      "filename": "11.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 17513
+    },
+    "12": {
+      "index": 12,
+      "doc_id": "5474538432728409972",
+      "filename": "12.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 17780
+    },
+    "13": {
+      "index": 13,
+      "doc_id": "5399888628358855518",
+      "filename": "13.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 11301
+    },
+    "14": {
+      "index": 14,
+      "doc_id": "5354862738143193630",
+      "filename": "14.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 40388
+    },
+    "15": {
+      "index": 15,
+      "doc_id": "5400086192559503700",
+      "filename": "15.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 28594
+    },
+    "16": {
+      "index": 16,
+      "doc_id": "5291946930455191824",
+      "filename": "16.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 18912
+    },
+    "17": {
+      "index": 17,
+      "doc_id": "5442907957098461377",
+      "filename": "17.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 18999
+    },
+    "18": {
+      "index": 18,
+      "doc_id": "5220085642192500606",
+      "filename": "18.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 22657
+    },
+    "19": {
+      "index": 19,
+      "doc_id": "5427329187297900693",
+      "filename": "19.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 41748
+    },
+    "20": {
+      "index": 20,
+      "doc_id": "5336819370079299297",
+      "filename": "20.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 52180
+    },
+    "21": {
+      "index": 21,
+      "doc_id": "5334575279731909928",
+      "filename": "21.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 38675
+    },
+    "22": {
+      "index": 22,
+      "doc_id": "5373335654476294839",
+      "filename": "22.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 22305
+    },
+    "23": {
+      "index": 23,
+      "doc_id": "5339061961483100987",
+      "filename": "23.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 10630
+    },
+    "24": {
+      "index": 24,
+      "doc_id": "5325576374059017442",
+      "filename": "24.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 20877
+    },
+    "25": {
+      "index": 25,
+      "doc_id": "5368533361348323056",
+      "filename": "25.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 22836
+    },
+    "26": {
+      "index": 26,
+      "doc_id": "5404777933229271189",
+      "filename": "26.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 59743
+    },
+    "27": {
+      "index": 27,
+      "doc_id": "5399988331729664856",
+      "filename": "27.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 33334
+    },
+    "28": {
+      "index": 28,
+      "doc_id": "5413623448440160154",
+      "filename": "28.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 35078
+    },
+    "29": {
+      "index": 29,
+      "doc_id": "5330437392274827570",
+      "filename": "29.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 14107
+    },
+    "30": {
+      "index": 30,
+      "doc_id": "5316963388377539905",
+      "filename": "30.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 26783
+    },
+    "31": {
+      "index": 31,
+      "doc_id": "5318929916463424198",
+      "filename": "31.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 51658
+    },
+    "32": {
+      "index": 32,
+      "doc_id": "5391320026869408028",
+      "filename": "32.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 5784
+    },
+    "33": {
+      "index": 33,
+      "doc_id": "5454109785857205810",
+      "filename": "33.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 33171
+    },
+    "34": {
+      "index": 34,
+      "doc_id": "5393467158330090163",
+      "filename": "34.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 45905
+    },
+    "35": {
+      "index": 35,
+      "doc_id": "5415702959935728242",
+      "filename": "35.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 49273
+    },
+    "36": {
+      "index": 36,
+      "doc_id": "5386568779427757100",
+      "filename": "36.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 24845
+    },
+    "37": {
+      "index": 37,
+      "doc_id": "5390850904771537180",
+      "filename": "37.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 11035
+    },
+    "38": {
+      "index": 38,
+      "doc_id": "5434131960228226210",
+      "filename": "38.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 65266
+    },
+    "39": {
+      "index": 39,
+      "doc_id": "5291873250291229791",
+      "filename": "39.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 33009
+    },
+    "40": {
+      "index": 40,
+      "doc_id": "5451703736588058589",
+      "filename": "40.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 25380
+    },
+    "41": {
+      "index": 41,
+      "doc_id": "5368667703630373916",
+      "filename": "41.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 12647
+    },
+    "42": {
+      "index": 42,
+      "doc_id": "5291999659768686261",
+      "filename": "42.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 63953
+    },
+    "43": {
+      "index": 43,
+      "doc_id": "5197646705813634076",
+      "filename": "43.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 29053
+    },
+    "44": {
+      "index": 44,
+      "doc_id": "5384563678240580805",
+      "filename": "44.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 11130
+    },
+    "45": {
+      "index": 45,
+      "doc_id": "5314287817025660252",
+      "filename": "45.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 21948
+    },
+    "46": {
+      "index": 46,
+      "doc_id": "5341796824858508807",
+      "filename": "46.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 12621
+    },
+    "47": {
+      "index": 47,
+      "doc_id": "5312211320597128165",
+      "filename": "47.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 31184
+    },
+    "48": {
+      "index": 48,
+      "doc_id": "5393152070939322166",
+      "filename": "48.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 29651
+    },
+    "49": {
+      "index": 49,
+      "doc_id": "5379693009233257053",
+      "filename": "49.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 42333
+    },
+    "50": {
+      "index": 50,
+      "doc_id": "5454182113106476274",
+      "filename": "50.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 15333
+    },
+    "51": {
+      "index": 51,
+      "doc_id": "5395373243341219241",
+      "filename": "51.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 34551
+    },
+    "52": {
+      "index": 52,
+      "doc_id": "5368338090660209672",
+      "filename": "52.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 17871
+    },
+    "53": {
+      "index": 53,
+      "doc_id": "5337104457123504497",
+      "filename": "53.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 17138
+    },
+    "54": {
+      "index": 54,
+      "doc_id": "5427201480740321598",
+      "filename": "54.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 41651
+    },
+    "55": {
+      "index": 55,
+      "doc_id": "5454298326331571916",
+      "filename": "55.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 15541
+    },
+    "56": {
+      "index": 56,
+      "doc_id": "5326043421687686284",
+      "filename": "56.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 21766
+    },
+    "57": {
+      "index": 57,
+      "doc_id": "5314628399342299006",
+      "filename": "57.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 25083
+    },
+    "58": {
+      "index": 58,
+      "doc_id": "5352859599756076304",
+      "filename": "58.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 22799
+    },
+    "59": {
+      "index": 59,
+      "doc_id": "5386535377467094223",
+      "filename": "59.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 21629
+    },
+    "60": {
+      "index": 60,
+      "doc_id": "5474177367712735995",
+      "filename": "60.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 21747
+    },
+    "61": {
+      "index": 61,
+      "doc_id": "5425141507050973573",
+      "filename": "61.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 58012
+    },
+    "62": {
+      "index": 62,
+      "doc_id": "5391038161050675233",
+      "filename": "62.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 49084
+    },
+    "63": {
+      "index": 63,
+      "doc_id": "5404728536810398694",
+      "filename": "63.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 42071
+    },
+    "64": {
+      "index": 64,
+      "doc_id": "5445208912812849880",
+      "filename": "64.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 13883
+    },
+    "65": {
+      "index": 65,
+      "doc_id": "5415838040952157397",
+      "filename": "65.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 12723
+    },
+    "66": {
+      "index": 66,
+      "doc_id": "5370853837689070338",
+      "filename": "66.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 15409
+    },
+    "67": {
+      "index": 67,
+      "doc_id": "5444985673297707479",
+      "filename": "67.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 21835
+    },
+    "68": {
+      "index": 68,
+      "doc_id": "5208601921845208724",
+      "filename": "68.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 27662
+    },
+    "69": {
+      "index": 69,
+      "doc_id": "5413328019114703975",
+      "filename": "69.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 45568
+    },
+    "70": {
+      "index": 70,
+      "doc_id": "5368457503635939332",
+      "filename": "70.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 28423
+    },
+    "71": {
+      "index": 71,
+      "doc_id": "5359657446358919996",
+      "filename": "71.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 28502
+    },
+    "72": {
+      "index": 72,
+      "doc_id": "5433773987589005703",
+      "filename": "72.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 43622
+    },
+    "73": {
+      "index": 73,
+      "doc_id": "5319206602551600290",
+      "filename": "73.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 54644
+    },
+    "74": {
+      "index": 74,
+      "doc_id": "5346085319638792856",
+      "filename": "74.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 18580
+    },
+    "75": {
+      "index": 75,
+      "doc_id": "5424921351322347779",
+      "filename": "75.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 65384
+    },
+    "76": {
+      "index": 76,
+      "doc_id": "5377651259090150418",
+      "filename": "76.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 35459
+    },
+    "77": {
+      "index": 77,
+      "doc_id": "5427133220825086912",
+      "filename": "77.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 29314
+    },
+    "78": {
+      "index": 78,
+      "doc_id": "5454017890736945389",
+      "filename": "78.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 48839
+    },
+    "79": {
+      "index": 79,
+      "doc_id": "5445076292812684422",
+      "filename": "79.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 20568
+    },
+    "80": {
+      "index": 80,
+      "doc_id": "5416076480356559241",
+      "filename": "80.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 12190
+    },
+    "81": {
+      "index": 81,
+      "doc_id": "5314284428296463913",
+      "filename": "81.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 27788
+    },
+    "82": {
+      "index": 82,
+      "doc_id": "5426890215870448817",
+      "filename": "82.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 25629
+    },
+    "83": {
+      "index": 83,
+      "doc_id": "5442942432800947365",
+      "filename": "83.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 58303
+    },
+    "84": {
+      "index": 84,
+      "doc_id": "5400044690290522089",
+      "filename": "84.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 52670
+    },
+    "85": {
+      "index": 85,
+      "doc_id": "5415615780689557998",
+      "filename": "85.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 61184
+    },
+    "86": {
+      "index": 86,
+      "doc_id": "5341646771586087511",
+      "filename": "86.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 34026
+    },
+    "87": {
+      "index": 87,
+      "doc_id": "5213305508034783384",
+      "filename": "87.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 56295
+    },
+    "88": {
+      "index": 88,
+      "doc_id": "5454181400141904111",
+      "filename": "88.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 41842
+    },
+    "89": {
+      "index": 89,
+      "doc_id": "5386445393607276768",
+      "filename": "89.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 34281
+    },
+    "90": {
+      "index": 90,
+      "doc_id": "5208615751639903398",
+      "filename": "90.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 32294
+    },
+    "91": {
+      "index": 91,
+      "doc_id": "5192724084881892602",
+      "filename": "91.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 25899
+    },
+    "92": {
+      "index": 92,
+      "doc_id": "5416099162078848958",
+      "filename": "92.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 26304
+    },
+    "93": {
+      "index": 93,
+      "doc_id": "5399829482364223011",
+      "filename": "93.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 24506
+    },
+    "94": {
+      "index": 94,
+      "doc_id": "5294487906121953049",
+      "filename": "94.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 17699
+    },
+    "95": {
+      "index": 95,
+      "doc_id": "5418176697889466758",
+      "filename": "95.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 34809
+    },
+    "96": {
+      "index": 96,
+      "doc_id": "5415619208073458698",
+      "filename": "96.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 38599
+    },
+    "97": {
+      "index": 97,
+      "doc_id": "5346288231073723227",
+      "filename": "97.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 60856
+    },
+    "98": {
+      "index": 98,
+      "doc_id": "5190406357320216268",
+      "filename": "98.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 19061
+    },
+    "99": {
+      "index": 99,
+      "doc_id": "5388617496007817382",
+      "filename": "99.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 48841
+    },
+    "100": {
+      "index": 100,
+      "doc_id": "5328014489554002336",
+      "filename": "100.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 27830
+    }
+  },
+  "query": "CreepyEmoji",
+  "pack_title": "Cursed Emoji",
+  "pack_short_name": "CreepyEmoji",
+  "total_files": 100
+}

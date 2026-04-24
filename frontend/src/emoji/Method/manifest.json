@@ -1,0 +1,1368 @@
+{
+  "items": {
+    "1": {
+      "index": 1,
+      "doc_id": "5440790301998352367",
+      "filename": "1.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 1916
+    },
+    "2": {
+      "index": 2,
+      "doc_id": "5440841918915314172",
+      "filename": "2.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 2768
+    },
+    "3": {
+      "index": 3,
+      "doc_id": "5440726049287604876",
+      "filename": "3.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 16470
+    },
+    "4": {
+      "index": 4,
+      "doc_id": "5440686333725016358",
+      "filename": "4.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 1682
+    },
+    "5": {
+      "index": 5,
+      "doc_id": "5440663905405797715",
+      "filename": "5.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 855
+    },
+    "6": {
+      "index": 6,
+      "doc_id": "5440738719441126736",
+      "filename": "6.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 31204
+    },
+    "7": {
+      "index": 7,
+      "doc_id": "5440767500016978480",
+      "filename": "7.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 2771
+    },
+    "8": {
+      "index": 8,
+      "doc_id": "5438330939300152588",
+      "filename": "8.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 30315
+    },
+    "9": {
+      "index": 9,
+      "doc_id": "5440464000447970400",
+      "filename": "9.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 3123
+    },
+    "10": {
+      "index": 10,
+      "doc_id": "5440524555191878935",
+      "filename": "10.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 39406
+    },
+    "11": {
+      "index": 11,
+      "doc_id": "5440414234661918336",
+      "filename": "11.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 20041
+    },
+    "12": {
+      "index": 12,
+      "doc_id": "5440601636969938677",
+      "filename": "12.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 556
+    },
+    "13": {
+      "index": 13,
+      "doc_id": "5440660344877909924",
+      "filename": "13.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 52706
+    },
+    "14": {
+      "index": 14,
+      "doc_id": "5440571808422070440",
+      "filename": "14.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1510
+    },
+    "15": {
+      "index": 15,
+      "doc_id": "5440493717326694249",
+      "filename": "15.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 59223
+    },
+    "16": {
+      "index": 16,
+      "doc_id": "5440357738662100952",
+      "filename": "16.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 2523
+    },
+    "17": {
+      "index": 17,
+      "doc_id": "5440678418100291160",
+      "filename": "17.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1020
+    },
+    "18": {
+      "index": 18,
+      "doc_id": "5438603592414038129",
+      "filename": "18.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 970
+    },
+    "19": {
+      "index": 19,
+      "doc_id": "5440445433304353382",
+      "filename": "19.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 876
+    },
+    "20": {
+      "index": 20,
+      "doc_id": "5440613121712488706",
+      "filename": "20.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 730
+    },
+    "21": {
+      "index": 21,
+      "doc_id": "5440485775932167083",
+      "filename": "21.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2228
+    },
+    "22": {
+      "index": 22,
+      "doc_id": "5440734613452389316",
+      "filename": "22.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 18148
+    },
+    "23": {
+      "index": 23,
+      "doc_id": "5440827105573112942",
+      "filename": "23.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3650
+    },
+    "24": {
+      "index": 24,
+      "doc_id": "5440884782688928558",
+      "filename": "24.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2396
+    },
+    "25": {
+      "index": 25,
+      "doc_id": "5440815878528599916",
+      "filename": "25.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 2103
+    },
+    "26": {
+      "index": 26,
+      "doc_id": "5440505425407540129",
+      "filename": "26.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3292
+    },
+    "27": {
+      "index": 27,
+      "doc_id": "5438423646169238797",
+      "filename": "27.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 3554
+    },
+    "28": {
+      "index": 28,
+      "doc_id": "5440501027361031296",
+      "filename": "28.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 23264
+    },
+    "29": {
+      "index": 29,
+      "doc_id": "5438243171643458891",
+      "filename": "29.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 1730
+    },
+    "30": {
+      "index": 30,
+      "doc_id": "5440700004605921349",
+      "filename": "30.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 5362
+    },
+    "31": {
+      "index": 31,
+      "doc_id": "5440400503651471370",
+      "filename": "31.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 20720
+    },
+    "32": {
+      "index": 32,
+      "doc_id": "5440745466834751176",
+      "filename": "32.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 420
+    },
+    "33": {
+      "index": 33,
+      "doc_id": "5440657716357923736",
+      "filename": "33.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 866
+    },
+    "34": {
+      "index": 34,
+      "doc_id": "5440484727960140822",
+      "filename": "34.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 4189
+    },
+    "35": {
+      "index": 35,
+      "doc_id": "5438483157236091198",
+      "filename": "35.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 3655
+    },
+    "36": {
+      "index": 36,
+      "doc_id": "5440403342624852160",
+      "filename": "36.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1672
+    },
+    "37": {
+      "index": 37,
+      "doc_id": "5440816149111539281",
+      "filename": "37.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 19121
+    },
+    "38": {
+      "index": 38,
+      "doc_id": "5440495826155640090",
+      "filename": "38.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1600
+    },
+    "39": {
+      "index": 39,
+      "doc_id": "5440754795503717156",
+      "filename": "39.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 24727
+    },
+    "40": {
+      "index": 40,
+      "doc_id": "5440351107232595193",
+      "filename": "40.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2578
+    },
+    "41": {
+      "index": 41,
+      "doc_id": "5440911222507607162",
+      "filename": "41.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 14684
+    },
+    "42": {
+      "index": 42,
+      "doc_id": "5440854928371255899",
+      "filename": "42.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1358
+    },
+    "43": {
+      "index": 43,
+      "doc_id": "5440649336876730197",
+      "filename": "43.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60492
+    },
+    "44": {
+      "index": 44,
+      "doc_id": "5443016383547865900",
+      "filename": "44.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3530
+    },
+    "45": {
+      "index": 45,
+      "doc_id": "5440384152710976850",
+      "filename": "45.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 4814
+    },
+    "46": {
+      "index": 46,
+      "doc_id": "5440431964286917416",
+      "filename": "46.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 12648
+    },
+    "47": {
+      "index": 47,
+      "doc_id": "5440690272210031406",
+      "filename": "47.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2096
+    },
+    "48": {
+      "index": 48,
+      "doc_id": "5440495375184069692",
+      "filename": "48.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 9375
+    },
+    "49": {
+      "index": 49,
+      "doc_id": "5440608264104480739",
+      "filename": "49.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 24333
+    },
+    "50": {
+      "index": 50,
+      "doc_id": "5440352657715793862",
+      "filename": "50.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 2422
+    },
+    "51": {
+      "index": 51,
+      "doc_id": "5440841562433030559",
+      "filename": "51.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2196
+    },
+    "52": {
+      "index": 52,
+      "doc_id": "5442800003095493636",
+      "filename": "52.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 2723
+    },
+    "53": {
+      "index": 53,
+      "doc_id": "5443088530408505190",
+      "filename": "53.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2296
+    },
+    "54": {
+      "index": 54,
+      "doc_id": "5440891680406404800",
+      "filename": "54.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 2523
+    },
+    "55": {
+      "index": 55,
+      "doc_id": "5442893633382546195",
+      "filename": "55.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 36706
+    },
+    "56": {
+      "index": 56,
+      "doc_id": "5440844633334648468",
+      "filename": "56.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 652
+    },
+    "57": {
+      "index": 57,
+      "doc_id": "5440821470576017963",
+      "filename": "57.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 9912
+    },
+    "58": {
+      "index": 58,
+      "doc_id": "5440842395656682373",
+      "filename": "58.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2580
+    },
+    "59": {
+      "index": 59,
+      "doc_id": "5440593197359204155",
+      "filename": "59.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2362
+    },
+    "60": {
+      "index": 60,
+      "doc_id": "5440706893733465725",
+      "filename": "60.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 772
+    },
+    "61": {
+      "index": 61,
+      "doc_id": "5440689576425329076",
+      "filename": "61.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 4112
+    },
+    "62": {
+      "index": 62,
+      "doc_id": "5440377946483234173",
+      "filename": "62.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60015
+    },
+    "63": {
+      "index": 63,
+      "doc_id": "5440708246648160374",
+      "filename": "63.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1040
+    },
+    "64": {
+      "index": 64,
+      "doc_id": "5443071767151148299",
+      "filename": "64.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 7700
+    },
+    "65": {
+      "index": 65,
+      "doc_id": "5442957615510353373",
+      "filename": "65.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 10006
+    },
+    "66": {
+      "index": 66,
+      "doc_id": "5440591754250194563",
+      "filename": "66.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 49705
+    },
+    "67": {
+      "index": 67,
+      "doc_id": "5440906609712730678",
+      "filename": "67.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 14979
+    },
+    "68": {
+      "index": 68,
+      "doc_id": "5440863930622707927",
+      "filename": "68.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3448
+    },
+    "69": {
+      "index": 69,
+      "doc_id": "5440767603096193045",
+      "filename": "69.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59906
+    },
+    "70": {
+      "index": 70,
+      "doc_id": "5440449195695703419",
+      "filename": "70.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2362
+    },
+    "71": {
+      "index": 71,
+      "doc_id": "5442754210154184091",
+      "filename": "71.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 27283
+    },
+    "72": {
+      "index": 72,
+      "doc_id": "5442829367786897344",
+      "filename": "72.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 802
+    },
+    "73": {
+      "index": 73,
+      "doc_id": "5442717080161912107",
+      "filename": "73.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 31482
+    },
+    "74": {
+      "index": 74,
+      "doc_id": "5440441610783456953",
+      "filename": "74.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 1459
+    },
+    "75": {
+      "index": 75,
+      "doc_id": "5443006668331843232",
+      "filename": "75.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 1028
+    },
+    "76": {
+      "index": 76,
+      "doc_id": "5440746166914418634",
+      "filename": "76.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 4560
+    },
+    "77": {
+      "index": 77,
+      "doc_id": "5440778860205476579",
+      "filename": "77.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 17468
+    },
+    "78": {
+      "index": 78,
+      "doc_id": "5440827217242262056",
+      "filename": "78.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 29878
+    },
+    "79": {
+      "index": 79,
+      "doc_id": "5440610179659894125",
+      "filename": "79.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 4322
+    },
+    "80": {
+      "index": 80,
+      "doc_id": "5443072205237812952",
+      "filename": "80.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1440
+    },
+    "81": {
+      "index": 81,
+      "doc_id": "5443072531655326454",
+      "filename": "81.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 42993
+    },
+    "82": {
+      "index": 82,
+      "doc_id": "5440781570329836553",
+      "filename": "82.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 3697
+    },
+    "83": {
+      "index": 83,
+      "doc_id": "5443077002716282830",
+      "filename": "83.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 4138
+    },
+    "84": {
+      "index": 84,
+      "doc_id": "5440519482835503404",
+      "filename": "84.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2616
+    },
+    "85": {
+      "index": 85,
+      "doc_id": "5442865441217216930",
+      "filename": "85.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3550
+    },
+    "86": {
+      "index": 86,
+      "doc_id": "5442939546582940922",
+      "filename": "86.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59654
+    },
+    "87": {
+      "index": 87,
+      "doc_id": "5442710483092145116",
+      "filename": "87.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2952
+    },
+    "88": {
+      "index": 88,
+      "doc_id": "5442689369032915122",
+      "filename": "88.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60472
+    },
+    "89": {
+      "index": 89,
+      "doc_id": "5440773362647336363",
+      "filename": "89.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59599
+    },
+    "90": {
+      "index": 90,
+      "doc_id": "5443156798913672844",
+      "filename": "90.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1482
+    },
+    "91": {
+      "index": 91,
+      "doc_id": "5442678318082063805",
+      "filename": "91.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1946
+    },
+    "92": {
+      "index": 92,
+      "doc_id": "5442736832716505057",
+      "filename": "92.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 11943
+    },
+    "93": {
+      "index": 93,
+      "doc_id": "5442946276796694874",
+      "filename": "93.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 11016
+    },
+    "94": {
+      "index": 94,
+      "doc_id": "5474463979470360478",
+      "filename": "94.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3970
+    },
+    "95": {
+      "index": 95,
+      "doc_id": "5474487292552840843",
+      "filename": "95.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 28843
+    },
+    "96": {
+      "index": 96,
+      "doc_id": "5380008796703722691",
+      "filename": "96.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 1350
+    },
+    "97": {
+      "index": 97,
+      "doc_id": "5379636006427333060",
+      "filename": "97.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 3202
+    },
+    "98": {
+      "index": 98,
+      "doc_id": "5379966164858341510",
+      "filename": "98.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 13337
+    },
+    "99": {
+      "index": 99,
+      "doc_id": "5381927611997916114",
+      "filename": "99.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 19102
+    },
+    "100": {
+      "index": 100,
+      "doc_id": "5379720441189404918",
+      "filename": "100.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60042
+    },
+    "101": {
+      "index": 101,
+      "doc_id": "5379918787074102021",
+      "filename": "101.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1922
+    },
+    "102": {
+      "index": 102,
+      "doc_id": "5379997891781757329",
+      "filename": "102.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 32324
+    },
+    "103": {
+      "index": 103,
+      "doc_id": "5384155961290166863",
+      "filename": "103.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59864
+    },
+    "104": {
+      "index": 104,
+      "doc_id": "5384367698882893018",
+      "filename": "104.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60093
+    },
+    "105": {
+      "index": 105,
+      "doc_id": "5381823836998110099",
+      "filename": "105.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2614
+    },
+    "106": {
+      "index": 106,
+      "doc_id": "5384479703040034126",
+      "filename": "106.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 2068
+    },
+    "107": {
+      "index": 107,
+      "doc_id": "5390975768060792021",
+      "filename": "107.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59073
+    },
+    "108": {
+      "index": 108,
+      "doc_id": "5391009346115113305",
+      "filename": "108.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 9124
+    },
+    "109": {
+      "index": 109,
+      "doc_id": "5393580266293860436",
+      "filename": "109.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 18937
+    },
+    "110": {
+      "index": 110,
+      "doc_id": "5391163513966203391",
+      "filename": "110.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60629
+    },
+    "111": {
+      "index": 111,
+      "doc_id": "5393431106374634666",
+      "filename": "111.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 12008
+    },
+    "112": {
+      "index": 112,
+      "doc_id": "5438123823092236825",
+      "filename": "112.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60228
+    },
+    "113": {
+      "index": 113,
+      "doc_id": "5438168911658911520",
+      "filename": "113.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 982
+    },
+    "114": {
+      "index": 114,
+      "doc_id": "5438413699024986202",
+      "filename": "114.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2368
+    },
+    "115": {
+      "index": 115,
+      "doc_id": "5438267850525542827",
+      "filename": "115.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 9632
+    },
+    "116": {
+      "index": 116,
+      "doc_id": "5438400650914336858",
+      "filename": "116.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 31923
+    },
+    "117": {
+      "index": 117,
+      "doc_id": "5438536436305395740",
+      "filename": "117.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 7989
+    },
+    "118": {
+      "index": 118,
+      "doc_id": "5447393758381379950",
+      "filename": "118.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 5663
+    },
+    "119": {
+      "index": 119,
+      "doc_id": "5447471170871920536",
+      "filename": "119.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 11908
+    },
+    "120": {
+      "index": 120,
+      "doc_id": "5445043857219691139",
+      "filename": "120.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 1646
+    },
+    "121": {
+      "index": 121,
+      "doc_id": "5447607497428863992",
+      "filename": "121.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 25008
+    },
+    "122": {
+      "index": 122,
+      "doc_id": "5445195250521904378",
+      "filename": "122.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 49061
+    },
+    "123": {
+      "index": 123,
+      "doc_id": "5447619106725463248",
+      "filename": "123.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2222
+    },
+    "124": {
+      "index": 124,
+      "doc_id": "5445234124270900519",
+      "filename": "124.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2232
+    },
+    "125": {
+      "index": 125,
+      "doc_id": "5454332149199050533",
+      "filename": "125.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 49479
+    },
+    "126": {
+      "index": 126,
+      "doc_id": "5456329089948357653",
+      "filename": "126.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3390
+    },
+    "127": {
+      "index": 127,
+      "doc_id": "5456442447020198352",
+      "filename": "127.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 28451
+    },
+    "128": {
+      "index": 128,
+      "doc_id": "5453916550983621188",
+      "filename": "128.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 23894
+    },
+    "129": {
+      "index": 129,
+      "doc_id": "5197184206555353006",
+      "filename": "129.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2022
+    },
+    "130": {
+      "index": 130,
+      "doc_id": "5199893635134428176",
+      "filename": "130.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 2784
+    },
+    "131": {
+      "index": 131,
+      "doc_id": "5197660582852989538",
+      "filename": "131.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60197
+    },
+    "132": {
+      "index": 132,
+      "doc_id": "5197667592239615670",
+      "filename": "132.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60214
+    },
+    "133": {
+      "index": 133,
+      "doc_id": "5199689267705580307",
+      "filename": "133.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 36870
+    },
+    "134": {
+      "index": 134,
+      "doc_id": "5217483931393231504",
+      "filename": "134.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 5650
+    },
+    "135": {
+      "index": 135,
+      "doc_id": "5217857322965046109",
+      "filename": "135.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3984
+    },
+    "136": {
+      "index": 136,
+      "doc_id": "5217537528290123412",
+      "filename": "136.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 7016
+    },
+    "137": {
+      "index": 137,
+      "doc_id": "5219978800586069787",
+      "filename": "137.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60762
+    },
+    "138": {
+      "index": 138,
+      "doc_id": "5219926595258584768",
+      "filename": "138.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59495
+    },
+    "139": {
+      "index": 139,
+      "doc_id": "5217741032430539004",
+      "filename": "139.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60938
+    },
+    "140": {
+      "index": 140,
+      "doc_id": "5222020696758060106",
+      "filename": "140.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 242
+    },
+    "141": {
+      "index": 141,
+      "doc_id": "5220076115955062044",
+      "filename": "141.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1210
+    },
+    "142": {
+      "index": 142,
+      "doc_id": "5220088567065254959",
+      "filename": "142.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60749
+    },
+    "143": {
+      "index": 143,
+      "doc_id": "5222300028546092816",
+      "filename": "143.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59676
+    },
+    "144": {
+      "index": 144,
+      "doc_id": "5220099781224864276",
+      "filename": "144.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59801
+    },
+    "145": {
+      "index": 145,
+      "doc_id": "5220225744025722044",
+      "filename": "145.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59400
+    },
+    "146": {
+      "index": 146,
+      "doc_id": "5375271868683033971",
+      "filename": "146.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2298
+    },
+    "147": {
+      "index": 147,
+      "doc_id": "5373194801023851903",
+      "filename": "147.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 64982
+    },
+    "148": {
+      "index": 148,
+      "doc_id": "5375515754105969781",
+      "filename": "148.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59974
+    },
+    "149": {
+      "index": 149,
+      "doc_id": "5375318932934664459",
+      "filename": "149.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60085
+    },
+    "150": {
+      "index": 150,
+      "doc_id": "5375421028602255571",
+      "filename": "150.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59357
+    },
+    "151": {
+      "index": 151,
+      "doc_id": "5375446111211266681",
+      "filename": "151.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2416
+    },
+    "152": {
+      "index": 152,
+      "doc_id": "5375463003317642862",
+      "filename": "152.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 23767
+    },
+    "153": {
+      "index": 153,
+      "doc_id": "5375200288758083125",
+      "filename": "153.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 4222
+    },
+    "154": {
+      "index": 154,
+      "doc_id": "5375288662005161785",
+      "filename": "154.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59683
+    },
+    "155": {
+      "index": 155,
+      "doc_id": "5375302869756977396",
+      "filename": "155.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 52310
+    },
+    "156": {
+      "index": 156,
+      "doc_id": "5375332874398506260",
+      "filename": "156.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 47989
+    },
+    "157": {
+      "index": 157,
+      "doc_id": "5373190785229430949",
+      "filename": "157.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 3072
+    },
+    "158": {
+      "index": 158,
+      "doc_id": "5375572812746497569",
+      "filename": "158.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59452
+    },
+    "159": {
+      "index": 159,
+      "doc_id": "5375423506798382620",
+      "filename": "159.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 59932
+    },
+    "160": {
+      "index": 160,
+      "doc_id": "5375429107435738107",
+      "filename": "160.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 4004
+    },
+    "161": {
+      "index": 161,
+      "doc_id": "5375490594187549150",
+      "filename": "161.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60015
+    },
+    "162": {
+      "index": 162,
+      "doc_id": "5375594794389120113",
+      "filename": "162.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 61754
+    },
+    "163": {
+      "index": 163,
+      "doc_id": "5375150411302872431",
+      "filename": "163.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60793
+    },
+    "164": {
+      "index": 164,
+      "doc_id": "5375501640843437311",
+      "filename": "164.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 60047
+    },
+    "165": {
+      "index": 165,
+      "doc_id": "5375314315844823785",
+      "filename": "165.webm",
+      "ext": ".webm",
+      "mime_type": "video/webm",
+      "size": 63457
+    },
+    "166": {
+      "index": 166,
+      "doc_id": "5375464528031036993",
+      "filename": "166.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 2196
+    },
+    "167": {
+      "index": 167,
+      "doc_id": "5375074798403624995",
+      "filename": "167.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 2291
+    },
+    "168": {
+      "index": 168,
+      "doc_id": "5375303836124619415",
+      "filename": "168.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 20488
+    },
+    "169": {
+      "index": 169,
+      "doc_id": "5375088361910346064",
+      "filename": "169.tgs",
+      "ext": ".tgs",
+      "mime_type": "application/x-tgsticker",
+      "size": 4385
+    },
+    "170": {
+      "index": 170,
+      "doc_id": "5375142173555594419",
+      "filename": "170.webp",
+      "ext": ".webp",
+      "mime_type": "image/webp",
+      "size": 1172
+    }
+  },
+  "query": "shwarzz_by_fStikBot",
+  "pack_title": "#JOH4N / @xraitto :: @fStikBot",
+  "pack_short_name": "shwarzz_by_fStikBot",
+  "total_files": 170
+}

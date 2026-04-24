@@ -2,10 +2,6 @@ import { useMemo } from "react";
 
 import { formatLastSeen } from "../../shared/lib/format";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
-import {
-  buildChatLightboxMediaItems,
-  findLightboxMediaIndex,
-} from "./mediaLightbox";
 import type {
   UseChatRoomPageViewModelOptions,
   UseChatRoomPageViewModelResult,
@@ -37,7 +33,6 @@ export function useChatRoomPageViewModel({
   canJoinRoom,
   presenceOnline,
   presenceStatus,
-  lightboxAttachmentId,
   readersMenu,
 }: UseChatRoomPageViewModelOptions): UseChatRoomPageViewModelResult {
   const onlineUsernames = useMemo(
@@ -55,16 +50,6 @@ export function useChatRoomPageViewModel({
   const timeline = useMemo(
     () => buildTimeline(messages, unreadDividerRenderTarget),
     [messages, unreadDividerRenderTarget],
-  );
-
-  const lightboxMediaItems =
-    useMemo<UseChatRoomPageViewModelResult["lightboxMediaItems"]>(
-    () => buildChatLightboxMediaItems(messages),
-    [messages],
-  );
-  const lightboxOpenIndex = useMemo(
-    () => findLightboxMediaIndex(lightboxMediaItems, lightboxAttachmentId),
-    [lightboxAttachmentId, lightboxMediaItems],
   );
 
   const activeTypingUsers = useMemo(
@@ -175,8 +160,6 @@ export function useChatRoomPageViewModel({
   return {
     onlineUsernames,
     timeline,
-    lightboxMediaItems,
-    lightboxOpenIndex,
     roomTitle,
     roomSubtitle,
     activeTypingUsers,

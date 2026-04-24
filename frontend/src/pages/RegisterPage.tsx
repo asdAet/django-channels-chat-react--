@@ -1,8 +1,8 @@
-﻿import styles from "../styles/pages/RegisterPage.module.css";
+import styles from "../styles/pages/RegisterPage.module.css";
 import { AuthForm } from "../widgets/auth/AuthForm";
 
 /**
- * Описывает входные props компонента `Props`.
+ * Контракт страницы регистрации.
  */
 type Props = {
   onSubmit: (payload: {
@@ -21,9 +21,9 @@ type Props = {
 };
 
 /**
- * Компонент RegisterPage рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * Рендерит экран регистрации и передает действия пользователя в auth-форму.
  *
- * @param props Свойства компонента.
+ * @param props Параметры текущего сценария регистрации.
  */
 export function RegisterPage({
   onSubmit,
@@ -39,7 +39,10 @@ export function RegisterPage({
       title="Регистрация"
       submitLabel="Создать аккаунт"
       onSubmit={(payload) => {
-        if ("identifier" in payload) return;
+        if ("identifier" in payload) {
+          return;
+        }
+
         onSubmit(payload);
       }}
       onGoogleAuth={onGoogleAuth}

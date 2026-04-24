@@ -12,9 +12,7 @@ import {
 import { useDirectInbox } from "../../shared/directInbox";
 import { useInfoPanel } from "../../shared/layout/useInfoPanel";
 import { useMobileShell } from "../../shared/layout/useMobileShell";
-import { appendWebSocketAuthToken, getWebSocketBase } from "../../shared/lib/ws";
 import { usePresence } from "../../shared/presence";
-import { useWsAuthToken } from "../../shared/wsAuth/useWsAuthToken";
 import { useChatRoomPageComposer } from "./useChatRoomPageComposer";
 import type {
   ChatRoomPageController,
@@ -39,7 +37,6 @@ export function useChatRoomPageController({
   initialRoomKind = null,
   user,
 }: UseChatRoomPageControllerOptions): ChatRoomPageController {
-  const authWsToken = useWsAuthToken();
   const {
     details,
     messages,
@@ -111,15 +108,7 @@ export function useChatRoomPageController({
   });
 
   const realtime = useChatRoomPageRealtime({
-    wsUrl:
-      !user && !isPublicRoom
-        ? null
-        : roomApiRef
-          ? appendWebSocketAuthToken(
-              `${getWebSocketBase()}/ws/chat/${encodeURIComponent(roomApiRef)}/`,
-              user ? authWsToken : null,
-            )
-          : null,
+    roomRealtimeId: !user && !isPublicRoom ? null : resolvedRoomId,
     roomIdForRequests,
     roomKind: details?.kind ?? initialRoomKind ?? null,
     maxMessageLength,
@@ -182,7 +171,6 @@ export function useChatRoomPageController({
     canJoinRoom,
     presenceOnline,
     presenceStatus,
-    lightboxAttachmentId: composer.lightboxAttachmentId,
     readersMenu: composer.readersMenu,
   });
 
@@ -257,8 +245,8 @@ export function useChatRoomPageController({
       uploadProgress: composer.uploadProgress,
       queuedFiles: composer.queuedFiles,
       joinInProgress: composer.joinInProgress,
-      lightboxAttachmentId: composer.lightboxAttachmentId,
-      setLightboxAttachmentId: composer.setLightboxAttachmentId,
+      lightboxSession: composer.lightboxSession,
+      setLightboxSession: composer.setLightboxSession,
       sendMessage: composer.sendMessage,
       handleReply: composer.handleReply,
       handleEdit: composer.handleEdit,

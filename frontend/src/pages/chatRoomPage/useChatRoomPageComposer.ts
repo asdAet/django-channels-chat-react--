@@ -6,6 +6,11 @@ import type { UploadProgress } from "../../domain/interfaces/IApiService";
 import type { Message } from "../../entities/message/types";
 import { debugLog } from "../../shared/lib/debug";
 import { sanitizeText } from "../../shared/lib/sanitize";
+import { useGuardedModalState } from "../../shared/ui/useGuardedModalState";
+import {
+  buildChatLightboxSession,
+  type ChatLightboxSession,
+} from "./mediaLightbox";
 import type {
   UseChatRoomPageComposerOptions,
   UseChatRoomPageComposerResult,
@@ -14,6 +19,12 @@ import { extractApiErrorMessage } from "./utils";
 
 const getTotalFileBytes = (files: File[]): number =>
   files.reduce((total, file) => total + file.size, 0);
+
+type PendingReactionOperation = {
+  inFlight: boolean;
+  intendedMe: boolean;
+  requestedMe: boolean;
+};
 
 /**
  * Управляет состоянием composer и мутациями сообщений страницы комнаты.
@@ -47,17 +58,21 @@ export function useChatRoomPageComposer({
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Message | null>(null);
-  const [readersMenu, setReadersMenu] = useState<
-    UseChatRoomPageComposerResult["readersMenu"]
-  >(null);
+  const [readersMenu, setReadersMenu] =
+    useState<UseChatRoomPageComposerResult["readersMenu"]>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
     null,
   );
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [joinInProgress, setJoinInProgress] = useState(false);
-  const [lightboxAttachmentId, setLightboxAttachmentId] = useState<
-    number | null
-  >(null);
+  const pendingReactionOperationsRef = useRef<
+    Map<string, PendingReactionOperation>
+  >(new Map());
+  const {
+    activeValue: lightboxSession,
+    requestOpen: requestOpenLightboxSession,
+    setActiveValue: setLightboxSession,
+  } = useGuardedModalState<ChatLightboxSession>();
 
   const uploadAbortRef = useRef<AbortController | null>(null);
   const readersRequestSeqRef = useRef(0);
@@ -304,12 +319,9 @@ export function useChatRoomPageComposer({
 
     const messageId = deleteConfirm.id;
     const originalMessage = deleteConfirm;
+    const restoreIndex = messages.findIndex((msg) => msg.id === messageId);
 
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, isDeleted: true, content: "" } : msg,
-      ),
-    );
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     setDeleteConfirm(null);
 
     void chatController
@@ -317,33 +329,81 @@ export function useChatRoomPageComposer({
       .catch((err) => {
         debugLog("Delete failed", err);
         setRoomError("Не удалось удалить сообщение");
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId
-              ? { ...msg, isDeleted: false, content: originalMessage.content }
-              : msg,
-          ),
-        );
+        setMessages((prev) => {
+          if (prev.some((msg) => msg.id === messageId)) {
+            return prev;
+          }
+
+          const next = [...prev];
+          const insertAt =
+            restoreIndex >= 0
+              ? Math.min(restoreIndex, next.length)
+              : next.length;
+          next.splice(insertAt, 0, originalMessage);
+          return next;
+        });
       });
-  }, [deleteConfirm, roomIdForRequests, setMessages, setRoomError]);
+  }, [deleteConfirm, messages, roomIdForRequests, setMessages, setRoomError]);
 
   const handleReact = useCallback(
     (messageId: number, emoji: string) => {
+      const key = `${messageId}:${emoji}`;
+
+      const runReactionRequest = (targetMe: boolean) => {
+        const request = targetMe
+          ? chatController.addReaction(roomIdForRequests, messageId, emoji)
+          : chatController.removeReaction(roomIdForRequests, messageId, emoji);
+
+        void request
+          .catch((err) => {
+            debugLog(
+              targetMe ? "Add reaction failed" : "Remove reaction failed",
+              err,
+            );
+            pendingReactionOperationsRef.current.delete(key);
+            setRoomError("Не удалось обновить реакцию");
+          })
+          .finally(() => {
+            const current = pendingReactionOperationsRef.current.get(key);
+            if (!current) {
+              return;
+            }
+
+            current.inFlight = false;
+            if (current.intendedMe === current.requestedMe) {
+              pendingReactionOperationsRef.current.delete(key);
+              return;
+            }
+
+            current.requestedMe = current.intendedMe;
+            current.inFlight = true;
+            pendingReactionOperationsRef.current.set(key, current);
+            runReactionRequest(current.requestedMe);
+          });
+      };
+
       const message = messages.find((item) => item.id === messageId);
-      const existing = message?.reactions.find(
-        (reaction) => reaction.emoji === emoji,
+      const actualMe = Boolean(
+        message?.reactions.find((reaction) => reaction.emoji === emoji)?.me,
       );
-      if (existing?.me) {
-        void chatController
-          .removeReaction(roomIdForRequests, messageId, emoji)
-          .catch((err) => debugLog("Remove reaction failed", err));
-      } else {
-        void chatController
-          .addReaction(roomIdForRequests, messageId, emoji)
-          .catch((err) => debugLog("Add reaction failed", err));
+      const pending = pendingReactionOperationsRef.current.get(key);
+      const effectiveMe = pending ? pending.intendedMe : actualMe;
+      const nextMe = !effectiveMe;
+
+      if (pending) {
+        pending.intendedMe = nextMe;
+        pendingReactionOperationsRef.current.set(key, pending);
+        return;
       }
+
+      pendingReactionOperationsRef.current.set(key, {
+        inFlight: true,
+        intendedMe: nextMe,
+        requestedMe: nextMe,
+      });
+      runReactionRequest(nextMe);
     },
-    [messages, roomIdForRequests],
+    [messages, roomIdForRequests, setRoomError],
   );
 
   const handleAttach = useCallback(
@@ -464,9 +524,17 @@ export function useChatRoomPageComposer({
     }
   }, [refreshRoomPermissions, reload, roomIdForRequests, setRoomError, user]);
 
-  const handleOpenMediaAttachment = useCallback((attachmentId: number) => {
-    setLightboxAttachmentId(attachmentId);
-  }, []);
+  const handleOpenMediaAttachment = useCallback(
+    (attachmentId: number) => {
+      const nextSession = buildChatLightboxSession(messages, attachmentId);
+      if (!nextSession) {
+        return;
+      }
+
+      requestOpenLightboxSession(nextSession);
+    },
+    [messages, requestOpenLightboxSession],
+  );
 
   return {
     draft,
@@ -479,8 +547,8 @@ export function useChatRoomPageComposer({
     uploadProgress,
     queuedFiles,
     joinInProgress,
-    lightboxAttachmentId,
-    setLightboxAttachmentId,
+    lightboxSession,
+    setLightboxSession,
     sendMessage,
     handleReply,
     handleEdit,

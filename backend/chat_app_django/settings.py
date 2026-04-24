@@ -75,6 +75,7 @@ if not IS_PYTEST_RUN:
             BASE_DIR.parent / ".env",
             allowed_keys={
                 "GOOGLE_OAUTH_CLIENT_ID",
+                "GOOGLE_OAUTH_CLIENT_SECRET",
                 "DJANGO_SECRET_KEY",
                 "CHAT_ATTACHMENT_MAX_PER_MESSAGE",
                 "CHAT_ATTACHMENT_MAX_SIZE_MB",
@@ -194,6 +195,10 @@ if ALLOW_LOCALHOST_DEV_ORIGINS:
         ALLOWED_HOSTS,
         ["localhost", "127.0.0.1", "[::1]", "host.docker.internal"],
     )
+ALLOWED_HOSTS = _extend_unique(
+    ALLOWED_HOSTS,
+    ["backend", "nginx"],
+)
 if not DEBUG and not ALLOWED_HOSTS:
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS должен быть задан в production.")
 
@@ -261,6 +266,7 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "chat_app_django.metrics_middleware.HttpMetricsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -470,6 +476,14 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE", not DEBUG)
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
+SECURE_REDIRECT_EXEMPT = env_list(
+    "DJANGO_SECURE_REDIRECT_EXEMPT",
+    [
+        r"^api/health/live/$",
+        r"^api/health/ready/$",
+        r"^metrics/$",
+    ],
+)
 SECURE_CROSS_ORIGIN_OPENER_POLICY = (
     os.getenv("DJANGO_SECURE_COOP", "same-origin-allow-popups").strip()
     or "same-origin-allow-popups"
@@ -522,6 +536,7 @@ USERNAME_MAX_LENGTH = env_int("USERNAME_MAX_LENGTH", 30, minimum=1)
 if USERNAME_MAX_LENGTH > 150:
     raise ImproperlyConfigured("USERNAME_MAX_LENGTH должен быть <= 150.")
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "").strip()
 CHAT_MESSAGE_EDIT_WINDOW_SECONDS = env_int("CHAT_MESSAGE_EDIT_WINDOW_SECONDS", 900, minimum=0)
 CHAT_MESSAGE_MAX_LENGTH = int(os.getenv("CHAT_MESSAGE_MAX_LENGTH", "1000"))
 CHAT_MESSAGES_PAGE_SIZE = int(os.getenv("CHAT_MESSAGES_PAGE_SIZE", "50"))
@@ -594,18 +609,32 @@ AUDIT_API_DEFAULT_LIMIT = env_int("AUDIT_API_DEFAULT_LIMIT", 50, minimum=1)
 AUDIT_API_MAX_LIMIT = env_int("AUDIT_API_MAX_LIMIT", 200, minimum=1)
 
 if REDIS_URL:
+    redis_cache_config = {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
     CACHES = {
-        "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
-            "LOCATION": REDIS_URL,
-        }
+        "default": dict(redis_cache_config),
+        "ws_auth": dict(redis_cache_config),
     }
 else:
+    ws_auth_cache_dir = Path(
+        os.getenv("DJANGO_WS_AUTH_CACHE_DIR", "").strip()
+        or (BASE_DIR / ".cache" / "ws_auth")
+    )
+    ws_auth_cache_dir.mkdir(parents=True, exist_ok=True)
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        }
+        },
+        # WebSocket auth tokens must survive dev autoreload / multi-process runs.
+        "ws_auth": {
+            "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+            "LOCATION": str(ws_auth_cache_dir),
+        },
     }
+
+WS_AUTH_CACHE_ALIAS = "ws_auth"
 
 
 LOG_LEVEL = os.getenv("DJANGO_LOG_LEVEL", "INFO").upper()
@@ -637,11 +666,18 @@ LOGGING = {
         "standard": {
             "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
         },
+        "message_only": {
+            "format": "%(message)s",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
+        },
+        "audit_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "message_only",
         },
     },
     "root": {
@@ -675,7 +711,7 @@ LOGGING = {
             "propagate": False,
         },
         "security.audit": {
-            "handlers": ["console"],
+            "handlers": ["audit_console"],
             "level": "INFO",
             "propagate": False,
         },

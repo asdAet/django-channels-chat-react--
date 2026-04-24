@@ -89,6 +89,9 @@ function Probe() {
       <p data-testid="loading">{String(inbox.loading)}</p>
       <p data-testid="unread-count">{inbox.unreadDialogsCount}</p>
       <p data-testid="unread-counts">{JSON.stringify(inbox.unreadCounts)}</p>
+      <p data-testid="room-unread-counts">
+        {JSON.stringify(inbox.roomUnreadCounts)}
+      </p>
       <p data-testid="items-order">
         {inbox.items.map((item) => item.roomId).join(",")}
       </p>
@@ -226,6 +229,33 @@ describe("DirectInboxProvider", () => {
     expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
   });
 
+  it("stores authoritative room unread counts from inbox websocket", async () => {
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    );
+
+    await waitFor(() => {
+      expect(chatMock.getDirectChats).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "room_unread_state",
+            unread: { dialogs: 2, roomIds: [1, 5], counts: { "1": 3, "5": 1 } },
+          }),
+        }),
+      );
+    });
+
+    expect(screen.getByTestId("room-unread-counts").textContent).toBe(
+      '{"1":3,"5":1}',
+    );
+  });
+
   /**
    * Выполняет метод `it`.
    * @returns Результат выполнения операции.
@@ -317,6 +347,7 @@ describe("DirectInboxProvider", () => {
     expect(screen.getByTestId("unread-counts").textContent).toBe(
       '{"1":3}',
     );
+    expect(chatMock.getDirectChats).toHaveBeenCalledTimes(1);
   });
 
   /**
@@ -515,5 +546,237 @@ describe("DirectInboxProvider", () => {
 
     expect(screen.getByTestId("unread-count").textContent).toBe("1");
     expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":4}');
+  });
+
+  it("applies local unread override on top of existing direct inbox count", async () => {
+    chatMock.getDirectChats.mockResolvedValue({
+      items: [
+        {
+          roomId: 1,
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
+          lastMessage: "hello",
+          lastMessageAt: "2026-02-13T10:00:00Z",
+        },
+      ],
+    });
+
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("items-order").textContent).toBe("1");
+    });
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "direct_unread_state",
+            unread: { dialogs: 1, roomIds: [1], counts: { "1": 7 } },
+          }),
+        }),
+      );
+    });
+
+    act(() => {
+      setUnreadOverride({ roomId: "1", unreadCount: 3 });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("unread-count").textContent).toBe("1");
+      expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":3}');
+    });
+  });
+
+  it("keeps local lower unread override while websocket snapshot is stale", async () => {
+    chatMock.getDirectChats.mockResolvedValue({
+      items: [
+        {
+          roomId: 1,
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
+          lastMessage: "hello",
+          lastMessageAt: "2026-02-13T10:00:00Z",
+        },
+      ],
+    });
+
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("items-order").textContent).toBe("1");
+    });
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "direct_unread_state",
+            unread: { dialogs: 1, roomIds: [1], counts: { "1": 6 } },
+          }),
+        }),
+      );
+    });
+
+    act(() => {
+      setUnreadOverride({ roomId: "1", unreadCount: 2 });
+    });
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "direct_unread_state",
+            unread: { dialogs: 1, roomIds: [1], counts: { "1": 5 } },
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("unread-count").textContent).toBe("1");
+      expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":2}');
+    });
+  });
+
+  it("drops local override after websocket catches up to the same unread count", async () => {
+    chatMock.getDirectChats.mockResolvedValue({
+      items: [
+        {
+          roomId: 1,
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
+          lastMessage: "hello",
+          lastMessageAt: "2026-02-13T10:00:00Z",
+        },
+      ],
+    });
+
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("items-order").textContent).toBe("1");
+    });
+
+    act(() => {
+      setUnreadOverride({ roomId: "1", unreadCount: 2 });
+    });
+
+    expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":2}');
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "direct_unread_state",
+            unread: { dialogs: 1, roomIds: [1], counts: { "1": 2 } },
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("unread-count").textContent).toBe("1");
+      expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":2}');
+    });
+  });
+
+  it("keeps local zero override while websocket still reports stale unread", async () => {
+    chatMock.getDirectChats.mockResolvedValue({
+      items: [
+        {
+          roomId: 1,
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
+          lastMessage: "hello",
+          lastMessageAt: "2026-02-13T10:00:00Z",
+        },
+      ],
+    });
+
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("items-order").textContent).toBe("1");
+    });
+
+    act(() => {
+      setUnreadOverride({ roomId: "1", unreadCount: 0 });
+    });
+
+    expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "direct_unread_state",
+            unread: { dialogs: 1, roomIds: [1], counts: { "1": 2 } },
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("unread-count").textContent).toBe("0");
+      expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
+    });
+  });
+
+  it("drops local zero override after websocket confirms full read", async () => {
+    chatMock.getDirectChats.mockResolvedValue({
+      items: [
+        {
+          roomId: 1,
+          peer: { publicRef: "alice", username: "alice", profileImage: null },
+          lastMessage: "hello",
+          lastMessageAt: "2026-02-13T10:00:00Z",
+        },
+      ],
+    });
+
+    render(
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("items-order").textContent).toBe("1");
+    });
+
+    act(() => {
+      setUnreadOverride({ roomId: "1", unreadCount: 0 });
+    });
+
+    expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
+
+    act(() => {
+      wsMock.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "direct_unread_state",
+            unread: { dialogs: 0, roomIds: [], counts: {} },
+          }),
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("unread-count").textContent).toBe("0");
+      expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
+    });
   });
 });

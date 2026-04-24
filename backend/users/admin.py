@@ -128,13 +128,13 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.display(description="Last seen", ordering="profile__last_seen")
     def profile_last_seen(self, obj):
-        """Формирует значение profile last seen для отображения в админ-панели.
-        
+        """Возвращает время последней активности пользователя для списка в Django Admin.
+
         Args:
-            obj: Параметр obj, используемый в логике функции.
-        
+            obj: Пользователь, для которого нужно показать значение `profile.last_seen`.
+
         Returns:
-            Результат вычислений, сформированный в ходе выполнения функции.
+            Значение `last_seen` из связанного профиля или длинное тире, если профиль отсутствует.
         """
         profile = getattr(obj, "profile", None)
         return profile.last_seen if profile else "—"

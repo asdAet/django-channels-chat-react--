@@ -20,6 +20,20 @@ type ProfileSaveResult =
   | { ok: true }
   | { ok: false; errors?: ProfileFieldErrors; message?: string };
 
+/**
+ * Контракт навигационного слоя приложения.
+ *
+ * @property user Текущий авторизованный пользователь или `null` для гостя.
+ * @property error Сообщение последней auth-ошибки, которое нужно показать на login/register.
+ * @property passwordRules Список правил для отображения под формой регистрации.
+ * @property googleAuthDisabledReason Причина, по которой кнопка Google OAuth недоступна.
+ * @property onNavigate Унифицированный переход между страницами.
+ * @property onLogin Выполняет вход по логину и паролю.
+ * @property onGoogleOAuth Запускает вход через Google через server-side redirect flow.
+ * @property onRegister Создает аккаунт по данным формы регистрации.
+ * @property onLogout Завершает пользовательскую сессию.
+ * @property onProfileSave Сохраняет обновления профиля и возвращает результат валидации.
+ */
 type AppRoutesProps = {
   user: UserProfile | null;
   error: string | null;
@@ -27,7 +41,7 @@ type AppRoutesProps = {
   googleAuthDisabledReason: string | null;
   onNavigate: (path: string) => void;
   onLogin: (identifier: string, password: string) => Promise<void>;
-  onGoogleOAuth?: () => Promise<void>;
+  onGoogleOAuth?: () => Promise<void> | void;
   onRegister: (payload: {
     login: string;
     password: string;
@@ -102,6 +116,13 @@ function InviteRoute({ onNavigate }: Pick<AppRoutesProps, "onNavigate">) {
   return <InvitePreviewPage code={code} onNavigate={onNavigate} />;
 }
 
+/**
+ * Описывает таблицу маршрутов SPA и связывает URL с экранами приложения.
+ *
+ * Компонент принимает готовые auth- и navigation-колбэки из верхнего уровня,
+ * а затем прокидывает их в конкретные страницы: вход, регистрацию, профиль,
+ * настройки, друзей, группы, приглашения и канонический маршрут чата по target.
+ */
 export function AppRoutes({
   user,
   error,

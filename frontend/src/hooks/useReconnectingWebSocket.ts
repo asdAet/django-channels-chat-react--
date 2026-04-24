@@ -245,13 +245,12 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
 
   useEffect(() => {
     activeRef.current = true;
-    /**
-     * Вызывает `queueMicrotask` как шаг текущего сценария.
-     * @returns Ничего не возвращает.
-     */
-
-    queueMicrotask(() => connect());
+    const startupTimeoutId = window.setTimeout(() => {
+      if (!activeRef.current) return;
+      connect();
+    }, 0);
     return () => {
+      window.clearTimeout(startupTimeoutId);
       activeRef.current = false;
       /**
        * Вызывает `cleanup` как шаг текущего сценария.

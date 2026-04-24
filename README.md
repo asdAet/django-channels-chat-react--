@@ -1,218 +1,112 @@
-﻿# Devil Resting
+<div align="center">
+  <img src="frontend/public/MINI-direct-logo-avatar.png" alt="Devil logo" width="180">
+  <h1>Devil</h1>
+  <p><strong>Realtime-мессенджер для личного и командного общения</strong></p>
+  <p>Devil — веб-приложение для закрытых диалогов, групповых комнат и быстрого обмена сообщениями в реальном времени. Проект объединяет чат, presence, роли, вложения и production-инфраструктуру в одной системе.</p>
+</div>
 
-Актуальный README для текущего состояния проекта.
+---
 
-## Что это
-`Devil Resting` — real-time чат-платформа на `Django + Channels + React + TypeScript`.
+## Стек
 
-Проект поддерживает:
-- авторизацию по login/email + password;
-- Google OAuth;
-- публичные идентификаторы пользователей и групп (`publicRef`, `publicId`);
-- личные и групповые чаты;
-- роли и права в комнатах;
-- online/presence;
-- вложения в сообщениях;
-- защищённую отдачу медиа через подписанные URL.
+- Backend: Python 3.11, Django, Django REST Framework, Channels, Redis, PostgreSQL
+- Frontend: React 19, TypeScript, Vite, React Router, Zod
+- Тесты: pytest, Vitest, Playwright
+- Production: Docker Compose, Nginx, Certbot
 
-## Технологический стек
-- Backend: `Python 3.11+`, `Django`, `Django REST Framework`, `Channels`, `Redis`, `PostgreSQL`
-- Frontend: `React 19`, `TypeScript`, `Vite`, `React Router`, `Zod`, `Vitest`, `Playwright`
-- Infra: `Docker Compose`, `Nginx`
-
-## Ключевая модель идентичности и чатов
-
-### Внутренние идентификаторы
-- Все room-scoped операции работают по внутреннему `roomId`.
-- REST chat endpoints: `/api/chat/<room_id>/...`
-- WebSocket чата: `/ws/chat/<room_id>/`
-
-### Публичные идентификаторы
-- Пользователи и группы открываются по внешним `publicRef` / `publicId`.
-- `room.slug` удалён из рабочей модели и не используется для навигации.
-- `roomId` — внутренний идентификатор транспорта и API.
-- `publicRef/publicId` — внешний адрес для навигации и resolve.
-
-### Prefixless chat routing
-Frontend больше не использует `/direct/*` и `/rooms/*`.
-
-Канонические chat routes:
-- `/public` — публичный чат
-- `/@username` — direct по handle пользователя
-- `/<userPublicId>` — direct по публичному id пользователя
-- `/<groupPublicRef>` — группа по публичному ref
-- `/<groupPublicId>` — группа по публичному id
-
-Зарезервированные route’ы не перехватываются chat resolver’ом:
-- `/`
-- `/login`
-- `/register`
-- `/profile`
-- `/settings`
-- `/friends`
-- `/groups`
-- `/invite/:code`
-- `/users/:ref`
-
-## Актуальная API карта
-
-### Health / meta
-- `GET /api/health/live/`
-- `GET /api/health/ready/`
-- `GET /api/meta/client-config/`
-
-### Auth / profile / public resolve
-- `GET /api/auth/csrf/`
-- `GET /api/auth/session/`
-- `GET /api/auth/presence-session/`
-- `GET /api/auth/password-rules/`
-- `POST /api/auth/register/`
-- `POST /api/auth/login/`
-- `POST /api/auth/logout/`
-- `POST /api/auth/oauth/google/`
-- `GET /api/profile/`
-- `PATCH /api/profile/`
-- `PATCH /api/profile/handle/`
-- `GET /api/settings/security/`
-- `PATCH /api/settings/security/`
-- `GET /api/public/resolve/{ref}`
-
-### Chat
-- `POST /api/chat/resolve/` — резолвит внешний chat target в комнату
-- `GET /api/chat/inbox/` — direct inbox
-- `GET /api/chat/unread/`
-- `GET /api/chat/search/global/`
-- `GET /api/chat/<room_id>/`
-- `GET /api/chat/<room_id>/messages/`
-- `GET /api/chat/<room_id>/messages/search/`
-- `GET /api/chat/<room_id>/messages/<message_id>/`
-- `GET /api/chat/<room_id>/messages/<message_id>/readers/`
-- `POST /api/chat/<room_id>/attachments/`
-- `POST /api/chat/<room_id>/read/`
-- room roles / overrides / permissions под `/api/chat/<room_id>/...`
-
-### Friends
-- `/api/friends/`
-- `/api/friends/requests/...`
-- `/api/friends/block/...`
-
-### Groups
-- `POST /api/groups/`
-- `GET /api/groups/public/`
-- `GET /api/groups/my/`
-- `GET /api/groups/<room_id>/`
-- members / invites / requests / pins / transfer ownership под `/api/groups/<room_id>/...`
-- invite preview/join:
-  - `GET /api/invite/{code}/`
-  - `POST /api/invite/{code}/join/`
-
-### Audit
-- `/api/admin/audit/events/`
-- `/api/admin/audit/actions/`
-- `/api/admin/audit/users/{user_id}/username-history/`
-
-## WebSocket endpoints
-- `ws://<host>/ws/chat/<room_id>/`
-- `ws://<host>/ws/inbox/`
-- `ws://<host>/ws/presence/`
-
-## Структура репозитория
+## Структура
 
 ```text
-backend/
-  auditlog/         # аудит
-  chat/             # chat REST API, search, attachments
-  chat_app_django/  # settings, urls, asgi, health, meta API
-  direct_inbox/     # direct inbox websocket
-  friends/          # friends API
-  groups/           # groups domain + invites + moderation
-  messages/         # messages + attachments + reads
-  presence/         # online / guest presence
-  roles/            # роли и права
-  rooms/            # Room entity
-  users/            # auth / profile / identity
-
-frontend/src/
-  adapters/         # HTTP API layer
-  app/              # app shell + routes
-  controllers/      # orchestration layer
-  domain/           # интерфейсы use-case
-  dto/              # boundary parsing (HTTP / WS / route)
-  entities/         # доменные типы
-  hooks/            # React hooks
-  pages/            # route pages
-  shared/           # shared libs / ui / ws / auth
-  widgets/          # composed UI blocks
+backend/                  Django API, WebSocket и доменная логика
+frontend/                 React SPA
+deploy/                   Nginx, Certbot и observability
+docs/                     Сгенерированная документация и UML
+tools/                    Скрипты репозитория
+docker-compose.prod.yml   Production compose
+example.env               Шаблон production-переменных
 ```
 
 ## Локальный запуск
 
-### Backend
+Backend:
+
 ```powershell
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
 python manage.py migrate
 python manage.py runserver 127.0.0.1:8000
 ```
 
-### Frontend
+Frontend:
+
 ```powershell
 cd frontend
 npm ci
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-Vite proxy:
-- `/api` -> `http://127.0.0.1:8000`
-- `/ws` -> `ws://127.0.0.1:8000`
+Vite проксирует `/api` и `/ws` на `127.0.0.1:8000`.
 
-## Тесты и качество
+## Проверки
 
-### Backend
+Backend:
+
 ```powershell
 cd backend
-.\.venv\Scripts\Activate.ps1
 pytest
 ```
 
-### Frontend
+Frontend:
+
 ```powershell
 cd frontend
-npm ci
 npm run lint
 npm run lint:css
 npm run check:dto-boundary
 npm run test:unit
 npm run build
-```
-
-### E2E
-```powershell
-cd frontend
-npx playwright install --with-deps chromium webkit
 npm run test:e2e
 ```
 
+## Контракты
+
+- Внешние chat targets резолвятся через `POST /api/chat/resolve/`.
+- В URL используются публичные refs и ids; runtime-операции backend работают через `roomId`.
+- Основной chat WebSocket: `/ws/chat/`.
+- Активная комната в `/ws/chat/` меняется событием `set_active_room`.
+- Direct inbox WebSocket: `/ws/inbox/`.
+- Presence WebSocket: `/ws/presence/`.
+- Media URL подписываются и имеют TTL.
+
 ## Production
-Основной compose-файл: `docker-compose.prod.yml`
 
-Поднимает:
-- `backend`
-- `nginx`
-- `redis`
-- `postgres`
+Создать `.env` на основе [example.env](example.env), заполнить секреты и запустить:
 
-Запуск:
-```bash
-docker compose -f docker-compose.prod.yml up --build -d
+```powershell
+docker compose -f docker-compose.prod.yml -f deploy/observability/compose.yml up --build -d
 ```
 
-## Важные замечания
-- Внутренний транспорт чатов строго `roomId`-based.
-- Внешняя навигация строится только через `publicRef/publicId` и `/api/chat/resolve/`.
-- Старые `/direct/*` и `/rooms/*` считаются legacy и больше не являются каноническими путями.
-- `ws/inbox` заменил старый direct inbox path.
-- Для медиа используются подписанные URL с TTL.
+Обязательные production-переменные:
+
+- `DJANGO_SECRET_KEY`
+- `POSTGRES_PASSWORD`
+- `DJANGO_ALLOWED_HOSTS`
+- `DJANGO_CSRF_TRUSTED_ORIGINS`
+- `DJANGO_CORS_ALLOWED_ORIGINS`
+- `DJANGO_PUBLIC_BASE_URL`
+
+Observability описан в [deploy/observability/README.md](deploy/observability/README.md).
+
+## Документация
+
+- [Backend reference](docs/generated/backend-reference.md)
+- [Frontend reference](docs/generated/frontend-reference.md)
+- [UML](docs/uml/README.md)
+
+Перегенерация:
+
+```powershell
+python tools/generate_project_docs.py
+```

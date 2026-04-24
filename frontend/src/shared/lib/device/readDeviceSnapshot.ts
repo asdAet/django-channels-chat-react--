@@ -36,6 +36,9 @@ const readPrimaryPointer = (targetWindow: Window): DevicePrimaryPointer => {
   return "none";
 };
 
+/**
+ * Константа `DEFAULT_DEVICE_SNAPSHOT`, используемая как default device snapshot.
+ */
 export const DEFAULT_DEVICE_SNAPSHOT: DeviceSnapshot = {
   viewportWidth: DEFAULT_VIEWPORT_WIDTH,
   viewportHeight: DEFAULT_VIEWPORT_HEIGHT,
@@ -46,6 +49,13 @@ export const DEFAULT_DEVICE_SNAPSHOT: DeviceSnapshot = {
   primaryPointer: "none",
 };
 
+/**
+ * Проверяет `are device snapshots equal`.
+ *
+ * @param left Параметр `left` в формате `DeviceSnapshot`.
+ * @param right Параметр `right` в формате `DeviceSnapshot`.
+ * @returns Возвращает результат `are device snapshots equal` в формате `boolean`.
+ */
 export const areDeviceSnapshotsEqual = (
   left: DeviceSnapshot,
   right: DeviceSnapshot,
@@ -58,6 +68,12 @@ export const areDeviceSnapshotsEqual = (
   left.canHover === right.canHover &&
   left.primaryPointer === right.primaryPointer;
 
+/**
+ * Считывает `read device snapshot`.
+ *
+ * @param targetWindow Параметр `targetWindow` в формате `Window | null`.
+ * @returns Возвращает результат `read device snapshot` в формате `DeviceSnapshot`.
+ */
 export const readDeviceSnapshot = (
   targetWindow?: Window | null,
 ): DeviceSnapshot => {

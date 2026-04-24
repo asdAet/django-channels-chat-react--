@@ -4,10 +4,8 @@ import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { usePasswordRules } from "../hooks/usePasswordRules";
 import type { ApiError } from "../shared/api/types";
-import {
-  GoogleOAuthError,
-  signInWithGoogle,
-} from "../shared/auth/googleIdentity";
+import { startGoogleAuthRedirect } from "../shared/auth/googleRedirect";
+import { ChatRealtimeProvider } from "../shared/chatRealtime";
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
@@ -16,6 +14,7 @@ import { debugLog } from "../shared/lib/debug";
 import { DeviceProvider } from "../shared/lib/device";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { PresenceProvider } from "../shared/presence";
+import { SiteVisitTelemetry } from "../shared/visitorTelemetry";
 import { WsAuthProvider } from "../shared/wsAuth";
 import appStyles from "../styles/app/AppAuthPage.module.css";
 import { AppShell } from "../widgets/layout/AppShell";
@@ -27,17 +26,21 @@ type SeoDescriptor = {
   robots: string;
 };
 
+type AuthRouteLocationState = {
+  oauthError?: string | null;
+};
+
 const DEFAULT_SEO: SeoDescriptor = {
-  title: "Devils Resting — чат в реальном времени",
+  title: "Devil",
   description:
-    "Devils Resting — защищенный чат в реальном времени: личные сообщения, группы, обмен файлами и управление доступом.",
+    "Devil",
   robots:
     "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
 };
 
 const PRIVATE_ROUTE_SEO: SeoDescriptor = {
-  title: "Devils Resting — личный раздел",
-  description: "Личный раздел пользователя Devils Resting.",
+  title: "Devil — личный раздел",
+  description: "Личный раздел пользователя Devil.",
   robots: "noindex,nofollow",
 };
 
@@ -60,42 +63,42 @@ const MATCHED_ROUTE_SEO: Array<{
   {
     match: (pathname) => pathname === "/friends",
     meta: {
-      title: "Друзья — Devils Resting",
+      title: "Друзья — Devil",
       description:
-        "Управляйте списком друзей, заявками и личными контактами в Devils Resting.",
+        "Управляйте списком друзей, заявками и личными контактами в Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => pathname === "/groups",
     meta: {
-      title: "Группы — Devils Resting",
+      title: "Группы — Devil",
       description:
-        "Создавайте и администрируйте групповые чаты в Devils Resting.",
+        "Создавайте и администрируйте групповые чаты в Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => isPrefixlessChatPath(pathname),
     meta: {
-      title: "Чат — Devils Resting",
-      description: "Личные и групповые чаты Devils Resting.",
+      title: "Чат — Devil",
+      description: "Личные и групповые чаты Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/invite/"),
     meta: {
-      title: "Приглашение в группу — Devils Resting",
-      description: "Просмотр приглашения в группу Devils Resting.",
+      title: "Приглашение в группу — Devil",
+      description: "Просмотр приглашения в группу Devil.",
       robots: "noindex,nofollow",
     },
   },
   {
     match: (pathname) => pathname.startsWith("/users/"),
     meta: {
-      title: "Профиль пользователя — Devils Resting",
-      description: "Публичный профиль пользователя Devils Resting.",
+      title: "Профиль пользователя — Devil",
+      description: "Публичный профиль пользователя Devil.",
       robots: "noindex,nofollow",
     },
   },
@@ -172,8 +175,7 @@ function AppInner() {
   const navigate = useNavigate();
   const location = useLocation();
   const { config: runtimeConfig } = useRuntimeConfig();
-  const { auth, login, loginWithGoogle, register, logout, updateProfile } =
-    useAuth();
+  const { auth, login, register, logout, updateProfile } = useAuth();
   const { rules: passwordRules } = usePasswordRules(
     location.pathname === "/register",
   );
@@ -201,8 +203,16 @@ function AppInner() {
 
   useEffect(() => {
     const root = document.documentElement;
+    let lastViewportHeight = -1;
+    let lastViewportWidth = -1;
+
     /**
-     * Обновляет viewport vars.
+     * Обновляет viewport vars только при реальном изменении размеров viewport.
+     *
+     * Важно: мы намеренно не подписываемся на `visualViewport.scroll`.
+     * Такой scroll срабатывает даже при bounce/toolbar offset и вызывает
+     * микропересчет `--app-height`, из-за чего scroll-контейнеры чата могут
+     * визуально "пружинить" у нижней границы.
      */
     const updateViewportVars = () => {
       const visualViewport = window.visualViewport;
@@ -212,6 +222,16 @@ function AppInner() {
       const viewportWidth = Math.round(
         visualViewport?.width ?? window.innerWidth,
       );
+
+      if (
+        viewportHeight === lastViewportHeight &&
+        viewportWidth === lastViewportWidth
+      ) {
+        return;
+      }
+
+      lastViewportHeight = viewportHeight;
+      lastViewportWidth = viewportWidth;
       root.style.setProperty("--app-height", `${viewportHeight}px`);
       root.style.setProperty("--app-width", `${viewportWidth}px`);
     };
@@ -222,13 +242,11 @@ function AppInner() {
       passive: true,
     });
     window.visualViewport?.addEventListener("resize", updateViewportVars);
-    window.visualViewport?.addEventListener("scroll", updateViewportVars);
 
     return () => {
       window.removeEventListener("resize", updateViewportVars);
       window.removeEventListener("orientationchange", updateViewportVars);
       window.visualViewport?.removeEventListener("resize", updateViewportVars);
-      window.visualViewport?.removeEventListener("scroll", updateViewportVars);
     };
   }, []);
 
@@ -352,8 +370,24 @@ function AppInner() {
     [navigate],
   );
 
+  const isAuthRoute =
+    location.pathname === "/login" || location.pathname === "/register";
+  const authRouteState =
+    (location.state as AuthRouteLocationState | null) ?? null;
+  const routeOauthError = authRouteState?.oauthError ?? null;
+  const authError = error ?? routeOauthError;
+
+  const clearAuthRouteState = useCallback(() => {
+    if (!isAuthRoute || !routeOauthError) {
+      return;
+    }
+
+    navigate(location.pathname, { replace: true, state: null });
+  }, [isAuthRoute, location.pathname, navigate, routeOauthError]);
+
   const handleLogin = useCallback(
     async (identifier: string, password: string) => {
+      clearAuthRouteState();
       setError(null);
       try {
         await login({ identifier, password });
@@ -364,7 +398,7 @@ function AppInner() {
         setError(extractAuthMessage(err, "Неверный логин или пароль"));
       }
     },
-    [login, onNavigate],
+    [clearAuthRouteState, login, onNavigate],
   );
 
   const handleRegister = useCallback(
@@ -376,6 +410,7 @@ function AppInner() {
       username?: string;
       email?: string;
     }) => {
+      clearAuthRouteState();
       setError(null);
       try {
         await register({
@@ -390,7 +425,7 @@ function AppInner() {
         setError(extractAuthMessage(err, "Проверьте данные регистрации"));
       }
     },
-    [onNavigate, register],
+    [clearAuthRouteState, onNavigate, register],
   );
 
   const isGoogleOAuthConfigured = Boolean(
@@ -400,27 +435,19 @@ function AppInner() {
     ? null
     : "Google OAuth сейчас недоступен. Проверьте конфигурацию сервера.";
 
-  const handleGoogleOAuth = useCallback(async () => {
+  const handleGoogleOAuth = useCallback(() => {
     if (!runtimeConfig.googleOAuthClientId.trim()) {
       return;
     }
+    clearAuthRouteState();
     setError(null);
-    try {
-      const googleAuth = await signInWithGoogle(
-        runtimeConfig.googleOAuthClientId,
-      );
-      await loginWithGoogle(googleAuth.token, googleAuth.tokenType);
-      setBanner("Вход через Google выполнен успешно.");
-      onNavigate("/");
-    } catch (err) {
-      debugLog("Google OAuth failed", err);
-      if (err instanceof GoogleOAuthError) {
-        setError(err.message);
-        return;
-      }
-      setError("Не удалось выполнить вход через Google.");
-    }
-  }, [loginWithGoogle, onNavigate, runtimeConfig.googleOAuthClientId]);
+    startGoogleAuthRedirect(`${location.pathname}${location.search}`);
+  }, [
+    clearAuthRouteState,
+    location.pathname,
+    location.search,
+    runtimeConfig.googleOAuthClientId,
+  ]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -483,13 +510,35 @@ function AppInner() {
     [auth.user, onNavigate, updateProfile],
   );
 
-  const isAuthRoute =
-    location.pathname === "/login" || location.pathname === "/register";
+  useEffect(() => {
+    if (!isAuthRoute) {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const oauthError = params.get("oauthError");
+    if (!oauthError) {
+      return;
+    }
+
+    navigate(location.pathname, {
+      replace: true,
+      state: { ...(authRouteState ?? {}), oauthError },
+    });
+  }, [
+    authRouteState,
+    isAuthRoute,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
+
+  const realtimeProvidersReady = !auth.loading && !isAuthRoute;
 
   const routesElement = (
     <AppRoutes
       user={auth.user}
-      error={error}
+      error={authError}
       passwordRules={passwordRules}
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
@@ -503,24 +552,27 @@ function AppInner() {
 
   return (
     <WsAuthProvider token={auth.wsAuthToken}>
-      <PresenceProvider user={auth.user} ready={!auth.loading}>
-        <DirectInboxProvider user={auth.user} ready={!auth.loading}>
-          {isAuthRoute ? (
-            <div className={appStyles.authPage}>{routesElement}</div>
-          ) : (
-            <AppShell
-              user={auth.user}
-              onNavigate={onNavigate}
-              onLogout={handleLogout}
-              banner={banner}
-              error={error}
-              isAuthRoute={isAuthRoute}
-            >
-              {routesElement}
-            </AppShell>
-          )}
-        </DirectInboxProvider>
-      </PresenceProvider>
+      <SiteVisitTelemetry />
+      <ChatRealtimeProvider ready={realtimeProvidersReady}>
+        <PresenceProvider user={auth.user} ready={realtimeProvidersReady}>
+          <DirectInboxProvider user={auth.user} ready={realtimeProvidersReady}>
+            {isAuthRoute ? (
+              <div className={appStyles.authPage}>{routesElement}</div>
+            ) : (
+              <AppShell
+                user={auth.user}
+                onNavigate={onNavigate}
+                onLogout={handleLogout}
+                banner={banner}
+                error={authError}
+                isAuthRoute={isAuthRoute}
+              >
+                {routesElement}
+              </AppShell>
+            )}
+          </DirectInboxProvider>
+        </PresenceProvider>
+      </ChatRealtimeProvider>
     </WsAuthProvider>
   );
 }

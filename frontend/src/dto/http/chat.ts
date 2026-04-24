@@ -288,6 +288,12 @@ export const decodeRoomMessagesResponse = (input: unknown): RoomMessagesDto => {
   };
 };
 
+/**
+ * Декодирует `decode chat resolve response`.
+ *
+ * @param input Параметр `input` в формате `unknown`.
+ * @returns Возвращает результат `decode chat resolve response` в формате `ChatResolveResponseDto`.
+ */
 export const decodeChatResolveResponse = (
   input: unknown,
 ): ChatResolveResponseDto => {
@@ -412,17 +418,6 @@ const messageReadersResponseSchema = z
   })
   .passthrough();
 
-const unreadCountItemSchema = z
-  .object({
-    roomId: z.union([z.number(), z.string()]),
-    unreadCount: z.number(),
-  })
-  .passthrough();
-
-const unreadCountsResponseSchema = z
-  .object({ items: z.array(unreadCountItemSchema) })
-  .passthrough();
-
 const globalSearchUserSchema = roomPeerSchema;
 const globalSearchGroupSchema = z
   .object({
@@ -524,11 +519,6 @@ export type ReadStateResponse = {
   lastReadMessageId: number | null;
   lastReadAt?: string | null;
 };
-/**
- * Описывает структуру данных `UnreadCountItem`.
- */
-export type UnreadCountItem = { roomId: number; unreadCount: number };
-
 /**
  * Описывает exact reader конкретного сообщения.
  */
@@ -708,26 +698,6 @@ export const decodeMessageReadersResponse = (
       readAt: reader.readAt,
     })),
   };
-};
-
-/**
- * Преобразует HTTP-данные для операции decode unread counts response.
- * @param input Входной объект с параметрами операции.
- * @returns Нормализованные данные после декодирования.
- */
-
-export const decodeUnreadCountsResponse = (
-  input: unknown,
-): UnreadCountItem[] => {
-  const parsed = decodeOrThrow(
-    unreadCountsResponseSchema,
-    input,
-    "chat/unread-counts",
-  );
-  return parsed.items.map((item) => ({
-    roomId: toRoomId(item.roomId),
-    unreadCount: item.unreadCount,
-  }));
 };
 
 /**

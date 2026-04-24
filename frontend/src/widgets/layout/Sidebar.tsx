@@ -80,6 +80,12 @@ const SettingsIcon = () => (
   </svg>
 );
 
+/**
+ * Рендерит основной sidebar приложения: навигацию, direct inbox, server rail и профиль.
+ *
+ * Компонент также отвечает за desktop-resize, mobile drawer UX, открытие
+ * настроек, быстрый переход к друзьям и восстановление последнего личного чата.
+ */
 export function Sidebar({
   user,
   onNavigate,
@@ -96,7 +102,7 @@ export function Sidebar({
 
   const { searchQuery, setSearchQuery, serverItems, refresh } =
     useConversationList();
-  const { items: directItems, unreadCounts, unreadDialogsCount } =
+  const { items: directItems, unreadCounts, unreadDialogsCount, roomUnreadCounts } =
     useDirectInbox();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
 
@@ -159,6 +165,14 @@ export function Sidebar({
   const profilePath = publicRef ? buildUserProfilePath(publicRef) : "/profile";
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const pushedDirectUnreadDialogsCount = useMemo(
+    () =>
+      directItems.reduce((total, item) => {
+        const unread = roomUnreadCounts[String(item.roomId)] ?? 0;
+        return unread > 0 ? total + 1 : total;
+      }, 0),
+    [directItems, roomUnreadCounts],
+  );
 
   const filteredDirectItems = useMemo(() => {
     if (!normalizedSearchQuery) return directItems;
@@ -459,8 +473,10 @@ export function Sidebar({
 
           <div className={styles.privateHeader}>
             <span className={styles.privateTitle}>Личные сообщения</span>
-            {unreadDialogsCount > 0 && (
-              <span className={styles.privateBadge}>{unreadDialogsCount}</span>
+            {Math.max(unreadDialogsCount, pushedDirectUnreadDialogsCount) > 0 && (
+              <span className={styles.privateBadge}>
+                {Math.max(unreadDialogsCount, pushedDirectUnreadDialogsCount)}
+              </span>
             )}
           </div>
 
@@ -484,7 +500,10 @@ export function Sidebar({
                 const isPeerOnline = onlineUsernames.has(
                   normalizeActorRef(peerRef),
                 );
-                const unread = unreadCounts[String(item.roomId)] ?? 0;
+                const unread =
+                  unreadCounts[String(item.roomId)] ??
+                  roomUnreadCounts[String(item.roomId)] ??
+                  0;
 
                 return (
                   <li key={item.roomId} className={styles.dmItem}>

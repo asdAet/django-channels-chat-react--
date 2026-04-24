@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Devil UML</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #111418;
+        --panel: #1a1f26;
+        --border: #2c3440;
+        --text: #ecf2f8;
+        --muted: #a9b5c3;
+        --link: #7cc4ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 32px;
+      }
+
+      p {
+        margin: 0 0 24px;
+        color: var(--muted);
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 0 0 24px;
+      }
+
+      nav a {
+        color: var(--link);
+        text-decoration: none;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        border-radius: 6px;
+      }
+
+      section {
+        margin: 0 0 28px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        border-radius: 6px;
+      }
+
+      h2 {
+        margin: 0 0 8px;
+        font-size: 22px;
+      }
+
+      .meta {
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .meta a {
+        color: var(--link);
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Devil UML</h1>
+      <p>Готовые визуальные UML-диаграммы проекта в формате SVG.</p>
+
+      <nav>
+        <a href="#backend-architecture">Архитектура бэкенда</a>
+        <a href="#backend-domain-model">Обзор доменов</a>
+        <a href="#backend-domain-access">Пользователи и доступ</a>
+        <a href="#backend-domain-messaging">Сообщения</a>
+        <a href="#backend-domain-groups-audit">Группы и аудит</a>
+        <a href="#frontend-architecture">Архитектура фронтенда</a>
+        <a href="#use-cases">Варианты использования</a>
+        <a href="#state-chat-session">Состояния чата</a>
+        <a href="#state-message-lifecycle">Состояния сообщения</a>
+      </nav>
+
+      <section id="backend-architecture">
+        <h2>Архитектура бэкенда</h2>
+        <div class="meta">
+          <a href="./rendered/backend-architecture.svg">Открыть SVG</a> |
+          <a href="./backend-architecture.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/backend-architecture.svg"
+          alt="Архитектура бэкенда"
+        />
+      </section>
+
+      <section id="backend-domain-model">
+        <h2>Обзор доменов бэкенда</h2>
+        <div class="meta">
+          <a href="./rendered/backend-domain-model.svg">Открыть SVG</a> |
+          <a href="./backend-domain-model.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/backend-domain-model.svg"
+          alt="Обзор доменов бэкенда"
+        />
+      </section>
+
+      <section id="backend-domain-access">
+        <h2>Пользователи и доступ</h2>
+        <div class="meta">
+          <a href="./rendered/backend-domain-access.svg">Открыть SVG</a> |
+          <a href="./backend-domain-access.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/backend-domain-access.svg"
+          alt="Пользователи и доступ"
+        />
+      </section>
+
+      <section id="backend-domain-messaging">
+        <h2>Сообщения и чтение</h2>
+        <div class="meta">
+          <a href="./rendered/backend-domain-messaging.svg">Открыть SVG</a> |
+          <a href="./backend-domain-messaging.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/backend-domain-messaging.svg"
+          alt="Сообщения и чтение"
+        />
+      </section>
+
+      <section id="backend-domain-groups-audit">
+        <h2>Группы и аудит</h2>
+        <div class="meta">
+          <a href="./rendered/backend-domain-groups-audit.svg">Открыть SVG</a> |
+          <a href="./backend-domain-groups-audit.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/backend-domain-groups-audit.svg"
+          alt="Группы и аудит"
+        />
+      </section>
+
+      <section id="frontend-architecture">
+        <h2>Архитектура фронтенда</h2>
+        <div class="meta">
+          <a href="./rendered/frontend-architecture.svg">Открыть SVG</a> |
+          <a href="./frontend-architecture.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/frontend-architecture.svg"
+          alt="Архитектура фронтенда"
+        />
+      </section>
+
+      <section id="use-cases">
+        <h2>Варианты использования</h2>
+        <div class="meta">
+          <a href="./rendered/use-cases.svg">Открыть SVG</a> |
+          <a href="./use-cases.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/use-cases.svg"
+          alt="Диаграмма вариантов использования"
+        />
+      </section>
+
+      <section id="state-chat-session">
+        <h2>Состояния сессии чата</h2>
+        <div class="meta">
+          <a href="./rendered/state-chat-session.svg">Открыть SVG</a> |
+          <a href="./state-chat-session.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/state-chat-session.svg"
+          alt="Состояния сессии чата"
+        />
+      </section>
+
+      <section id="state-message-lifecycle">
+        <h2>Состояния сообщения</h2>
+        <div class="meta">
+          <a href="./rendered/state-message-lifecycle.svg">Открыть SVG</a> |
+          <a href="./state-message-lifecycle.puml">Открыть исходник</a>
+        </div>
+        <img
+          src="./rendered/state-message-lifecycle.svg"
+          alt="Состояния сообщения"
+        />
+      </section>
+    </main>
+  </body>
+</html>

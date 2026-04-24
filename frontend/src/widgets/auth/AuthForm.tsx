@@ -1,16 +1,13 @@
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { Button, Card, Toast } from "../../shared/ui";
 import styles from "./AuthForm.module.css";
 
-/**
- * Описывает структуру данных `AuthMode`.
- */
 type AuthMode = "login" | "register";
 
 /**
- * Описывает структуру данных `LoginSubmitPayload`.
+ * Полезная нагрузка формы входа.
  */
 export type LoginSubmitPayload = {
   identifier: string;
@@ -18,7 +15,7 @@ export type LoginSubmitPayload = {
 };
 
 /**
- * Описывает структуру данных `RegisterSubmitPayload`.
+ * Полезная нагрузка формы регистрации.
  */
 export type RegisterSubmitPayload = {
   login: string;
@@ -30,7 +27,18 @@ export type RegisterSubmitPayload = {
 };
 
 /**
- * Описывает входные props компонента `AuthForm`.
+ * Контракт auth-формы для экранов входа и регистрации.
+ *
+ * @property mode Режим формы: вход или регистрация.
+ * @property title Короткий заголовок карточки.
+ * @property submitLabel Подпись основной кнопки действия.
+ * @property onSubmit Единый обработчик отправки формы.
+ * @property onGoogleAuth Запускает вход через Google через redirect-сценарий.
+ * @property googleAuthDisabledReason Сообщение, почему Google-вход сейчас отключен.
+ * @property onNavigate Переход между `/login` и `/register`.
+ * @property error Текст auth-ошибки, который нужно показать пользователю.
+ * @property passwordRules Список правил пароля для экрана регистрации.
+ * @property className Дополнительный CSS-класс контейнера.
  */
 type AuthFormProps = {
   mode: AuthMode;
@@ -46,9 +54,14 @@ type AuthFormProps = {
 };
 
 /**
- * Компонент AuthForm рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
+ * Рендерит auth-форму и связывает поля ввода с auth-сценарием верхнего уровня.
  *
- * @param props Свойства компонента.
+ * Google-вход здесь намеренно не использует popup. Кнопка запускает
+ * server-side redirect flow: браузер уходит на backend endpoint, backend сам
+ * завершает Google OAuth и затем возвращает пользователя обратно уже с готовой
+ * серверной сессией.
+ *
+ * @param props Настройки экрана входа или регистрации.
  */
 export function AuthForm({
   mode,
@@ -65,65 +78,65 @@ export function AuthForm({
   const [identifier, setIdentifier] = useState("");
   const [login, setLogin] = useState("");
   const [name, setName] = useState("");
-  // const [username, setUsername] = useState("");
-  // const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [googleAuthPending, setGoogleAuthPending] = useState(false);
 
   const isRegister = mode === "register";
+  const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
+  const shouldRenderGoogleAuth =
+    Boolean(onGoogleAuth) || Boolean(googleAuthDisabledReason);
 
   const canSubmit = useMemo(() => {
     if (isRegister) {
       return Boolean(login.trim() && name.trim() && password && confirm);
     }
+
     return Boolean(identifier.trim() && password);
   }, [confirm, identifier, isRegister, login, name, password]);
 
   /**
-   * Обрабатывает handle submit.
-   * @param event Событие браузера.
+   * Отправляет данные формы в родительский auth-сценарий.
+   *
+   * @param event Браузерное событие `submit`.
    */
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      return;
+    }
 
     if (isRegister) {
-      const payload: RegisterSubmitPayload = {
+      onSubmit({
         login: login.trim(),
         password,
         passwordConfirm: confirm,
         name: name.trim(),
-        // username: username.trim() || undefined,
-        // email: email.trim() || undefined,
-      };
-      onSubmit(payload);
+      });
       return;
     }
 
-    const payload: LoginSubmitPayload = {
+    onSubmit({
       identifier: identifier.trim(),
       password,
-    };
-    onSubmit(payload);
+    });
   };
 
-  const canUseGoogleAuth = Boolean(onGoogleAuth) && !googleAuthDisabledReason;
-  const shouldRenderGoogleAuth =
-    Boolean(onGoogleAuth) || Boolean(googleAuthDisabledReason);
-
   /**
-   * Обрабатывает handle google auth.
+   * Запускает redirect-flow для входа через Google.
    */
-  const handleGoogleAuth = async () => {
-    if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) return;
+  const handleGoogleAuth = useCallback(async () => {
+    if (!onGoogleAuth || !canUseGoogleAuth || googleAuthPending) {
+      return;
+    }
+
     setGoogleAuthPending(true);
     try {
       await onGoogleAuth();
     } finally {
       setGoogleAuthPending(false);
     }
-  };
+  }, [canUseGoogleAuth, googleAuthPending, onGoogleAuth]);
 
   return (
     <div className={[styles.auth, className].filter(Boolean).join(" ")}>
@@ -135,6 +148,7 @@ export function AuthForm({
             {error}
           </Toast>
         )}
+
         <form className={styles.form} onSubmit={handleSubmit}>
           {isRegister ? (
             <>
@@ -159,28 +173,6 @@ export function AuthForm({
                   onChange={(event) => setLogin(event.target.value)}
                 />
               </label>
-
-              {/* <label className={styles.field}>
-                <span>Username (опционально)</span>
-                <input
-                  type="text"
-                  data-testid="auth-username-input"
-                  autoComplete="off"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                />
-              </label> */}
-
-              {/* <label className={styles.field}>
-                <span>Email (опционально)</span>
-                <input
-                  type="email"
-                  data-testid="auth-email-input"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </label> */}
             </>
           ) : (
             <label className={styles.field}>
@@ -255,6 +247,7 @@ export function AuthForm({
                 ? "Подключение к Google..."
                 : "Продолжить с Google"}
             </Button>
+
             {googleAuthDisabledReason && (
               <p className={styles.oauthHint}>{googleAuthDisabledReason}</p>
             )}

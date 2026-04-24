@@ -1,9 +1,11 @@
 import {
+  type ClipboardEvent as ReactClipboardEvent,
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -14,7 +16,20 @@ import type {
   ReplyTo,
 } from "../../entities/message/types";
 import { useChatAttachmentMaxPerMessage } from "../../shared/config/limits";
-import { isVideoAttachment } from "../../shared/lib/attachmentMedia";
+import {
+  type CustomEmoji,
+  CustomEmojiNode,
+  getSelectedCustomEmojiNodeIndexes,
+  getSingleCustomEmojiOnly,
+  parseCustomEmojiText,
+  serializeCustomEmojiSelection,
+  writeCustomEmojiClipboardContent,
+  writeCustomEmojiClipboardData,
+} from "../../shared/customEmoji";
+import {
+  isVideoAttachment,
+  resolveResponsiveImageSource,
+} from "../../shared/lib/attachmentMedia";
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
 import { useDevice } from "../../shared/lib/device";
 import { formatTimestamp } from "../../shared/lib/format";
@@ -30,11 +45,11 @@ import {
 import styles from "../../styles/chat/MessageBubble.module.css";
 import {
   buildAttachmentRenderItems,
-  resolveImageAspectRatio,
-  resolveMediaGridVariant,
-  resolveMediaTilePlacement,
+  buildMediaTileLayout,
   splitAttachmentRenderItems,
 } from "./lib/attachmentLayout";
+import { TelegramEmojiPicker } from "./TelegramEmojiPicker";
+import { VideoAttachmentPreview } from "./VideoAttachmentPreview";
 
 /**
  * Описывает входные props компонента `Props`.
@@ -83,36 +98,41 @@ type LightboxMediaMetadata = {
  */
 type LightboxMediaItem = {
   src: string;
+  previewSrc?: string | null;
+  downloadUrl?: string | null;
   kind: LightboxMediaKind;
   alt?: string;
   metadata: LightboxMediaMetadata;
 };
 
 /**
- * Константа `QUICK_REACTIONS` хранит используемое в модуле значение.
- */
-const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "👎", "🔥", "🎉", "😢"];
-/**
  * Форматирует размер файла для отображения рядом с вложением.
  * @param bytes Размер файла в байтах.
  * @returns Строка в отформатированном виде.
  */
 
+const IconEmoji = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+    <line x1="9" y1="9" x2="9.01" y2="9" />
+    <line x1="15" y1="9" x2="15.01" y2="9" />
+  </svg>
+);
+
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-const formatMediaDuration = (totalSeconds: number): string => {
-  const seconds = Math.max(0, Math.floor(totalSeconds));
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainSeconds = seconds % 60;
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainSeconds).padStart(2, "0")}`;
-  }
-  return `${minutes}:${String(remainSeconds).padStart(2, "0")}`;
 };
 
 /**
@@ -138,13 +158,6 @@ const isAudioType = (ct: string) => ct.startsWith("audio/");
 
 const normalizeActorRef = (value: string) =>
   normalizePublicRef(value).toLowerCase();
-const MEDIA_GRID_VARIANT_CLASS_MAP = {
-  single: styles.mediaGridSingle,
-  two: styles.mediaGridTwo,
-  three: styles.mediaGridThree,
-  four: styles.mediaGridFour,
-  many: styles.mediaGridMany,
-} as const;
 
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
@@ -159,6 +172,113 @@ const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(MOBILE_MENU_IGNORE_SELECTOR));
 };
+
+const areSetsEqual = (first: Set<number>, second: Set<number>) => {
+  if (first.size !== second.size) {
+    return false;
+  }
+
+  for (const value of first) {
+    if (!second.has(value)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+function MessageContent({ content }: { content: string }) {
+  const contentRef = useRef<HTMLParagraphElement>(null);
+  const parts = parseCustomEmojiText(content);
+  const singleEmoji = getSingleCustomEmojiOnly(content);
+  const [selectedEmojiIndexes, setSelectedEmojiIndexes] = useState<Set<number>>(
+    () => new Set(),
+  );
+
+  const updateSelectedEmojiIndexes = useCallback(() => {
+    const root = contentRef.current;
+    const nextIndexes = root
+      ? getSelectedCustomEmojiNodeIndexes(root)
+      : new Set<number>();
+
+    setSelectedEmojiIndexes((currentIndexes) =>
+      areSetsEqual(currentIndexes, nextIndexes) ? currentIndexes : nextIndexes,
+    );
+  }, []);
+
+  useEffect(() => {
+    const ownerDocument = contentRef.current?.ownerDocument ?? document;
+
+    ownerDocument.addEventListener(
+      "selectionchange",
+      updateSelectedEmojiIndexes,
+    );
+    return () => {
+      ownerDocument.removeEventListener(
+        "selectionchange",
+        updateSelectedEmojiIndexes,
+      );
+    };
+  }, [updateSelectedEmojiIndexes]);
+
+  const handleCopy = useCallback(
+    (event: ReactClipboardEvent<HTMLParagraphElement>) => {
+      const selectedContent = serializeCustomEmojiSelection(
+        event.currentTarget,
+      );
+      if (!selectedContent) {
+        return;
+      }
+
+      event.preventDefault();
+      writeCustomEmojiClipboardData(event.clipboardData, selectedContent);
+    },
+    [],
+  );
+
+  const emojiIndexByPartIndex = new Map(
+    parts
+      .map((part, index) => ({ index, part }))
+      .filter(({ part }) => part.type === "emoji")
+      .map(({ index }, emojiIndex) => [index, emojiIndex] as const),
+  );
+
+  return (
+    <p
+      ref={contentRef}
+      className={[
+        styles.content,
+        singleEmoji ? styles.customEmojiOnlyContent : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onCopy={handleCopy}
+    >
+      {parts.map((part, index) => {
+        if (part.type === "text") {
+          return <span key={`text-${index}`}>{part.value}</span>;
+        }
+
+        const emojiIndex = emojiIndexByPartIndex.get(index) ?? -1;
+        const emojiSelected = selectedEmojiIndexes.has(emojiIndex);
+
+        return (
+          <CustomEmojiNode
+            key={`${part.value.id}-${index}`}
+            emoji={part.value}
+            size={singleEmoji ? 72 : 26}
+            className={[
+              singleEmoji ? styles.customEmojiLarge : styles.customEmojiInline,
+              emojiSelected ? styles.customEmojiSelected : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          />
+        );
+      })}
+    </p>
+  );
+}
 /**
  * Компонент ReplyQuote рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
  */
@@ -202,6 +322,9 @@ function ReactionChip({
   reaction: ReactionSummary;
   onToggle: () => void;
 }) {
+  const customEmoji = getSingleCustomEmojiOnly(reaction.emoji);
+  const reactionLabel = customEmoji?.label ?? reaction.emoji;
+
   return (
     <button
       type="button"
@@ -209,9 +332,19 @@ function ReactionChip({
         .filter(Boolean)
         .join(" ")}
       onClick={onToggle}
-      aria-label={`${reaction.emoji} ${reaction.count}`}
+      aria-label={`${reactionLabel} ${reaction.count}`}
     >
-      <span>{reaction.emoji}</span>
+      <span className={styles.reactionGlyph}>
+        {customEmoji ? (
+          <CustomEmojiNode
+            emoji={customEmoji}
+            size={22}
+            className={styles.reactionCustomEmoji}
+          />
+        ) : (
+          reaction.emoji
+        )}
+      </span>
       <span className={styles.reactionCount}>{reaction.count}</span>
     </button>
   );
@@ -250,44 +383,6 @@ function CheckMark({ isRead }: { isRead: boolean }) {
   );
 }
 /**
- * Компонент EmojiPicker рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- */
-function EmojiPicker({
-  onPick,
-  onClose,
-}: {
-  onPick: (emoji: string) => void;
-  onClose: () => void;
-}) {
-  return (
-    <>
-      <div
-        className={styles.emojiBackdrop}
-        onClick={onClose}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onClose();
-        }}
-      />
-      <div className={styles.emojiPicker} onClick={(e) => e.stopPropagation()}>
-        {QUICK_REACTIONS.map((emoji) => (
-          <button
-            key={emoji}
-            type="button"
-            className={styles.emojiBtn}
-            onClick={() => {
-              onPick(emoji);
-              onClose();
-            }}
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
-    </>
-  );
-}
-/**
  * Компонент MessageBubble рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
  */
 export function MessageBubble({
@@ -319,9 +414,6 @@ export function MessageBubble({
   const [lightboxOpenIndex, setLightboxOpenIndex] = useState<number | null>(
     null,
   );
-  const [videoDurations, setVideoDurations] = useState<Record<number, string>>(
-    {},
-  );
   const lastTouchTapTsRef = useRef<number>(0);
   const lastRightMouseDownTsRef = useRef<number>(0);
 
@@ -351,6 +443,10 @@ export function MessageBubble({
     (emoji: string) => onReact?.(message.id, emoji),
     [message.id, onReact],
   );
+  const handleCustomReactionSelect = useCallback(
+    (emoji: CustomEmoji) => handleReact(emoji.token),
+    [handleReact],
+  );
 
   /**
    * Собирает метаданные вложения для отображения в просмотрщике.
@@ -369,29 +465,6 @@ export function MessageBubble({
       height: attachment.height,
     }),
     [message.createdAt],
-  );
-
-  /**
-   * Запоминает длительность видео, чтобы отобразить ее на превью.
-   *
-   * @param attachmentId Идентификатор вложения.
-   * @param durationSeconds Длительность видео в секундах.
-   */
-  const rememberVideoDuration = useCallback(
-    (attachmentId: number, durationSeconds: number) => {
-      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) return;
-      const nextDuration = formatMediaDuration(durationSeconds);
-      setVideoDurations((prev) => {
-        if (prev[attachmentId] === nextDuration) {
-          return prev;
-        }
-        return {
-          ...prev,
-          [attachmentId]: nextDuration,
-        };
-      });
-    },
-    [],
   );
 
   const handleContextMenu = useCallback(
@@ -514,13 +587,13 @@ export function MessageBubble({
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
           </svg>
         ),
-        onClick: () => void navigator.clipboard.writeText(messageText),
+        onClick: () => void writeCustomEmojiClipboardContent(messageText),
       });
     }
 
     contextMenuItems.push({
       label: "Реакция",
-      icon: <span style={{ fontSize: 14 }}>{"👍"}</span>,
+      icon: <IconEmoji />,
       disabled: !onReact,
       onClick: () => {
         if (!onReact) return;
@@ -547,7 +620,8 @@ export function MessageBubble({
           </svg>
         ),
         disabled: !onViewReaders,
-        onClick: () => onViewReaders?.(message, contextMenu ?? { x: 12, y: 12 }),
+        onClick: () =>
+          onViewReaders?.(message, contextMenu ?? { x: 12, y: 12 }),
       });
     }
 
@@ -616,15 +690,21 @@ export function MessageBubble({
       });
     }
   }
-  const isDeleted = message.isDeleted;
-  const authorLabel = resolveIdentityLabel(message);
   const maxVisibleImageAttachments = useChatAttachmentMaxPerMessage();
+  if (message.isDeleted) {
+    return null;
+  }
+
+  const authorLabel = resolveIdentityLabel(message);
+  const isCustomEmojiOnlyMessage =
+    Boolean(getSingleCustomEmojiOnly(message.content)) &&
+    message.attachments.length === 0 &&
+    !message.replyTo;
   const attachmentItems = buildAttachmentRenderItems(message.attachments);
   const attachmentBuckets = splitAttachmentRenderItems(
     attachmentItems,
     maxVisibleImageAttachments,
   );
-  const showFooterInfo = !isDeleted;
   const lightboxMediaItems: LightboxMediaItem[] = attachmentItems.flatMap(
     (item) => {
       const { attachment } = item;
@@ -641,6 +721,8 @@ export function MessageBubble({
       return [
         {
           src: attachment.url,
+          previewSrc: attachment.thumbnailUrl,
+          downloadUrl: attachment.url,
           kind: isVideo ? "video" : "image",
           alt: attachment.originalFilename,
           metadata: buildLightboxMetadata(attachment),
@@ -669,7 +751,6 @@ export function MessageBubble({
           styles.message,
           isOwn ? styles.messageOwn : "",
           grouped ? styles.messageGrouped : "",
-          isDeleted ? styles.deleted : "",
           highlighted ? styles.highlighted : "",
         ]
           .filter(Boolean)
@@ -716,82 +797,95 @@ export function MessageBubble({
             />
           )}
 
-          <div className={styles.bubble}>
+          <div
+            className={[
+              styles.bubble,
+              isCustomEmojiOnlyMessage ? styles.customEmojiOnlyBubble : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
             {showHeader && (
               <div className={styles.meta}>
-                <span className={styles.username}>
-                  {authorLabel}
-                </span>
+                <span className={styles.username}>{authorLabel}</span>
               </div>
             )}
 
-            {isDeleted ? (
-              <p className={styles.deletedContent}>Сообщение удалено</p>
-            ) : (
-              <>
-                {message.content && (
-                  <p className={styles.content}>{message.content}</p>
-                )}
-              </>
-            )}
+            {message.content && <MessageContent content={message.content} />}
 
-            {!isDeleted && message.attachments.length > 0 && (
+            {message.attachments.length > 0 && (
               <div className={styles.attachments}>
                 {attachmentBuckets.imageGroups.map((imageGroup, groupIndex) => {
-                  const mediaGridVariant = resolveMediaGridVariant(
-                    imageGroup.length,
-                  );
-                  const mediaGridVariantClass =
-                    MEDIA_GRID_VARIANT_CLASS_MAP[mediaGridVariant];
+                  const mediaLayout = buildMediaTileLayout(imageGroup);
+                  const isSingleTile = imageGroup.length === 1;
 
                   return (
                     <div
                       key={`media-group-${message.id}-${groupIndex}`}
-                      className={[styles.mediaGrid, mediaGridVariantClass]
-                        .filter(Boolean)
-                        .join(" ")}
+                      className={styles.mediaCollage}
                       data-testid="message-media-grid"
                       data-count={imageGroup.length}
+                      style={
+                        {
+                          aspectRatio:
+                            mediaLayout.containerAspectRatio.toFixed(4),
+                        } satisfies CSSProperties
+                      }
                     >
-                      {imageGroup.map(({ attachment, imageSrc }, index) => {
-                        const isSingleTile = imageGroup.length === 1;
-                        const tilePlacement = resolveMediaTilePlacement(
-                          imageGroup.length,
-                          index,
-                        );
-                        const tileStyle = isSingleTile
-                          ? ({
-                              aspectRatio:
-                                resolveImageAspectRatio(attachment).toString(),
-                            } satisfies CSSProperties)
-                          : tilePlacement.gridColumn
-                            ? ({
-                                gridColumn: tilePlacement.gridColumn,
-                              } satisfies CSSProperties)
-                            : undefined;
+                      {mediaLayout.items.map((item) => {
+                        const tileImageSource = resolveResponsiveImageSource({
+                          url: item.attachment.url,
+                          thumbnailUrl: item.attachment.thumbnailUrl,
+                          contentType: item.attachment.contentType,
+                          fileName: item.attachment.originalFilename,
+                          expectedWidthPx: (420 * item.widthPercent) / 100,
+                        });
 
                         return (
                           <button
-                            key={attachment.id}
+                            key={item.attachment.id}
                             type="button"
-                            className={styles.mediaTile}
+                            className={[
+                              styles.mediaTile,
+                              styles.mediaTileAbsolute,
+                              isSingleTile
+                                ? styles.mediaTileSingle
+                                : styles.mediaTileGrouped,
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
                             data-message-menu-ignore="true"
-                            style={tileStyle}
-                            onClick={() =>
-                              openLightboxByAttachmentId(attachment.id)
+                            style={
+                              {
+                                left: `${item.leftPercent.toFixed(4)}%`,
+                                top: `${item.topPercent.toFixed(4)}%`,
+                                width: `${item.widthPercent.toFixed(4)}%`,
+                                height: `${item.heightPercent.toFixed(4)}%`,
+                              } satisfies CSSProperties
                             }
-                            aria-label={`Открыть изображение ${attachment.originalFilename}`}
+                            onClick={() =>
+                              openLightboxByAttachmentId(item.attachment.id)
+                            }
+                            aria-label={`Открыть изображение ${item.attachment.originalFilename}`}
                           >
                             <img
-                              src={imageSrc}
-                              alt={attachment.originalFilename}
+                              src={tileImageSource.src ?? item.imageSrc}
+                              srcSet={tileImageSource.srcSet}
+                              sizes={tileImageSource.sizes}
+                              alt={item.attachment.originalFilename}
+                              width={item.attachment.width ?? undefined}
+                              height={item.attachment.height ?? undefined}
                               className={[
                                 styles.attachImage,
-                                isSingleTile ? styles.attachImageSingle : "",
+                                isSingleTile
+                                  ? styles.attachImageSingle
+                                  : styles.attachImageGrouped,
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
                               loading="lazy"
+                              decoding="async"
+                              draggable={false}
                             />
                           </button>
                         );
@@ -808,46 +902,11 @@ export function MessageBubble({
                         att.url
                       ) {
                         return (
-                          <button
+                          <VideoAttachmentPreview
                             key={att.id}
-                            type="button"
-                            className={styles.videoPreviewTile}
-                            data-message-menu-ignore="true"
-                            onClick={() => openLightboxByAttachmentId(att.id)}
-                            aria-label={`Открыть видео ${att.originalFilename}`}
-                          >
-                            <video
-                              src={att.url}
-                              preload="metadata"
-                              muted
-                              playsInline
-                              poster={att.thumbnailUrl ?? undefined}
-                              className={styles.attachVideoPreview}
-                              onLoadedMetadata={(event) =>
-                                rememberVideoDuration(
-                                  att.id,
-                                  event.currentTarget.duration,
-                                )
-                              }
-                            >
-                              <track kind="captions" />
-                            </video>
-                            <span className={styles.videoPreviewPlayIcon}>
-                              <svg
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                              >
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </span>
-                            {videoDurations[att.id] && (
-                              <span className={styles.videoPreviewDuration}>
-                                {videoDurations[att.id]}
-                              </span>
-                            )}
-                          </button>
+                            attachment={att}
+                            onOpen={() => openLightboxByAttachmentId(att.id)}
+                          />
                         );
                       }
                       if (isAudioType(att.contentType) && att.url) {
@@ -942,20 +1001,18 @@ export function MessageBubble({
               </div>
             )}
 
-            {showFooterInfo && (
-              <div className={styles.footerInfo}>
-                {message.editedAt && (
-                  <span className={styles.editedTag}>ред.</span>
-                )}
-                <span className={styles.time}>
-                  {formatTimestamp(message.createdAt)}
-                </span>
-                {isOwn && <CheckMark isRead={isRead} />}
-              </div>
-            )}
+            <div className={styles.footerInfo}>
+              {message.editedAt && (
+                <span className={styles.editedTag}>ред.</span>
+              )}
+              <span className={styles.time}>
+                {formatTimestamp(message.createdAt)}
+              </span>
+              {isOwn && <CheckMark isRead={isRead} />}
+            </div>
           </div>
 
-          {!isDeleted && message.reactions.length > 0 && (
+          {message.reactions.length > 0 && (
             <div className={styles.reactions}>
               {message.reactions.map((r) => (
                 <ReactionChip
@@ -978,26 +1035,21 @@ export function MessageBubble({
         />
       )}
       {emojiPickerOpen && (
-        <EmojiPicker
-          onPick={handleReact}
+        <TelegramEmojiPicker
+          placement="overlay"
+          onSelect={handleCustomReactionSelect}
           onClose={() => setEmojiPickerOpen(false)}
         />
       )}
       {!onOpenMediaAttachment &&
         lightboxOpenIndex !== null &&
         lightboxMediaItems.length > 0 && (
-        <ImageLightbox
-          mediaItems={lightboxMediaItems}
-          initialIndex={lightboxOpenIndex}
-          onClose={() => setLightboxOpenIndex(null)}
-        />
+          <ImageLightbox
+            mediaItems={lightboxMediaItems}
+            initialIndex={lightboxOpenIndex}
+            onClose={() => setLightboxOpenIndex(null)}
+          />
         )}
     </>
   );
 }
-
-
-
-
-
-

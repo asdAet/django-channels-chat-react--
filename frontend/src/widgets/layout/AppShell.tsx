@@ -42,7 +42,7 @@ const resolveMobileTitle = (pathname: string): string => {
   if (pathname.startsWith("/invite/")) return "Приглашение";
   if (pathname === "/public") return "Публичный чат";
   if (isPrefixlessChatPath(pathname)) return "Чат";
-  return "Devils Resting";
+  return "Devil";
 };
 
 /**

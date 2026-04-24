@@ -1,7 +1,7 @@
 """Содержит тесты модуля `test_health` подсистемы `chat`."""
 
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 
 class HealthApiTests(TestCase):
@@ -23,3 +23,16 @@ class HealthApiTests(TestCase):
         self.assertEqual(payload['check'], 'ready')
         self.assertEqual(payload['components']['database'], 'ok')
         self.assertEqual(payload['components']['cache'], 'ok')
+
+    @override_settings(SECURE_SSL_REDIRECT=True)
+    def test_health_endpoints_bypass_secure_ssl_redirect(self):
+        live_response = self.client.get('/api/health/live/')
+        ready_response = self.client.get('/api/health/ready/')
+
+        self.assertEqual(live_response.status_code, 200)
+        self.assertEqual(ready_response.status_code, 200)
+
+    def test_live_health_endpoint_accepts_internal_nginx_host(self):
+        response = self.client.get('/api/health/live/', HTTP_HOST='nginx')
+
+        self.assertEqual(response.status_code, 200)

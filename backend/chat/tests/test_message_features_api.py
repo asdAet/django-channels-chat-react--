@@ -4,18 +4,21 @@ from __future__ import annotations
 
 from datetime import timedelta
 import json
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
+from contextlib import AbstractContextManager
+from typing import Any, cast
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import OperationalError
+from django.http import HttpResponse
 from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
 from chat import api, attachment_uploads
 from chat.services import MessageForbiddenError
 from chat.tests.media_utils import workspace_media_root
+from chat.unread_push import build_room_unread_state
 from messages.models import (
     Message,
     MessageAttachment,
@@ -27,14 +30,29 @@ from messages.models import (
 from roles.models import Membership
 from rooms.models import Room
 from rooms.services import ensure_membership
+from testsupport.files import require_stored_file_name
+from testsupport.users import typed_user_model
 from users.identity import ensure_user_identity_core, set_room_public_handle, set_user_public_handle
 
-User = get_user_model()
+User = typed_user_model()
+
+
+def _capture_on_commit_callbacks(test_case: TestCase, *, execute: bool) -> AbstractContextManager[list[object]]:
+    callback_capture = cast(Any, test_case).captureOnCommitCallbacks
+    return cast(AbstractContextManager[list[object]], callback_capture(execute=execute))
+
+
+def _attachment_file_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.file, field_name="attachment.file")
+
+
+def _attachment_thumbnail_name(attachment: MessageAttachment) -> str:
+    return require_stored_file_name(attachment.thumbnail, field_name="attachment.thumbnail")
 
 
 class ChatMessageFeatureApiTests(TestCase):
     def setUp(self):
-        self.client = Client()
+        self.client: Any = Client()
         self.owner = User.objects.create_user(username="owner_feat", password="pass12345")
         self.peer = User.objects.create_user(username="peer_feat", password="pass12345")
         self.outsider = User.objects.create_user(username="outsider_feat", password="pass12345")
@@ -61,7 +79,7 @@ class ChatMessageFeatureApiTests(TestCase):
         filename: str,
         content_type: str,
         file_size: int,
-        client: Client | None = None,
+        client: Any | None = None,
     ):
         active_client = client or self.client
         return active_client.post(
@@ -83,10 +101,10 @@ class ChatMessageFeatureApiTests(TestCase):
         upload_id: str,
         content: bytes,
         chunk_size: int,
-        client: Client | None = None,
-    ):
+        client: Any | None = None,
+    ) -> Any | None:
         active_client = client or self.client
-        last_response = None
+        last_response: HttpResponse | None = None
         offset = 0
         while offset < len(content):
             chunk = content[offset : offset + chunk_size]
@@ -105,7 +123,7 @@ class ChatMessageFeatureApiTests(TestCase):
         filename: str,
         content: bytes,
         content_type: str,
-        client: Client | None = None,
+        client: Any | None = None,
     ) -> str:
         session_response = self._create_attachment_upload_session(
             room_id,
@@ -127,7 +145,7 @@ class ChatMessageFeatureApiTests(TestCase):
                 chunk_size=chunk_size,
                 client=client,
             )
-            self.assertIsNotNone(chunk_response)
+            assert chunk_response is not None
             self.assertEqual(chunk_response.status_code, 200)
             self.assertEqual(chunk_response.json()["receivedBytes"], len(content))
             self.assertEqual(chunk_response.json()["status"], "complete")
@@ -141,7 +159,7 @@ class ChatMessageFeatureApiTests(TestCase):
         upload_ids: list[str],
         message_content: str = "",
         reply_to: int | None = None,
-        client: Client | None = None,
+        client: Any | None = None,
     ):
         active_client = client or self.client
         return active_client.post(
@@ -163,7 +181,7 @@ class ChatMessageFeatureApiTests(TestCase):
         *,
         message_content: str = "",
         reply_to: int | None = None,
-        client: Client | None = None,
+        client: Any | None = None,
     ):
         upload_ids = [
             self._complete_attachment_upload(
@@ -635,7 +653,7 @@ class ChatMessageFeatureApiTests(TestCase):
                 "open",
                 wraps=attachment_uploads.default_storage.open,
             ) as storage_open:
-                with self.captureOnCommitCallbacks(execute=True):
+                with _capture_on_commit_callbacks(self, execute=True):
                     response = self._finalize_attachment_uploads(
                         self.direct_room.pk,
                         upload_ids=[upload_id],
@@ -1039,8 +1057,8 @@ class ChatMessageFeatureApiTests(TestCase):
             )
             file_storage = attachment.file.storage
             thumb_storage = attachment.thumbnail.storage
-            file_name = attachment.file.name
-            thumb_name = attachment.thumbnail.name
+            file_name = _attachment_file_name(attachment)
+            thumb_name = _attachment_thumbnail_name(attachment)
 
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))
@@ -1092,6 +1110,120 @@ class ChatMessageFeatureApiTests(TestCase):
             Reaction.objects.filter(message=message, user=self.peer, emoji="👍").exists()
         )
 
+    def test_message_reactions_accept_custom_emoji_token(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="custom reaction",
+        )
+        custom_emoji = "[[ce:Animated%2F014_5371073319107827779.tgs]]"
+        self.assertGreater(len(custom_emoji), 32)
+        self.client.force_login(self.peer)
+
+        added = self.client.post(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            data=json.dumps({"emoji": custom_emoji}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(added.status_code, 200)
+        self.assertEqual(added.json()["emoji"], custom_emoji)
+        self.assertTrue(
+            Reaction.objects.filter(
+                message=message,
+                user=self.peer,
+                emoji=custom_emoji,
+            ).exists()
+        )
+
+        removed = self.client.delete(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/"
+            f"{quote(custom_emoji, safe='')}/"
+        )
+
+        self.assertEqual(removed.status_code, 204)
+        self.assertFalse(
+            Reaction.objects.filter(
+                message=message,
+                user=self.peer,
+                emoji=custom_emoji,
+            ).exists()
+        )
+
+    def test_message_reactions_are_idempotent_for_the_same_emoji(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="reaction idempotency",
+        )
+        self.client.force_login(self.peer)
+
+        with patch("chat.api._broadcast_to_room") as broadcast_mock:
+            first_add = self.client.post(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+                data=json.dumps({"emoji": "👍"}),
+                content_type="application/json",
+            )
+            second_add = self.client.post(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+                data=json.dumps({"emoji": "👍"}),
+                content_type="application/json",
+            )
+            first_remove = self.client.delete(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
+            )
+            second_remove = self.client.delete(
+                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
+            )
+
+        self.assertEqual(first_add.status_code, 200)
+        self.assertEqual(second_add.status_code, 200)
+        self.assertEqual(first_remove.status_code, 204)
+        self.assertEqual(second_remove.status_code, 204)
+        self.assertEqual(
+            Reaction.objects.filter(message=message, user=self.peer, emoji="👍").count(),
+            0,
+        )
+        self.assertEqual(broadcast_mock.call_count, 2)
+        self.assertEqual(broadcast_mock.call_args_list[0].args[1]["type"], "chat_reaction_add")
+        self.assertEqual(broadcast_mock.call_args_list[1].args[1]["type"], "chat_reaction_remove")
+
+    def test_message_reactions_allow_multiple_distinct_emojis_for_same_user(self):
+        message = Message.objects.create(
+            username=self.owner.username,
+            user=self.owner,
+            room=self.direct_room,
+            message_content="multiple reactions",
+        )
+        self.client.force_login(self.peer)
+
+        first_add = self.client.post(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            data=json.dumps({"emoji": "👍"}),
+            content_type="application/json",
+        )
+        second_add = self.client.post(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/",
+            data=json.dumps({"emoji": "😂"}),
+            content_type="application/json",
+        )
+        remove_first = self.client.delete(
+            f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/reactions/%F0%9F%91%8D/"
+        )
+
+        self.assertEqual(first_add.status_code, 200)
+        self.assertEqual(second_add.status_code, 200)
+        self.assertEqual(remove_first.status_code, 204)
+        self.assertFalse(
+            Reaction.objects.filter(message=message, user=self.peer, emoji="👍").exists()
+        )
+        self.assertTrue(
+            Reaction.objects.filter(message=message, user=self.peer, emoji="😂").exists()
+        )
+        self.assertEqual(Reaction.objects.filter(message=message, user=self.peer).count(), 1)
+
     def test_search_messages_handles_validation_and_pagination(self):
         first = Message.objects.create(
             username=self.peer.username,
@@ -1133,7 +1265,7 @@ class ChatMessageFeatureApiTests(TestCase):
         self.assertIn(first.pk, ids)
         self.assertNotIn(second.pk, ids)
 
-    def test_mark_read_validation_public_room_and_unread_counts(self):
+    def test_mark_read_validation_public_room_and_ws_unread_state(self):
         message = Message.objects.create(
             username=self.peer.username,
             user=self.peer,
@@ -1156,20 +1288,20 @@ class ChatMessageFeatureApiTests(TestCase):
         )
         self.assertEqual(negative_payload.status_code, 400)
 
-        unread_before = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_before.status_code, 200)
-        self.assertTrue(any(item["roomId"] == self.direct_room.pk for item in unread_before.json()["items"]))
+        unread_before = build_room_unread_state(self.owner)
+        self.assertIn(str(self.direct_room.pk), unread_before["counts"])
 
-        read_ok = self.client.post(
-            f"/api/chat/{self.direct_room.pk}/read/",
-            data=json.dumps({"lastReadMessageId": message.pk}),
-            content_type="application/json",
-        )
+        with patch("chat.api.broadcast_room_unread_state_for_user") as push_unread:
+            read_ok = self.client.post(
+                f"/api/chat/{self.direct_room.pk}/read/",
+                data=json.dumps({"lastReadMessageId": message.pk}),
+                content_type="application/json",
+            )
         self.assertEqual(read_ok.status_code, 200)
+        push_unread.assert_called_once_with(self.owner)
 
-        unread_after = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_after.status_code, 200)
-        self.assertFalse(any(item["roomId"] == self.direct_room.pk for item in unread_after.json()["items"]))
+        unread_after = build_room_unread_state(self.owner)
+        self.assertNotIn(str(self.direct_room.pk), unread_after["counts"])
 
         public_room = api._public_room()
         public_message = Message.objects.create(
@@ -1178,19 +1310,12 @@ class ChatMessageFeatureApiTests(TestCase):
             room=public_room,
             message_content="public unread",
         )
-        unread_public_before = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_public_before.status_code, 200)
-        self.assertTrue(
-            any(item["roomId"] == public_room.pk for item in unread_public_before.json()["items"])
-        )
-        public_short = self.client.post(
-            f"/api/chat/{public_room.pk}/read/",
-            data=json.dumps({"lastReadMessageId": public_message.pk}),
-            content_type="application/json",
-        )
-        self.assertEqual(public_short.status_code, 200)
-        self.assertEqual(public_short.json()["lastReadMessageId"], public_message.pk)
-        self.assertIsNotNone(public_short.json()["lastReadAt"])
+        unread_public_before = build_room_unread_state(self.owner)
+        self.assertNotIn(str(public_room.pk), unread_public_before["counts"])
+
+        public_details = self.client.get(f"/api/chat/{public_room.pk}/")
+        self.assertEqual(public_details.status_code, 200)
+        self.assertEqual(public_details.json()["lastReadMessageId"], public_message.pk)
         self.assertTrue(
             MessageReadState.objects.filter(
                 user=self.owner,
@@ -1199,11 +1324,46 @@ class ChatMessageFeatureApiTests(TestCase):
             ).exists()
         )
 
-        unread_public_after = self.client.get("/api/chat/unread/")
-        self.assertEqual(unread_public_after.status_code, 200)
-        self.assertFalse(
-            any(item["roomId"] == public_room.pk for item in unread_public_after.json()["items"])
+        unread_public_after_first_visit = build_room_unread_state(self.owner)
+        self.assertNotIn(str(public_room.pk), unread_public_after_first_visit["counts"])
+
+        later_public_message = Message.objects.create(
+            username=self.peer.username,
+            user=self.peer,
+            room=public_room,
+            message_content="public unread later",
         )
+
+        unread_public_after_new_message = build_room_unread_state(self.owner)
+        self.assertEqual(unread_public_after_new_message["counts"].get(str(public_room.pk)), 1)
+
+        with patch("chat.api.broadcast_room_unread_state_for_user") as push_unread:
+            public_short = self.client.post(
+                f"/api/chat/{public_room.pk}/read/",
+                data=json.dumps({"lastReadMessageId": later_public_message.pk}),
+                content_type="application/json",
+            )
+        self.assertEqual(public_short.status_code, 200)
+        push_unread.assert_called_once_with(self.owner)
+        self.assertEqual(public_short.json()["lastReadMessageId"], later_public_message.pk)
+        self.assertIsNotNone(public_short.json()["lastReadAt"])
+        self.assertTrue(
+            MessageReadState.objects.filter(
+                user=self.owner,
+                room=public_room,
+                last_read_message_id=later_public_message.pk,
+            ).exists()
+        )
+
+        unread_public_after = build_room_unread_state(self.owner)
+        self.assertNotIn(str(public_room.pk), unread_public_after["counts"])
+
+    def test_unread_counts_rest_endpoint_is_removed(self):
+        self.client.force_login(self.owner)
+
+        response = self.client.get("/api/chat/unread/")
+
+        self.assertEqual(response.status_code, 404)
 
     def test_message_readers_endpoint_returns_direct_read_at_for_author(self):
         message = Message.objects.create(

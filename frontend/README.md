@@ -1,44 +1,54 @@
-﻿# Devil Frontend
+# Devil Frontend
 
-SPA-клиент на `React + TypeScript + Vite` для `Devil Resting`.
+React SPA для Devil.
 
-## Что важно сейчас
-- Chat routing prefixless: вместо `/direct/*` и `/rooms/*` используется `/:target`
-- Канонические chat routes:
-  - `/public`
-  - `/@username`
-  - `/<userPublicId>`
-  - `/<groupPublicRef>`
-  - `/<groupPublicId>`
-- Внешний target сначала резолвится через `POST /api/chat/resolve/`, затем весь runtime работает по внутреннему `roomId`
-- Direct inbox использует `GET /api/chat/inbox/` и `ws://<host>/ws/inbox/`
+## Стек
+
+- React 19
+- TypeScript
+- Vite
+- React Router
+- Zod
+- Vitest
+- Playwright
 
 ## Локальный запуск
-```bash
-npm install
+
+```powershell
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+Dev server проксирует:
+
+- `/api` на `http://127.0.0.1:8000`
+- `/ws` на `ws://127.0.0.1:8000`
+
+## Скрипты
+
+```powershell
 npm run dev
-```
-
-Vite проксирует:
-- `/api` -> `http://127.0.0.1:8000`
-- `/ws` -> `ws://127.0.0.1:8000`
-
-Для production build:
-```bash
 npm run build
+npm run preview
+npm run lint
+npm run lint:css
+npm run lint:css:fix
+npm run check:dto-boundary
+npm run test:unit
+npm run test:coverage
+npm run test:e2e
 ```
 
-## Структура
-- `src/adapters` — HTTP API layer
-- `src/app` — shell и routing
-- `src/controllers` — orchestration layer
-- `src/dto` — Zod boundary
-- `src/entities` — доменные типы
-- `src/pages` — route pages
-- `src/shared` — shared libs, ui, auth, ws
-- `src/widgets` — composed UI blocks
+`dev`, `build` и unit-тесты автоматически генерируют manifest custom emoji. `npm run prepare:custom-emoji` нужен только для отдельной генерации manifest.
 
-## Основные frontend routes
+## Конфигурация
+
+- `VITE_ENABLE_PWA=1` включает PWA build integration.
+- `VITE_WS_BACKEND_ORIGIN` переопределяет WebSocket origin вне dev proxy.
+- Runtime-лимиты и доступность OAuth загружаются из `GET /api/meta/client-config/`.
+
+## Маршруты
+
 - `/`
 - `/login`
 - `/register`
@@ -50,22 +60,20 @@ npm run build
 - `/users/:ref`
 - `/:target`
 
-## Основные chat API, которые использует frontend
-- `POST /api/chat/resolve/`
-- `GET /api/chat/inbox/`
-- `GET /api/chat/unread/`
-- `GET /api/chat/<room_id>/`
-- `GET /api/chat/<room_id>/messages/`
-- `POST /api/chat/<room_id>/attachments/`
-- `POST /api/chat/<room_id>/read/`
-- `GET /api/chat/search/global/`
+Chat targets вроде `/public`, `/@username`, user public id и group ref резолвятся через `POST /api/chat/resolve/`.
 
-## Качество
-```bash
-npm run lint
-npm run lint:css
-npm run check:dto-boundary
-npm run test:unit
-npm run build
-npm run test:e2e
+## Структура
+
+```text
+src/adapters/      HTTP API implementation
+src/app/           App shell и routes
+src/controllers/   UI orchestration
+src/domain/        Interfaces и domain contracts
+src/dto/           Zod codecs и boundary validation
+src/entities/      Domain types
+src/hooks/         Shared React hooks
+src/pages/         Route pages
+src/shared/        Common UI, config, auth, ws и utilities
+src/widgets/       Feature UI blocks
+src/styles/        CSS modules и global styles
 ```

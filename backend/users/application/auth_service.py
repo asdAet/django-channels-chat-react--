@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import time
+from urllib.parse import urlencode
 from typing import Any
 
 import requests
@@ -14,6 +15,7 @@ from django.contrib.auth.models import AbstractUser, User
 from django.db import IntegrityError, transaction
 from django.utils.html import strip_tags
 
+from chat_app_django.metrics import observe_account_created
 from users.identity import (
     ensure_profile,
     ensure_user_identity_core,
@@ -31,6 +33,9 @@ from .errors import IdentityConflictError, IdentityServiceError, IdentityUnautho
 
 GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+GOOGLE_AUTHORIZATION_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_OAUTH_SCOPE = "openid email profile"
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -277,6 +282,7 @@ def register_user(
                     set_user_public_handle(user, username)
                 except ValueError as exc:
                     _raise_handle_validation_or_conflict(exc)
+            transaction.on_commit(lambda: observe_account_created("password"))
     except IntegrityError as exc:
         raise IdentityConflictError("Конфликт уникальности при регистрации") from exc
 
@@ -341,6 +347,86 @@ def _get_expected_google_audience() -> str:
             status_code=503,
         )
     return expected_audience
+
+
+def _get_google_oauth_client_secret() -> str:
+    """Возвращает OAuth client secret или поднимает ошибку конфигурации."""
+    client_secret = str(getattr(settings, "GOOGLE_OAUTH_CLIENT_SECRET", "") or "").strip()
+    if not client_secret:
+        raise IdentityServiceError(
+            "Google OAuth не настроен",
+            code="oauth_not_configured",
+            status_code=503,
+        )
+    return client_secret
+
+
+def google_oauth_redirect_is_configured() -> bool:
+    """Проверяет, что сервер готов к redirect-сценарию Google OAuth."""
+    return bool(
+        str(getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "") or "").strip()
+        and str(getattr(settings, "GOOGLE_OAUTH_CLIENT_SECRET", "") or "").strip()
+    )
+
+
+def build_google_authorization_url(*, state: str, redirect_uri: str) -> str:
+    """Формирует URL запуска server-side redirect flow для Google OAuth."""
+    client_id = _get_expected_google_audience()
+    _get_google_oauth_client_secret()
+    query = urlencode(
+        {
+            "client_id": client_id,
+            "redirect_uri": redirect_uri,
+            "response_type": "code",
+            "scope": GOOGLE_OAUTH_SCOPE,
+            "state": state,
+            "access_type": "online",
+            "include_granted_scopes": "true",
+        }
+    )
+    return f"{GOOGLE_AUTHORIZATION_URL}?{query}"
+
+
+def _exchange_google_authorization_code(code: str, redirect_uri: str) -> dict[str, Any]:
+    """Обменивает authorization code на токены Google OAuth."""
+    normalized_code = str(code or "").strip()
+    if not normalized_code:
+        raise IdentityServiceError(
+            "Требуется authorization code",
+            errors={"code": ["Требуется authorization code"]},
+        )
+
+    client_id = _get_expected_google_audience()
+    client_secret = _get_google_oauth_client_secret()
+
+    try:
+        response = requests.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": normalized_code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+            timeout=5,
+        )
+    except requests.RequestException:
+        raise IdentityServiceError(
+            "Google OAuth временно недоступен",
+            code="oauth_unavailable",
+            status_code=503,
+        )
+
+    if response.status_code != 200:
+        raise IdentityUnauthorizedError("Не удалось подтвердить вход через Google")
+
+    payload = response.json()
+    access_token = str(payload.get("access_token") or "").strip()
+    id_token = str(payload.get("id_token") or "").strip()
+    if not access_token and not id_token:
+        raise IdentityUnauthorizedError("Не удалось подтвердить вход через Google")
+    return payload
 
 
 def _verify_google_id_token(id_token: str) -> dict[str, Any]:
@@ -565,8 +651,26 @@ def authenticate_or_signup_with_google(
                 set_user_public_handle(user, username)
             except ValueError as exc:
                 _raise_handle_validation_or_conflict(exc)
+        transaction.on_commit(lambda: observe_account_created("google"))
 
     return user
+
+
+def authenticate_or_signup_with_google_authorization_code(
+    *,
+    code: str,
+    redirect_uri: str,
+    username: str | None = None,
+) -> User:
+    """Завершает redirect-flow Google OAuth по authorization code."""
+    payload = _exchange_google_authorization_code(code, redirect_uri)
+    id_token = str(payload.get("id_token") or "").strip() or None
+    access_token = str(payload.get("access_token") or "").strip() or None
+    return authenticate_or_signup_with_google(
+        id_token=id_token,
+        access_token=access_token,
+        username=username,
+    )
 
 
 def set_profile_name(user: AbstractUser, name: str | None) -> str:

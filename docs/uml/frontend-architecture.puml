@@ -1,0 +1,152 @@
+@startuml
+title Devil - Архитектура фронтенда
+top to bottom direction
+skinparam shadowing false
+skinparam backgroundColor #ffffff
+skinparam linetype ortho
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam roundcorner 10
+skinparam ArrowColor #687385
+skinparam ArrowThickness 1.1
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam rectangle {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam package {
+  BorderColor #c8d0db
+  BackgroundColor #f7f9fc
+  FontColor #1f2937
+}
+skinparam component {
+  BorderColor #9fb0c7
+  BackgroundColor #ffffff
+  FontColor #1f2937
+}
+skinparam note {
+  BorderColor #d7dee8
+  BackgroundColor #fbfcfe
+  FontColor #445066
+}
+
+actor "Пользователь" as BrowserUser
+cloud "Бэкенд\n/api и /ws" as Backend
+
+rectangle "Запуск SPA" {
+  component "Точка входа\nmain.tsx" as Main
+  component "Корневое приложение\nApp + BrowserRouter" as App
+  component "Глобальная конфигурация\nRuntimeConfigProvider\nDeviceProvider" as Runtime
+}
+
+rectangle "Оболочка и провайдеры" {
+  component "AppInner\nSEO, auth и навигационная оркестрация" as AppInner
+  component "Auth-хуки\nuseAuth,\nusePasswordRules" as AuthHooks
+  component "WsAuthProvider" as WsAuth
+  component "PresenceProvider" as Presence
+  component "DirectInboxProvider" as Inbox
+  component "AppShell" as Shell
+}
+
+rectangle "Маршруты и экраны" {
+  component "AppRoutes" as Routes
+  component "Публичные страницы\nhome, login, register,\ninvite preview" as PublicScreens
+  component "Пользовательские страницы\nprofile, settings,\nuser profile" as UserScreens
+  component "Социальные страницы\nfriends, groups" as SocialScreens
+  component "Вход в чат\nChatTargetPage" as ChatEntry
+  component "Комната чата\nChatRoomPage + view" as ChatRoom
+}
+
+rectangle "Фичи" {
+  component "Хуки социальных экранов\nuseFriends,\nuseGroupList,\nuseUserProfile" as SocialHooks
+  component "Контроллер комнаты\nuseChatRoomPageController" as ChatFeature
+  component "Realtime и состояние чата\nrealtime, composer,\npermissions, view model" as ChatRealtime
+  component "Общий reconnecting WebSocket" as ReconnectWs
+}
+
+rectangle "Доступ к данным" {
+  component "Контроллеры фич\nAuth, Chat, Friends,\nGroup, Roles" as Controllers
+  component "ApiService\nAxios и request modules" as ApiService
+  component "DTO-слой\nпарсеры и декодеры" as DtoLayer
+  component "Клиентский кэш\nconversation list,\nunread overrides" as CacheLayer
+}
+
+Main -[hidden]down-> App
+App -[hidden]down-> Runtime
+AppInner -[hidden]right-> AuthHooks
+AuthHooks -[hidden]right-> WsAuth
+WsAuth -[hidden]right-> Presence
+Presence -[hidden]right-> Inbox
+Inbox -[hidden]right-> Shell
+PublicScreens -[hidden]right-> UserScreens
+UserScreens -[hidden]right-> SocialScreens
+SocialScreens -[hidden]right-> ChatEntry
+ChatEntry -[hidden]right-> ChatRoom
+SocialHooks -[hidden]right-> ChatFeature
+ChatFeature -[hidden]right-> ChatRealtime
+Controllers -[hidden]right-> ApiService
+ApiService -[hidden]right-> DtoLayer
+DtoLayer -[hidden]right-> CacheLayer
+
+BrowserUser --> Main : загрузка SPA
+Main --> App : монтирование приложения
+App --> Runtime : провайдеры верхнего уровня
+Runtime --> AppInner : инициализация UI
+
+AppInner --> AuthHooks : auth-состояние
+AppInner --> WsAuth : ws auth token
+WsAuth --> Presence : токен для presence
+Presence --> Inbox : готовность realtime
+Inbox --> Shell : unread и dialogs
+AppInner --> Routes : роутинг
+Shell --> Routes : визуальная оболочка
+
+Routes --> PublicScreens : публичные маршруты
+Routes --> UserScreens : профиль и настройки
+Routes --> SocialScreens : друзья и группы
+Routes --> ChatEntry : канонический маршрут чата
+
+SocialScreens --> SocialHooks : загрузка данных
+ChatEntry --> Controllers : resolve цели чата
+ChatEntry --> ChatRoom : roomId найден
+ChatRoom --> ChatFeature : состояние страницы
+ChatFeature --> ChatRealtime : ввод и realtime
+
+AuthHooks --> Controllers : auth-запросы
+SocialHooks --> Controllers : социальные запросы
+ChatFeature --> Controllers : chat-запросы
+Presence --> ReconnectWs : /ws/presence
+Inbox --> ReconnectWs : /ws/inbox
+ChatRealtime --> ReconnectWs : /ws/chat/<roomId>
+
+Controllers --> ApiService : HTTP операции
+ApiService --> DtoLayer : decode / encode
+AuthHooks --> CacheLayer : invalidation
+Inbox --> CacheLayer : unread overrides
+Shell --> CacheLayer : conversation state
+
+ApiService --> Backend : HTTP-запросы
+ReconnectWs --> Backend : WebSocket
+DtoLayer ..> ReconnectWs : декодирование событий
+
+note right of Routes
+Каноническая навигация в чат:
+/:target
+  -> resolveChatTarget()
+  -> roomId
+  -> ChatRoomPage
+end note
+
+note right of ChatRealtime
+Фича комнаты объединяет:
+- состояние websocket
+- набор текста и прочтение
+- ввод сообщения и загрузки
+- права и подготовку данных для UI
+end note
+@enduml

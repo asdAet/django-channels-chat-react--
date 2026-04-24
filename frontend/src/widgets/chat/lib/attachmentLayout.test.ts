@@ -3,9 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { Attachment } from "../../../entities/message/types";
 import {
   buildAttachmentRenderItems,
+  buildMediaTileLayout,
   resolveImageAspectRatio,
-  resolveMediaGridVariant,
-  resolveMediaTilePlacement,
   splitAttachmentRenderItems,
 } from "./attachmentLayout";
 
@@ -56,9 +55,7 @@ describe("attachmentLayout", () => {
       MAX_VISIBLE_IMAGE_ATTACHMENTS,
     );
 
-    expect(buckets.images.map((item) => item.attachment.id)).toEqual([
-      1, 3,
-    ]);
+    expect(buckets.images.map((item) => item.attachment.id)).toEqual([1, 3]);
     expect(buckets.others.map((item) => item.attachment.id)).toEqual([2, 4]);
   });
 
@@ -84,14 +81,6 @@ describe("attachmentLayout", () => {
     expect(buckets.imageGroups[1]).toHaveLength(2);
   });
 
-  it("resolves media grid variants by image count", () => {
-    expect(resolveMediaGridVariant(1)).toBe("single");
-    expect(resolveMediaGridVariant(2)).toBe("two");
-    expect(resolveMediaGridVariant(3)).toBe("three");
-    expect(resolveMediaGridVariant(4)).toBe("four");
-    expect(resolveMediaGridVariant(7)).toBe("many");
-  });
-
   it("clamps single-image aspect ratio to safe bounds", () => {
     expect(
       resolveImageAspectRatio(makeAttachment({ width: 4000, height: 600 })),
@@ -101,11 +90,102 @@ describe("attachmentLayout", () => {
     ).toBeCloseTo(0.62, 5);
   });
 
-  it("expands the last tile for counts that would otherwise leave the bottom-right corner empty", () => {
-    expect(resolveMediaTilePlacement(5, 4)).toEqual({ gridColumn: "span 2" });
-    expect(resolveMediaTilePlacement(7, 6)).toEqual({ gridColumn: "1 / -1" });
-    expect(resolveMediaTilePlacement(8, 7)).toEqual({ gridColumn: "span 2" });
-    expect(resolveMediaTilePlacement(10, 9)).toEqual({ gridColumn: "1 / -1" });
-    expect(resolveMediaTilePlacement(6, 5)).toEqual({});
+  it("builds telegram-like collage geometry inside container bounds", () => {
+    const attachments = buildAttachmentRenderItems([
+      makeAttachment({
+        id: 1,
+        originalFilename: "1.png",
+        contentType: "image/png",
+        url: "/1.png",
+        width: 720,
+        height: 1280,
+      }),
+      makeAttachment({
+        id: 2,
+        originalFilename: "2.png",
+        contentType: "image/png",
+        url: "/2.png",
+        width: 720,
+        height: 1280,
+      }),
+      makeAttachment({
+        id: 3,
+        originalFilename: "3.png",
+        contentType: "image/png",
+        url: "/3.png",
+        width: 1280,
+        height: 720,
+      }),
+      makeAttachment({
+        id: 4,
+        originalFilename: "4.png",
+        contentType: "image/png",
+        url: "/4.png",
+        width: 1280,
+        height: 720,
+      }),
+      makeAttachment({
+        id: 5,
+        originalFilename: "5.png",
+        contentType: "image/png",
+        url: "/5.png",
+        width: 1024,
+        height: 1024,
+      }),
+    ])
+      .filter((item) => item.isImage && item.imageSrc)
+      .map((item) => ({
+        attachment: item.attachment,
+        imageSrc: item.imageSrc!,
+      }));
+
+    const layout = buildMediaTileLayout(attachments);
+
+    expect(layout.items).toHaveLength(5);
+    for (const item of layout.items) {
+      expect(item.leftPercent).toBeGreaterThanOrEqual(0);
+      expect(item.topPercent).toBeGreaterThanOrEqual(0);
+      expect(item.widthPercent).toBeGreaterThan(0);
+      expect(item.heightPercent).toBeGreaterThan(0);
+      expect(item.leftPercent + item.widthPercent).toBeLessThanOrEqual(100.01);
+      expect(item.topPercent + item.heightPercent).toBeLessThanOrEqual(100.01);
+    }
+  });
+
+  it("keeps original image order in collage output", () => {
+    const images = buildAttachmentRenderItems([
+      makeAttachment({
+        id: 1,
+        originalFilename: "a.png",
+        contentType: "image/png",
+        url: "/a.png",
+        width: 800,
+        height: 600,
+      }),
+      makeAttachment({
+        id: 2,
+        originalFilename: "b.png",
+        contentType: "image/png",
+        url: "/b.png",
+        width: 800,
+        height: 600,
+      }),
+      makeAttachment({
+        id: 3,
+        originalFilename: "c.png",
+        contentType: "image/png",
+        url: "/c.png",
+        width: 800,
+        height: 600,
+      }),
+    ])
+      .filter((item) => item.isImage && item.imageSrc)
+      .map((item) => ({
+        attachment: item.attachment,
+        imageSrc: item.imageSrc!,
+      }));
+
+    const layout = buildMediaTileLayout(images);
+    expect(layout.items.map((item) => item.attachment.id)).toEqual([1, 2, 3]);
   });
 });

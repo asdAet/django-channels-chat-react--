@@ -8,6 +8,7 @@ class AuditHttpMiddleware:
     _SKIP_PATHS = {
         "/api/health/live/",
         "/api/health/ready/",
+        "/metrics/",
     }
 
     def __init__(self, get_response):

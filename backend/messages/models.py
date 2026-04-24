@@ -1,10 +1,14 @@
+# pyright: reportIncompatibleVariableOverride=false, reportCallIssue=false
+from typing import Optional
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from typing import Optional
 import uuid
 
 from rooms.models import Room
+
+REACTION_EMOJI_MAX_LENGTH = 255
 
 
 class Message(models.Model):
@@ -83,7 +87,7 @@ class Reaction(models.Model):
         on_delete=models.CASCADE,
         related_name="reactions",
     )
-    emoji = models.CharField(max_length=32)
+    emoji = models.CharField(max_length=REACTION_EMOJI_MAX_LENGTH)
     created_at = models.DateTimeField(auto_now_add=True)
     message_id: int
     user_id: int

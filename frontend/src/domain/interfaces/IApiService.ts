@@ -238,13 +238,6 @@ getDirectChats(): Promise<DirectChatsResponse>;
      */
 getUserProfile(publicRef: string): Promise<{ user: UserProfile }>;
 
-  // --- Phase 2+3: Messages & Rooms ---
-    /**
-     * Возвращает unread counts.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getUnreadCounts(): Promise<UnreadCountItem[]>;
-
     /**
      * Возвращает exact readers конкретного сообщения.
      * @param roomId Идентификатор комнаты.
@@ -851,11 +844,6 @@ export type ReadStateResult = {
   lastReadMessageId: number | null;
   lastReadAt?: string | null;
 };
-/**
- * Описывает структуру данных `UnreadCountItem`.
- */
-export type UnreadCountItem = { roomId: number; unreadCount: number };
-
 /**
  * Описывает одного reader для конкретного сообщения.
  */

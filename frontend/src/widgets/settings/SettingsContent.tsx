@@ -2,11 +2,20 @@ import { useCallback, useState } from "react";
 
 import type { UserProfile } from "../../entities/user/types";
 import { formatFullName } from "../../shared/lib/format";
-import { formatPublicRef } from "../../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { EmptyState } from "../../shared/ui";
 import styles from "../../styles/pages/SettingsPage.module.css";
 
+/**
+ * Свойства содержимого страницы настроек пользователя.
+ *
+ * @property user Профиль текущего пользователя. Если `null`, вместо формы
+ *   будет показан призыв авторизоваться.
+ * @property onNavigate Колбэк для перехода к смежным разделам, например к профилю.
+ * @property onLogout Колбэк выхода из аккаунта.
+ * @property compact Включает компактный режим для встраивания в боковую панель.
+ * @property showTitle Управляет отображением заголовка раздела.
+ */
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
@@ -15,6 +24,13 @@ type Props = {
   showTitle?: boolean;
 };
 
+/**
+ * Показывает основной контент страницы настроек аккаунта.
+ *
+ * Компонент объединяет блок профиля, переключатель browser push-уведомлений,
+ * памятку по горячим клавишам и действие выхода из аккаунта. В компактном
+ * режиме используется как встраиваемая панель без лишнего визуального шума.
+ */
 export function SettingsContent({
   user,
   onNavigate,
@@ -55,8 +71,6 @@ export function SettingsContent({
       user.name,
       (user as { last_name?: string | null }).last_name,
     ) || resolveIdentityLabel(user, "Без имени");
-  const publicRef = (user.publicRef || "").trim();
-
   return (
     <div
       className={[styles.root, compact ? styles.embeddedRoot : ""]
@@ -78,9 +92,6 @@ export function SettingsContent({
         <div className={styles.row}>
           <div>
             <div className={styles.rowLabel}>{fullName}</div>
-            {publicRef && (
-              <div className={styles.rowDesc}>{formatPublicRef(publicRef)}</div>
-            )}
             <div className={styles.rowDesc}>{user.email}</div>
           </div>
           <button
@@ -148,4 +159,3 @@ export function SettingsContent({
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 import type { GroupListItem as GroupListItemType } from "../../entities/group/types";
 import { Avatar } from "../../shared/ui";
-import styles from "../../styles/groups/GroupsPage.module.css";
+import styles from "../../styles/groupWidgets/GroupListItem.module.css";
 
 /**
  * Описывает входные props компонента `Props`.

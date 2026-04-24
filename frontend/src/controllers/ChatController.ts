@@ -8,7 +8,6 @@ import type {
   ReadStateResult,
   RoomAttachmentsResult,
   SearchResult,
-  UnreadCountItem,
   UploadAttachmentsOptions,
   UploadResult,
 } from "../domain/interfaces/IApiService";
@@ -102,14 +101,6 @@ public async getDirectChats(): Promise<DirectChatsResponseDto> {
     });
 
     return directChatsInFlight;
-  }
-
-    /**
-     * Возвращает unread counts.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-public async getUnreadCounts(): Promise<UnreadCountItem[]> {
-    return apiService.getUnreadCounts();
   }
 
     /**

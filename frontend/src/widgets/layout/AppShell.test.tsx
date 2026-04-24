@@ -26,6 +26,9 @@ const conversationListMock = vi.hoisted(() => ({
 
 const directInboxMock = vi.hoisted(() => ({
   unreadDialogsCount: 5,
+  unreadCounts: {},
+  roomUnreadCounts: {},
+  items: [],
 }));
 
 vi.mock("../../shared/conversationList/ConversationListProvider", () => ({

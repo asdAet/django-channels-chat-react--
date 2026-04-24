@@ -10,7 +10,6 @@ import {
 import { chatController } from "../../controllers/ChatController";
 import { useReadTracker } from "../../shared/chat/readTracker";
 import {
-  clearUnreadOverride,
   setUnreadOverride,
 } from "../../shared/unreadOverrides/store";
 import type {
@@ -24,6 +23,7 @@ import type {
 } from "./utils";
 import {
   clearPendingReadFromStorage,
+  isOwnMessage,
   MARK_READ_DEBOUNCE_MS,
   MAX_HISTORY_JUMP_ATTEMPTS,
   MAX_HISTORY_NO_PROGRESS_ATTEMPTS,
@@ -71,6 +71,7 @@ export function useChatRoomPageReadState({
   const deepLinkJumpRafRef = useRef<number | null>(null);
   const programmaticScrollTimerRef = useRef<number | null>(null);
   const isProgrammaticScrollRef = useRef(false);
+  const pendingBottomStickyReadRef = useRef(false);
   const initialPositioningPhaseRef = useRef<InitialPositioningPhase>("pending");
   const initialPositioningTargetRef = useRef<InitialPositioningTarget | null>(
     null,
@@ -79,6 +80,7 @@ export function useChatRoomPageReadState({
   const pendingReadFlushRef = useRef<number>(
     readPendingReadFromStorage(roomId),
   );
+  const pendingInitialViewportSyncRef = useRef(false);
   const unreadDividerAnchorRef = useRef<number | null>(null);
   const lastMessageSnapshotRef = useRef<{
     count: number;
@@ -200,6 +202,28 @@ export function useChatRoomPageReadState({
     ((details?.roomId !== undefined &&
       String(details.roomId) === roomIdForRequests) ||
       Boolean(error));
+  const shouldStartUnreadEntryFromBottom = useMemo(() => {
+    if (!readStateEnabled || localUnreadCount < 1 || !firstUnreadMessageId) {
+      return false;
+    }
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (isOwnMessage(message, currentActorRef)) {
+        continue;
+      }
+
+      return message.id === firstUnreadMessageId;
+    }
+
+    return false;
+  }, [
+    currentActorRef,
+    firstUnreadMessageId,
+    localUnreadCount,
+    messages,
+    readStateEnabled,
+  ]);
 
   const unreadDividerRenderTarget = useMemo<UnreadDividerRenderTarget>(() => {
     if (!roomDataReady && unreadDividerAnchorId === null) {
@@ -348,9 +372,8 @@ export function useChatRoomPageReadState({
       }
 
       isProgrammaticScrollRef.current = false;
-      clearUnreadOverride(roomIdForRequests);
     };
-  }, [roomIdForRequests]);
+  }, []);
 
   const sendMarkReadIfNeeded = useCallback(
     (lastReadMessageId: number | null | undefined) => {
@@ -383,6 +406,26 @@ export function useChatRoomPageReadState({
     [clearPendingRead, persistPendingRead, readStateEnabled, roomApiRef],
   );
 
+  const isDirectRoomFullyRead = useCallback(
+    (lastReadMessageId: number) => {
+      if (!user || details?.kind !== "direct" || resolvedRoomId === null) {
+        return false;
+      }
+
+      for (let index = messagesRef.current.length - 1; index >= 0; index -= 1) {
+        const message = messagesRef.current[index];
+        if (isOwnMessage(message, currentActorRef)) {
+          continue;
+        }
+
+        return lastReadMessageId >= message.id;
+      }
+
+      return true;
+    },
+    [currentActorRef, details?.kind, resolvedRoomId, user],
+  );
+
   const scheduleMarkRead = useCallback(
     (lastReadMessageId: number | null | undefined) => {
       if (!readStateEnabled || !lastReadMessageId || lastReadMessageId < 1) {
@@ -396,18 +439,17 @@ export function useChatRoomPageReadState({
       markReadTimerRef.current = window.setTimeout(() => {
         markReadTimerRef.current = null;
         sendMarkReadIfNeeded(lastReadMessageId);
-        if (user && details?.kind === "direct" && resolvedRoomId !== null) {
+        if (resolvedRoomId !== null && isDirectRoomFullyRead(lastReadMessageId)) {
           markDirectRoomRead(resolvedRoomId);
         }
       }, MARK_READ_DEBOUNCE_MS);
     },
     [
-      details?.kind,
+      isDirectRoomFullyRead,
       markDirectRoomRead,
       readStateEnabled,
       resolvedRoomId,
       sendMarkReadIfNeeded,
-      user,
     ],
   );
 
@@ -469,6 +511,34 @@ export function useChatRoomPageReadState({
     readStateEnabled,
   ]);
 
+  /**
+   * Синхронно фиксирует прочитанные сообщения по текущему viewport.
+   *
+   * Используется после программного доскролла вниз, когда новое входящее
+   * сообщение уже попало в экран и badge должен уменьшиться без дополнительного
+   * scroll-события от пользователя.
+   *
+   * @param listOverride Явный контейнер списка, если нужно использовать уже
+   *   захваченный экземпляр DOM-узла.
+   * @returns Последний id сообщения, который удалось считать прочитанным.
+   */
+  const applyViewportReadNow = useCallback(
+    (listOverride?: HTMLDivElement | null) => {
+      const nextLastRead = applyViewportRead(listOverride ?? listRef.current);
+      persistPendingRead(nextLastRead);
+      const latestVisibleMessageId =
+        messagesRef.current.length > 0
+          ? (messagesRef.current[messagesRef.current.length - 1]?.id ?? 0)
+          : 0;
+      if (nextLastRead > 0 && nextLastRead <= latestVisibleMessageId) {
+        sendMarkReadIfNeeded(nextLastRead);
+      }
+
+      return nextLastRead;
+    },
+    [applyViewportRead, persistPendingRead, sendMarkReadIfNeeded],
+  );
+
   const scheduleViewportReadSync = useCallback(() => {
     if (!readStateEnabled) {
       return;
@@ -485,22 +555,9 @@ export function useChatRoomPageReadState({
 
     viewportReadRafRef.current = window.requestAnimationFrame(() => {
       viewportReadRafRef.current = null;
-      const nextLastRead = applyViewportRead(listRef.current);
-      persistPendingRead(nextLastRead);
-      const latestVisibleMessageId =
-        messagesRef.current.length > 0
-          ? (messagesRef.current[messagesRef.current.length - 1]?.id ?? 0)
-          : 0;
-      if (nextLastRead > 0 && nextLastRead <= latestVisibleMessageId) {
-        sendMarkReadIfNeeded(nextLastRead);
-      }
+      applyViewportReadNow(listRef.current);
     });
-  }, [
-    applyViewportRead,
-    persistPendingRead,
-    readStateEnabled,
-    sendMarkReadIfNeeded,
-  ]);
+  }, [applyViewportReadNow, readStateEnabled]);
 
   useEffect(() => {
     if (!readStateEnabled) {
@@ -576,13 +633,20 @@ export function useChatRoomPageReadState({
     }
 
     if (localUnreadCount > 0 && firstUnreadMessageId) {
-      initialPositioningTargetRef.current = "unread";
       unreadDividerAnchorRef.current = firstUnreadMessageId;
+      initialPositioningTargetRef.current = shouldStartUnreadEntryFromBottom
+        ? "bottom"
+        : "unread";
       return;
     }
 
     initialPositioningTargetRef.current = "bottom";
-  }, [firstUnreadMessageId, localUnreadCount, roomDataReady]);
+  }, [
+    firstUnreadMessageId,
+    localUnreadCount,
+    roomDataReady,
+    shouldStartUnreadEntryFromBottom,
+  ]);
 
   useEffect(() => {
     if (!roomDataReady) {
@@ -610,9 +674,9 @@ export function useChatRoomPageReadState({
               ? (latestMessages[latestMessages.length - 1]?.id ?? null)
               : null,
         };
+        pendingInitialViewportSyncRef.current = true;
         initialPositioningPhaseRef.current = "settled";
         setInitialPositioningSettled(true);
-        scheduleViewportReadSync();
       });
       return;
     }
@@ -661,9 +725,9 @@ export function useChatRoomPageReadState({
               ? (latestMessages[latestMessages.length - 1]?.id ?? null)
               : null,
         };
+        pendingInitialViewportSyncRef.current = true;
         initialPositioningPhaseRef.current = "settled";
         setInitialPositioningSettled(true);
-        scheduleViewportReadSync();
       });
     });
   }, [
@@ -675,12 +739,32 @@ export function useChatRoomPageReadState({
   ]);
 
   useEffect(() => {
+    if (!isInitialPositioningSettled) {
+      return;
+    }
+    if (!pendingInitialViewportSyncRef.current) {
+      return;
+    }
+
+    pendingInitialViewportSyncRef.current = false;
+    scheduleViewportReadSync();
+  }, [isInitialPositioningSettled, scheduleViewportReadSync]);
+
+  useEffect(() => {
     if (!isInitialPositioningSettled || !user || localLastReadMessageId < 1) {
+      return;
+    }
+
+    const persistedServerLastReadMessageId = normalizeReadMessageId(
+      details?.lastReadMessageId,
+    );
+    if (localLastReadMessageId <= persistedServerLastReadMessageId) {
       return;
     }
 
     scheduleMarkRead(localLastReadMessageId);
   }, [
+    details?.lastReadMessageId,
     isInitialPositioningSettled,
     localLastReadMessageId,
     scheduleMarkRead,
@@ -812,14 +896,16 @@ export function useChatRoomPageReadState({
       requestAnimationFrame(() => {
         snapToBottom();
         endProgrammaticScroll(() => {
-          scheduleViewportReadSync();
+          window.requestAnimationFrame(() => {
+            applyViewportReadNow(listRef.current);
+          });
         }, 120);
       });
     });
   }, [
+    applyViewportReadNow,
     beginProgrammaticScroll,
     endProgrammaticScroll,
-    scheduleViewportReadSync,
   ]);
 
   useEffect(() => {
@@ -856,7 +942,10 @@ export function useChatRoomPageReadState({
     if (!appendedNewMessage) {
       return;
     }
-    if (!isAtBottomRef.current) {
+    const shouldStickToBottom =
+      pendingBottomStickyReadRef.current || isAtBottomRef.current;
+    pendingBottomStickyReadRef.current = false;
+    if (!shouldStickToBottom) {
       return;
     }
 
@@ -864,21 +953,24 @@ export function useChatRoomPageReadState({
     requestAnimationFrame(() => {
       list.scrollTop = list.scrollHeight;
       endProgrammaticScroll(() => {
-        scheduleViewportReadSync();
+        window.requestAnimationFrame(() => {
+          applyViewportReadNow(list);
+        });
       }, 80);
     });
   }, [
+    applyViewportReadNow,
     beginProgrammaticScroll,
     endProgrammaticScroll,
     isInitialPositioningSettled,
     messages,
-    scheduleViewportReadSync,
   ]);
 
   const handleIncomingForeignMessage =
     useCallback<UseChatRoomPageReadStateResult["handleIncomingForeignMessage"]>(
       (messageId) => {
         if (isAtBottomRef.current) {
+          pendingBottomStickyReadRef.current = true;
           return;
         }
 

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { decodeChatWsEvent } from "../../dto";
-import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import { useTypingIndicator } from "../../hooks/useTypingIndicator";
 import {
   invalidateDirectChats,
   invalidateRoomMessages,
 } from "../../shared/cache/cacheManager";
+import { useChatRealtimeRoom } from "../../shared/chatRealtime";
 import { debugLog } from "../../shared/lib/debug";
 import { sanitizeText } from "../../shared/lib/sanitize";
 import type {
@@ -22,7 +22,7 @@ import { normalizeActorRef, sameAvatarCrop, TYPING_TIMEOUT_MS } from "./utils";
  * @returns Состояние транспорта, typing-индикаторы и read receipts.
  */
 export function useChatRoomPageRealtime({
-  wsUrl,
+  roomRealtimeId,
   roomIdForRequests,
   roomKind,
   maxMessageLength,
@@ -51,6 +51,19 @@ export function useChatRoomPageRealtime({
     setNow(Date.now());
   }, []);
 
+  const matchesRoomId = useCallback(
+    (eventRoomId: number | null | undefined) => {
+      if (roomRealtimeId === null) {
+        return false;
+      }
+      if (typeof eventRoomId !== "number") {
+        return true;
+      }
+      return eventRoomId === roomRealtimeId;
+    },
+    [roomRealtimeId],
+  );
+
   const handleMessage = useCallback(
     (event: MessageEvent) => {
       const decoded = decodeChatWsEvent(event.data);
@@ -73,6 +86,9 @@ export function useChatRoomPageRealtime({
           setRoomError("Недостаточно прав для отправки сообщения");
           break;
         case "chat_message": {
+          if (!matchesRoomId(decoded.message.roomId)) {
+            break;
+          }
           const content = sanitizeText(
             decoded.message.content,
             maxMessageLength,
@@ -155,6 +171,9 @@ export function useChatRoomPageRealtime({
           break;
         }
         case "typing":
+          if (!matchesRoomId(decoded.roomId)) {
+            break;
+          }
           if (normalizeActorRef(decoded.publicRef || "") !== currentActorRef) {
             const typingActorRef = normalizeActorRef(decoded.publicRef);
             if (!typingActorRef) {
@@ -175,6 +194,9 @@ export function useChatRoomPageRealtime({
           }
           break;
         case "message_edit":
+          if (!matchesRoomId(decoded.roomId)) {
+            break;
+          }
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === decoded.messageId
@@ -188,15 +210,17 @@ export function useChatRoomPageRealtime({
           );
           break;
         case "message_delete":
+          if (!matchesRoomId(decoded.roomId)) {
+            break;
+          }
           setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === decoded.messageId
-                ? { ...msg, isDeleted: true, content: "" }
-                : msg,
-            ),
+            prev.filter((msg) => msg.id !== decoded.messageId),
           );
           break;
         case "reaction_add":
+          if (!matchesRoomId(decoded.roomId)) {
+            break;
+          }
           setMessages((prev) =>
             prev.map((msg) => {
               if (msg.id !== decoded.messageId) {
@@ -234,6 +258,9 @@ export function useChatRoomPageRealtime({
           );
           break;
         case "reaction_remove":
+          if (!matchesRoomId(decoded.roomId)) {
+            break;
+          }
           setMessages((prev) =>
             prev.map((msg) => {
               if (msg.id !== decoded.messageId) {
@@ -260,6 +287,9 @@ export function useChatRoomPageRealtime({
           );
           break;
         case "read_receipt":
+          if (!matchesRoomId(decoded.roomId)) {
+            break;
+          }
           setReadReceipts((prev) => {
             const next = new Map(prev);
             next.set(decoded.userId, {
@@ -281,6 +311,7 @@ export function useChatRoomPageRealtime({
       applyRateLimit,
       currentActorRef,
       maxMessageLength,
+      matchesRoomId,
       onIncomingForeignMessage,
       roomIdForRequests,
       roomKind,
@@ -289,12 +320,12 @@ export function useChatRoomPageRealtime({
     ],
   );
 
-  const { status, lastError, send } = useReconnectingWebSocket({
-    url: wsUrl,
+  const { status, lastError, send } = useChatRealtimeRoom({
+    roomId: roomRealtimeId,
     onMessage: handleMessage,
     onOpen: () => setRoomError(null),
     onClose: (event) => {
-      if (event.code !== 1000 && event.code !== 1001) {
+      if (event.code !== 1000 && event.code !== 1001 && event.code !== 4001) {
         setRoomError("Соединение потеряно. Пытаемся восстановить...");
       }
     },
@@ -397,8 +428,9 @@ export function useChatRoomPageRealtime({
     [now, rateLimitUntil],
   );
 
-  const visibleReadReceipts =
-    useMemo<UseChatRoomPageRealtimeResult["readReceipts"]>(
+  const visibleReadReceipts = useMemo<
+    UseChatRoomPageRealtimeResult["readReceipts"]
+  >(
     () => (readStateEnabled ? readReceipts : new Map()),
     [readReceipts, readStateEnabled],
   );

@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useCallback, useState } from "react";
 
 import { groupController } from "../../controllers/GroupController";
-import styles from "../../styles/groups/GroupsPage.module.css";
+import styles from "../../styles/groupWidgets/CreateGroupDialog.module.css";
 
 /**
  * Описывает входные props компонента `Props`.

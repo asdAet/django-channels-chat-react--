@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Message } from "../../entities/message/types";
@@ -6,6 +12,12 @@ import {
   DEFAULT_RUNTIME_CONFIG,
   setRuntimeConfig,
 } from "../../shared/config/runtimeConfig";
+import {
+  CUSTOM_EMOJI_CLIPBOARD_MIME,
+  CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
+  type CustomEmoji,
+  getCustomEmojiPackSummaries,
+} from "../../shared/customEmoji";
 import { MessageBubble } from "./MessageBubble";
 
 const baseMessage: Message = {
@@ -33,6 +45,39 @@ const createImageAttachment = (id: number, filename: string) => ({
   width: 1280,
   height: 720,
 });
+
+const getTestEmoji = (index = 0) => {
+  const emoji = getCustomEmojiPackSummaries()[index]?.preview;
+  if (!emoji) {
+    throw new Error("Expected custom emoji test fixture");
+  }
+
+  return emoji;
+};
+
+const mockPickerEmoji: CustomEmoji = {
+  id: "Animated/1.tgs",
+  packId: "Animated",
+  packName: "Animated",
+  fileName: "1.tgs",
+  assetKind: "tgs",
+  label: "Animated 1",
+  src: "/mock/custom-emoji.tgs",
+  token: "[[ce:Animated%2F1.tgs]]",
+};
+
+vi.mock("./TelegramEmojiPicker", () => ({
+  TelegramEmojiPicker: ({
+    onSelect,
+  }: {
+    onSelect: (emoji: CustomEmoji) => void;
+    onClose: () => void;
+  }) => (
+    <button type="button" onClick={() => onSelect(mockPickerEmoji)}>
+      Pick custom emoji reaction
+    </button>
+  ),
+}));
 
 /**
  * Настраивает эмуляцию touch-устройства через matchMedia.
@@ -126,6 +171,19 @@ describe("MessageBubble", () => {
     setRuntimeConfig({ ...DEFAULT_RUNTIME_CONFIG });
   });
 
+  it("renders nothing for deleted messages", () => {
+    const { container } = render(
+      <MessageBubble
+        message={{ ...baseMessage, isDeleted: true, content: "" }}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    expect(container.querySelector("[data-message-id]")).toBeNull();
+    expect(screen.queryByText("Сообщение удалено")).toBeNull();
+  });
+
   it("renders AudioAttachmentPlayer for audio attachments", () => {
     const message: Message = {
       ...baseMessage,
@@ -187,7 +245,9 @@ describe("MessageBubble", () => {
     expect(
       screen.getByText((content, element) => {
         const className = String(element?.className ?? "");
-        return className.includes("attachFileSize") && /\bcustom\b/i.test(content);
+        return (
+          className.includes("attachFileSize") && /\bcustom\b/i.test(content)
+        );
       }),
     ).toBeInTheDocument();
   });
@@ -220,6 +280,313 @@ describe("MessageBubble", () => {
     const image = screen.getByAltText("pizza.svg");
     expect(image.tagName).toBe("IMG");
     expect(image).toHaveAttribute("src", "/media/pizza.svg");
+  });
+
+  it("renders a strictly single custom emoji in the large variant", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const content = container.querySelector("p");
+
+    expect(emoji?.className).toContain("customEmojiLarge");
+    expect(content?.className).toContain("customEmojiOnlyContent");
+  });
+
+  it("renders single custom emoji messages without the regular bubble background", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const bubble = container.querySelector("[class*='bubble']");
+    expect(bubble?.className).toContain("customEmojiOnlyBubble");
+    expect(
+      container.querySelector("[class*='footerInfo']"),
+    ).toBeInTheDocument();
+  });
+
+  it("copies a sent custom emoji with the rich clipboard payload", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const content = container.querySelector("p");
+    const placeholder = container.querySelector(
+      "[data-custom-emoji-copy-placeholder]",
+    );
+    const placeholderText = placeholder?.firstChild;
+    if (!content || !placeholderText) {
+      throw new Error("Expected rendered custom emoji copy placeholder");
+    }
+
+    const range = document.createRange();
+    range.setStart(placeholderText, 0);
+    range.setEnd(placeholderText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+
+    const clipboardData = {
+      setData: vi.fn(),
+    };
+    fireEvent.copy(content, { clipboardData });
+
+    expect(clipboardData.setData).toHaveBeenCalledWith(
+      CUSTOM_EMOJI_CLIPBOARD_MIME,
+      firstEmoji.token,
+    );
+    expect(clipboardData.setData).toHaveBeenCalledWith(
+      "text/plain",
+      CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
+    );
+  });
+
+  it("visually marks sent custom emoji inside the browser selection", async () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: `A${firstEmoji.token}B`,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const content = container.querySelector("p");
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const firstText = content?.childNodes[0]?.firstChild;
+    const secondText = content?.childNodes[2]?.firstChild;
+    if (!content || !emoji || !firstText || !secondText) {
+      throw new Error("Expected mixed text and custom emoji content");
+    }
+
+    const range = document.createRange();
+    range.setStart(firstText, 0);
+    range.setEnd(secondText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+
+    await waitFor(() => {
+      expect(emoji.className).toContain("customEmojiSelected");
+    });
+  });
+
+  it("visually marks sent custom emoji when selection starts on the emoji itself", async () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: `A${firstEmoji.token}B`,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const placeholder = emoji?.querySelector<HTMLElement>(
+      "[data-custom-emoji-copy-placeholder]",
+    );
+    const placeholderText = placeholder?.firstChild;
+    if (!emoji || !placeholder || !placeholderText) {
+      throw new Error("Expected selectable custom emoji hit area");
+    }
+
+    expect(emoji.className).toContain("customEmojiInline");
+    expect(placeholder.style.position).toBe("absolute");
+    expect(placeholder.style.pointerEvents).toBe("auto");
+    expect(placeholder.style.width).toBe("100%");
+
+    const range = document.createRange();
+    range.setStart(placeholderText, 0);
+    range.setEnd(placeholderText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+
+    await waitFor(() => {
+      expect(emoji.className).toContain("customEmojiSelected");
+    });
+  });
+
+  it("visually marks a directly selected large custom emoji", async () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      content: firstEmoji.token,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emoji = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const placeholderText = emoji?.querySelector(
+      "[data-custom-emoji-copy-placeholder]",
+    )?.firstChild;
+    if (!emoji || !placeholderText) {
+      throw new Error("Expected selectable large custom emoji hit area");
+    }
+
+    expect(emoji.className).toContain("customEmojiLarge");
+
+    const range = document.createRange();
+    range.setStart(placeholderText, 0);
+    range.setEnd(placeholderText, 1);
+    document.getSelection()?.removeAllRanges();
+    document.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+
+    await waitFor(() => {
+      expect(emoji.className).toContain("customEmojiSelected");
+    });
+  });
+
+  it("renders multiple custom emoji in the compact variant", () => {
+    const firstEmoji = getTestEmoji();
+    const secondEmoji = getTestEmoji(1);
+
+    const message: Message = {
+      ...baseMessage,
+      content: `${firstEmoji.token}${secondEmoji.token}`,
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const emojis = container.querySelectorAll("[data-custom-emoji-token]");
+    const content = container.querySelector("p");
+
+    expect(emojis).toHaveLength(2);
+    emojis.forEach((emoji) => {
+      expect(emoji.className).toContain("customEmojiInline");
+    });
+    expect(content?.className).not.toContain("customEmojiOnlyContent");
+  });
+
+  it("renders custom emoji reactions as Animated reaction glyphs", () => {
+    const firstEmoji = getTestEmoji();
+
+    const message: Message = {
+      ...baseMessage,
+      reactions: [{ emoji: firstEmoji.token, count: 2, me: true }],
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+        onReact={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: `${firstEmoji.label} 2` }),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(`[data-custom-emoji-id="${firstEmoji.id}"]`),
+    ).toBeTruthy();
+    expect(screen.queryByText(firstEmoji.token)).not.toBeInTheDocument();
+  });
+
+  it("adds a custom emoji reaction from the reaction picker", async () => {
+    const restoreDesktopInputModel = installDesktopInputModel();
+
+    try {
+      const onReact = vi.fn();
+      const { container } = render(
+        <MessageBubble
+          message={baseMessage}
+          isOwn={false}
+          onlineUsernames={new Set<string>()}
+          onReply={vi.fn()}
+          onReact={onReact}
+        />,
+      );
+
+      const article = container.querySelector(
+        'article[data-message-id="1"]',
+      ) as HTMLElement;
+
+      fireEvent.contextMenu(article);
+      fireEvent.click(screen.getByText("Реакция"));
+      fireEvent.click(
+        await screen.findByRole("button", {
+          name: "Pick custom emoji reaction",
+        }),
+      );
+
+      await waitFor(() => {
+        expect(onReact).toHaveBeenCalledWith(
+          baseMessage.id,
+          mockPickerEmoji.token,
+        );
+      });
+    } finally {
+      restoreDesktopInputModel();
+    }
   });
 
   it("splits more than ten image attachments into consecutive media grids preserving order", () => {
@@ -343,10 +710,8 @@ describe("MessageBubble", () => {
       screen.getByRole("dialog", { name: "Просмотр изображения" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("preview.png")).toBeInTheDocument();
-    expect(await screen.findByText(/ID: 90/i)).toBeInTheDocument();
     expect(await screen.findByText(/1\.0 KB/i)).toBeInTheDocument();
-    expect(await screen.findByText(/1280x720/i)).toBeInTheDocument();
-    expect(screen.getByText(/Отправлено:/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1280\s*×\s*720/i)).toBeInTheDocument();
   });
 
   it("opens video preview modal with metadata", async () => {
@@ -382,9 +747,94 @@ describe("MessageBubble", () => {
       screen.getByRole("dialog", { name: "Просмотр видео" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("video.mp4")).toBeInTheDocument();
-    expect(await screen.findByText(/ID: 91/i)).toBeInTheDocument();
     expect(await screen.findByText(/5\.0 MB/i)).toBeInTheDocument();
-    expect(await screen.findByText(/1920x1080/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1920\s*×\s*1080/i)).toBeInTheDocument();
+  });
+
+  it.skip("renders inline video preview with duration badge for video attachments", () => {
+    const message: Message = {
+      ...baseMessage,
+      attachments: [
+        {
+          id: 191,
+          originalFilename: "video.mp4",
+          contentType: "video/mp4",
+          fileSize: 5 * 1024 * 1024,
+          url: "/media/video.mp4",
+          thumbnailUrl: "/media/video-thumb.jpg",
+          width: 1920,
+          height: 1080,
+        },
+      ],
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /Открыть видео video\.mp4/i }),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector(
+        'button[aria-label="Открыть видео video.mp4"] img',
+      )?.tagName,
+    ).toBe("VIDEO");
+  });
+
+  it("renders working inline video preview with a bottom-right duration badge", () => {
+    vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+
+    const message: Message = {
+      ...baseMessage,
+      attachments: [
+        {
+          id: 291,
+          originalFilename: "preview-video.mp4",
+          contentType: "video/mp4",
+          fileSize: 5 * 1024 * 1024,
+          url: "/media/preview-video.mp4",
+          thumbnailUrl: "/media/preview-video-thumb.jpg",
+          width: 1920,
+          height: 1080,
+        },
+      ],
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const previewButton = screen.getByRole("button", {
+      name: /preview-video\.mp4/i,
+    });
+    const previewVideo = container.querySelector(
+      'button[aria-label="Открыть видео preview-video.mp4"] video',
+    ) as HTMLVideoElement | null;
+
+    expect(previewButton).toBeInTheDocument();
+    expect(previewVideo?.tagName).toBe("VIDEO");
+    expect(previewVideo?.muted).toBe(true);
+
+    if (!previewVideo) {
+      throw new Error("Expected inline video preview");
+    }
+
+    Object.defineProperty(previewVideo, "duration", {
+      configurable: true,
+      get: () => 95,
+    });
+    fireEvent.loadedMetadata(previewVideo);
+
+    expect(screen.getByText("01:35")).toBeInTheDocument();
   });
 
   it("treats known video extensions as video preview even with generic content type", async () => {

@@ -69,6 +69,7 @@ const messageSchema = z
 const typingSchema = z
   .object({
     type: z.literal("typing"),
+    roomId: z.union([z.number(), z.string()]).optional(),
     publicRef: z.string().min(1),
     username: z.string(),
     displayName: z.string().optional(),
@@ -80,6 +81,7 @@ const messageEditSchema = z
   .object({
     type: z.literal("message_edit"),
     messageId: z.number(),
+    roomId: z.union([z.number(), z.string()]).optional(),
     content: z.string(),
     editedAt: z.string(),
     editedBy: z.string(),
@@ -90,6 +92,7 @@ const messageDeleteSchema = z
   .object({
     type: z.literal("message_delete"),
     messageId: z.number(),
+    roomId: z.union([z.number(), z.string()]).optional(),
     deletedBy: z.string(),
   })
   .passthrough();
@@ -98,6 +101,7 @@ const reactionAddSchema = z
   .object({
     type: z.literal("reaction_add"),
     messageId: z.number(),
+    roomId: z.union([z.number(), z.string()]).optional(),
     emoji: z.string(),
     userId: z.number(),
     publicRef: z.string().min(1),
@@ -110,6 +114,7 @@ const reactionRemoveSchema = z
   .object({
     type: z.literal("reaction_remove"),
     messageId: z.number(),
+    roomId: z.union([z.number(), z.string()]).optional(),
     emoji: z.string(),
     userId: z.number(),
     publicRef: z.string().min(1),
@@ -179,6 +184,7 @@ export type ChatWsEvent =
     }
   | {
       type: "typing";
+      roomId: number | null;
       publicRef: string;
       username: string;
       displayName: string;
@@ -187,6 +193,7 @@ export type ChatWsEvent =
   | {
       type: "message_edit";
       messageId: number;
+      roomId: number | null;
       content: string;
       editedAt: string;
       editedBy: string;
@@ -194,11 +201,13 @@ export type ChatWsEvent =
   | {
       type: "message_delete";
       messageId: number;
+      roomId: number | null;
       deletedBy: string;
     }
   | {
       type: "reaction_add";
       messageId: number;
+      roomId: number | null;
       emoji: string;
       userId: number;
       publicRef: string;
@@ -208,6 +217,7 @@ export type ChatWsEvent =
   | {
       type: "reaction_remove";
       messageId: number;
+      roomId: number | null;
       emoji: string;
       userId: number;
       publicRef: string;
@@ -274,6 +284,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
   if (typed) {
     return {
       type: "typing",
+      roomId: toNumberOrNull(typed.roomId),
       publicRef: typed.publicRef,
       username: typed.username,
       displayName: typed.displayName ?? typed.username,
@@ -286,6 +297,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
     return {
       type: "message_edit",
       messageId: edit.messageId,
+      roomId: toNumberOrNull(edit.roomId),
       content: edit.content,
       editedAt: edit.editedAt,
       editedBy: edit.editedBy,
@@ -297,6 +309,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
     return {
       type: "message_delete",
       messageId: del.messageId,
+      roomId: toNumberOrNull(del.roomId),
       deletedBy: del.deletedBy,
     };
   }
@@ -306,6 +319,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
     return {
       type: "reaction_add",
       messageId: reactAdd.messageId,
+      roomId: toNumberOrNull(reactAdd.roomId),
       emoji: reactAdd.emoji,
       userId: reactAdd.userId,
       publicRef: reactAdd.publicRef,
@@ -319,6 +333,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
     return {
       type: "reaction_remove",
       messageId: reactRemove.messageId,
+      roomId: toNumberOrNull(reactRemove.roomId),
       emoji: reactRemove.emoji,
       userId: reactRemove.userId,
       publicRef: reactRemove.publicRef,

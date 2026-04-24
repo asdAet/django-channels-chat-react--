@@ -292,15 +292,18 @@ export const resolveCsrfToken = (): string | null => {
 };
 
 /**
- * Выполняет api error message.
+ * Извлекает наиболее полезное сообщение из ошибки API загрузки или отправки вложений.
+ * Функция знает коды ошибок backend и превращает их в человекочитаемый текст для интерфейса.
  *
- * @param error Ошибка, полученная в процессе выполнения.
- * @param fallback Резервное значение при ошибке.
- *
- * @returns Извлеченное значение из входных данных.
+ * @param error Ошибка, полученная из HTTP-клиента или runtime-слоя.
+ * @param fallback Сообщение по умолчанию, если распознать структуру ошибки не удалось.
+ * @returns Текст, который можно безопасно показать пользователю.
  */
 
-export const extractApiErrorMessage = (error: unknown, fallback: string) => {
+export const extractApiErrorMessage = (
+  error: unknown,
+  fallback: string,
+): string => {
   if (!error || typeof error !== "object") return fallback;
   const candidate = error as {
     message?: string;
@@ -354,15 +357,18 @@ export const extractApiErrorMessage = (error: unknown, fallback: string) => {
 };
 
 /**
- * Выполняет avatar crop.
+ * Сравнивает два набора параметров кропа аватара после нормализации.
+ * Это позволяет понять, нужно ли перерисовывать аватар или отправлять обновление на backend.
  *
-
+ * @param left Первый вариант параметров кропа.
+ * @param right Второй вариант параметров кропа.
+ * @returns `true`, если оба варианта описывают один и тот же crop.
  */
 
 export const sameAvatarCrop = (
   left: Message["avatarCrop"],
   right: Message["avatarCrop"],
-) => {
+): boolean => {
   const normalizedLeft = normalizeAvatarCrop(left ?? null);
   const normalizedRight = normalizeAvatarCrop(right ?? null);
   if (!normalizedLeft && !normalizedRight) return true;
@@ -417,7 +423,18 @@ export const buildTimeline = (
   }
 
   for (const msg of messages) {
-    if (!unreadInserted && unreadDividerId && msg.id === unreadDividerId) {
+    const isUnreadDividerTarget =
+      !unreadInserted && unreadDividerId && msg.id === unreadDividerId;
+
+    if (msg.isDeleted) {
+      if (isUnreadDividerTarget) {
+        items.push({ type: "unread" });
+        unreadInserted = true;
+      }
+      continue;
+    }
+
+    if (isUnreadDividerTarget) {
       items.push({ type: "unread" });
       unreadInserted = true;
     }
