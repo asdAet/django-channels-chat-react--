@@ -20,6 +20,15 @@ const isElementInViewport = async (locator: Locator) =>
     return rect.bottom <= window.innerHeight && rect.top >= 0;
   });
 
+const isElementAboveKeyboardInset = async (
+  locator: Locator,
+  keyboardInset: number,
+) =>
+  locator.evaluate((el, inset) => {
+    const rect = el.getBoundingClientRect();
+    return rect.bottom <= window.innerHeight - inset + 1 && rect.top >= 0;
+  }, keyboardInset);
+
 async function register(page: Page, username: string, password: string) {
   await registerWithRetry(page, username, password);
 }
@@ -143,6 +152,28 @@ test("mobile chat keeps input visible and opens own message actions on tap", asy
   await typeChatDraft(composer, "keyboard visible draft");
   const originalViewport = page.viewportSize();
   await composer.editor.focus();
+  const isNarrowViewport = await page.evaluate(() => window.innerWidth <= 768);
+  if (isNarrowViewport) {
+    const simulatedKeyboardInset = 180;
+    await page.evaluate((inset) => {
+      document.documentElement.style.setProperty(
+        "--keyboard-inset-bottom",
+        `${inset}px`,
+      );
+    }, simulatedKeyboardInset);
+    await expect
+      .poll(async () =>
+        isElementAboveKeyboardInset(composer.editor, simulatedKeyboardInset),
+      )
+      .toBeTruthy();
+    await expectChatDraft(composer, "keyboard visible draft");
+    await page.evaluate(() => {
+      document.documentElement.style.setProperty(
+        "--keyboard-inset-bottom",
+        "0px",
+      );
+    });
+  }
   if (originalViewport) {
     await page.setViewportSize({
       width: originalViewport.width,

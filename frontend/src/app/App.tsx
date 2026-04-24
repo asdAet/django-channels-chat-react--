@@ -13,6 +13,7 @@ import { isPrefixlessChatPath } from "../shared/lib/chatTarget";
 import { debugLog } from "../shared/lib/debug";
 import { DeviceProvider } from "../shared/lib/device";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
+import { useViewportCssVars } from "../shared/lib/viewport/useViewportCssVars";
 import { PresenceProvider } from "../shared/presence";
 import { SiteVisitTelemetry } from "../shared/visitorTelemetry";
 import { WsAuthProvider } from "../shared/wsAuth";
@@ -172,6 +173,8 @@ type ProfileSaveResult =
  * React-компонент AppInner отвечает за отрисовку и обработку UI-сценария.
  */
 function AppInner() {
+  useViewportCssVars();
+
   const navigate = useNavigate();
   const location = useLocation();
   const { config: runtimeConfig } = useRuntimeConfig();
@@ -200,55 +203,6 @@ function AppInner() {
     upsertMetaByName("twitter:title", meta.title);
     upsertMetaByName("twitter:description", meta.description);
   }, [location.pathname]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    let lastViewportHeight = -1;
-    let lastViewportWidth = -1;
-
-    /**
-     * Обновляет viewport vars только при реальном изменении размеров viewport.
-     *
-     * Важно: мы намеренно не подписываемся на `visualViewport.scroll`.
-     * Такой scroll срабатывает даже при bounce/toolbar offset и вызывает
-     * микропересчет `--app-height`, из-за чего scroll-контейнеры чата могут
-     * визуально "пружинить" у нижней границы.
-     */
-    const updateViewportVars = () => {
-      const visualViewport = window.visualViewport;
-      const viewportHeight = Math.round(
-        visualViewport?.height ?? window.innerHeight,
-      );
-      const viewportWidth = Math.round(
-        visualViewport?.width ?? window.innerWidth,
-      );
-
-      if (
-        viewportHeight === lastViewportHeight &&
-        viewportWidth === lastViewportWidth
-      ) {
-        return;
-      }
-
-      lastViewportHeight = viewportHeight;
-      lastViewportWidth = viewportWidth;
-      root.style.setProperty("--app-height", `${viewportHeight}px`);
-      root.style.setProperty("--app-width", `${viewportWidth}px`);
-    };
-
-    updateViewportVars();
-    window.addEventListener("resize", updateViewportVars, { passive: true });
-    window.addEventListener("orientationchange", updateViewportVars, {
-      passive: true,
-    });
-    window.visualViewport?.addEventListener("resize", updateViewportVars);
-
-    return () => {
-      window.removeEventListener("resize", updateViewportVars);
-      window.removeEventListener("orientationchange", updateViewportVars);
-      window.visualViewport?.removeEventListener("resize", updateViewportVars);
-    };
-  }, []);
 
   useEffect(() => {
     if (!banner) return;
