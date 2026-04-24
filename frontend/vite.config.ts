@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const enablePwa = String(env.VITE_ENABLE_PWA ?? "").trim() === "1";
 
   return {
+    assetsInclude: ["**/*.tgs"],
     plugins: [
       react({
         babel: {
