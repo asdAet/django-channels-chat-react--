@@ -2,12 +2,14 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const customEmojiAssetPatterns = ["**/*.tgs", "**/*.webp", "**/*.webm"];
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const enablePwa = String(env.VITE_ENABLE_PWA ?? "").trim() === "1";
 
   return {
-    assetsInclude: ["**/*.tgs"],
+    assetsInclude: customEmojiAssetPatterns,
     plugins: [
       react({
         babel: {
