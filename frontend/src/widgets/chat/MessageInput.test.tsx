@@ -149,6 +149,23 @@ describe("MessageInput", () => {
     );
   });
 
+  it("keeps the visual placeholder outside editable message content", () => {
+    render(<ControlledMessageInput />);
+
+    const editor = screen.getByTestId("chat-message-input");
+    const placeholder = screen.getByTestId("chat-message-placeholder");
+
+    expect(editor).toHaveTextContent("");
+    expect(editor).not.toContainElement(placeholder);
+    expect(screen.getByTestId("draft-value").textContent).toBe("");
+
+    fireEvent.keyDown(editor, { key: "a" });
+
+    expect(screen.queryByTestId("chat-message-placeholder")).toBeNull();
+    expect(screen.getByTestId("draft-value").textContent).toBe("a");
+    expect(editor).toHaveTextContent("a");
+  });
+
   it("keeps the caret after an inserted custom emoji", () => {
     render(<ControlledMessageInput />);
 
@@ -240,6 +257,57 @@ describe("MessageInput", () => {
 
     expect(screen.getByTestId("draft-value").textContent).toBe("test");
     expect(editor.textContent).toBe("test");
+  });
+
+  it("repairs native editor mutations after controlled keyboard input", () => {
+    render(<ControlledMessageInput />);
+
+    const editor = screen.getByTestId("chat-message-input");
+    fireEvent.keyDown(editor, { key: "a" });
+
+    const mutatedEditor = screen.getByTestId("chat-message-input");
+    mutatedEditor.textContent = "aa";
+    fireEvent.input(mutatedEditor);
+
+    expect(screen.getByTestId("draft-value").textContent).toBe("a");
+    expect(screen.getByTestId("chat-message-input").textContent).toBe("a");
+  });
+
+  it("commits mobile composition text only after composition ends", () => {
+    render(<ControlledMessageInput />);
+
+    const editor = screen.getByTestId("chat-message-input");
+    fireEvent.compositionStart(editor);
+    editor.textContent = "mobile";
+    fireEvent.input(editor, {
+      inputType: "insertCompositionText",
+      isComposing: true,
+    });
+
+    expect(screen.getByTestId("draft-value").textContent).toBe("");
+
+    fireEvent.compositionEnd(editor);
+
+    expect(screen.getByTestId("draft-value").textContent).toBe("mobile");
+    expect(screen.getByTestId("chat-message-input").textContent).toBe("mobile");
+  });
+
+  it("does not accept placeholder text from a stale native editor mutation", () => {
+    render(<ControlledMessageInput initialDraft="text" />);
+
+    const editor = screen.getByTestId("chat-message-input");
+    setCustomEmojiDraftSelection(editor, {
+      start: 0,
+      end: 4,
+    });
+    fireEvent.keyDown(editor, { key: "Delete" });
+
+    const mutatedEditor = screen.getByTestId("chat-message-input");
+    mutatedEditor.textContent = "Сообщение...";
+    fireEvent.input(mutatedEditor);
+
+    expect(screen.getByTestId("draft-value").textContent).toBe("");
+    expect(screen.getByTestId("chat-message-input").textContent).toBe("");
   });
 
   it("copies a selected custom emoji as one visible clipboard symbol", () => {

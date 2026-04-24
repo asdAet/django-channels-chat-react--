@@ -1,6 +1,7 @@
 import {
   type ChangeEvent,
   type ClipboardEvent,
+  type CompositionEvent,
   type FormEvent,
   Fragment,
   type KeyboardEvent,
@@ -34,6 +35,13 @@ import {
 } from "../../shared/customEmoji";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import styles from "../../styles/chat/MessageInput.module.css";
+import {
+  areSameDraftOperations,
+  getBeforeInputDraftOperation,
+  getKeyboardDraftOperation,
+  type MessageInputDraftOperation,
+  supportsBeforeInputEvents,
+} from "./messageInputEvents";
 import { TelegramEmojiPicker } from "./TelegramEmojiPicker";
 
 type Props = {
@@ -175,10 +183,28 @@ const freezeVideoPreviewPlayback = (
 };
 
 const DEFAULT_PLACEHOLDER = "Сообщение...";
+const CONTROLLED_INPUT_RECONCILE_MS = 250;
+const KEYBOARD_FALLBACK_DEDUPE_MS = 750;
 
 type DraftSelection = {
   start: number;
   end: number;
+};
+
+type PendingKeyboardOperation = {
+  expiresAt: number;
+  operation: MessageInputDraftOperation;
+};
+
+type PendingControlledInput = {
+  expiresAt: number;
+  nextSelection: DraftSelection;
+  nextValue: string;
+};
+
+type DraftMutationResult = {
+  nextSelection: DraftSelection;
+  nextValue: string;
 };
 
 type DraftDeleteGranularity = "character" | "word";
@@ -190,6 +216,22 @@ type DecoratedDraftPart = {
   part: DraftPart;
   visualEnd: number;
   visualStart: number;
+};
+
+const getMonotonicTimestamp = (): number => {
+  if (typeof performance !== "undefined") {
+    return performance.now();
+  }
+
+  return Date.now();
+};
+
+const serializeEditorDraft = (editor: HTMLDivElement): string => {
+  const nextDraft = serializeCustomEmojiRoot(editor);
+  return editor.childNodes.length === 1 &&
+    editor.firstChild instanceof HTMLBRElement
+    ? ""
+    : nextDraft;
 };
 
 const decorateDraftParts = (parts: DraftPart[]): DecoratedDraftPart[] => {
@@ -260,10 +302,15 @@ export function MessageInput({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  const composingRef = useRef(false);
+  const controlledInputRef = useRef<PendingControlledInput | null>(null);
+  const keyboardFallbackOperationRef =
+    useRef<PendingKeyboardOperation | null>(null);
   const pendingSelectionRef = useRef<DraftSelection | null>(null);
   const restoreSelectionRef = useRef(false);
   const focusEditorAfterSyncRef = useRef(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [editorDomVersion, setEditorDomVersion] = useState(0);
   const [editorSelection, setEditorSelection] =
     useState<DraftSelection | null>(null);
 
@@ -295,6 +342,7 @@ export function MessageInput({
     disabled || uploading || rateLimitActive,
   );
   const customEmojiEnabled = hasCustomEmojiPacks();
+  const beforeInputSupported = useMemo(() => supportsBeforeInputEvents(), []);
   const draftParts = useMemo(() => parseCustomEmojiText(draft), [draft]);
 
   const getFallbackSelection = useCallback(
@@ -362,17 +410,21 @@ export function MessageInput({
   );
 
   const replaceEditorSelection = useCallback(
-    (insertion: string, focusEditor = true) => {
+    (
+      insertion: string,
+      focusEditor = true,
+    ): DraftMutationResult => {
       const selection =
         captureEditorSelection() ??
         pendingSelectionRef.current ??
         getFallbackSelection();
-      const { nextSelection, nextValue } = replaceCustomEmojiDraftSelection(
+      const result = replaceCustomEmojiDraftSelection(
         draft,
         selection,
         insertion,
       );
-      commitDraftChange(nextValue, nextSelection, focusEditor);
+      commitDraftChange(result.nextValue, result.nextSelection, focusEditor);
+      return result;
     },
     [captureEditorSelection, commitDraftChange, draft, getFallbackSelection],
   );
@@ -381,20 +433,100 @@ export function MessageInput({
     (
       direction: "backward" | "forward",
       granularity: DraftDeleteGranularity = "character",
-    ) => {
+    ): DraftMutationResult => {
       const selection =
         captureEditorSelection() ??
         pendingSelectionRef.current ??
         getFallbackSelection();
-      const { nextSelection, nextValue } = deleteCustomEmojiDraftSelection(
+      const result = deleteCustomEmojiDraftSelection(
         draft,
         selection,
         direction,
         granularity,
       );
-      commitDraftChange(nextValue, nextSelection, true);
+      commitDraftChange(result.nextValue, result.nextSelection, true);
+      return result;
     },
     [captureEditorSelection, commitDraftChange, draft, getFallbackSelection],
+  );
+
+  const rememberControlledInput = useCallback(
+    (result: DraftMutationResult) => {
+      controlledInputRef.current = {
+        expiresAt: getMonotonicTimestamp() + CONTROLLED_INPUT_RECONCILE_MS,
+        nextSelection: result.nextSelection,
+        nextValue: result.nextValue,
+      };
+    },
+    [],
+  );
+
+  const consumeControlledInput = useCallback(() => {
+    const pendingControlledInput = controlledInputRef.current;
+    controlledInputRef.current = null;
+
+    if (
+      !pendingControlledInput ||
+      pendingControlledInput.expiresAt < getMonotonicTimestamp()
+    ) {
+      return null;
+    }
+
+    return pendingControlledInput;
+  }, []);
+
+  const requestEditorDomRepair = useCallback(
+    (selection: DraftSelection, focusEditor: boolean) => {
+      pendingSelectionRef.current = selection;
+      setEditorSelection(selection);
+      restoreSelectionRef.current = true;
+      focusEditorAfterSyncRef.current = focusEditor;
+      setEditorDomVersion((version) => version + 1);
+    },
+    [],
+  );
+
+  const applyDraftOperation = useCallback(
+    (operation: MessageInputDraftOperation) => {
+      const result =
+        operation.kind === "insert"
+          ? replaceEditorSelection(operation.value)
+          : deleteEditorSelection(operation.direction, operation.granularity);
+
+      rememberControlledInput(result);
+
+      return result;
+    },
+    [deleteEditorSelection, rememberControlledInput, replaceEditorSelection],
+  );
+
+  const rememberKeyboardFallbackOperation = useCallback(
+    (operation: MessageInputDraftOperation) => {
+      keyboardFallbackOperationRef.current = {
+        expiresAt: getMonotonicTimestamp() + KEYBOARD_FALLBACK_DEDUPE_MS,
+        operation,
+      };
+    },
+    [],
+  );
+
+  const consumeKeyboardFallbackOperation = useCallback(
+    (operation: MessageInputDraftOperation) => {
+      const pendingKeyboardOperation = keyboardFallbackOperationRef.current;
+      keyboardFallbackOperationRef.current = null;
+
+      if (
+        !pendingKeyboardOperation ||
+        pendingKeyboardOperation.expiresAt < getMonotonicTimestamp()
+      ) {
+        return false;
+      }
+
+      return Boolean(
+        areSameDraftOperations(pendingKeyboardOperation.operation, operation),
+      );
+    },
+    [],
   );
 
   useLayoutEffect(() => {
@@ -403,7 +535,7 @@ export function MessageInput({
     }
 
     syncDraftSelection(focusEditorAfterSyncRef.current);
-  }, [draft, syncDraftSelection]);
+  }, [draft, editorDomVersion, syncDraftSelection]);
 
   useEffect(() => {
     const handleSelectionChange = () => {
@@ -426,6 +558,47 @@ export function MessageInput({
       document.removeEventListener("selectionchange", handleSelectionChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (!beforeInputSupported) {
+      return undefined;
+    }
+
+    const editor = editorRef.current;
+    if (!editor) {
+      return undefined;
+    }
+
+    const handleNativeBeforeInput = (event: InputEvent) => {
+      if (composerControlsDisabled) {
+        event.preventDefault();
+        return;
+      }
+
+      const operation = getBeforeInputDraftOperation(event);
+      if (!operation) {
+        return;
+      }
+
+      event.preventDefault();
+      if (consumeKeyboardFallbackOperation(operation)) {
+        return;
+      }
+
+      applyDraftOperation(operation);
+    };
+
+    editor.addEventListener("beforeinput", handleNativeBeforeInput, true);
+    return () => {
+      editor.removeEventListener("beforeinput", handleNativeBeforeInput, true);
+    };
+  }, [
+    applyDraftOperation,
+    beforeInputSupported,
+    composerControlsDisabled,
+    consumeKeyboardFallbackOperation,
+    editorDomVersion,
+  ]);
 
   useEffect(() => {
     if (!composerControlsDisabled || !emojiPickerOpen) {
@@ -486,21 +659,67 @@ export function MessageInput({
     [],
   );
 
+  const commitSerializedEditorDraft = useCallback(
+    (
+      editor: HTMLDivElement,
+      focusEditor: boolean,
+      repairNativeDom = false,
+    ) => {
+      const normalizedDraft = serializeEditorDraft(editor);
+      const selection =
+        getCustomEmojiDraftSelection(editor) ?? getFallbackSelection();
+
+      commitDraftChange(normalizedDraft, selection, focusEditor);
+
+      if (repairNativeDom) {
+        requestEditorDomRepair(selection, focusEditor);
+      }
+    },
+    [commitDraftChange, getFallbackSelection, requestEditorDomRepair],
+  );
+
   const handleEditorInput = useCallback(
     (event: FormEvent<HTMLDivElement>) => {
-      const nextDraft = serializeCustomEmojiRoot(event.currentTarget);
-      const normalizedDraft =
-        event.currentTarget.childNodes.length === 1 &&
-        event.currentTarget.firstChild instanceof HTMLBRElement
-          ? ""
-          : nextDraft;
-      const selection =
-        getCustomEmojiDraftSelection(event.currentTarget) ??
-        getFallbackSelection();
+      const nativeEvent = event.nativeEvent as InputEvent;
+      if (composingRef.current || nativeEvent.isComposing) {
+        return;
+      }
 
-      commitDraftChange(normalizedDraft, selection, false);
+      const normalizedDraft = serializeEditorDraft(event.currentTarget);
+      const pendingControlledInput = consumeControlledInput();
+      if (pendingControlledInput) {
+        if (normalizedDraft !== pendingControlledInput.nextValue) {
+          requestEditorDomRepair(
+            pendingControlledInput.nextSelection,
+            event.currentTarget === document.activeElement,
+          );
+        }
+        return;
+      }
+
+      commitSerializedEditorDraft(event.currentTarget, false);
     },
-    [commitDraftChange, getFallbackSelection],
+    [
+      commitSerializedEditorDraft,
+      consumeControlledInput,
+      requestEditorDomRepair,
+    ],
+  );
+
+  const handleEditorCompositionStart = useCallback(() => {
+    composingRef.current = true;
+  }, []);
+
+  const handleEditorCompositionEnd = useCallback(
+    (event: CompositionEvent<HTMLDivElement>) => {
+      composingRef.current = false;
+      if (composerControlsDisabled) {
+        return;
+      }
+
+      commitSerializedEditorDraft(event.currentTarget, false, true);
+    },
+    [commitSerializedEditorDraft, composerControlsDisabled],
   );
 
   const handleEditorBeforeInput = useCallback(
@@ -511,38 +730,27 @@ export function MessageInput({
       }
 
       const nativeEvent = event.nativeEvent as InputEvent;
-      const inputType = nativeEvent.inputType;
-
-      if (inputType === "insertParagraph" || inputType === "insertLineBreak") {
-        event.preventDefault();
-        replaceEditorSelection("\n");
+      if (nativeEvent.defaultPrevented) {
         return;
       }
 
-      if (inputType === "deleteContentBackward") {
-        event.preventDefault();
-        deleteEditorSelection("backward");
+      const operation = getBeforeInputDraftOperation(nativeEvent);
+      if (!operation) {
         return;
       }
 
-      if (inputType === "deleteWordBackward") {
-        event.preventDefault();
-        deleteEditorSelection("backward", "word");
+      event.preventDefault();
+      if (consumeKeyboardFallbackOperation(operation)) {
         return;
       }
 
-      if (inputType === "deleteContentForward") {
-        event.preventDefault();
-        deleteEditorSelection("forward");
-        return;
-      }
-
-      if (inputType === "deleteWordForward") {
-        event.preventDefault();
-        deleteEditorSelection("forward", "word");
-      }
+      applyDraftOperation(operation);
     },
-    [composerControlsDisabled, deleteEditorSelection, replaceEditorSelection],
+    [
+      applyDraftOperation,
+      composerControlsDisabled,
+      consumeKeyboardFallbackOperation,
+    ],
   );
 
   const handleEditorKeyDown = useCallback(
@@ -556,52 +764,25 @@ export function MessageInput({
         return;
       }
 
-      if (
-        event.key.length === 1 &&
-        !event.ctrlKey &&
-        !event.metaKey &&
-        !event.altKey
-      ) {
-        event.preventDefault();
-        replaceEditorSelection(event.key);
-        return;
-      }
-
-      if (event.key === "Backspace") {
-        event.preventDefault();
-        deleteEditorSelection(
-          "backward",
-          event.ctrlKey || event.metaKey || event.altKey ? "word" : "character",
-        );
-        return;
-      }
-
-      if (event.key === "Delete") {
-        event.preventDefault();
-        deleteEditorSelection(
-          "forward",
-          event.ctrlKey || event.metaKey || event.altKey ? "word" : "character",
-        );
-        return;
-      }
-
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         onSend();
         return;
       }
 
-      if (event.key === "Enter" && event.shiftKey) {
+      const operation = getKeyboardDraftOperation(event, beforeInputSupported);
+      if (operation) {
         event.preventDefault();
-        replaceEditorSelection("\n");
-        return;
+        rememberKeyboardFallbackOperation(operation);
+        applyDraftOperation(operation);
       }
     },
     [
+      applyDraftOperation,
+      beforeInputSupported,
       composerControlsDisabled,
-      deleteEditorSelection,
       onSend,
-      replaceEditorSelection,
+      rememberKeyboardFallbackOperation,
     ],
   );
 
@@ -914,60 +1095,75 @@ export function MessageInput({
           </button>
         )}
 
-        <div
-          ref={editorRef}
-          role="textbox"
-          aria-multiline="true"
-          aria-label="Сообщение"
-          aria-placeholder={DEFAULT_PLACEHOLDER}
-          data-testid="chat-message-input"
-          data-placeholder={DEFAULT_PLACEHOLDER}
-          contentEditable={!composerControlsDisabled}
-          suppressContentEditableWarning={true}
-          spellCheck={true}
-          className={[
-            styles.editor,
-            draft.length === 0 ? styles.editorEmpty : "",
-            composerControlsDisabled ? styles.editorDisabled : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          onBeforeInput={handleEditorBeforeInput}
-          onInput={handleEditorInput}
-          onKeyDown={handleEditorKeyDown}
-          onPaste={handleEditorPaste}
-          onCopy={handleEditorCopy}
-          onCut={handleEditorCut}
-          onMouseUp={captureEditorSelection}
-          onKeyUp={captureEditorSelection}
-          onFocus={captureEditorSelection}
-          onBlur={() => setEditorSelection(null)}
-        >
-          {decoratedDraftParts.map(({ index, part, visualEnd, visualStart }) => {
-            if (part.type === "text") {
-              return renderTextDraftPart(part.value, `text-${index}`);
-            }
+        <div className={styles.editorShell}>
+          {draft.length === 0 && (
+            <span
+              aria-hidden="true"
+              className={styles.editorPlaceholder}
+              data-testid="chat-message-placeholder"
+            >
+              {DEFAULT_PLACEHOLDER}
+            </span>
+          )}
 
-            const emojiSelected =
-              selectedDraftRange !== null &&
-              selectedDraftRange.start < visualEnd &&
-              selectedDraftRange.end > visualStart;
+          <div
+            key={editorDomVersion}
+            ref={editorRef}
+            role="textbox"
+            aria-multiline="true"
+            aria-label="Сообщение"
+            aria-placeholder={DEFAULT_PLACEHOLDER}
+            data-testid="chat-message-input"
+            contentEditable={!composerControlsDisabled}
+            suppressContentEditableWarning={true}
+            spellCheck={true}
+            className={[
+              styles.editor,
+              composerControlsDisabled ? styles.editorDisabled : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            onBeforeInput={handleEditorBeforeInput}
+            onCompositionEnd={handleEditorCompositionEnd}
+            onCompositionStart={handleEditorCompositionStart}
+            onInput={handleEditorInput}
+            onKeyDown={handleEditorKeyDown}
+            onPaste={handleEditorPaste}
+            onCopy={handleEditorCopy}
+            onCut={handleEditorCut}
+            onMouseUp={captureEditorSelection}
+            onKeyUp={captureEditorSelection}
+            onFocus={captureEditorSelection}
+            onBlur={() => setEditorSelection(null)}
+          >
+            {decoratedDraftParts.map(
+              ({ index, part, visualEnd, visualStart }) => {
+                if (part.type === "text") {
+                  return renderTextDraftPart(part.value, `text-${index}`);
+                }
 
-            return (
-              <CustomEmojiNode
-                key={`${part.value.id}-${index}`}
-                emoji={part.value}
-                atomic={true}
-                size={26}
-                className={[
-                  styles.editorCustomEmojiInline,
-                  emojiSelected ? styles.editorCustomEmojiSelected : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              />
-            );
-          })}
+                const emojiSelected =
+                  selectedDraftRange !== null &&
+                  selectedDraftRange.start < visualEnd &&
+                  selectedDraftRange.end > visualStart;
+
+                return (
+                  <CustomEmojiNode
+                    key={`${part.value.id}-${index}`}
+                    emoji={part.value}
+                    atomic={true}
+                    size={26}
+                    className={[
+                      styles.editorCustomEmojiInline,
+                      emojiSelected ? styles.editorCustomEmojiSelected : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                  />
+                );
+              },
+            )}
+          </div>
         </div>
 
         <button
