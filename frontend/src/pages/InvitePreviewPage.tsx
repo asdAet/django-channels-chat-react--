@@ -4,7 +4,7 @@ import { groupController } from "../controllers/GroupController";
 import type { InvitePreview } from "../entities/group/types";
 import { buildChatTargetPath } from "../shared/lib/chatTarget";
 import { Spinner } from "../shared/ui";
-import styles from "../styles/groups/GroupsPage.module.css";
+import styles from "../styles/groupWidgets/InvitePreviewPage.module.css";
 
 /**
  * Описывает входные props компонента `Props`.

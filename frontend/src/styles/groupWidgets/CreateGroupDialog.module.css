@@ -1,0 +1,153 @@
+.dialog {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialogBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.dialogCard {
+  position: relative;
+  background: #242424;
+  border-radius: 12px;
+  padding: 24px;
+  width: 400px;
+  max-width: 90vw;
+  max-height: calc(var(--app-height, 100vh) - 48px);
+  overflow: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.dialogTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text, #e2e8f5);
+  margin-bottom: 16px;
+}
+
+.dialogField {
+  margin-bottom: 12px;
+}
+
+.dialogLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted, #9eb0c7);
+  margin-bottom: 4px;
+}
+
+.dialogInput {
+  width: 100%;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  border: 1px solid var(--color-border, #2a2a2a);
+  border-radius: 8px;
+  color: var(--color-text, #e2e8f5);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.dialogInput:focus {
+  border-color: var(--color-accent, #8ae6ff);
+}
+
+.dialogTextarea {
+  width: 100%;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  border: 1px solid var(--color-border, #2a2a2a);
+  border-radius: 8px;
+  color: var(--color-text, #e2e8f5);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  min-height: 60px;
+  resize: vertical;
+}
+
+.dialogTextarea:focus {
+  border-color: var(--color-accent, #8ae6ff);
+}
+
+.dialogCheckRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text, #e2e8f5);
+  margin-bottom: 12px;
+}
+
+.dialogError {
+  font-size: 13px;
+  color: #ff6b6b;
+  margin-top: 8px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dialogCancelBtn {
+  background: none;
+  border: 1px solid var(--color-border, #2a2a2a);
+  color: var(--color-muted, #9eb0c7);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dialogSubmitBtn {
+  background: var(--color-accent, #8ae6ff);
+  border: none;
+  color: #181818;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dialogSubmitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .dialog {
+    align-items: flex-end;
+    padding: 8px 8px max(8px, var(--safe-bottom, 0px));
+  }
+
+  .dialogCard {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(var(--app-height, 100vh) - var(--safe-top, 0px) - 16px);
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .dialogInput,
+  .dialogTextarea {
+    font-size: 16px;
+  }
+
+  .dialogCancelBtn,
+  .dialogSubmitBtn {
+    min-height: var(--touch-target-min, 44px);
+    flex: 1;
+  }
+}

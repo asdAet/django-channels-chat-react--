@@ -1,0 +1,75 @@
+.inviteRoot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 24px;
+}
+
+.inviteCard {
+  background: #242424;
+  border-radius: 16px;
+  padding: 32px;
+  width: 400px;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.inviteGroupName {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text, #e2e8f5);
+  margin-bottom: 8px;
+}
+
+.inviteGroupDesc {
+  font-size: 14px;
+  color: var(--color-muted, #9eb0c7);
+  margin-bottom: 16px;
+}
+
+.inviteMeta {
+  font-size: 13px;
+  color: var(--color-muted, #9eb0c7);
+  margin-bottom: 24px;
+}
+
+.dialogError {
+  font-size: 13px;
+  color: #ff6b6b;
+  margin-top: 8px;
+}
+
+.inviteJoinBtn {
+  background: var(--color-accent, #8ae6ff);
+  border: none;
+  color: #181818;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 32px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.inviteJoinBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .inviteRoot {
+    padding: 12px;
+  }
+
+  .inviteCard {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .inviteGroupName {
+    font-size: 20px;
+  }
+}

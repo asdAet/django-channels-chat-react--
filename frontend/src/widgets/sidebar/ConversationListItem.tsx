@@ -1,7 +1,7 @@
 import type { ConversationItem } from "../../entities/conversation/types";
 import { formatTimestamp } from "../../shared/lib/format";
 import { Avatar } from "../../shared/ui";
-import styles from "../../styles/sidebar/ConversationList.module.css";
+import styles from "../../styles/sidebar/ConversationListItem.module.css";
 
 const EMPTY_PREVIEW = String.fromCharCode(160);
 
