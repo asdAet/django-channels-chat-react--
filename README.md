@@ -47,7 +47,8 @@ npm ci
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-Vite проксирует `/api` и `/ws` на `127.0.0.1:8000`.
+Локальный frontend dev server ожидает, что API уже доступен. Vite проксирует `/api`
+и `/ws` на `VITE_BACKEND_ORIGIN` или, по умолчанию, на `http://127.0.0.1:8000`.
 
 ## Проверки
 
@@ -98,6 +99,14 @@ docker compose -f docker-compose.prod.yml -f deploy/observability/compose.yml up
 - `DJANGO_PUBLIC_BASE_URL`
 
 Observability описан в [deploy/observability/README.md](deploy/observability/README.md).
+
+### WebSocket в production
+
+В production WebSocket работает через тот же публичный origin, что и SPA:
+
+- при `https://example.com` frontend открывает `wss://example.com/ws/...`;
+- nginx принимает `/ws/` и проксирует соединение во внутренний `backend:8000`;
+- `VITE_BACKEND_ORIGIN` и `VITE_WS_BACKEND_ORIGIN` для production не нужны.
 
 ## Документация
 

@@ -19,10 +19,13 @@ npm ci
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-Dev server проксирует:
+Локальный frontend dev server ожидает, что API уже доступен до запросов браузера в
+`/api` или `/ws`.
 
-- `/api` на `http://127.0.0.1:8000`
-- `/ws` на `ws://127.0.0.1:8000`
+Локальный dev server проксирует:
+
+- `/api` на `VITE_BACKEND_ORIGIN` или `http://127.0.0.1:8000`;
+- `/ws` на `VITE_WS_BACKEND_ORIGIN` или WebSocket origin, выведенный из `VITE_BACKEND_ORIGIN`.
 
 ## Скрипты
 
@@ -44,8 +47,13 @@ npm run test:e2e
 ## Конфигурация
 
 - `VITE_ENABLE_PWA=1` включает PWA build integration.
-- `VITE_WS_BACKEND_ORIGIN` переопределяет WebSocket origin вне dev proxy.
+- `VITE_BACKEND_ORIGIN` задает HTTP-адрес backend для локального Vite proxy.
+- `VITE_WS_BACKEND_ORIGIN` переопределяет WebSocket origin только в dev; обычно пустой, потому что выводится из `VITE_BACKEND_ORIGIN`.
 - Runtime-лимиты и доступность OAuth загружаются из `GET /api/meta/client-config/`.
+
+В production эти `VITE_*` origin-переменные не нужны: frontend открывает
+WebSocket от текущего домена (`wss://<домен>/ws/...`), а nginx проксирует
+`/ws/` во внутренний `backend:8000`.
 
 ## Маршруты
 
