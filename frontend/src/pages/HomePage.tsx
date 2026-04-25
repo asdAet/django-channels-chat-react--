@@ -77,13 +77,13 @@ export function HomePage({ onNavigate, onLoginNavigate }: Props) {
             >
               Войти в Devil
             </Button>
-            <Button
+            {/* <Button
               variant="ghost"
               className={styles.secondaryAction}
               onClick={() => onNavigate("/register")}
             >
               Создать аккаунт
-            </Button>
+            </Button> */}
           </div>
         </div>
 
