@@ -1,8 +1,14 @@
 ﻿import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  dispatchDeviceMediaChanges,
+  installDeviceEnvironment,
+  resetDeviceEnvironment,
+  updateDeviceEnvironment,
+} from "../../test/deviceEnvironment";
 import { AppShell } from "./AppShell";
 
 const conversationListMock = vi.hoisted(() => ({
@@ -93,13 +99,16 @@ const user = {
 };
 
 const setViewport = (width: number) => {
-  Object.defineProperty(window, "innerWidth", {
-    value: width,
-    writable: true,
-    configurable: true,
+  updateDeviceEnvironment({
+    viewportWidth: width,
+    viewportHeight: width <= 768 ? 844 : 720,
+    coarsePointer: width <= 768,
+    canHover: width > 768,
+    maxTouchPoints: width <= 768 ? 5 : 0,
   });
+
   act(() => {
-    window.dispatchEvent(new Event("resize"));
+    dispatchDeviceMediaChanges();
   });
 };
 
@@ -123,7 +132,11 @@ function ShellHarness() {
 
 describe("AppShell mobile navigation", () => {
   beforeEach(() => {
-    setViewport(1280);
+    installDeviceEnvironment({ viewportWidth: 1280 });
+  });
+
+  afterEach(() => {
+    resetDeviceEnvironment();
   });
 
   it("opens the sidebar drawer from the home header button on mobile", () => {
@@ -168,15 +181,19 @@ describe("AppShell mobile navigation", () => {
     );
   });
 
-  it("does not render the mobile header on desktop widths", () => {
+  it("keeps mobile chrome mounted for CSS-only desktop hiding", () => {
     render(
       <MemoryRouter initialEntries={["/friends"]}>
         <ShellHarness />
       </MemoryRouter>,
     );
 
-    expect(screen.queryByTestId("app-shell-mobile-back")).toBeNull();
-    expect(screen.queryByTestId("app-shell-sidebar-backdrop")).toBeNull();
+    expect(screen.getByTestId("app-shell-mobile-back")).toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-sidebar-backdrop")).toBeInTheDocument();
+    expect(screen.getByTestId("app-shell-sidebar-pane")).toHaveAttribute(
+      "data-mobile-drawer-open",
+      "false",
+    );
   });
 
   it("opens the sidebar drawer instead of navigating back from friends on mobile", () => {

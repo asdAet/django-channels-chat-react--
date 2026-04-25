@@ -51,9 +51,12 @@
   cursor: grab;
 }
 
+.imageInteracting {
+  transition: none;
+}
+
 .imageDragging {
   cursor: grabbing;
-  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

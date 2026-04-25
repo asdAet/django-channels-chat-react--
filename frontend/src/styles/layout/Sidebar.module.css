@@ -29,10 +29,6 @@
   border-right: 1px solid var(--border);
 }
 
-.sidebarMobileDrawer {
-  border-right: none;
-}
-
 .mobileCloseButton {
   display: none;
   flex: 0 0 40px;

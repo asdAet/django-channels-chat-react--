@@ -35,10 +35,7 @@ const MobileShellContext = createContext<MobileShellState>({
 export function MobileShellProvider({ children }: { children: ReactNode }) {
   const { isMobileViewport } = useDevice();
   return (
-    <MobileShellStateProvider
-      key={isMobileViewport ? "mobile" : "desktop"}
-      isMobileViewport={isMobileViewport}
-    >
+    <MobileShellStateProvider isMobileViewport={isMobileViewport}>
       {children}
     </MobileShellStateProvider>
   );
@@ -52,6 +49,10 @@ function MobileShellStateProvider({
   isMobileViewport: boolean;
 }) {
   const [isDrawerRequestedOpen, setIsDrawerRequestedOpen] = useState(false);
+
+  if (!isMobileViewport && isDrawerRequestedOpen) {
+    setIsDrawerRequestedOpen(false);
+  }
 
   const openDrawer = useCallback(() => {
     if (!isMobileViewport) {
@@ -102,4 +103,3 @@ function MobileShellStateProvider({
 export function useMobileShell() {
   return useContext(MobileShellContext);
 }
-

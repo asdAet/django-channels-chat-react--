@@ -1,21 +1,27 @@
-import {
-  type ReactNode,
-  useEffect,
-  useState,
-} from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
+import { MOBILE_VIEWPORT_MEDIA_QUERY } from "./constants";
 import { DeviceContext } from "./device-context";
-import {
-  areDeviceSnapshotsEqual,
-  readDeviceSnapshot,
-} from "./readDeviceSnapshot";
+import { areDeviceTraitsEqual, readDeviceSnapshot } from "./readDeviceSnapshot";
 import type { DeviceSnapshot } from "./types";
+
+const DEVICE_MEDIA_QUERIES = [
+  MOBILE_VIEWPORT_MEDIA_QUERY,
+  "(pointer: coarse)",
+  "(pointer: fine)",
+  "(hover: hover)",
+  "(any-pointer: coarse)",
+  "(any-hover: hover)",
+] as const;
 
 const bindMediaQuery = (
   query: string,
   onChange: () => void,
 ): (() => void) | null => {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
     return null;
   }
 
@@ -26,50 +32,42 @@ const bindMediaQuery = (
     return () => mediaQuery.removeEventListener("change", onChange);
   }
 
-  mediaQuery.addListener?.(onChange);
-  return () => mediaQuery.removeListener?.(onChange);
+  return null;
 };
 
 /**
- * Публикует в контекст актуальный снимок устройства и viewport.
+ * Публикует в контекст актуальный снимок устройства.
  *
- * Провайдер слушает media query, resize и orientation changes, а затем
- * обновляет `DeviceContext` только тогда, когда snapshot реально изменился.
+ * Провайдер слушает media query changes, а затем
+ * обновляет `DeviceContext` только тогда, когда меняется поведение устройства,
+ * а не каждый пиксель viewport. Сырые размеры viewport остаются в CSS vars.
  */
 export function DeviceProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<DeviceSnapshot>(() =>
     readDeviceSnapshot(typeof window === "undefined" ? null : window),
   );
+  const publishedSnapshotRef = useRef(snapshot);
 
   useEffect(() => {
     const syncSnapshot = () => {
-      setSnapshot((previousSnapshot) => {
-        const nextSnapshot = readDeviceSnapshot(window);
-        return areDeviceSnapshotsEqual(previousSnapshot, nextSnapshot)
-          ? previousSnapshot
-          : nextSnapshot;
-      });
+      const nextSnapshot = readDeviceSnapshot(window);
+      const previousSnapshot = publishedSnapshotRef.current;
+
+      if (areDeviceTraitsEqual(previousSnapshot, nextSnapshot)) {
+        return;
+      }
+
+      publishedSnapshotRef.current = nextSnapshot;
+      setSnapshot(nextSnapshot);
     };
 
-    const mediaQueryCleanups = [
-      bindMediaQuery("(pointer: coarse)", syncSnapshot),
-      bindMediaQuery("(pointer: fine)", syncSnapshot),
-      bindMediaQuery("(hover: hover)", syncSnapshot),
-      bindMediaQuery("(any-pointer: coarse)", syncSnapshot),
-      bindMediaQuery("(any-hover: hover)", syncSnapshot),
-    ].filter(Boolean) as Array<() => void>;
+    const mediaQueryCleanups = DEVICE_MEDIA_QUERIES.map((query) =>
+      bindMediaQuery(query, syncSnapshot),
+    ).filter(Boolean) as Array<() => void>;
 
     syncSnapshot();
-    window.addEventListener("resize", syncSnapshot, { passive: true });
-    window.addEventListener("orientationchange", syncSnapshot, {
-      passive: true,
-    });
-    window.visualViewport?.addEventListener("resize", syncSnapshot);
 
     return () => {
-      window.removeEventListener("resize", syncSnapshot);
-      window.removeEventListener("orientationchange", syncSnapshot);
-      window.visualViewport?.removeEventListener("resize", syncSnapshot);
       mediaQueryCleanups.forEach((cleanup) => cleanup());
     };
   }, []);

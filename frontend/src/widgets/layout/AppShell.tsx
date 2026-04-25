@@ -65,7 +65,7 @@ function ShellLayout({
   const location = useLocation();
   const navigate = useNavigate();
   const isChatRoute = isPrefixlessChatPath(location.pathname);
-  const showMobilePageHeader = isMobileViewport && !isChatRoute;
+  const showMobilePageHeader = !isChatRoute;
   const mobileTitle = resolveMobileTitle(location.pathname);
 
   useEffect(() => {
@@ -109,8 +109,7 @@ function ShellLayout({
         .filter(Boolean)
         .join(" ")}
     >
-      {isMobileViewport && (
-        <button
+      <button
           type="button"
           className={[
             styles.sidebarBackdrop,
@@ -121,13 +120,12 @@ function ShellLayout({
           onClick={closeDrawer}
           aria-label="Закрыть меню"
           data-testid="app-shell-sidebar-backdrop"
-        />
-      )}
+      />
 
       <div
         className={[
           styles.sidebarPane,
-          isMobileViewport && isDrawerOpen ? styles.sidebarPaneMobileOpen : "",
+          isDrawerOpen ? styles.sidebarPaneMobileOpen : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -142,7 +140,6 @@ function ShellLayout({
           onNavigate={handleNavigate}
           onLogout={onLogout}
           onCloseMobileDrawer={closeDrawer}
-          showMobileDrawerControls={isMobileViewport}
         />
       </div>
       <div className={styles.main}>

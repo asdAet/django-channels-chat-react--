@@ -1,6 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { readDeviceSnapshot } from "./readDeviceSnapshot";
+import { areDeviceTraitsEqual, readDeviceSnapshot } from "./readDeviceSnapshot";
+import type { DeviceSnapshot } from "./types";
+
+const createDeviceSnapshot = (
+  overrides: Partial<DeviceSnapshot> = {},
+): DeviceSnapshot => ({
+  viewportWidth: 1280,
+  viewportHeight: 720,
+  isMobileViewport: false,
+  hasTouch: false,
+  isTouchDesktop: false,
+  canHover: true,
+  primaryPointer: "fine",
+  ...overrides,
+});
 
 const installDeviceEnvironment = ({
   viewportWidth,
@@ -37,19 +51,32 @@ const installDeviceEnvironment = ({
   } else {
     Reflect.deleteProperty(window, "ontouchstart");
   }
+
+  const matchesMediaQuery = (query: string) => {
+    if (query.includes("max-width")) {
+      return viewportWidth <= 768;
+    }
+
+    if (
+      query.includes("pointer: coarse") ||
+      query.includes("any-pointer: coarse")
+    ) {
+      return coarsePointer;
+    }
+
+    return (
+      (query.includes("pointer: fine") && !coarsePointer) ||
+      ((query.includes("hover: hover") ||
+        query.includes("any-hover: hover")) &&
+        canHover)
+    );
+  };
+
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
     writable: true,
     value: vi.fn().mockImplementation((query: string) => ({
-      matches:
-        (query.includes("pointer: coarse") ||
-          query.includes("any-pointer: coarse")) &&
-        coarsePointer
-          ? true
-          : (query.includes("pointer: fine") && !coarsePointer) ||
-              ((query.includes("hover: hover") ||
-                query.includes("any-hover: hover")) &&
-                canHover),
+      matches: matchesMediaQuery(query),
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -127,5 +154,36 @@ describe("readDeviceSnapshot", () => {
       canHover: true,
       primaryPointer: "coarse",
     });
+  });
+});
+
+describe("areDeviceTraitsEqual", () => {
+  it("ignores raw viewport size changes inside the same device mode", () => {
+    const desktopSnapshot = createDeviceSnapshot({
+      viewportWidth: 1440,
+      viewportHeight: 900,
+    });
+    const resizedDesktopSnapshot = createDeviceSnapshot({
+      viewportWidth: 1024,
+      viewportHeight: 768,
+    });
+
+    expect(areDeviceTraitsEqual(desktopSnapshot, resizedDesktopSnapshot)).toBe(
+      true,
+    );
+  });
+
+  it("detects a semantic device mode change", () => {
+    const desktopSnapshot = createDeviceSnapshot();
+    const mobileSnapshot = createDeviceSnapshot({
+      viewportWidth: 390,
+      viewportHeight: 844,
+      isMobileViewport: true,
+      hasTouch: true,
+      canHover: false,
+      primaryPointer: "coarse",
+    });
+
+    expect(areDeviceTraitsEqual(desktopSnapshot, mobileSnapshot)).toBe(false);
   });
 });

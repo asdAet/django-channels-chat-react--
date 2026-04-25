@@ -1,4 +1,7 @@
-import { MOBILE_VIEWPORT_MAX_PX } from "./constants";
+import {
+  MOBILE_VIEWPORT_MAX_PX,
+  MOBILE_VIEWPORT_MEDIA_QUERY,
+} from "./constants";
 import type { DevicePrimaryPointer, DeviceSnapshot } from "./types";
 
 const DEFAULT_VIEWPORT_WIDTH = 0;
@@ -7,7 +10,9 @@ const DEFAULT_VIEWPORT_HEIGHT = 0;
 const readViewportWidth = (targetWindow: Window): number =>
   Math.max(
     0,
-    Math.round(targetWindow.visualViewport?.width ?? targetWindow.innerWidth ?? 0),
+    Math.round(
+      targetWindow.visualViewport?.width ?? targetWindow.innerWidth ?? 0,
+    ),
   );
 
 const readViewportHeight = (targetWindow: Window): number =>
@@ -34,6 +39,17 @@ const readPrimaryPointer = (targetWindow: Window): DevicePrimaryPointer => {
     return "fine";
   }
   return "none";
+};
+
+const readIsMobileViewport = (
+  targetWindow: Window,
+  viewportWidth: number,
+): boolean => {
+  if (typeof targetWindow.matchMedia === "function") {
+    return readMediaMatch(targetWindow, MOBILE_VIEWPORT_MEDIA_QUERY);
+  }
+
+  return viewportWidth <= MOBILE_VIEWPORT_MAX_PX;
 };
 
 /**
@@ -69,6 +85,20 @@ export const areDeviceSnapshotsEqual = (
   left.primaryPointer === right.primaryPointer;
 
 /**
+ * Проверяет, изменились ли только сырые размеры viewport или семантика
+ * устройства тоже поменялась. Context обновляется только по семантике.
+ */
+export const areDeviceTraitsEqual = (
+  left: DeviceSnapshot,
+  right: DeviceSnapshot,
+): boolean =>
+  left.isMobileViewport === right.isMobileViewport &&
+  left.hasTouch === right.hasTouch &&
+  left.isTouchDesktop === right.isTouchDesktop &&
+  left.canHover === right.canHover &&
+  left.primaryPointer === right.primaryPointer;
+
+/**
  * Считывает `read device snapshot`.
  *
  * @param targetWindow Параметр `targetWindow` в формате `Window | null`.
@@ -83,7 +113,7 @@ export const readDeviceSnapshot = (
 
   const viewportWidth = readViewportWidth(targetWindow);
   const viewportHeight = readViewportHeight(targetWindow);
-  const isMobileViewport = viewportWidth <= MOBILE_VIEWPORT_MAX_PX;
+  const isMobileViewport = readIsMobileViewport(targetWindow, viewportWidth);
   const hasTouch =
     "ontouchstart" in targetWindow ||
     targetWindow.navigator.maxTouchPoints > 0 ||

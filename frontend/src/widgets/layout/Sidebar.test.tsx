@@ -186,7 +186,7 @@ describe("Sidebar", () => {
     expect(window.localStorage.getItem("ui.sidebar.width")).toBe("440");
   });
 
-  it("renders a mobile close button when drawer controls are enabled", () => {
+  it("renders the mobile close control for CSS-only visibility", () => {
     const onCloseMobileDrawer = vi.fn();
 
     render(
@@ -196,7 +196,6 @@ describe("Sidebar", () => {
           onNavigate={vi.fn()}
           onLogout={vi.fn()}
           onCloseMobileDrawer={onCloseMobileDrawer}
-          showMobileDrawerControls={true}
         />
       </MemoryRouter>,
     );
