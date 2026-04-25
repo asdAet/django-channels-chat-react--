@@ -83,7 +83,7 @@ test("chat websocket transport stays open while switching between chats", async 
   ).toBeVisible({ timeout: 15_000 });
 
   await installWebSocketTracker(page);
-  await page.goto("/");
+  await page.goto("/public");
 
   const directChatButton = page
     .getByRole("button")

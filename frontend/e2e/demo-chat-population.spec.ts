@@ -863,7 +863,7 @@ test("creates six meaningful demo users with active direct chats, public chat, a
     await seedGroupDialog(actorSessions, group.roomId);
 
     await actorSessions.pavel.page.waitForTimeout(500);
-    await actorSessions.pavel.page.goto("/");
+    await actorSessions.pavel.page.goto("/public");
 
     const sidebar = actorSessions.pavel.page.getByTestId("sidebar-dm-scroll");
     await expect(sidebar).toContainText(actorSessions.lada.displayName);
