@@ -24,6 +24,7 @@ import { WsAuthProvider } from "../shared/wsAuth";
 import appStyles from "../styles/app/AppAuthPage.module.css";
 import { AppShell } from "../widgets/layout/AppShell";
 import { AppRoutes } from "./routes";
+import { useAuthEntryNavigation } from "./useAuthEntryNavigation";
 
 type SeoDescriptor = {
   title: string;
@@ -550,11 +551,16 @@ function AppInner() {
     },
     [navigate],
   );
+  const handlePromoAuthEntryNavigate =
+    useAuthEntryNavigation(handlePromoNavigate);
 
   return (
     <>
       {isPromoRoute ? (
-        <HomePage onNavigate={handlePromoNavigate} />
+        <HomePage
+          onNavigate={handlePromoNavigate}
+          onLoginNavigate={handlePromoAuthEntryNavigate}
+        />
       ) : (
         <RuntimeConfigProvider>
           <DeviceProvider>

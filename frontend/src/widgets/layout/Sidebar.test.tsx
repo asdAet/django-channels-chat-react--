@@ -66,6 +66,23 @@ const user: UserProfile = {
 
 describe("Sidebar", () => {
   beforeEach(() => {
+    directInboxMock.unreadDialogsCount = 2;
+    directInboxMock.unreadCounts = { "1": 2 };
+    directInboxMock.roomUnreadCounts = { "1": 2 };
+    directInboxMock.items = [
+      {
+        roomId: 1,
+        peer: {
+          publicRef: "alice",
+          username: "alice",
+          displayName: "Alice",
+          profileImage: null,
+          avatarCrop: null,
+        },
+        lastMessage: "hello",
+        lastMessageAt: "2026-03-21T12:00:00Z",
+      },
+    ];
     conversationListMock.searchQuery = "";
     conversationListMock.setSearchQuery.mockReset();
     conversationListMock.refresh.mockReset();
@@ -98,6 +115,37 @@ describe("Sidebar", () => {
 
     fireEvent.click(screen.getByTestId("sidebar-logo-button"));
     expect(onNavigate).toHaveBeenCalledWith("/@alice");
+  });
+
+  it("does not open a stale remembered direct outside the current inbox", () => {
+    const onNavigate = vi.fn();
+    window.localStorage.setItem("ui.direct.last-ref", "@mallory");
+
+    render(
+      <MemoryRouter initialEntries={["/friends"]}>
+        <Sidebar user={user} onNavigate={onNavigate} onLogout={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId("sidebar-logo-button"));
+    expect(onNavigate).toHaveBeenCalledWith("/@alice");
+    expect(window.localStorage.getItem("ui.direct.last-ref")).toBeNull();
+  });
+
+  it("keeps the logo fallback on friends when there are no direct chats", () => {
+    const onNavigate = vi.fn();
+    directInboxMock.items = [];
+    window.localStorage.setItem("ui.direct.last-ref", "@mallory");
+
+    render(
+      <MemoryRouter initialEntries={["/public"]}>
+        <Sidebar user={user} onNavigate={onNavigate} onLogout={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId("sidebar-logo-button"));
+    expect(onNavigate).toHaveBeenCalledWith("/friends");
+    expect(window.localStorage.getItem("ui.direct.last-ref")).toBeNull();
   });
 
   it("shows shortcut section with divider and navigates to friends/public chat", () => {

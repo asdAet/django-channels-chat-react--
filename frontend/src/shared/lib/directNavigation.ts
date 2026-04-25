@@ -34,6 +34,11 @@ export const rememberLastDirectRef = (value: string | null | undefined): void =>
   window.localStorage.setItem(LAST_DIRECT_REF_STORAGE_KEY, normalized);
 };
 
+export const forgetLastDirectRef = (): void => {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(LAST_DIRECT_REF_STORAGE_KEY);
+};
+
 type ResolveRememberedDirectPathOptions = {
   pathname?: string;
   fallbackPath?: string;
@@ -45,16 +50,19 @@ type ResolveRememberedDirectPathOptions = {
  *
  * Приоритет такой: активный подходящий direct route, сохраненный в localStorage
  * peer ref, первый доступный peer ref из списка и только потом fallback path.
+ * Значение из localStorage считается валидным только если оно есть в текущем
+ * direct inbox.
  */
 export const resolveRememberedDirectPath = ({
   pathname,
   fallbackPath = DIRECT_HOME_FALLBACK_PATH,
   directPeerRefs = [],
 }: ResolveRememberedDirectPathOptions = {}): string => {
+  const normalizedRefs = directPeerRefs
+    .map((peerRef) => formatPublicRef(peerRef || ""))
+    .filter(Boolean);
   const knownRefs = new Set(
-    directPeerRefs
-      .map((peerRef) => formatPublicRef(peerRef || ""))
-      .filter(Boolean),
+    normalizedRefs,
   );
 
   const activeTarget = pathname ? parseChatTargetFromPathname(pathname) : null;
@@ -63,9 +71,15 @@ export const resolveRememberedDirectPath = ({
   }
 
   const storedDirectRef = readStoredLastDirectRef();
-  if (storedDirectRef) return buildDirectChatPath(storedDirectRef);
+  if (storedDirectRef) {
+    if (knownRefs.has(storedDirectRef)) {
+      return buildDirectChatPath(storedDirectRef);
+    }
 
-  for (const peerRef of directPeerRefs) {
+    forgetLastDirectRef();
+  }
+
+  for (const peerRef of normalizedRefs) {
     const normalized = normalizeChatTarget(peerRef);
     if (normalized) return buildDirectChatPath(normalized);
   }

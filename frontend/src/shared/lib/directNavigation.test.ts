@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { parseChatTargetFromPathname } from "./chatTarget";
 import {
   DIRECT_HOME_FALLBACK_PATH,
+  LAST_DIRECT_REF_STORAGE_KEY,
   rememberLastDirectRef,
   resolveRememberedDirectPath,
 } from "./directNavigation";
@@ -29,11 +30,32 @@ describe("directNavigation", () => {
     ).toBe("/@alice");
   });
 
-  it("falls back to stored direct ref and then to friends", () => {
+  it("falls back to friends when there is no current direct inbox", () => {
     expect(resolveRememberedDirectPath()).toBe(DIRECT_HOME_FALLBACK_PATH);
 
     rememberLastDirectRef("bob");
-    expect(resolveRememberedDirectPath()).toBe("/@bob");
+    expect(resolveRememberedDirectPath()).toBe(DIRECT_HOME_FALLBACK_PATH);
+  });
+
+  it("uses stored direct ref only when it is present in current inbox", () => {
+    rememberLastDirectRef("bob");
+
+    expect(
+      resolveRememberedDirectPath({
+        directPeerRefs: ["alice", "bob"],
+      }),
+    ).toBe("/@bob");
+  });
+
+  it("drops stale stored direct ref and uses current inbox instead", () => {
+    rememberLastDirectRef("mallory");
+
+    expect(
+      resolveRememberedDirectPath({
+        directPeerRefs: ["alice"],
+      }),
+    ).toBe("/@alice");
+    expect(window.localStorage.getItem(LAST_DIRECT_REF_STORAGE_KEY)).toBeNull();
   });
 
   it("uses first known inbox peer when storage is empty", () => {

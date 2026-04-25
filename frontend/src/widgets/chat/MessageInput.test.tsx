@@ -22,6 +22,15 @@ if (!firstEmojiPackPreview) {
 
 const mockCustomEmoji: CustomEmoji = firstEmojiPackPreview;
 
+function createTouchPointerEvent(type: string, pointerId = 1): Event {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperties(event, {
+    pointerId: { value: pointerId },
+    pointerType: { value: "touch" },
+  });
+  return event;
+}
+
 vi.mock("./TelegramEmojiPicker", () => ({
   TelegramEmojiPicker: ({
     onSelect,
@@ -164,6 +173,32 @@ describe("MessageInput", () => {
     expect(screen.queryByTestId("chat-message-placeholder")).toBeNull();
     expect(screen.getByTestId("draft-value").textContent).toBe("a");
     expect(editor).toHaveTextContent("a");
+  });
+
+  it("keeps the mobile editor focused when the send button is tapped", () => {
+    const onSend = vi.fn();
+    render(
+      <MessageInput draft="hello" onDraftChange={vi.fn()} onSend={onSend} />,
+    );
+
+    const editor = screen.getByTestId("chat-message-input");
+    const sendButton = screen.getByTestId("chat-send-button");
+
+    editor.focus();
+    expect(editor).toHaveFocus();
+
+    const pointerDown = createTouchPointerEvent("pointerdown");
+    fireEvent(sendButton, pointerDown);
+    expect(pointerDown.defaultPrevented).toBe(true);
+    fireEvent(sendButton, createTouchPointerEvent("pointerup"));
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(editor).toHaveFocus();
+
+    fireEvent.click(sendButton);
+
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(editor).toHaveFocus();
   });
 
   it("keeps the caret after an inserted custom emoji", () => {

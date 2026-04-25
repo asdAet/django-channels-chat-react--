@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildLimitedPinchTransform,
   buildPanTransform,
   buildPinchTransform,
+  buildSwipeDismissMetrics,
   buildZoomAtPointTransform,
   constrainTransform,
   DEFAULT_TRANSFORM,
   getTransformBounds,
+  shouldDismissBySwipe,
   type TransformGeometry,
 } from "./zoomableImageGeometry";
 
@@ -68,5 +71,67 @@ describe("zoomableImageGeometry", () => {
       x: 195,
       y: 0,
     });
+  });
+
+  it("freezes transform while a pinch keeps pushing past max scale", () => {
+    const first = buildLimitedPinchTransform({
+      startCenter: { x: 0, y: 0 },
+      currentCenter: { x: 12, y: 0 },
+      startDistance: 100,
+      currentDistance: 620,
+      startTransform: DEFAULT_TRANSFORM,
+      previousLimit: null,
+    });
+
+    const next = buildLimitedPinchTransform({
+      startCenter: { x: 0, y: 0 },
+      currentCenter: { x: 80, y: 0 },
+      startDistance: 100,
+      currentDistance: 760,
+      startTransform: DEFAULT_TRANSFORM,
+      previousLimit: first.limit,
+    });
+
+    expect(first.transform.scale).toBe(6);
+    expect(next.transform).toEqual(first.transform);
+    expect(next.limit).toEqual(first.limit);
+  });
+
+  it("does not drift when a pinch starts at max scale and pushes further", () => {
+    const startTransform = { scale: 6, x: -120, y: 40 };
+
+    expect(
+      buildLimitedPinchTransform({
+        startCenter: { x: 0, y: 0 },
+        currentCenter: { x: 90, y: -40 },
+        startDistance: 100,
+        currentDistance: 180,
+        startTransform,
+        previousLimit: null,
+      }).transform,
+    ).toEqual(startTransform);
+  });
+
+  it("builds vertical swipe dismiss metrics and ignores horizontal swipes", () => {
+    const metrics = buildSwipeDismissMetrics({
+      startPoint: { x: 100, y: 100 },
+      currentPoint: { x: 116, y: 250 },
+      previousPoint: { x: 108, y: 205 },
+      elapsedMs: 45,
+      viewportHeight: 844,
+    });
+
+    expect(metrics.offset).toEqual({ x: 16, y: 150 });
+    expect(metrics.visualOffset).toEqual({ x: 3.52, y: 150 });
+    expect(shouldDismissBySwipe({ ...metrics, viewportHeight: 844 })).toBe(
+      true,
+    );
+    expect(
+      shouldDismissBySwipe({
+        offset: { x: 160, y: 28 },
+        velocity: { x: 1.2, y: 0.1 },
+        viewportHeight: 844,
+      }),
+    ).toBe(false);
   });
 });

@@ -43,6 +43,7 @@ import {
   supportsBeforeInputEvents,
 } from "./messageInputEvents";
 import { TelegramEmojiPicker } from "./TelegramEmojiPicker";
+import { useFocusPreservingSendButton } from "./useFocusPreservingSendButton";
 
 type Props = {
   draft: string;
@@ -652,6 +653,21 @@ export function MessageInput({
     setEmojiPickerOpen((open) => !open);
   }, [captureEditorSelection, composerControlsDisabled, customEmojiEnabled]);
 
+  const handleSend = useCallback(() => {
+    if (!canSend || composerControlsDisabled) {
+      return;
+    }
+
+    onSend();
+  }, [canSend, composerControlsDisabled, onSend]);
+
+  const sendButtonBindings = useFocusPreservingSendButton({
+    canSend,
+    disabled: composerControlsDisabled,
+    editorRef,
+    onSend: handleSend,
+  });
+
   const writeClipboardPayload = useCallback(
     (event: ClipboardEvent<HTMLElement>, content: string) => {
       writeCustomEmojiClipboardData(event.clipboardData, content);
@@ -766,7 +782,7 @@ export function MessageInput({
 
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        onSend();
+        handleSend();
         return;
       }
 
@@ -781,7 +797,7 @@ export function MessageInput({
       applyDraftOperation,
       beforeInputSupported,
       composerControlsDisabled,
-      onSend,
+      handleSend,
       rememberKeyboardFallbackOperation,
     ],
   );
@@ -1170,7 +1186,7 @@ export function MessageInput({
           type="button"
           className={styles.sendBtn}
           data-testid="chat-send-button"
-          onClick={onSend}
+          {...sendButtonBindings}
           disabled={!canSend || composerControlsDisabled}
           aria-label="Отправить сообщение"
         >

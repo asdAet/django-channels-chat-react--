@@ -12,16 +12,20 @@ import {
 import styles from "../../styles/ui/ZoomableImageStage.module.css";
 import { useDevice } from "../lib/device";
 import {
+  buildLimitedPinchTransform,
   buildPanTransform,
-  buildPinchTransform,
+  buildSwipeDismissMetrics,
   buildZoomAtPointTransform,
   constrainTransform,
   DEFAULT_TRANSFORM,
   getCenter,
   getDistance,
+  hasVerticalSwipeIntent,
   isZoomedTransform,
   MIN_SCALE,
+  type PinchLimitState,
   type Point,
+  shouldDismissBySwipe,
   type TransformGeometry,
   type TransformState,
 } from "./zoomableImageGeometry";
@@ -189,6 +193,18 @@ function useRafImageTransform(
     scheduleApplyTransform();
   }, [scheduleApplyTransform]);
 
+  const applyVisualTransform = useCallback(
+    (transform: TransformState) => {
+      const image = imageRef.current;
+      if (!image) {
+        return;
+      }
+
+      image.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`;
+    },
+    [imageRef],
+  );
+
   const zoomAt = useCallback(
     (nextScale: number, point: Point) => {
       commitTransform(
@@ -295,6 +311,7 @@ function useRafImageTransform(
   );
 
   return {
+    applyVisualTransform,
     commitTransform,
     isZoomed,
     panTo,
@@ -328,6 +345,16 @@ function BaseZoomableImageStage({
     startCenter: Point;
     startDistance: number;
     startTransform: TransformState;
+    limit: PinchLimitState | null;
+  } | null>(null);
+  const dismissSessionRef = useRef<{
+    pointerId: number;
+    startPoint: Point;
+    lastPoint: Point;
+    lastTimestamp: number;
+    offset: Point;
+    velocity: Point;
+    active: boolean;
   } | null>(null);
   const lastTapRef = useRef<number>(0);
   const tapStartPointRef = useRef<Point | null>(null);
@@ -340,6 +367,7 @@ function BaseZoomableImageStage({
     commitTransform,
     isZoomed,
     panTo,
+    applyVisualTransform,
     reClampTransform,
     resetTransform,
     startMomentum,
@@ -445,6 +473,33 @@ function BaseZoomableImageStage({
     [transformRef],
   );
 
+  const readViewportHeight = useCallback((): number => {
+    const frame = frameRef.current;
+    return frame?.clientHeight || window.innerHeight || 0;
+  }, []);
+
+  const startDismissSession = useCallback(
+    (pointerId: number, point: Point, timestamp: number) => {
+      dismissSessionRef.current = {
+        pointerId,
+        startPoint: point,
+        lastPoint: point,
+        lastTimestamp: timestamp,
+        offset: { x: 0, y: 0 },
+        velocity: { x: 0, y: 0 },
+        active: false,
+      };
+    },
+    [],
+  );
+
+  const resetDismissVisual = useCallback(() => {
+    setIsInteracting(false);
+    requestAnimationFrame(() => {
+      applyVisualTransform(transformRef.current);
+    });
+  }, [applyVisualTransform, transformRef]);
+
   const toggleZoomAt = useCallback(
     (point: Point) => {
       const current = transformRef.current;
@@ -507,14 +562,19 @@ function BaseZoomableImageStage({
       startCenter: getFrameCenterPoint(frame, first, second),
       startDistance,
       startTransform: transformRef.current,
+      limit: null,
     };
+    if (dismissSessionRef.current) {
+      dismissSessionRef.current = null;
+      resetDismissVisual();
+    }
     panSessionRef.current = null;
     lastTapRef.current = 0;
     setIsDragging(false);
     setIsInteracting(true);
     gestureMovedRef.current = true;
     return true;
-  }, [transformRef]);
+  }, [resetDismissVisual, transformRef]);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -551,6 +611,13 @@ function BaseZoomableImageStage({
       }
 
       if (transformRef.current.scale <= MIN_SCALE) {
+        if (mode === "mobile" && event.pointerType === "touch") {
+          startDismissSession(
+            event.pointerId,
+            point,
+            getEventTimestamp(event),
+          );
+        }
         return;
       }
 
@@ -562,6 +629,7 @@ function BaseZoomableImageStage({
       mode,
       preventNativeTouchGesture,
       startPinch,
+      startDismissSession,
       startPanSession,
       stopMomentum,
       toggleZoomAt,
@@ -583,6 +651,40 @@ function BaseZoomableImageStage({
         gestureMovedRef.current = true;
       }
 
+      const dismissSession = dismissSessionRef.current;
+      if (
+        mode === "mobile" &&
+        dismissSession?.pointerId === event.pointerId &&
+        pointersRef.current.size === 1
+      ) {
+        const timestamp = getEventTimestamp(event);
+        const metrics = buildSwipeDismissMetrics({
+          startPoint: dismissSession.startPoint,
+          currentPoint: point,
+          previousPoint: dismissSession.lastPoint,
+          elapsedMs: timestamp - dismissSession.lastTimestamp,
+          viewportHeight: readViewportHeight(),
+        });
+
+        dismissSession.lastPoint = point;
+        dismissSession.lastTimestamp = timestamp;
+        dismissSession.offset = metrics.offset;
+        dismissSession.velocity = metrics.velocity;
+
+        if (dismissSession.active || hasVerticalSwipeIntent(metrics.offset)) {
+          dismissSession.active = true;
+          gestureMovedRef.current = true;
+          setIsInteracting(true);
+          applyVisualTransform({
+            scale: metrics.scale,
+            x: metrics.visualOffset.x,
+            y: metrics.visualOffset.y,
+          });
+        }
+
+        return;
+      }
+
       if (mode === "mobile" && pinchSessionRef.current) {
         const frame = frameRef.current;
         const points = Array.from(pointersRef.current.values());
@@ -591,15 +693,16 @@ function BaseZoomableImageStage({
           const pinchSession = pinchSessionRef.current;
           const nextDistance = getDistance(first, second);
           const nextCenter = getFrameCenterPoint(frame, first, second);
-          commitTransform(
-            buildPinchTransform({
-              startCenter: pinchSession.startCenter,
-              currentCenter: nextCenter,
-              startDistance: pinchSession.startDistance,
-              currentDistance: nextDistance,
-              startTransform: pinchSession.startTransform,
-            }),
-          );
+          const result = buildLimitedPinchTransform({
+            startCenter: pinchSession.startCenter,
+            currentCenter: nextCenter,
+            startDistance: pinchSession.startDistance,
+            currentDistance: nextDistance,
+            startTransform: pinchSession.startTransform,
+            previousLimit: pinchSession.limit,
+          });
+          pinchSession.limit = result.limit;
+          commitTransform(result.transform);
           return;
         }
       }
@@ -636,11 +739,13 @@ function BaseZoomableImageStage({
       panTo(nextTransform.x, nextTransform.y);
     },
     [
+      applyVisualTransform,
       commitTransform,
       getEventTimestamp,
       mode,
       panTo,
       preventNativeTouchGesture,
+      readViewportHeight,
       updatePointer,
     ],
   );
@@ -652,9 +757,34 @@ function BaseZoomableImageStage({
         panSessionRef.current?.pointerId === event.pointerId
           ? panSessionRef.current
           : null;
+      const finishingDismissSession =
+        dismissSessionRef.current?.pointerId === event.pointerId
+          ? dismissSessionRef.current
+          : null;
 
       clearPointer(event.pointerId);
       safeReleasePointerCapture(event.currentTarget, event.pointerId);
+
+      if (finishingDismissSession) {
+        dismissSessionRef.current = null;
+        tapStartPointRef.current = null;
+
+        if (
+          finishingDismissSession.active &&
+          shouldDismissBySwipe({
+            offset: finishingDismissSession.offset,
+            velocity: finishingDismissSession.velocity,
+            viewportHeight: readViewportHeight(),
+          })
+        ) {
+          onRequestClose?.();
+          return;
+        }
+
+        resetDismissVisual();
+        endInteraction();
+        return;
+      }
 
       if (finishingPanSession) {
         panSessionRef.current = null;
@@ -698,7 +828,10 @@ function BaseZoomableImageStage({
       clearPointer,
       endInteraction,
       getEventTimestamp,
+      onRequestClose,
       preventNativeTouchGesture,
+      readViewportHeight,
+      resetDismissVisual,
       startMomentum,
       startPanSession,
       startPinch,
@@ -755,6 +888,9 @@ function BaseZoomableImageStage({
   );
 
   const handleImageLoad = useCallback(() => {
+    dismissSessionRef.current = null;
+    pinchSessionRef.current = null;
+    panSessionRef.current = null;
     stopMomentum();
     setIsDragging(false);
     setIsInteracting(false);

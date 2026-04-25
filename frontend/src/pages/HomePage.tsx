@@ -24,9 +24,12 @@ const steps = [
 
 type Props = {
   onNavigate: (path: string) => void;
+  onLoginNavigate?: () => void;
 };
 
-export function HomePage({ onNavigate }: Props) {
+export function HomePage({ onNavigate, onLoginNavigate }: Props) {
+  const handleLoginNavigate = onLoginNavigate ?? (() => onNavigate("/login"));
+
   return (
     <main className={styles.home}>
       <section className={styles.hero} aria-labelledby="home-title">
@@ -45,19 +48,20 @@ export function HomePage({ onNavigate }: Props) {
             <a href="#about">О Devil</a>
             <a href="#benefits">Преимущества</a>
             <a href="#start">Старт</a>
+            <a href="/public">Публичный Чат</a>
           </nav>
 
           <Button
             variant="ghost"
             className={styles.navLogin}
-            onClick={() => onNavigate("/login")}
+            onClick={handleLoginNavigate}
           >
             Войти
           </Button>
         </header>
 
         <div className={styles.heroContent}>
-          <p className={styles.eyebrow}>slowed.sbs</p>
+          {/* <p className={styles.eyebrow}>slowed.sbs</p> */}
           <h1 id="home-title" className={styles.heroTitle}>
             Чат для своих, где все рядом
           </h1>
@@ -69,7 +73,7 @@ export function HomePage({ onNavigate }: Props) {
             <Button
               variant="primary"
               className={styles.primaryAction}
-              onClick={() => onNavigate("/login")}
+              onClick={handleLoginNavigate}
             >
               Войти в Devil
             </Button>
@@ -174,10 +178,7 @@ export function HomePage({ onNavigate }: Props) {
         <div>
           <p className={styles.sectionKicker}>Старт</p>
           <h2 id="start-title">Начать можно за минуту</h2>
-          <p className={styles.startText}>
-            Главная страница ведет в авторизацию и регистрацию, а после входа
-            открывает рабочую часть приложения с чатами.
-          </p>
+          <p className={styles.startText}></p>
         </div>
         <ol className={styles.stepList}>
           {steps.map((step) => (

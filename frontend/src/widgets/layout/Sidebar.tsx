@@ -203,6 +203,10 @@ export function Sidebar({
     });
   }, [directItems, location.pathname]);
 
+  const handleLogoNavigate = useCallback(() => {
+    navigateFromSidebar(rememberedDirectPath);
+  }, [navigateFromSidebar, rememberedDirectPath]);
+
   useEffect(() => {
     const storedValue = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
     const parsedWidth = storedValue ? Number(storedValue) : NaN;
@@ -304,7 +308,7 @@ export function Sidebar({
             title="Личные сообщения"
             aria-label="Личные сообщения"
             data-testid="sidebar-logo-button"
-            onClick={() => navigateFromSidebar(rememberedDirectPath)}
+            onClick={handleLogoNavigate}
           >
             <img
               src="/devils_map_icon.svg"

@@ -40,6 +40,23 @@ describe("HomePage", () => {
     expect(onNavigate).toHaveBeenCalledWith("/register");
   });
 
+  it("delegates login buttons to the auth-aware entry handler", () => {
+    const onNavigate = vi.fn();
+    const onLoginNavigate = vi.fn();
+    render(
+      <HomePage onNavigate={onNavigate} onLoginNavigate={onLoginNavigate} />,
+    );
+
+    const loginButtons = screen.getAllByRole("button").slice(0, 2);
+    expect(loginButtons).toHaveLength(2);
+    for (const button of loginButtons) {
+      fireEvent.click(button);
+    }
+
+    expect(onLoginNavigate).toHaveBeenCalledTimes(2);
+    expect(onNavigate).not.toHaveBeenCalledWith("/login");
+  });
+
   it("does not render workspace navigation on the promo page", () => {
     render(<HomePage onNavigate={vi.fn()} />);
 
