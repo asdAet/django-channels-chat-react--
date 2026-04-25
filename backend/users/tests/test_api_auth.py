@@ -378,7 +378,9 @@ class AuthApiTests(TestCase):
             "users.api.auth_service.build_google_authorization_url",
             return_value="https://accounts.google.com/o/oauth2/v2/auth?state=test-state",
         ) as build_mock:
-            response = self.client.get("/api/auth/oauth/google/start/?next=/register")
+            response = self.client.get(
+                "/api/auth/oauth/google/start/?next=/public&errorNext=/register"
+            )
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
@@ -388,13 +390,32 @@ class AuthApiTests(TestCase):
         session = self.client.session
         saved_state = session.get("auth.google_oauth_state")
         self.assertTrue(saved_state)
-        self.assertEqual(session.get("auth.google_oauth_return_to"), "/register")
+        self.assertEqual(session.get("auth.google_oauth_return_to"), "/public")
+        self.assertEqual(session.get("auth.google_oauth_error_return_to"), "/register")
         build_mock.assert_called_once()
         self.assertEqual(build_mock.call_args.kwargs["state"], saved_state)
         self.assertEqual(
             build_mock.call_args.kwargs["redirect_uri"],
             "http://testserver/api/auth/oauth/google/callback/",
         )
+
+    @override_settings(
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="google-client-secret",
+    )
+    def test_google_oauth_start_rejects_unsafe_return_paths(self):
+        with patch(
+            "users.api.auth_service.build_google_authorization_url",
+            return_value="https://accounts.google.com/o/oauth2/v2/auth?state=test-state",
+        ):
+            response = self.client.get(
+                "/api/auth/oauth/google/start/?next=/\\evil.example&errorNext=//evil.example"
+            )
+
+        self.assertEqual(response.status_code, 302)
+        session = self.client.session
+        self.assertEqual(session.get("auth.google_oauth_return_to"), "/public")
+        self.assertEqual(session.get("auth.google_oauth_error_return_to"), "/login")
 
     @override_settings(
         GOOGLE_OAUTH_CLIENT_ID="google-client-id",
@@ -431,10 +452,33 @@ class AuthApiTests(TestCase):
         GOOGLE_OAUTH_CLIENT_ID="google-client-id",
         GOOGLE_OAUTH_CLIENT_SECRET="google-client-secret",
     )
+    def test_google_oauth_callback_redirects_auth_routes_to_public_chat(self):
+        user = self._create_login_user(login="googlepublic", password="pass12345")
+        session = self.client.session
+        session["auth.google_oauth_state"] = "state-123"
+        session["auth.google_oauth_return_to"] = "/login"
+        session.save()
+
+        with patch(
+            "users.api.auth_service.authenticate_or_signup_with_google_authorization_code",
+            return_value=user,
+        ):
+            response = self.client.get(
+                "/api/auth/oauth/google/callback/?code=code-123&state=state-123"
+            )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/public")
+
+    @override_settings(
+        GOOGLE_OAUTH_CLIENT_ID="google-client-id",
+        GOOGLE_OAUTH_CLIENT_SECRET="google-client-secret",
+    )
     def test_google_oauth_callback_returns_error_to_login_route(self):
         session = self.client.session
         session["auth.google_oauth_state"] = "state-123"
         session["auth.google_oauth_return_to"] = "/login"
+        session["auth.google_oauth_error_return_to"] = "/register"
         session.save()
 
         response = self.client.get(
@@ -442,5 +486,5 @@ class AuthApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn("/login?oauthError=", response.headers["Location"])
+        self.assertIn("/register?oauthError=", response.headers["Location"])
 

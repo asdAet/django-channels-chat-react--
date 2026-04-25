@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from datetime import timedelta
 from pathlib import Path
 import secrets
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from django.conf import settings
 from django.contrib.auth import login, logout, password_validation
@@ -77,6 +77,9 @@ from users.identity import (
 AUTH_BACKEND_PATH = "users.auth_backends.EmailIdentityBackend"
 GOOGLE_OAUTH_STATE_SESSION_KEY = "auth.google_oauth_state"
 GOOGLE_OAUTH_RETURN_TO_SESSION_KEY = "auth.google_oauth_return_to"
+GOOGLE_OAUTH_ERROR_RETURN_TO_SESSION_KEY = "auth.google_oauth_error_return_to"
+GOOGLE_OAUTH_SUCCESS_RETURN_PATH = "/public"
+GOOGLE_OAUTH_ERROR_RETURN_PATH = "/login"
 UNAUTHORIZED_CHAT_MEDIA_FALLBACK_MEDIA_PATH = "chat_media_fallbacks/image_not_found.svg"
 UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH = (
     Path(__file__).resolve().parent.parent
@@ -126,7 +129,15 @@ def _sanitize_frontend_return_path(raw_value: object, *, fallback: str = "/login
     candidate = str(raw_value or "").strip()
     if not candidate:
         return fallback
-    if not candidate.startswith("/") or candidate.startswith("//"):
+    if (
+        not candidate.startswith("/")
+        or candidate.startswith("//")
+        or "\\" in candidate
+        or any(ord(char) < 32 or ord(char) == 127 for char in candidate)
+    ):
+        return fallback
+    parsed = urlsplit(candidate)
+    if parsed.scheme or parsed.netloc:
         return fallback
     return candidate
 
@@ -134,9 +145,10 @@ def _sanitize_frontend_return_path(raw_value: object, *, fallback: str = "/login
 def _build_frontend_error_redirect(request, message: str) -> str:
     """Формирует безопасный redirect назад в SPA с текстом ошибки OAuth."""
     fallback_path = _sanitize_frontend_return_path(
-        request.session.pop(GOOGLE_OAUTH_RETURN_TO_SESSION_KEY, None),
-        fallback="/login",
+        request.session.pop(GOOGLE_OAUTH_ERROR_RETURN_TO_SESSION_KEY, None),
+        fallback=GOOGLE_OAUTH_ERROR_RETURN_PATH,
     )
+    request.session.pop(GOOGLE_OAUTH_RETURN_TO_SESSION_KEY, None)
     separator = "&" if "?" in fallback_path else "?"
     return f"{fallback_path}{separator}oauthError={quote(message, safe='')}"
 
@@ -583,11 +595,16 @@ def oauth_google_start_view(request):
     redirect_uri = _build_google_oauth_redirect_uri(request)
     frontend_return_to = _sanitize_frontend_return_path(
         request.GET.get("next"),
-        fallback="/login",
+        fallback=GOOGLE_OAUTH_SUCCESS_RETURN_PATH,
+    )
+    frontend_error_return_to = _sanitize_frontend_return_path(
+        request.GET.get("errorNext"),
+        fallback=GOOGLE_OAUTH_ERROR_RETURN_PATH,
     )
 
     request.session[GOOGLE_OAUTH_STATE_SESSION_KEY] = state
     request.session[GOOGLE_OAUTH_RETURN_TO_SESSION_KEY] = frontend_return_to
+    request.session[GOOGLE_OAUTH_ERROR_RETURN_TO_SESSION_KEY] = frontend_error_return_to
     request.session.modified = True
 
     authorization_url = auth_service.build_google_authorization_url(
@@ -604,7 +621,7 @@ def oauth_google_callback_view(request):
     expected_state = str(request.session.pop(GOOGLE_OAUTH_STATE_SESSION_KEY, "") or "").strip()
     frontend_return_to = _sanitize_frontend_return_path(
         request.session.get(GOOGLE_OAUTH_RETURN_TO_SESSION_KEY),
-        fallback="/login",
+        fallback=GOOGLE_OAUTH_SUCCESS_RETURN_PATH,
     )
 
     error_code = str(request.GET.get("error") or "").strip()
@@ -637,11 +654,12 @@ def oauth_google_callback_view(request):
         return HttpResponseRedirect(_build_frontend_error_redirect(request, exc.message))
 
     request.session.pop(GOOGLE_OAUTH_RETURN_TO_SESSION_KEY, None)
+    request.session.pop(GOOGLE_OAUTH_ERROR_RETURN_TO_SESSION_KEY, None)
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.oauth.google.redirect.success", request, public_ref=user_public_ref(user))
 
     if frontend_return_to in {"/login", "/register"}:
-        frontend_return_to = "/"
+        frontend_return_to = GOOGLE_OAUTH_SUCCESS_RETURN_PATH
     return HttpResponseRedirect(frontend_return_to)
 
 

@@ -10,7 +10,10 @@ import { ChatRealtimeProvider } from "../shared/chatRealtime";
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
 import { RuntimeConfigProvider } from "../shared/config/RuntimeConfigProvider";
 import { DirectInboxProvider } from "../shared/directInbox";
-import { isPrefixlessChatPath } from "../shared/lib/chatTarget";
+import {
+  buildPublicChatPath,
+  isPrefixlessChatPath,
+} from "../shared/lib/chatTarget";
 import { debugLog } from "../shared/lib/debug";
 import { DeviceProvider } from "../shared/lib/device";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
@@ -374,7 +377,9 @@ function AppWorkspace() {
     }
     clearAuthRouteState();
     setError(null);
-    startGoogleAuthRedirect(`${location.pathname}${location.search}`);
+    startGoogleAuthRedirect(buildPublicChatPath(), {
+      errorReturnTo: `${location.pathname}${location.search}`,
+    });
   }, [
     clearAuthRouteState,
     location.pathname,
