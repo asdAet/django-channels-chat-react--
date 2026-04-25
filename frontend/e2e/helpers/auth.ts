@@ -30,6 +30,10 @@ async function isSessionAuthenticated(page: Page): Promise<boolean> {
   return payload?.authenticated === true;
 }
 
+async function expectAuthenticatedEntry(page: Page): Promise<void> {
+  await expect(page).toHaveURL("/public", { timeout: 15_000 });
+}
+
 async function submitAuthWithRetry(
   page: Page,
   endpointPath: string,
@@ -66,7 +70,7 @@ export async function loginWithRetry(
   await page.getByTestId("auth-identifier-input").fill(identifier);
   await page.getByTestId("auth-password-input").fill(password);
   await submitAuthWithRetry(page, "/api/auth/login/", "login");
-  await expect(page).toHaveURL("/", { timeout: 15_000 });
+  await expectAuthenticatedEntry(page);
 }
 
 export async function ensureAuthenticated(
@@ -111,7 +115,7 @@ export async function registerWithRetry(
     const response = await responsePromise;
 
     if (response.status() === 201) {
-      await expect(page).toHaveURL("/", { timeout: 15_000 });
+      await expectAuthenticatedEntry(page);
       // Rebuild client auth state from the fresh session cookie before protected flows.
       await page.reload();
       await ensureAuthenticated(page, login, password);

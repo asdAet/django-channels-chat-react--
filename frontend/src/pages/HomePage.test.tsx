@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { HomePage } from "./HomePage";
@@ -9,35 +9,44 @@ describe("HomePage", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "Чат для своих, где все рядом",
+        name: "Devil",
         level: 1,
       }),
     ).toBeInTheDocument();
     expect(
+      screen.getByText("Публичный чат, личные и группы"),
+    ).toBeInTheDocument();
+    expect(
       screen.getByText(
-        /Devil собирает личные сообщения, группы, файлы/,
+        /Откройте общий чат без аккаунта/,
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Мессенджер без лишней суеты" }),
+      screen.getByRole("heading", {
+        name: "Чат, который можно сразу показать людям",
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Что дает Devil" }),
+      screen.getByRole("heading", { name: "Что умеет Devil" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Начать можно за минуту" }),
+      screen.getByRole("heading", { name: "Контакты и информация" }),
     ).toBeInTheDocument();
   });
 
-  it("routes visitors to auth flows", () => {
+  it("routes visitor login buttons to the auth flow", () => {
     const onNavigate = vi.fn();
     render(<HomePage onNavigate={onNavigate} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Войти" }));
+    expect(onNavigate).toHaveBeenCalledWith("/login");
 
     fireEvent.click(screen.getByRole("button", { name: "Войти в Devil" }));
     expect(onNavigate).toHaveBeenCalledWith("/login");
 
-    fireEvent.click(screen.getByRole("button", { name: "Создать аккаунт" }));
-    expect(onNavigate).toHaveBeenCalledWith("/register");
+    expect(
+      screen.queryByRole("button", { name: "Создать аккаунт" }),
+    ).not.toBeInTheDocument();
   });
 
   it("delegates login buttons to the auth-aware entry handler", () => {
@@ -47,8 +56,10 @@ describe("HomePage", () => {
       <HomePage onNavigate={onNavigate} onLoginNavigate={onLoginNavigate} />,
     );
 
-    const loginButtons = screen.getAllByRole("button").slice(0, 2);
-    expect(loginButtons).toHaveLength(2);
+    const loginButtons = [
+      screen.getByRole("button", { name: "Войти" }),
+      screen.getByRole("button", { name: "Войти в Devil" }),
+    ];
     for (const button of loginButtons) {
       fireEvent.click(button);
     }
@@ -66,7 +77,38 @@ describe("HomePage", () => {
     expect(
       screen.queryByRole("button", { name: "Мой профиль" }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Друзья" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Друзья" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders public footer contacts", () => {
+    render(<HomePage onNavigate={vi.fn()} />);
+    const footer = screen.getByRole("contentinfo", {
+      name: "Контакты и информация",
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Продукт" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Контакты" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Проект" }),
+    ).toBeInTheDocument();
+    expect(
+      within(footer).getByRole("link", { name: "Публичный чат" }),
+    ).toHaveAttribute("href", "/public");
+    expect(
+      within(footer).getByRole("link", { name: "GitHub" }),
+    ).toHaveAttribute("href", "https://github.com/asdAet");
+    expect(
+      within(footer).getByRole("link", { name: "GitHub репозиторий" }),
+    ).toHaveAttribute("href", "https://github.com/asdAet/Devil");
+    expect(
+      within(footer).getByRole("link", { name: "Telegram" }),
+    ).toHaveAttribute("href", "https://t.me/methoddpp");
   });
 
   it("keeps the chat preview decorative", () => {

@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -164,6 +165,30 @@ const installDesktopInputModel = () => {
     }
     Reflect.deleteProperty(window, "ontouchstart");
   };
+};
+
+const fireTouchPointerEvent = (
+  target: Element,
+  type: "pointerdown" | "pointermove" | "pointerup",
+  init: {
+    pointerId?: number;
+    clientX: number;
+    clientY: number;
+    buttons?: number;
+  },
+) => {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperties(event, {
+    pointerId: { value: init.pointerId ?? 1 },
+    pointerType: { value: "touch" },
+    isPrimary: { value: true },
+    button: { value: 0 },
+    buttons: { value: init.buttons ?? (type === "pointerup" ? 0 : 1) },
+    clientX: { value: init.clientX },
+    clientY: { value: init.clientY },
+  });
+
+  fireEvent(target, event);
 };
 
 describe("MessageBubble", () => {
@@ -872,8 +897,9 @@ describe("MessageBubble", () => {
     expect(await screen.findByText("clip.mkv")).toBeInTheDocument();
   });
 
-  it("opens full own-message action menu on tap for touch devices", () => {
+  it("opens full own-message action menu only after long press on touch devices", () => {
     const restoreMatchMedia = installTouchMatchMedia();
+    vi.useFakeTimers();
     try {
       const onReply = vi.fn();
       const onEdit = vi.fn();
@@ -895,11 +921,76 @@ describe("MessageBubble", () => {
       const article = container.querySelector(
         'article[data-message-id="1"]',
       ) as HTMLElement;
-      fireEvent.click(article);
+
+      fireTouchPointerEvent(article, "pointerdown", {
+        pointerId: 1,
+        clientX: 120,
+        clientY: 160,
+      });
+      fireTouchPointerEvent(article, "pointerup", {
+        pointerId: 1,
+        clientX: 120,
+        clientY: 160,
+      });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+      fireTouchPointerEvent(article, "pointerdown", {
+        pointerId: 2,
+        clientX: 120,
+        clientY: 160,
+      });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
 
       expect(screen.getByRole("menu")).toBeInTheDocument();
       expect(screen.getAllByRole("menuitem")).toHaveLength(5);
     } finally {
+      vi.useRealTimers();
+      restoreMatchMedia();
+    }
+  });
+
+  it("cancels touch action menu long press when the finger moves", () => {
+    const restoreMatchMedia = installTouchMatchMedia();
+    vi.useFakeTimers();
+    try {
+      const { container } = render(
+        <MessageBubble
+          message={baseMessage}
+          isOwn={true}
+          onlineUsernames={new Set<string>()}
+          onReply={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onReact={vi.fn()}
+        />,
+      );
+
+      const article = container.querySelector(
+        'article[data-message-id="1"]',
+      ) as HTMLElement;
+
+      fireTouchPointerEvent(article, "pointerdown", {
+        pointerId: 1,
+        clientX: 120,
+        clientY: 160,
+      });
+      fireTouchPointerEvent(article, "pointermove", {
+        pointerId: 1,
+        clientX: 120,
+        clientY: 178,
+      });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
       restoreMatchMedia();
     }
   });
@@ -1038,8 +1129,9 @@ describe("MessageBubble", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not open action menu when tapping an image attachment on touch devices", () => {
+  it("does not open action menu when long pressing an image attachment on touch devices", () => {
     const restoreMatchMedia = installTouchMatchMedia();
+    vi.useFakeTimers();
     try {
       const message: Message = {
         ...baseMessage,
@@ -1069,9 +1161,18 @@ describe("MessageBubble", () => {
         />,
       );
 
-      fireEvent.click(screen.getByAltText("photo.jpg"));
+      fireTouchPointerEvent(screen.getByAltText("photo.jpg"), "pointerdown", {
+        pointerId: 1,
+        clientX: 120,
+        clientY: 160,
+      });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
       expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     } finally {
+      vi.useRealTimers();
       restoreMatchMedia();
     }
   });

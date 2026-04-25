@@ -5,12 +5,14 @@ type TimeoutOption = {
 };
 
 export type ChatComposerDriver = {
+  page: Page;
   editor: Locator;
   sendButton: Locator;
 };
 
 export function getChatComposer(page: Page): ChatComposerDriver {
   return {
+    page,
     editor: page.getByTestId("chat-message-input"),
     sendButton: page.getByTestId("chat-send-button"),
   };
@@ -20,8 +22,8 @@ export async function typeChatDraft(
   composer: ChatComposerDriver,
   draft: string,
 ): Promise<void> {
-  await composer.editor.click();
-  await composer.editor.pressSequentially(draft);
+  await composer.editor.focus();
+  await composer.page.keyboard.insertText(draft);
 }
 
 export async function expectChatDraft(

@@ -31,7 +31,6 @@ import {
   resolveResponsiveImageSource,
 } from "../../shared/lib/attachmentMedia";
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
-import { useDevice } from "../../shared/lib/device";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
@@ -161,6 +160,19 @@ const normalizeActorRef = (value: string) =>
 
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
+const MOBILE_LONG_PRESS_MENU_MS = 520;
+const MOBILE_LONG_PRESS_MOVE_TOLERANCE_PX = 10;
+
+type MobileLongPressState = {
+  pointerId: number | null;
+  target: HTMLElement;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  timerId: number;
+  opened: boolean;
+};
 
 /**
  * Проверяет, что тап был по интерактивному элементу и меню открывать не нужно.
@@ -168,7 +180,7 @@ const MOBILE_MENU_IGNORE_SELECTOR =
  * @returns Логический флаг, нужно ли выполнять действие.
  */
 
-const shouldIgnoreMobileMenuTap = (target: EventTarget | null) => {
+const shouldIgnoreMobileMenuGesture = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
   return Boolean(target.closest(MOBILE_MENU_IGNORE_SELECTOR));
 };
@@ -405,7 +417,6 @@ export function MessageBubble({
   onAvatarClick,
   onOpenMediaAttachment,
 }: Props) {
-  const { hasTouch } = useDevice();
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -414,8 +425,8 @@ export function MessageBubble({
   const [lightboxOpenIndex, setLightboxOpenIndex] = useState<number | null>(
     null,
   );
-  const lastTouchTapTsRef = useRef<number>(0);
   const lastRightMouseDownTsRef = useRef<number>(0);
+  const mobileLongPressRef = useRef<MobileLongPressState | null>(null);
 
   const openContextMenuAt = useCallback((x: number, y: number) => {
     setContextMenu({ x, y });
@@ -492,57 +503,183 @@ export function MessageBubble({
     [message.isDeleted, openContextMenuAt, resolveMenuPosition],
   );
 
-  const handleMobileTap = useCallback(
-    (event: ReactMouseEvent<HTMLElement>) => {
-      if (typeof window !== "undefined" && "PointerEvent" in window) return;
-      if (message.isDeleted || !hasTouch) return;
-      if (event.timeStamp - lastTouchTapTsRef.current < 500) return;
-      if (shouldIgnoreMobileMenuTap(event.target)) return;
-      const position = resolveMenuPosition(
-        event.currentTarget,
-        event.clientX,
-        event.clientY,
-      );
-      openContextMenuAt(position.x, position.y);
+  const clearMobileLongPress = useCallback(() => {
+    const state = mobileLongPressRef.current;
+    if (!state) return false;
+
+    window.clearTimeout(state.timerId);
+    mobileLongPressRef.current = null;
+    return state.opened;
+  }, []);
+
+  const finishMobileLongPress = useCallback((pointerId: number | null) => {
+    const state = mobileLongPressRef.current;
+    if (!state || state.pointerId !== pointerId) return false;
+
+    window.clearTimeout(state.timerId);
+    mobileLongPressRef.current = null;
+    return state.opened;
+  }, []);
+
+  const startMobileLongPress = useCallback(
+    (
+      target: HTMLElement,
+      pointerId: number | null,
+      x: number,
+      y: number,
+    ) => {
+      clearMobileLongPress();
+
+      const state: MobileLongPressState = {
+        pointerId,
+        target,
+        startX: x,
+        startY: y,
+        x,
+        y,
+        timerId: 0,
+        opened: false,
+      };
+
+      state.timerId = window.setTimeout(() => {
+        const current = mobileLongPressRef.current;
+        if (current !== state || message.isDeleted) return;
+
+        current.opened = true;
+        const position = resolveMenuPosition(
+          current.target,
+          current.x,
+          current.y,
+        );
+        openContextMenuAt(position.x, position.y);
+      }, MOBILE_LONG_PRESS_MENU_MS);
+
+      mobileLongPressRef.current = state;
     },
-    [hasTouch, message.isDeleted, openContextMenuAt, resolveMenuPosition],
+    [
+      clearMobileLongPress,
+      message.isDeleted,
+      openContextMenuAt,
+      resolveMenuPosition,
+    ],
   );
 
-  const handleMobilePointerUp = useCallback(
+  const cancelMobileLongPressOnMove = useCallback(
+    (pointerId: number | null, x: number, y: number) => {
+      const state = mobileLongPressRef.current;
+      if (!state || state.pointerId !== pointerId || state.opened) return;
+
+      const movedDistance = Math.hypot(x - state.startX, y - state.startY);
+      if (movedDistance > MOBILE_LONG_PRESS_MOVE_TOLERANCE_PX) {
+        clearMobileLongPress();
+      }
+    },
+    [clearMobileLongPress],
+  );
+
+  const handleMobilePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
       if (message.isDeleted) return;
       if (event.pointerType !== "touch" && event.pointerType !== "pen") {
         return;
       }
-      if (shouldIgnoreMobileMenuTap(event.target)) return;
-      lastTouchTapTsRef.current = event.timeStamp;
-      const position = resolveMenuPosition(
+      if (shouldIgnoreMobileMenuGesture(event.target)) return;
+
+      startMobileLongPress(
         event.currentTarget,
+        event.pointerId,
         event.clientX,
         event.clientY,
       );
-      openContextMenuAt(position.x, position.y);
-      event.preventDefault();
     },
-    [message.isDeleted, openContextMenuAt, resolveMenuPosition],
+    [message.isDeleted, startMobileLongPress],
+  );
+
+  const handleMobilePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      cancelMobileLongPressOnMove(
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+      );
+    },
+    [cancelMobileLongPressOnMove],
+  );
+
+  const handleMobilePointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.pointerType !== "touch" && event.pointerType !== "pen") {
+        return;
+      }
+      if (finishMobileLongPress(event.pointerId)) {
+        event.preventDefault();
+      }
+    },
+    [finishMobileLongPress],
+  );
+
+  const handleMobilePointerCancel = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.pointerType !== "touch" && event.pointerType !== "pen") {
+        return;
+      }
+      clearMobileLongPress();
+    },
+    [clearMobileLongPress],
+  );
+
+  const handleMobileTouchStart = useCallback(
+    (event: ReactTouchEvent<HTMLElement>) => {
+      if (typeof window !== "undefined" && "PointerEvent" in window) return;
+      if (message.isDeleted) return;
+      if (shouldIgnoreMobileMenuGesture(event.target)) return;
+
+      const touch = event.touches.item(0);
+      if (!touch) return;
+
+      startMobileLongPress(
+        event.currentTarget,
+        null,
+        touch.clientX,
+        touch.clientY,
+      );
+    },
+    [message.isDeleted, startMobileLongPress],
+  );
+
+  const handleMobileTouchMove = useCallback(
+    (event: ReactTouchEvent<HTMLElement>) => {
+      if (typeof window !== "undefined" && "PointerEvent" in window) return;
+
+      const touch = event.touches.item(0);
+      if (!touch) return;
+
+      cancelMobileLongPressOnMove(null, touch.clientX, touch.clientY);
+    },
+    [cancelMobileLongPressOnMove],
   );
 
   const handleMobileTouchEnd = useCallback(
     (event: ReactTouchEvent<HTMLElement>) => {
       if (typeof window !== "undefined" && "PointerEvent" in window) return;
-      if (message.isDeleted) return;
-      if (shouldIgnoreMobileMenuTap(event.target)) return;
-      const touch = event.changedTouches.item(0);
-      lastTouchTapTsRef.current = event.timeStamp;
-      const position = resolveMenuPosition(
-        event.currentTarget,
-        touch?.clientX ?? 0,
-        touch?.clientY ?? 0,
-      );
-      openContextMenuAt(position.x, position.y);
-      event.preventDefault();
+
+      if (finishMobileLongPress(null)) {
+        event.preventDefault();
+      }
     },
-    [message.isDeleted, openContextMenuAt, resolveMenuPosition],
+    [finishMobileLongPress],
+  );
+
+  const handleMobileTouchCancel = useCallback(() => {
+    if (typeof window !== "undefined" && "PointerEvent" in window) return;
+    clearMobileLongPress();
+  }, [clearMobileLongPress]);
+
+  useEffect(
+    () => () => {
+      clearMobileLongPress();
+    },
+    [clearMobileLongPress],
   );
 
   const contextMenuItems: ContextMenuItem[] = [];
@@ -762,9 +899,15 @@ export function MessageBubble({
         data-message-header={showHeader ? "true" : "false"}
         onContextMenu={handleContextMenu}
         onMouseDown={handleMouseDown}
-        onClick={handleMobileTap}
+        onPointerDown={handleMobilePointerDown}
+        onPointerMove={handleMobilePointerMove}
         onPointerUp={handleMobilePointerUp}
+        onPointerCancel={handleMobilePointerCancel}
+        onPointerLeave={handleMobilePointerCancel}
+        onTouchStart={handleMobileTouchStart}
+        onTouchMove={handleMobileTouchMove}
         onTouchEnd={handleMobileTouchEnd}
+        onTouchCancel={handleMobileTouchCancel}
       >
         {showAvatar && (
           <button
