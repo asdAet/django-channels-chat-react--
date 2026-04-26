@@ -40,7 +40,7 @@ const footerColumns = [
         external: true,
       },
       {
-        label: "Предложения и ошибки",
+        label: "Сообщить об ошибке",
         href: "https://github.com/asdAet/Devil/issues",
         external: true,
       },
