@@ -124,6 +124,7 @@
 .directHeaderName {
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.2;
   color: var(--tg-text-primary, #fff);
   white-space: nowrap;
   overflow: hidden;
@@ -288,8 +289,10 @@
 }
 
 .muted {
+  margin: 0;
   color: var(--tg-text-secondary, #aaa);
   font-size: 13px;
+  line-height: 1.25;
 }
 
 .chatBox {

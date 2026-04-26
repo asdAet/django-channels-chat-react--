@@ -157,4 +157,17 @@
   .directHeaderActions {
     gap: 4px;
   }
+
+  .composerSkeleton {
+    gap: 6px;
+    padding: 6px max(8px, var(--safe-right, 0px))
+      calc(6px + var(--safe-bottom, 0px)) max(8px, var(--safe-left, 0px));
+  }
+}
+
+@media (max-width: 480px) {
+  .composerSkeleton {
+    padding-inline: max(6px, var(--safe-left, 0px))
+      max(6px, var(--safe-right, 0px));
+  }
 }
