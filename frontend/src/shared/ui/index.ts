@@ -8,6 +8,7 @@ export type { ContextMenuItem } from "./ContextMenu";
 export { ContextMenu } from "./ContextMenu";
 export { Dropdown } from "./Dropdown";
 export { EmptyState } from "./EmptyState";
+export { FileAttachmentCard } from "./FileAttachmentCard";
 export { ImageLightbox } from "./ImageLightbox";
 export { Modal } from "./Modal";
 export { Panel } from "./Panel";

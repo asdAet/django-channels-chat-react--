@@ -1,0 +1,120 @@
+.root {
+  --file-card-inline-size: min(100%, 390px);
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: var(--file-card-inline-size);
+  max-width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tg-text-primary, #fff);
+  text-decoration: none;
+  transition:
+    background var(--tg-transition-fast, 150ms ease),
+    border-color var(--tg-transition-fast, 150ms ease);
+}
+
+.root:hover {
+  border-color: rgba(104, 214, 232, 0.24);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.compact {
+  --file-card-inline-size: min(100%, 360px);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(137, 146, 255, 0.14);
+  color: #aeb8ff;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.titleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tg-text-primary, #fff);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typeBadge {
+  max-width: 72px;
+  overflow: hidden;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(104, 214, 232, 0.12);
+  color: #68d6e8;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--tg-text-secondary, #aaa);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.metaItem {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaSeparator {
+  flex: 0 0 auto;
+  opacity: 0.55;
+}
+
+@media (max-width: 480px) {
+  .root {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 8px;
+    padding: 7px 9px;
+  }
+
+  .icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .typeBadge {
+    max-width: 58px;
+    padding-inline: 5px;
+  }
+}

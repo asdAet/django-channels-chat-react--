@@ -27,6 +27,10 @@ import {
   writeCustomEmojiClipboardData,
 } from "../../shared/customEmoji";
 import {
+  formatAttachmentFileSize,
+  formatAttachmentSentAt,
+} from "../../shared/lib/attachmentDisplay";
+import {
   isVideoAttachment,
   resolveResponsiveImageSource,
 } from "../../shared/lib/attachmentMedia";
@@ -39,6 +43,7 @@ import {
   AudioAttachmentPlayer,
   Avatar,
   ContextMenu,
+  FileAttachmentCard,
   ImageLightbox,
 } from "../../shared/ui";
 import styles from "../../styles/chat/MessageBubble.module.css";
@@ -127,12 +132,6 @@ const IconEmoji = () => (
     <line x1="15" y1="9" x2="15.01" y2="9" />
   </svg>
 );
-
-const formatFileSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
 
 /**
  * Проверяет, относится ли MIME-тип к видео.
@@ -837,6 +836,10 @@ export function MessageBubble({
     Boolean(getSingleCustomEmojiOnly(message.content)) &&
     message.attachments.length === 0 &&
     !message.replyTo;
+  const isAttachmentOnlyMessage =
+    message.attachments.length > 0 &&
+    message.content.trim().length === 0 &&
+    !message.replyTo;
   const attachmentItems = buildAttachmentRenderItems(message.attachments);
   const attachmentBuckets = splitAttachmentRenderItems(
     attachmentItems,
@@ -944,6 +947,7 @@ export function MessageBubble({
             className={[
               styles.bubble,
               isCustomEmojiOnlyMessage ? styles.customEmojiOnlyBubble : "",
+              isAttachmentOnlyMessage ? styles.attachmentOnlyBubble : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -1040,6 +1044,17 @@ export function MessageBubble({
                 {attachmentBuckets.others.length > 0 && (
                   <div className={styles.fileAttachments}>
                     {attachmentBuckets.others.map(({ attachment: att }) => {
+                      const fileSizeLabel = formatAttachmentFileSize(
+                        att.fileSize,
+                      );
+                      const fileTypeLabel = resolveAttachmentTypeLabel(
+                        att.contentType,
+                        att.originalFilename,
+                      );
+                      const sentAtLabel = formatAttachmentSentAt(
+                        message.createdAt,
+                      );
+
                       if (
                         isVideoType(att.contentType, att.originalFilename) &&
                         att.url
@@ -1058,85 +1073,27 @@ export function MessageBubble({
                             key={att.id}
                             src={att.url}
                             title={att.originalFilename}
-                            subtitle={formatFileSize(att.fileSize)}
+                            fileSizeLabel={fileSizeLabel}
+                            fileTypeLabel={fileTypeLabel}
+                            sentAtLabel={sentAtLabel}
+                            sentAtIso={message.createdAt}
                             downloadName={att.originalFilename}
                             compact
                           />
                         );
                       }
-                      const contentTypeLabel = resolveAttachmentTypeLabel(
-                        att.contentType,
-                        att.originalFilename,
-                      );
-                      const fileMeta = `${formatFileSize(att.fileSize)} • ${contentTypeLabel}`;
-
-                      if (att.url) {
-                        return (
-                          <a
-                            key={att.id}
-                            href={att.url}
-                            className={styles.attachFile}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={att.originalFilename}
-                          >
-                            <span className={styles.attachFileIcon}>
-                              <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                              </svg>
-                            </span>
-                            <span className={styles.attachFileInfo}>
-                              <span className={styles.attachFileName}>
-                                {att.originalFilename}
-                              </span>
-                              <span className={styles.attachFileSize}>
-                                {fileMeta}
-                              </span>
-                            </span>
-                          </a>
-                        );
-                      }
-
                       return (
-                        <div
+                        <FileAttachmentCard
                           key={att.id}
-                          className={styles.attachFile}
-                          data-message-menu-ignore="true"
-                        >
-                          <span className={styles.attachFileIcon}>
-                            <svg
-                              width="20"
-                              height="20"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <polyline points="14 2 14 8 20 8" />
-                            </svg>
-                          </span>
-                          <span className={styles.attachFileInfo}>
-                            <span className={styles.attachFileName}>
-                              {att.originalFilename}
-                            </span>
-                            <span className={styles.attachFileSize}>
-                              {fileMeta}
-                            </span>
-                          </span>
-                        </div>
+                          fileName={att.originalFilename}
+                          fileTypeLabel={fileTypeLabel}
+                          fileSizeLabel={fileSizeLabel}
+                          sentAtLabel={sentAtLabel}
+                          sentAtIso={message.createdAt}
+                          href={att.url}
+                          downloadName={att.originalFilename}
+                          compact
+                        />
                       );
                     })}
                   </div>

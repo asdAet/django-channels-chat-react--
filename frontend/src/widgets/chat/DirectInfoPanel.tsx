@@ -4,12 +4,22 @@ import { chatController } from "../../controllers/ChatController";
 import type { RoomAttachmentItem } from "../../domain/interfaces/IApiService";
 import type { RoomDetails } from "../../entities/room/types";
 import {
+  formatAttachmentFileSize,
+  formatAttachmentSentAt,
+} from "../../shared/lib/attachmentDisplay";
+import {
   isImageAttachment,
   resolveImagePreviewUrl,
 } from "../../shared/lib/attachmentMedia";
+import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
 import { formatLastSeen, formatTimestamp } from "../../shared/lib/format";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
-import { AudioAttachmentPlayer, Avatar, Skeleton } from "../../shared/ui";
+import {
+  AudioAttachmentPlayer,
+  Avatar,
+  FileAttachmentCard,
+  Skeleton,
+} from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
 
 /**
@@ -36,21 +46,19 @@ const isVideo = (contentType: string) => contentType.startsWith("video/");
 const isAudio = (contentType: string) => contentType.startsWith("audio/");
 
 /**
- * Форматирует file size.
- * @param bytes Размер файла в байтах.
- */
-const formatFileSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-/**
  * React-компонент AttachmentCard отвечает за отрисовку и обработку UI-сценария.
  */
 function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
   const isImage = isImageAttachment(item.contentType, item.originalFilename);
+  const isVideoFile = isVideo(item.contentType);
+  const isAudioFile = isAudio(item.contentType);
   const displayName = resolveIdentityLabel(item);
+  const fileSizeLabel = formatAttachmentFileSize(item.fileSize);
+  const fileTypeLabel = resolveAttachmentTypeLabel(
+    item.contentType,
+    item.originalFilename,
+  );
+  const sentAtLabel = formatAttachmentSentAt(item.createdAt);
   const imageSrc = resolveImagePreviewUrl({
     url: item.url,
     thumbnailUrl: item.thumbnailUrl,
@@ -58,92 +66,96 @@ function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
     fileName: item.originalFilename,
   });
 
-  const preview = (
-    <>
-      {isImage && imageSrc && (
+  const renderCardMeta = (withTime: boolean) => (
+    <div className={styles.cardMeta}>
+      <span>{displayName}</span>
+      {withTime && (
+        <time dateTime={item.createdAt}>{formatTimestamp(item.createdAt)}</time>
+      )}
+    </div>
+  );
+
+  if (isImage && imageSrc) {
+    const content = (
+      <>
         <img
           src={imageSrc}
           alt={item.originalFilename}
           className={styles.media}
         />
-      )}
+        {renderCardMeta(true)}
+      </>
+    );
 
-      {isVideo(item.contentType) && item.url && (
+    if (item.url) {
+      return (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.card}
+        >
+          {content}
+        </a>
+      );
+    }
+
+    return <div className={styles.card}>{content}</div>;
+  }
+
+  if (isVideoFile && item.url) {
+    return (
+      <div className={styles.card}>
         <video
           className={styles.media}
           src={item.url}
           preload="metadata"
           controls
         />
-      )}
-
-      {isAudio(item.contentType) && item.url && (
-        <div className={styles.fileCard}>
-          <AudioAttachmentPlayer
-            src={item.url}
-            title={item.originalFilename}
-            subtitle={formatFileSize(item.fileSize)}
-            downloadName={item.originalFilename}
-            className={styles.audioPlayer}
-          />
-        </div>
-      )}
-
-      {!isImage &&
-        !isVideo(item.contentType) &&
-        !isAudio(item.contentType) && (
-          <div className={styles.fileCard}>
-            <span className={styles.fileIcon}>
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-            </span>
-            <span className={styles.fileName}>{item.originalFilename}</span>
-            <span className={styles.fileMeta}>
-              {formatFileSize(item.fileSize)}
-            </span>
-          </div>
-        )}
-
-      <div className={styles.cardMeta}>
-        <span>{displayName}</span>
-        <span>{formatTimestamp(item.createdAt)}</span>
+        {renderCardMeta(true)}
       </div>
-    </>
-  );
-
-  const canOpenAsLink = Boolean(item.url && !isAudio(item.contentType));
-  const cardClassName = [
-    styles.card,
-    isAudio(item.contentType) ? styles.cardAudio : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  if (canOpenAsLink) {
-    return (
-      <a
-        href={item.url as string}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cardClassName}
-      >
-        {preview}
-      </a>
     );
   }
 
-  return <div className={cardClassName}>{preview}</div>;
+  if (isAudioFile && item.url) {
+    return (
+      <div className={[styles.card, styles.cardAudio].join(" ")}>
+        <div className={styles.attachmentCardBody}>
+          <AudioAttachmentPlayer
+            src={item.url}
+            title={item.originalFilename}
+            fileSizeLabel={fileSizeLabel}
+            fileTypeLabel={fileTypeLabel}
+            sentAtLabel={sentAtLabel}
+            sentAtIso={item.createdAt}
+            downloadName={item.originalFilename}
+            compact
+            className={styles.audioPlayer}
+          />
+        </div>
+        {renderCardMeta(false)}
+      </div>
+    );
+  }
+
+  return (
+    <div className={[styles.card, styles.cardFile].join(" ")}>
+      <div className={styles.attachmentCardBody}>
+        <FileAttachmentCard
+          fileName={item.originalFilename}
+          fileTypeLabel={fileTypeLabel}
+          fileSizeLabel={fileSizeLabel}
+          sentAtLabel={sentAtLabel}
+          sentAtIso={item.createdAt}
+          href={item.url}
+          downloadName={item.originalFilename}
+          compact
+          className={styles.fileAttachmentCard}
+        />
+      </div>
+      {renderCardMeta(false)}
+    </div>
+  );
 }
 
 function DirectInfoProfileSkeleton() {

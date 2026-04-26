@@ -267,14 +267,7 @@ describe("MessageBubble", () => {
     );
 
     expect(screen.getByText("archive.custom")).toBeInTheDocument();
-    expect(
-      screen.getByText((content, element) => {
-        const className = String(element?.className ?? "");
-        return (
-          className.includes("attachFileSize") && /\bcustom\b/i.test(content)
-        );
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("custom")).toBeInTheDocument();
   });
 
   it("renders svg attachment as image even when content type is generic", () => {
@@ -353,6 +346,36 @@ describe("MessageBubble", () => {
     expect(
       container.querySelector("[class*='footerInfo']"),
     ).toBeInTheDocument();
+  });
+
+  it("renders attachment-only messages without the regular bubble background", () => {
+    const message: Message = {
+      ...baseMessage,
+      content: "",
+      attachments: [
+        {
+          id: 13,
+          originalFilename: "document.pdf",
+          contentType: "application/pdf",
+          fileSize: 4096,
+          url: "/media/document.pdf",
+          thumbnailUrl: null,
+          width: null,
+          height: null,
+        },
+      ],
+    };
+
+    const { container } = render(
+      <MessageBubble
+        message={message}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    const bubble = container.querySelector("[class*='bubble']");
+    expect(bubble?.className).toContain("attachmentOnlyBubble");
   });
 
   it("copies a sent custom emoji with the rich clipboard payload", () => {
