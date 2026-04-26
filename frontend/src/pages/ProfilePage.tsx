@@ -458,8 +458,8 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
             >
               Сохранить
             </Button>
-            <Button variant="ghost" onClick={() => onNavigate("/")}>
-              На главную
+            <Button variant="ghost" onClick={() => onNavigate("/public")}>
+              Вернуться в чат
             </Button>
           </div>
         </form>

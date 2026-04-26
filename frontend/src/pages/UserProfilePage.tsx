@@ -343,8 +343,8 @@ export function UserProfilePage({
       <Panel>
         <p>Профиль не найден.</p>
         <div className={styles.actions}>
-          <Button variant="ghost" onClick={() => onNavigate("/")}>
-            На главную
+          <Button variant="ghost" onClick={() => onNavigate("/public")}>
+            Вернуться в чат
           </Button>
         </div>
       </Panel>
@@ -508,8 +508,8 @@ export function UserProfilePage({
               Отправить сообщение
             </Button>
           )}
-          <Button variant="link" onClick={() => onNavigate("/")}>
-            На главную
+          <Button variant="link" onClick={() => onNavigate("/public")}>
+            Вернуться в чат
           </Button>
           {isSelf && (
             <Button

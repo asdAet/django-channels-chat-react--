@@ -16,8 +16,8 @@ export function NotFoundPage({ onNavigate }: Props) {
       <div data-testid="not-found-page">
         <p>Страница не найдена.</p>
       </div>
-      <Button variant="ghost" onClick={() => onNavigate("/")}>
-        На главную
+      <Button variant="ghost" onClick={() => onNavigate("/public")}>
+        Вернуться в чат
       </Button>
     </Panel>
   );

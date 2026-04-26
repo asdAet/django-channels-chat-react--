@@ -73,7 +73,7 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
             key: requestKey,
             roomId: null,
             roomKind: null,
-            error: "Чат не найден",
+            error: "Не найдено",
           });
           return;
         }
@@ -133,8 +133,8 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
       <Panel>
         <p>{error}</p>
         <div className={styles.actions}>
-          <Button variant="ghost" onClick={() => onNavigate("/friends")}>
-            К друзьям
+          <Button variant="ghost" onClick={() => onNavigate("/public")}>
+            Вернуться в чат
           </Button>
         </div>
       </Panel>
