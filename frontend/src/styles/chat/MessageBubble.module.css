@@ -366,6 +366,8 @@
   gap: 6px;
   width: min(100%, var(--chat-attachment-width));
   max-width: 100%;
+  background-color: #212121;
+  border-radius: 8px;
 }
 
 .fileAttachments [data-testid="file-attachment-card"],

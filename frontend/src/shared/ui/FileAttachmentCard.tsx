@@ -56,22 +56,27 @@ export function FileAttachmentCard({
       <span className={styles.info}>
         <span className={styles.titleRow}>
           <span className={styles.name} title={fileName}>
-            {fileName}
+            {fileName.slice(
+              0,
+              fileName.lastIndexOf(".") > 0
+                ? fileName.lastIndexOf(".")
+                : fileName.length,
+            )}
           </span>
-          <span className={styles.typeBadge} title={fileTypeLabel}>
+          {/* <span className={styles.typeBadge} title={fileTypeLabel}>
             {fileTypeLabel}
-          </span>
+          </span> */}
         </span>
 
         <span className={styles.metaRow}>
           <span className={styles.metaItem}>{fileSizeLabel}</span>
-          {sentAtLabel && (
+          {fileTypeLabel && (
             <>
               <span className={styles.metaSeparator} aria-hidden="true">
                 •
               </span>
-              <time className={styles.metaItem} dateTime={sentAtIso}>
-                {sentAtLabel}
+              <time className={styles.typeBadge} dateTime={sentAtIso}>
+                {fileTypeLabel}
               </time>
             </>
           )}

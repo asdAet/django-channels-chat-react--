@@ -223,9 +223,7 @@ export function AudioAttachmentPlayer({
 
   const updateVolumePlacement = useCallback((target: HTMLElement) => {
     const rect = target.getBoundingClientRect();
-    setVolumePlacement(
-      rect.top > VOLUME_MENU_MIN_TOP_SPACE ? "top" : "bottom",
-    );
+    setVolumePlacement(rect.top > VOLUME_MENU_MIN_TOP_SPACE ? "top" : "bottom");
   }, []);
 
   const durationLabel = formatTime(currentState.duration);
@@ -294,13 +292,18 @@ export function AudioAttachmentPlayer({
         <div className={styles.meta}>
           <div className={styles.titleRow}>
             <span className={styles.title} title={displayTitle}>
-              {displayTitle}
+              {displayTitle.slice(
+                0,
+                displayTitle.lastIndexOf(".") > 0
+                  ? displayTitle.lastIndexOf(".")
+                  : displayTitle.length,
+              )}
             </span>
-            {fileTypeLabel && (
+            {/* {fileTypeLabel && (
               <span className={styles.typeBadge} title={fileTypeLabel}>
                 {fileTypeLabel}
               </span>
-            )}
+            )} */}
           </div>
 
           {metadataItems.length > 0 && (
@@ -313,8 +316,8 @@ export function AudioAttachmentPlayer({
                     </span>
                   )}
                   {item === sentAtLabel ? (
-                    <time className={styles.detailItem} dateTime={sentAtIso}>
-                      {item}
+                    <time className={styles.typeBadge} title={fileTypeLabel}>
+                      {fileTypeLabel}
                     </time>
                   ) : (
                     <span className={styles.detailItem}>{item}</span>
@@ -396,7 +399,12 @@ export function AudioAttachmentPlayer({
       {currentState.hasError && (
         <p className={styles.errorText}>
           Не удалось воспроизвести аудио.{" "}
-          <a href={src} target="_blank" rel="noopener noreferrer" download={downloadName}>
+          <a
+            href={src}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={downloadName}
+          >
             Скачать файл
           </a>
           .
