@@ -79,9 +79,7 @@ describe("AudioAttachmentPlayer", () => {
 
     fireEvent.error(audio);
     expect(
-      screen.getByText(
-        "Не удалось воспроизвести аудио в браузере. Используйте кнопку «Скачать».",
-      ),
+      screen.getByText(/Не удалось воспроизвести аудио/i),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Воспроизвести" }),
