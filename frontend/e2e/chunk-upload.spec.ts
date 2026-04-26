@@ -2,6 +2,9 @@ import { expect, test } from "@playwright/test";
 
 import { ensureAuthenticated, registerWithRetry } from "./helpers/auth";
 
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 test("public chat uploads attachments through chunked flow with progress feedback", async ({
   page,
 }) => {
@@ -68,7 +71,11 @@ test("public chat uploads attachments through chunked flow with progress feedbac
     );
 
   await expect(
-    page.getByRole("article").filter({ hasText: attachmentName }).first(),
+    page
+      .getByRole("link", {
+        name: new RegExp(escapeRegExp(attachmentName)),
+      })
+      .first(),
   ).toBeVisible({ timeout: 20_000 });
 
   expect(

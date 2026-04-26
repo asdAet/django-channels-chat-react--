@@ -21,11 +21,14 @@ describe("AudioAttachmentPlayer", () => {
         src="/audio/test.mp3"
         title="test.mp3"
         subtitle="128 KB"
+        fileTypeLabel="mp3"
         downloadName="test.mp3"
       />,
     );
 
-    expect(screen.getByText("test.mp3")).toBeInTheDocument();
+    expect(screen.getByTitle("test.mp3")).toBeInTheDocument();
+    expect(screen.getByText("test")).toBeInTheDocument();
+    expect(screen.getByText("mp3")).toBeInTheDocument();
     expect(screen.getByText("128 KB")).toBeInTheDocument();
 
     const audio = container.querySelector("audio") as HTMLAudioElement;

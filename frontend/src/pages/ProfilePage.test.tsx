@@ -14,9 +14,14 @@ const presenceMock = vi.hoisted(() => ({
 
 const createObjectUrlMock = vi.hoisted(() => vi.fn(() => "blob:avatar-upload"));
 const revokeObjectUrlMock = vi.hoisted(() => vi.fn());
+const cropAvatarImageFileMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../shared/presence", () => ({
   usePresence: () => presenceMock,
+}));
+
+vi.mock("../shared/lib/avatarImageCrop", () => ({
+  cropAvatarImageFile: cropAvatarImageFileMock,
 }));
 
 vi.mock("../shared/ui", async () => {
@@ -76,6 +81,17 @@ describe("ProfilePage", () => {
     presenceMock.lastError = null;
     createObjectUrlMock.mockClear();
     revokeObjectUrlMock.mockClear();
+    cropAvatarImageFileMock.mockReset();
+    cropAvatarImageFileMock.mockImplementation((file: File) =>
+      Promise.resolve(
+        new File(["cropped"], `cropped-${file.name}`, {
+          type: file.type || "image/png",
+        }),
+      ),
+    );
+    createObjectUrlMock.mockImplementation(
+      () => `blob:avatar-upload-${createObjectUrlMock.mock.calls.length + 1}`,
+    );
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       writable: true,
@@ -167,7 +183,7 @@ describe("ProfilePage", () => {
     expect(container.querySelector('[data-online="true"]')).toBeNull();
   });
 
-  it("opens crop modal and submits selected crop with the original file", async () => {
+  it("opens crop modal and submits the cropped avatar file", async () => {
     const onSave = vi.fn(async () => ({ ok: true as const }));
     const { container } = render(
       <ProfilePage user={user} onSave={onSave} onNavigate={vi.fn()} />,
@@ -188,13 +204,21 @@ describe("ProfilePage", () => {
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Apply crop" }));
+    await waitFor(() => {
+      expect(cropAvatarImageFileMock).toHaveBeenCalledWith(file, {
+        x: 0.1,
+        y: 0.2,
+        width: 0.3,
+        height: 0.4,
+      });
+    });
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        image: file,
-        avatarCrop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
+        image: expect.objectContaining({ name: "cropped-avatar.png" }),
+        avatarCrop: { x: 0, y: 0, width: 1, height: 1 },
       }),
     );
   });

@@ -3,6 +3,9 @@
 import type { UserProfile } from "../entities/user/types";
 import type { AvatarCrop } from "../shared/api/users";
 import { useUsernameMaxLength } from "../shared/config/limits";
+import { FULL_AVATAR_CROP } from "../shared/lib/avatarCrop";
+import { cropAvatarImageFile } from "../shared/lib/avatarImageCrop";
+import { debugLog } from "../shared/lib/debug";
 import {
   avatarFallback,
   formatLastSeen,
@@ -74,6 +77,7 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
   );
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const [avatarCropApplying, setAvatarCropApplying] = useState(false);
 
   const previewUrl = localPreviewUrl ?? user?.profileImage ?? null;
   const avatarCrop = draftAvatarCrop ?? user?.avatarCrop ?? null;
@@ -81,6 +85,7 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const latestPreviewUrlRef = useRef<string | null>(localPreviewUrl);
   const latestPendingUrlRef = useRef<string | null>(pendingUrl);
+  const cropApplyTokenRef = useRef(0);
 
   const trimmedUsername = form.username.trim();
   const isUsernameTooLong = trimmedUsername.length > usernameMaxLength;
@@ -198,6 +203,8 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
 
     setFormError(null);
     clearFieldError("image");
+    cropApplyTokenRef.current += 1;
+    setAvatarCropApplying(false);
     revokeBlobUrl(pendingUrl);
 
     const nextUrl = URL.createObjectURL(file);
@@ -211,6 +218,8 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
    * Обрабатывает handle crop cancel.
    */
   const handleCropCancel = () => {
+    cropApplyTokenRef.current += 1;
+    setAvatarCropApplying(false);
     clearPendingState(true);
   };
 
@@ -218,23 +227,49 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
    * Обрабатывает handle crop apply.
    * @param nextCrop Следующие координаты и размеры области обрезки.
    */
-  const handleCropApply = (nextCrop: AvatarCrop) => {
+  const handleCropApply = async (nextCrop: AvatarCrop) => {
     if (!pendingFile || !pendingUrl) {
       clearPendingState(true);
       return;
     }
 
-    setImage(pendingFile);
-    setDraftAvatarCrop(nextCrop);
+    const applyToken = ++cropApplyTokenRef.current;
+    setAvatarCropApplying(true);
+    setFormError(null);
+    clearFieldError("image");
+
+    let croppedFile: File;
+    let nextPreviewUrl: string | null = null;
+    try {
+      croppedFile = await cropAvatarImageFile(pendingFile, nextCrop);
+      nextPreviewUrl = URL.createObjectURL(croppedFile);
+    } catch (error) {
+      debugLog("Avatar crop failed", error);
+      if (applyToken === cropApplyTokenRef.current) {
+        setFormError("Не удалось подготовить аватарку. Выберите другое изображение.");
+        setAvatarCropApplying(false);
+      }
+      return;
+    }
+
+    if (applyToken !== cropApplyTokenRef.current) {
+      revokeBlobUrl(nextPreviewUrl);
+      return;
+    }
+
+    setImage(croppedFile);
+    setDraftAvatarCrop({ ...FULL_AVATAR_CROP });
     setLocalPreviewUrl((prev) => {
-      if (prev && prev !== pendingUrl) {
+      if (prev && prev !== pendingUrl && prev !== nextPreviewUrl) {
         revokeBlobUrl(prev);
       }
-      return pendingUrl;
+      return nextPreviewUrl;
     });
 
+    revokeBlobUrl(pendingUrl);
     setPendingFile(null);
     setPendingUrl(null);
+    setAvatarCropApplying(false);
   };
 
   return (
@@ -470,6 +505,7 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
           key={pendingUrl}
           open
           image={pendingUrl}
+          applying={avatarCropApplying}
           onCancel={handleCropCancel}
           onApply={handleCropApply}
         />

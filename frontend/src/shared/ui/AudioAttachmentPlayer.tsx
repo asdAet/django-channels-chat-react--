@@ -1,6 +1,5 @@
 import {
   type CSSProperties,
-  Fragment,
   useCallback,
   useMemo,
   useRef,
@@ -241,9 +240,7 @@ export function AudioAttachmentPlayer({
   const volumeStyle = {
     "--audio-volume": `${volume * 100}%`,
   } as CSSProperties;
-  const metadataItems = [fileSizeLabel ?? subtitle, sentAtLabel].filter(
-    (item): item is string => Boolean(item),
-  );
+  const fileMetaLabel = fileSizeLabel ?? subtitle;
   const displayTitle = title || "Аудиофайл";
   const isMuted = volume <= 0;
 
@@ -299,31 +296,23 @@ export function AudioAttachmentPlayer({
                   : displayTitle.length,
               )}
             </span>
-            {/* {fileTypeLabel && (
+          </div>
+
+          {(fileMetaLabel || sentAtLabel) && (
+            <div className={styles.detailRow}>
+              {fileMetaLabel && (
+                <span className={styles.detailItem}>{fileMetaLabel}</span>
+              )}
+              {fileMetaLabel && sentAtLabel && (
+                <span className={styles.detailSeparator} aria-hidden="true">
+                  •
+                </span>
+              )}
+            {fileTypeLabel && (
               <span className={styles.typeBadge} title={fileTypeLabel}>
                 {fileTypeLabel}
               </span>
-            )} */}
-          </div>
-
-          {metadataItems.length > 0 && (
-            <div className={styles.detailRow}>
-              {metadataItems.map((item, index) => (
-                <Fragment key={`${item}-${index}`}>
-                  {index > 0 && (
-                    <span className={styles.detailSeparator} aria-hidden="true">
-                      •
-                    </span>
-                  )}
-                  {item === sentAtLabel ? (
-                    <time className={styles.typeBadge} title={fileTypeLabel}>
-                      {fileTypeLabel}
-                    </time>
-                  ) : (
-                    <span className={styles.detailItem}>{item}</span>
-                  )}
-                </Fragment>
-              ))}
+            )}
             </div>
           )}
         </div>

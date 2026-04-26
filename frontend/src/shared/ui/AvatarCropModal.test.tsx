@@ -25,6 +25,7 @@ type MockMediaSize = {
  * Задает алиас типа MockCropperProps.
  */
 type MockCropperProps = {
+  objectFit?: string;
   style?: {
     cropAreaStyle?: Record<string, string>;
   };
@@ -69,10 +70,7 @@ describe("AvatarCropModal", () => {
       />,
     );
 
-    expect(cropperState.props?.style?.cropAreaStyle).toEqual({
-      width: "100%",
-      height: "100%",
-    });
+    expect(cropperState.props?.objectFit).toBe("contain");
 
     act(() => {
       cropperState.props?.onMediaLoaded?.({
@@ -83,7 +81,7 @@ describe("AvatarCropModal", () => {
       });
       cropperState.props?.onCropComplete?.(
         { x: 10, y: 20, width: 30, height: 40 },
-        { x: 400, y: 500, width: 1000, height: 700 },
+        { x: 400, y: 500, width: 1000, height: 1000 },
       );
     });
 
@@ -93,11 +91,11 @@ describe("AvatarCropModal", () => {
       x: 0.1,
       y: 0.25,
       width: 0.25,
-      height: 0.35,
+      height: 0.5,
     });
   });
 
-  it("preserves crop size near edges and adjusts only x/y into bounds", () => {
+  it("normalizes non-square crop area to square before saving", () => {
     const onApply = vi.fn();
 
     render(
@@ -129,12 +127,43 @@ describe("AvatarCropModal", () => {
     fireEvent.click(screen.getAllByRole("button")[1] as HTMLButtonElement);
 
     const crop = onApply.mock.calls[0]?.[0] as MockCropArea;
-    expect(crop.width).toBeCloseTo(0.12, 6);
+    expect(crop.width).toBeCloseTo(0.08, 6);
     expect(crop.height).toBeCloseTo(0.08, 6);
-    expect(crop.x).toBeCloseTo(0.88, 6);
+    expect(crop.x).toBeCloseTo(0.92, 6);
     expect(crop.y).toBeCloseTo(0.92, 6);
     expect(crop.x + crop.width).toBeLessThanOrEqual(1);
     expect(crop.y + crop.height).toBeLessThanOrEqual(1);
+  });
+
+  it("uses centered square crop when cropper has not completed yet", () => {
+    const onApply = vi.fn();
+
+    render(
+      <AvatarCropModal
+        open
+        image="blob:test-image"
+        onCancel={vi.fn()}
+        onApply={onApply}
+      />,
+    );
+
+    act(() => {
+      cropperState.props?.onMediaLoaded?.({
+        width: 360,
+        height: 180,
+        naturalWidth: 4000,
+        naturalHeight: 2000,
+      });
+    });
+
+    fireEvent.click(screen.getAllByRole("button")[1] as HTMLButtonElement);
+
+    expect(onApply).toHaveBeenCalledWith({
+      x: 0.25,
+      y: 0,
+      width: 0.5,
+      height: 1,
+    });
   });
 
   it("does not dismiss on backdrop click or Escape and only triggers actions via buttons", () => {

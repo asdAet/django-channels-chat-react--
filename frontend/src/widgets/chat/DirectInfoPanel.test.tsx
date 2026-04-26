@@ -39,7 +39,7 @@ describe("DirectInfoPanel", () => {
           height: null,
           createdAt: "2026-03-11T10:00:00.000Z",
           publicRef: "@alice",
-        username: "alice",
+          username: "alice",
         },
       ],
       pagination: { limit: 60, hasMore: false, nextBefore: null },
@@ -64,6 +64,8 @@ describe("DirectInfoPanel", () => {
     expect(
       screen.getByRole("button", { name: "Воспроизвести" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("voice-note.mp3")).toBeInTheDocument();
+    expect(screen.getByTitle("voice-note.mp3")).toBeInTheDocument();
+    expect(screen.getByText("voice-note")).toBeInTheDocument();
+    expect(screen.getByText("mp3")).toBeInTheDocument();
   });
 });

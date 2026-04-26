@@ -3,14 +3,16 @@ import Cropper, { type Area, type MediaSize } from "react-easy-crop";
 
 import styles from "../../styles/ui/AvatarCropModal.module.css";
 import type { AvatarCrop } from "../api/users";
+import { buildAvatarCropFromArea } from "../lib/avatarCrop";
 import { Button } from "./Button";
 
 /**
- * Описывает входные props компонента `AvatarCropModal`.
+ * Описывает свойства модального редактора аватарки.
  */
 type AvatarCropModalProps = {
   open: boolean;
   image: string | null;
+  applying?: boolean;
   onCancel: () => void;
   onApply: (crop: AvatarCrop) => void;
 };
@@ -18,72 +20,25 @@ type AvatarCropModalProps = {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 0.01;
-const EPSILON = 0.000001;
-const ROUND_FACTOR = 1_000_000;
 
 /**
- * Обрабатывает clamp.
- * @param value Входное значение для преобразования.
- * @param min Аргумент `min` текущего вызова.
- * @param max Аргумент `max` текущего вызова.
+ * Ограничивает число безопасным диапазоном.
+ * @param value Проверяемое значение.
+ * @param min Нижняя граница.
+ * @param max Верхняя граница.
+ * @returns Значение внутри заданных границ.
  */
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
-/**
- * Обрабатывает round to six.
- * @param value Входное значение для преобразования.
- */
-const roundToSix = (value: number) =>
-  Math.round(value * ROUND_FACTOR) / ROUND_FACTOR;
 
 /**
- * Обрабатывает to normalized crop.
- * @param areaPixels Список `areaPixels`, который обрабатывается функцией.
- * @param mediaSize DOM-событие, вызвавшее обработчик.
-
- */
-const toNormalizedCrop = (
-  areaPixels: Area | null,
-  mediaSize: MediaSize | null,
-): AvatarCrop => {
-  if (!areaPixels || !mediaSize) {
-    return { x: 0, y: 0, width: 1, height: 1 };
-  }
-
-  const naturalWidth = mediaSize.naturalWidth || mediaSize.width;
-  const naturalHeight = mediaSize.naturalHeight || mediaSize.height;
-  if (naturalWidth <= 0 || naturalHeight <= 0) {
-    return { x: 0, y: 0, width: 1, height: 1 };
-  }
-
-  let width = clamp(areaPixels.width / naturalWidth, EPSILON, 1);
-  let height = clamp(areaPixels.height / naturalHeight, EPSILON, 1);
-  let x = clamp(areaPixels.x / naturalWidth, 0, Math.max(0, 1 - width));
-  let y = clamp(areaPixels.y / naturalHeight, 0, Math.max(0, 1 - height));
-
-  width = clamp(roundToSix(width), EPSILON, 1);
-  height = clamp(roundToSix(height), EPSILON, 1);
-  x = clamp(roundToSix(x), 0, Math.max(0, 1 - width));
-  y = clamp(roundToSix(y), 0, Math.max(0, 1 - height));
-
-  if (x + width > 1) {
-    x = Math.max(0, roundToSix(1 - width));
-  }
-  if (y + height > 1) {
-    y = Math.max(0, roundToSix(1 - height));
-  }
-
-  return { x, y, width, height };
-};
-
-/**
- * Компонент AvatarCropModal рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
- *
- * @param props Свойства компонента.
+ * Рендерит модальное окно выбора круглой области аватарки.
+ * @param props Свойства модального окна.
  */
 export function AvatarCropModal({
   open,
   image,
+  applying = false,
   onCancel,
   onApply,
 }: AvatarCropModalProps) {
@@ -140,9 +95,8 @@ export function AvatarCropModal({
             aspect={1}
             cropShape="round"
             showGrid={false}
-            objectFit="cover"
+            objectFit="contain"
             restrictPosition
-            style={{ cropAreaStyle: { width: "100%", height: "100%" } }}
             onCropChange={setCrop}
             onZoomChange={(value) => setZoom(clamp(value, MIN_ZOOM, MAX_ZOOM))}
             onMediaLoaded={(nextMediaSize) => {
@@ -174,16 +128,17 @@ export function AvatarCropModal({
           </Button>
           <Button
             variant="primary"
+            disabled={applying}
             onClick={() =>
               onApply(
-                toNormalizedCrop(
+                buildAvatarCropFromArea(
                   croppedAreaPixelsRef.current,
                   mediaSizeRef.current,
                 ),
               )
             }
           >
-            Применить
+            {applying ? "Применяем..." : "Применить"}
           </Button>
         </div>
       </div>

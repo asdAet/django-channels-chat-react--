@@ -1,7 +1,8 @@
 ﻿import { defineConfig, devices } from "@playwright/test";
 
 const backendPython =
-  process.platform === "win32" ? ".\\.venv\\Scripts\\python.exe" : "python";
+  process.env.E2E_BACKEND_PYTHON ??
+  (process.platform === "win32" ? ".\\.venv\\Scripts\\python.exe" : "python");
 
 export default defineConfig({
   testDir: "./e2e",

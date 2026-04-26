@@ -238,7 +238,9 @@ describe("MessageBubble", () => {
     expect(
       screen.getByRole("button", { name: "Воспроизвести" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("voice.mp3")).toBeInTheDocument();
+    expect(screen.getByTitle("voice.mp3")).toBeInTheDocument();
+    expect(screen.getByText("voice")).toBeInTheDocument();
+    expect(screen.getByText("mp3")).toBeInTheDocument();
   });
 
   it("renders concise file type label for non-media attachment", () => {
@@ -266,7 +268,8 @@ describe("MessageBubble", () => {
       />,
     );
 
-    expect(screen.getByText("archive.custom")).toBeInTheDocument();
+    expect(screen.getByTitle("archive.custom")).toBeInTheDocument();
+    expect(screen.getByText("archive")).toBeInTheDocument();
     expect(screen.getByText("custom")).toBeInTheDocument();
   });
 
