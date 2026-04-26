@@ -139,25 +139,6 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT }}
           script_stop: true
           script: |
-            set -e
-            BRANCH_NAME="${{ github.ref_name }}"
-            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            if [ -z "$DEPLOY_PATH" ]; then
-              DEPLOY_PATH="/opt/devils-resting"
-            fi
-            cd "$DEPLOY_PATH"
-            git fetch --all --prune
-            git checkout "$BRANCH_NAME"
-            git reset --hard "origin/$BRANCH_NAME"
-            if docker compose version >/dev/null 2>&1; then
-              compose() { docker compose "$@"; }
-            elif command -v docker-compose >/dev/null 2>&1; then
-              compose() { docker-compose "$@"; }
-            else
-              echo "Docker Compose is not installed on the server"
-              exit 1
-            fi
-            compose -f docker-compose.prod.yml down --remove-orphans || true
-            compose -f docker-compose.prod.yml build --pull
-            compose -f docker-compose.prod.yml up -d --force-recreate --remove-orphans
-            compose -f docker-compose.prod.yml ps
+            cd "${{ secrets.DEPLOY_PATH }}"
+            git pull
+            docker compose -f docker-compose.prod.yml -f deploy/observability/compose.yml up --build -d
