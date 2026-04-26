@@ -154,7 +154,7 @@ export function AudioAttachmentPlayer({
   fileSizeLabel,
   fileTypeLabel,
   sentAtLabel,
-  sentAtIso,
+  // sentAtIso,
   downloadName,
   compact = false,
   className,

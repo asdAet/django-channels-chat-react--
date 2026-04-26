@@ -21,7 +21,7 @@ export function FileAttachmentCard({
   fileTypeLabel,
   fileSizeLabel,
   sentAtLabel,
-  sentAtIso,
+  // sentAtIso,
   href,
   downloadName,
   compact = false,
