@@ -76,3 +76,14 @@
   font-size: 13px;
 }
 
+.searchSkeleton {
+  display: flex;
+  flex-direction: column;
+}
+
+.resultSkeletonMeta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+

@@ -9,7 +9,7 @@ import {
   resolveIdentityLabel,
 } from "../shared/lib/userIdentity";
 import { usePresence } from "../shared/presence";
-import { Avatar, EmptyState, Spinner } from "../shared/ui";
+import { Avatar, EmptyState, Skeleton } from "../shared/ui";
 import styles from "../styles/friends/FriendsPageView.module.css";
 import { AddFriendDialog } from "../widgets/friends/AddFriendDialog";
 import { FriendListItem } from "../widgets/friends/FriendListItem";
@@ -106,6 +106,27 @@ const IconSearch = () => (
     <line x1="20" y1="20" x2="16.65" y2="16.65" />
   </svg>
 );
+
+/**
+ * Skeleton содержимого активной вкладки друзей. Панель вкладок и поиск уже
+ * отрисованы, поэтому placeholder занимает только изменяемую список-зону.
+ */
+function FriendsListSkeleton() {
+  return (
+    <div className={styles.listSkeleton} aria-busy="true">
+      {Array.from({ length: 6 }, (_, index) => (
+        <div className={styles.friendSkeletonRow} key={index}>
+          <Skeleton variant="circle" width={45} height={45} />
+          <div className={styles.friendSkeletonMeta}>
+            <Skeleton variant="text" width={index % 2 === 0 ? "42%" : "56%"} />
+            <Skeleton variant="text" width={index % 3 === 0 ? "32%" : "48%"} />
+          </div>
+          <Skeleton variant="circle" width={40} height={40} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Показывает единый экран управления дружбой, блокировками и быстрым переходом в ЛС.
@@ -282,11 +303,7 @@ export function FriendsPage({ user, onNavigate }: Props) {
 
   const renderContent = () => {
     if (loading) {
-      return (
-        <div className={styles.centered}>
-          <Spinner size="md" />
-        </div>
-      );
+      return <FriendsListSkeleton />;
     }
 
     if (error) {

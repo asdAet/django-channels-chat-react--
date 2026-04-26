@@ -1,0 +1,52 @@
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  min-width: 1px;
+  min-height: 1px;
+  background: rgba(255, 255, 255, 0.075);
+  border-radius: 8px;
+  isolation: isolate;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+  animation: skeletonShimmer 1.35s ease-in-out infinite;
+}
+
+.block {
+  height: 100%;
+}
+
+.circle {
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+.text {
+  height: 1em;
+  border-radius: 999px;
+}
+
+@keyframes skeletonShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+    transform: none;
+    opacity: 0;
+  }
+}

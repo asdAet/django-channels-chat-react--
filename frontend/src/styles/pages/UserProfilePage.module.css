@@ -16,6 +16,22 @@
   justify-content: center;
 }
 
+.profileSkeletonCard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.profileSkeletonEyebrow {
+  margin: 0 auto;
+}
+
+.profileSkeletonActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .profileAvatarWrapper {
   width: 180px;
   height: 180px;
@@ -177,6 +193,10 @@
   .actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .profileSkeletonActions {
+    grid-template-columns: 1fr;
   }
 }
 

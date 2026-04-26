@@ -18,7 +18,7 @@ import {
   resolveIdentityHandle,
   resolveIdentityLabel,
 } from "../../shared/lib/userIdentity";
-import { Avatar, EmptyState, Spinner } from "../../shared/ui";
+import { Avatar, EmptyState, Skeleton } from "../../shared/ui";
 import styles from "../../styles/sidebar/ConversationList.module.css";
 import { ConversationListItem } from "./ConversationListItem";
 
@@ -31,6 +31,45 @@ const TAB_LABELS: { key: FilterTab; label: string }[] = [
   { key: "personal", label: "Личные" },
   { key: "groups", label: "Группы" },
 ];
+
+/**
+ * Skeleton строк диалогов в сайдбаре. Табы и поиск остаются на месте, чтобы
+ * навигация не прыгала во время обновления conversation list.
+ */
+function ConversationListSkeleton() {
+  return (
+    <div className={styles.listSkeleton} aria-busy="true">
+      {Array.from({ length: 7 }, (_, index) => (
+        <div className={styles.listSkeletonRow} key={index}>
+          <Skeleton variant="circle" width={45} height={45} />
+          <div className={styles.listSkeletonMeta}>
+            <Skeleton variant="text" width={index % 2 === 0 ? "52%" : "38%"} />
+            <Skeleton variant="text" width={index % 3 === 0 ? "72%" : "58%"} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Skeleton результатов глобального поиска, сохраняя раздел списка на месте.
+ */
+function GlobalSearchSkeleton() {
+  return (
+    <div className={styles.globalSkeleton} aria-busy="true">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div className={styles.listSkeletonRow} key={index}>
+          <Skeleton variant="circle" width={45} height={45} />
+          <div className={styles.listSkeletonMeta}>
+            <Skeleton variant="text" width="46%" />
+            <Skeleton variant="text" width="68%" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Отрисовывает список диалогов и результаты глобального поиска в боковой панели.
@@ -124,17 +163,7 @@ export function ConversationList({ onNavigate }: Props) {
 
       {isGlobalMode ? (
         <div className={styles.globalSearchWrap}>
-          {globalLoading && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                padding: "24px",
-              }}
-            >
-              <Spinner size="md" />
-            </div>
-          )}
+          {globalLoading && <GlobalSearchSkeleton />}
 
           {!globalLoading && !hasGlobalResults && (
             <EmptyState
@@ -224,9 +253,7 @@ export function ConversationList({ onNavigate }: Props) {
           )}
         </div>
       ) : loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
-          <Spinner size="md" />
-        </div>
+        <ConversationListSkeleton />
       ) : items.length === 0 ? (
         <EmptyState
           title={searchQuery ? "Ничего не найдено" : "Нет чатов"}

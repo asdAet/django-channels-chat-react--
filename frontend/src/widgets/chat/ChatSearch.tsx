@@ -4,7 +4,7 @@ import { chatController } from "../../controllers/ChatController";
 import type { SearchResultItem } from "../../domain/interfaces/IApiService";
 import { formatTimestamp } from "../../shared/lib/format";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
-import { Spinner } from "../../shared/ui";
+import { Skeleton } from "../../shared/ui";
 import styles from "../../styles/chat/ChatSearch.module.css";
 
 /**
@@ -25,6 +25,26 @@ function highlightText(text: string, query: string): string {
   if (!query.trim()) return text;
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return text.replace(new RegExp(`(${escaped})`, "gi"), "<mark>$1</mark>");
+}
+
+/**
+ * Skeleton результатов поиска сообщений. Поле ввода остается доступным, а
+ * изменяемая зона результатов показывает прогресс без скачка layout.
+ */
+function ChatSearchResultsSkeleton() {
+  return (
+    <div className={styles.searchSkeleton} aria-busy="true">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div className={styles.resultItem} key={index}>
+          <div className={styles.resultSkeletonMeta}>
+            <Skeleton variant="text" width="24%" height={11} />
+            <Skeleton variant="text" width="18%" height={10} />
+          </div>
+          <Skeleton variant="text" width={index % 2 === 0 ? "78%" : "62%"} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -80,9 +100,7 @@ export function ChatSearch({ roomId, onResultClick }: Props) {
 
       <div className={styles.results}>
         {loading && (
-          <div className={styles.centered}>
-            <Spinner size="sm" />
-          </div>
+          <ChatSearchResultsSkeleton />
         )}
 
         {!loading && searched && results.length === 0 && (

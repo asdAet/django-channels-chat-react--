@@ -17,7 +17,7 @@ import {
 } from "../../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { usePresence } from "../../shared/presence";
-import { Avatar, Spinner } from "../../shared/ui";
+import { Avatar, Skeleton } from "../../shared/ui";
 import styles from "../../styles/chat/UserProfilePanel.module.css";
 
 /**
@@ -138,6 +138,24 @@ const resolveRelation = (
 
   return EMPTY_RELATION;
 };
+
+function UserProfilePanelSkeleton() {
+  return (
+    <div className={styles.root} aria-busy="true">
+      <div className={styles.profile}>
+        <Skeleton variant="circle" width={72} height={72} />
+        <Skeleton variant="text" width="48%" height={16} />
+        <Skeleton variant="text" width="36%" height={12} />
+        <Skeleton variant="text" width="58%" height={13} />
+        <Skeleton height={74} radius={10} />
+        <div className={styles.profileActions}>
+          <Skeleton height={44} radius={10} />
+          <Skeleton height={44} radius={10} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * React-компонент UserProfilePanel отвечает за отрисовку и обработку UI-сценария.
@@ -364,11 +382,7 @@ export function UserProfilePanel({ publicRef, currentPublicRef }: Props) {
   }, [presenceOnline, publicRef, user?.publicRef]);
 
   if (loading) {
-    return (
-      <div className={styles.centered}>
-        <Spinner size="md" />
-      </div>
-    );
+    return <UserProfilePanelSkeleton />;
   }
 
   if (error || !user) {

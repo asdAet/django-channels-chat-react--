@@ -55,6 +55,16 @@ const makeMessage = (
   reactions: overrides.reactions ?? [],
 });
 
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+};
+
 describe("useChatRoom", () => {
   beforeEach(() => {
     controllerMocks.getRoomDetails.mockReset();
@@ -214,6 +224,65 @@ describe("useChatRoom", () => {
     expect(result.current.messages.map((item) => item.id)).toEqual([
       98, 99, 100,
     ]);
+  });
+
+  it("deduplicates concurrent loadMore calls before React applies loading state", async () => {
+    controllerMocks.getRoomDetails.mockResolvedValue({
+      roomId: 1,
+      name: "Public",
+      kind: "public",
+      created: false,
+      createdBy: null,
+    });
+    const olderPage = createDeferred<RoomMessagesDto>();
+    controllerMocks.getRoomMessages
+      .mockResolvedValueOnce({
+        messages: [
+          makeMessage({
+            id: 10,
+            username: "alice",
+            content: "latest",
+            createdAt: "2026-01-01T00:10:00.000Z",
+          }),
+        ],
+        pagination: { limit: 50, hasMore: true, nextBefore: 10 },
+      })
+      .mockImplementationOnce(() => olderPage.promise);
+
+    const { result } = renderHook(() => useChatRoom("1", authUser, "public"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let firstLoad: Promise<void> | void;
+    let secondLoad: Promise<void> | void;
+    await act(async () => {
+      firstLoad = result.current.loadMore();
+      secondLoad = result.current.loadMore();
+    });
+
+    expect(controllerMocks.getRoomMessages).toHaveBeenCalledTimes(2);
+    expect(controllerMocks.getRoomMessages).toHaveBeenNthCalledWith(
+      2,
+      "1",
+      { limit: 50, beforeId: 10 },
+    );
+
+    olderPage.resolve({
+      messages: [
+        makeMessage({
+          id: 9,
+          username: "alice",
+          content: "older",
+          createdAt: "2026-01-01T00:09:00.000Z",
+        }),
+      ],
+      pagination: { limit: 50, hasMore: false, nextBefore: null },
+    });
+
+    await act(async () => {
+      await Promise.all([firstLoad, secondLoad]);
+    });
+
+    expect(result.current.messages.map((item) => item.id)).toEqual([9, 10]);
   });
 
   it("sets load_failed when initial request fails", async () => {

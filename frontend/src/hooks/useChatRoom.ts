@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { chatController } from "../controllers/ChatController";
 import type { RoomMessagesDto } from "../dto";
 import type { Message } from "../entities/message/types";
-import type { RoomDetails as RoomDetailsDto, RoomKind } from "../entities/room/types";
+import type {
+  RoomDetails as RoomDetailsDto,
+  RoomKind,
+} from "../entities/room/types";
 import type { UserProfile as UserProfileDto } from "../entities/user/types";
 import { useChatMessageMaxLength } from "../shared/config/limits";
 import { debugLog } from "../shared/lib/debug";
@@ -22,7 +25,10 @@ type ChatRoomState = {
   error: string | null;
 };
 
-const sanitizeMessage = (message: Message, maxMessageLength: number): Message => ({
+const sanitizeMessage = (
+  message: Message,
+  maxMessageLength: number,
+): Message => ({
   ...message,
   content: sanitizeText(message.content, maxMessageLength),
 });
@@ -87,6 +93,8 @@ export const useChatRoom = (
   );
   const stateRef = useRef<ChatRoomState>(state);
   const requestIdRef = useRef(0);
+  const loadMoreInFlightRef = useRef(false);
+  const loadMoreTokenRef = useRef(0);
 
   const setStateSynced = useCallback(
     (updater: ChatRoomState | ((prev: ChatRoomState) => ChatRoomState)) => {
@@ -106,6 +114,8 @@ export const useChatRoom = (
     if (!canView) return;
 
     const requestId = ++requestIdRef.current;
+    loadMoreTokenRef.current += 1;
+    loadMoreInFlightRef.current = false;
     setStateSynced(createInitialRoomState(roomId));
 
     Promise.all([
@@ -152,7 +162,14 @@ export const useChatRoom = (
 
   const loadMore = useCallback(async () => {
     const current = stateRef.current;
-    if (!canView || current.loadingMore || !current.hasMore) return;
+    if (
+      !canView ||
+      loadMoreInFlightRef.current ||
+      current.loadingMore ||
+      !current.hasMore
+    ) {
+      return;
+    }
 
     const cursor = current.nextBefore;
     if (!cursor) {
@@ -161,6 +178,8 @@ export const useChatRoom = (
     }
 
     const requestId = ++requestIdRef.current;
+    const loadMoreToken = ++loadMoreTokenRef.current;
+    loadMoreInFlightRef.current = true;
     setStateSynced((prev) => ({ ...prev, loadingMore: true }));
 
     try {
@@ -190,6 +209,10 @@ export const useChatRoom = (
         roomId,
         loadingMore: false,
       }));
+    } finally {
+      if (loadMoreToken === loadMoreTokenRef.current) {
+        loadMoreInFlightRef.current = false;
+      }
     }
   }, [canView, messageMaxLength, roomId, setStateSynced]);
 

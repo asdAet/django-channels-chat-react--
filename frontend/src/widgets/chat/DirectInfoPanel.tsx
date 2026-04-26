@@ -9,7 +9,7 @@ import {
 } from "../../shared/lib/attachmentMedia";
 import { formatLastSeen, formatTimestamp } from "../../shared/lib/format";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
-import { AudioAttachmentPlayer, Avatar, Spinner } from "../../shared/ui";
+import { AudioAttachmentPlayer, Avatar, Skeleton } from "../../shared/ui";
 import styles from "../../styles/chat/DirectInfoPanel.module.css";
 
 /**
@@ -146,6 +146,33 @@ function AttachmentCard({ item }: { item: RoomAttachmentItem }) {
   return <div className={cardClassName}>{preview}</div>;
 }
 
+function DirectInfoProfileSkeleton() {
+  return (
+    <div className={styles.profile} aria-busy="true">
+      <Skeleton variant="circle" width={72} height={72} />
+      <Skeleton variant="text" width="46%" height={16} />
+      <Skeleton variant="text" width="58%" height={13} />
+      <Skeleton height={74} radius={10} />
+    </div>
+  );
+}
+
+function DirectInfoAttachmentsSkeleton() {
+  return (
+    <div className={styles.grid} aria-busy="true">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div className={styles.card} key={index}>
+          <Skeleton height={96} radius={0} />
+          <div className={styles.cardMeta}>
+            <Skeleton variant="text" width="42%" height={10} />
+            <Skeleton variant="text" width="28%" height={10} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * React-компонент DirectInfoPanel отвечает за отрисовку и обработку UI-сценария.
  */
@@ -205,14 +232,6 @@ export function DirectInfoPanel({ roomId }: Props) {
   const attachmentItems = useMemo(() => attachments, [attachments]);
   const peerDisplayName = peer ? resolveIdentityLabel(peer) : "";
 
-  if (loading) {
-    return (
-      <div className={styles.centered}>
-        <Spinner size="md" />
-      </div>
-    );
-  }
-
   return (
     <div className={styles.root}>
       <div className={styles.tabs}>
@@ -236,7 +255,10 @@ export function DirectInfoPanel({ roomId }: Props) {
         </button>
       </div>
 
-      {tab === "profile" && peer && (
+      {loading && tab === "profile" && <DirectInfoProfileSkeleton />}
+      {loading && tab === "attachments" && <DirectInfoAttachmentsSkeleton />}
+
+      {!loading && tab === "profile" && peer && (
         <div className={styles.profile}>
           <Avatar
             username={peerDisplayName}
@@ -257,7 +279,7 @@ export function DirectInfoPanel({ roomId }: Props) {
         </div>
       )}
 
-      {tab === "attachments" && (
+      {!loading && tab === "attachments" && (
         <div className={styles.attachments}>
           {attachmentItems.length === 0 && (
             <p className={styles.empty}>В этом чате пока нет вложений.</p>

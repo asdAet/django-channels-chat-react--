@@ -982,8 +982,7 @@ class ChatMessageFeatureApiTests(TestCase):
             f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/"
         )
         self.assertEqual(delete_response.status_code, 204)
-        message.refresh_from_db()
-        self.assertTrue(message.is_deleted)
+        self.assertFalse(Message.objects.filter(pk=message.pk).exists())
 
     def test_message_detail_delete_returns_forbidden_for_non_author(self):
         message = Message.objects.create(
@@ -1033,8 +1032,7 @@ class ChatMessageFeatureApiTests(TestCase):
             f"/api/chat/{private_room.pk}/messages/{message.pk}/"
         )
         self.assertEqual(delete_response.status_code, 204)
-        message.refresh_from_db()
-        self.assertTrue(message.is_deleted)
+        self.assertFalse(Message.objects.filter(pk=message.pk).exists())
 
     def test_message_detail_delete_removes_attachment_files_when_enabled(self):
         self.client.force_login(self.owner)
@@ -1063,15 +1061,15 @@ class ChatMessageFeatureApiTests(TestCase):
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))
 
-            response = self.client.delete(
-                f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/"
-            )
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.delete(
+                    f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/"
+                )
 
             self.assertEqual(response.status_code, 204)
             self.assertEqual(response.content, b"")
-            message.refresh_from_db()
-            self.assertTrue(message.is_deleted)
-            self.assertTrue(MessageAttachment.objects.filter(pk=attachment.pk).exists())
+            self.assertFalse(Message.objects.filter(pk=message.pk).exists())
+            self.assertFalse(MessageAttachment.objects.filter(pk=attachment.pk).exists())
             self.assertFalse(file_storage.exists(file_name))
             self.assertFalse(thumb_storage.exists(thumb_name))
 

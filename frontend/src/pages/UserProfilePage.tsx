@@ -23,7 +23,7 @@ import {
 } from "../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../shared/lib/userIdentity";
 import { usePresence } from "../shared/presence";
-import { AvatarMedia, Button, Card, Panel } from "../shared/ui";
+import { AvatarMedia, Button, Card, Panel, Skeleton } from "../shared/ui";
 import styles from "../styles/pages/UserProfilePage.module.css";
 
 /**
@@ -44,6 +44,32 @@ type Props = {
  */
 const normalizeActorRef = (value: string): string =>
   normalizePublicRef(value).toLowerCase();
+
+function UserProfileSkeleton() {
+  return (
+    <Card wide className={styles.profileSkeletonCard} aria-busy="true">
+      <Skeleton
+        variant="text"
+        width={180}
+        height={22}
+        className={styles.profileSkeletonEyebrow}
+      />
+      <div className={styles.profileAvatarWrapper}>
+        <Skeleton variant="circle" width="100%" height="100%" />
+      </div>
+      <div className={styles.stack}>
+        <Skeleton variant="text" width="46%" height={18} />
+        <Skeleton variant="text" width="34%" height={14} />
+        <Skeleton variant="text" width="58%" height={14} />
+        <Skeleton height={82} radius={12} />
+        <div className={styles.profileSkeletonActions}>
+          <Skeleton height={42} radius={10} />
+          <Skeleton height={42} radius={10} />
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 /**
  * Компонент UserProfilePage рендерит UI текущего раздела и связывает действия пользователя с обработчиками.
@@ -331,11 +357,7 @@ export function UserProfilePage({
   }, [isPreviewOpen]);
 
   if (loading && !profileUser) {
-    return (
-      <Panel muted busy>
-        Загрузка профиля...
-      </Panel>
-    );
+    return <UserProfileSkeleton />;
   }
 
   if (error || !profileUser) {

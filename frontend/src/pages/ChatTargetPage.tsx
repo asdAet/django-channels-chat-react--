@@ -9,6 +9,7 @@ import { rememberLastDirectRef } from "../shared/lib/directNavigation";
 import { Button, Panel } from "../shared/ui";
 import styles from "../styles/pages/ChatTargetPage.module.css";
 import { ChatRoomPage } from "./ChatRoomPage";
+import { ChatRoomLoadingShell } from "./chatRoomPage/ChatRoomLoadingState";
 
 type Props = {
   user: UserProfile | null;
@@ -33,7 +34,10 @@ type ChatTargetState = {
 export function ChatTargetPage({ user, target, onNavigate }: Props) {
   const normalizedTarget = useMemo(() => normalizeChatTarget(target), [target]);
   const requestKey = useMemo(
-    () => (user ? `${user.username}:${normalizedTarget}` : `guest:${normalizedTarget}`),
+    () =>
+      user
+        ? `${user.username}:${normalizedTarget}`
+        : `guest:${normalizedTarget}`,
     [normalizedTarget, user],
   );
 
@@ -53,7 +57,9 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
         if (!active) return;
 
         if (payload.targetKind === "direct") {
-          rememberLastDirectRef(payload.peer?.publicRef || payload.resolvedTarget);
+          rememberLastDirectRef(
+            payload.peer?.publicRef || payload.resolvedTarget,
+          );
         }
 
         setState({
@@ -73,7 +79,7 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
             key: requestKey,
             roomId: null,
             roomKind: null,
-            error: "Не найдено",
+            error: "Чат не найден",
           });
           return;
         }
@@ -123,9 +129,15 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
   const error = isCurrent ? state.error : null;
   const roomId = isCurrent ? state.roomId : null;
   const roomKind = isCurrent ? state.roomKind : null;
+  const headerActionSlots = normalizedTarget === "public" ? 1 : 2;
 
   if (loading) {
-    return <Panel muted busy>Открываем чат...</Panel>;
+    return (
+      <ChatRoomLoadingShell
+        showComposer={Boolean(user)}
+        headerActionSlots={headerActionSlots}
+      />
+    );
   }
 
   if (error) {
@@ -133,8 +145,8 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
       <Panel>
         <p>{error}</p>
         <div className={styles.actions}>
-          <Button variant="ghost" onClick={() => onNavigate("/public")}>
-            Вернуться в чат
+          <Button variant="ghost" onClick={() => onNavigate("/friends")}>
+            К друзьям
           </Button>
         </div>
       </Panel>
@@ -149,5 +161,12 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
     );
   }
 
-  return <ChatRoomPage roomId={roomId} initialRoomKind={roomKind} user={user} onNavigate={onNavigate} />;
+  return (
+    <ChatRoomPage
+      roomId={roomId}
+      initialRoomKind={roomKind}
+      user={user}
+      onNavigate={onNavigate}
+    />
+  );
 }

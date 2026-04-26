@@ -105,9 +105,10 @@ class ChatServicesTests(TestCase):
                 services.delete_message(self.other, self.room, msg.pk)
 
         deleted = services.delete_message(self.owner, self.room, msg.pk)
-        self.assertTrue(deleted.is_deleted)
+        self.assertEqual(deleted.message_id, msg.pk)
         self.assertIsNotNone(deleted.deleted_at)
         self.assertEqual(deleted.deleted_by_id, self.owner.pk)
+        self.assertFalse(Message.objects.filter(pk=msg.pk).exists())
 
     @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True)
     def test_delete_message_deletes_attachment_files_when_enabled(self):
@@ -129,15 +130,14 @@ class ChatServicesTests(TestCase):
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))
 
-            deleted = services.delete_message(self.owner, self.room, msg.pk)
+            with self.captureOnCommitCallbacks(execute=True):
+                deleted = services.delete_message(self.owner, self.room, msg.pk)
 
-            attachment.refresh_from_db()
-            self.assertEqual(attachment.file.name, file_name)
-            self.assertEqual(attachment.thumbnail.name, thumb_name)
             self.assertFalse(file_storage.exists(file_name))
             self.assertFalse(thumb_storage.exists(thumb_name))
-            self.assertTrue(MessageAttachment.objects.filter(pk=attachment.pk).exists())
-            self.assertTrue(deleted.is_deleted)
+            self.assertFalse(Message.objects.filter(pk=msg.pk).exists())
+            self.assertFalse(MessageAttachment.objects.filter(pk=attachment.pk).exists())
+            self.assertEqual(deleted.message_id, msg.pk)
 
     @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=False)
     def test_delete_message_keeps_attachment_files_when_delete_disabled(self):
@@ -163,7 +163,9 @@ class ChatServicesTests(TestCase):
 
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))
-            self.assertTrue(deleted.is_deleted)
+            self.assertFalse(Message.objects.filter(pk=msg.pk).exists())
+            self.assertFalse(MessageAttachment.objects.filter(pk=attachment.pk).exists())
+            self.assertEqual(deleted.message_id, msg.pk)
 
     @override_settings(CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True)
     def test_delete_message_logs_storage_errors_and_continues(self):
@@ -182,11 +184,13 @@ class ChatServicesTests(TestCase):
             with patch.object(storage, "delete", side_effect=OSError("storage down")) as delete_mock, patch(
                 "chat.services.logger.warning",
             ) as logger_warning:
-                deleted = services.delete_message(self.owner, self.room, msg.pk)
+                with self.captureOnCommitCallbacks(execute=True):
+                    deleted = services.delete_message(self.owner, self.room, msg.pk)
 
             self.assertGreaterEqual(delete_mock.call_count, 1)
             self.assertGreaterEqual(logger_warning.call_count, 1)
-            self.assertTrue(deleted.is_deleted)
+            self.assertFalse(Message.objects.filter(pk=msg.pk).exists())
+            self.assertEqual(deleted.message_id, msg.pk)
 
     @override_settings(
         CHAT_ATTACHMENT_DELETE_FILES_ON_MESSAGE_DELETE=True,
@@ -209,12 +213,14 @@ class ChatServicesTests(TestCase):
             with patch.object(storage, "delete", side_effect=[locked_error, None]) as delete_mock, patch(
                 "chat.services.time.sleep",
             ) as sleep_mock, patch("chat.services.logger.warning") as logger_warning:
-                deleted = services.delete_message(self.owner, self.room, msg.pk)
+                with self.captureOnCommitCallbacks(execute=True):
+                    deleted = services.delete_message(self.owner, self.room, msg.pk)
 
             self.assertEqual(delete_mock.call_count, 2)
             sleep_mock.assert_called_once()
             logger_warning.assert_not_called()
-            self.assertTrue(deleted.is_deleted)
+            self.assertFalse(Message.objects.filter(pk=msg.pk).exists())
+            self.assertEqual(deleted.message_id, msg.pk)
 
     def test_add_reaction_validates_permission_and_missing_message(self):
         msg = self._message(user=self.owner)

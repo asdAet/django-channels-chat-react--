@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { groupController } from "../controllers/GroupController";
 import type { InvitePreview } from "../entities/group/types";
 import { buildChatTargetPath } from "../shared/lib/chatTarget";
-import { Spinner } from "../shared/ui";
+import { Skeleton } from "../shared/ui";
 import styles from "../styles/groupWidgets/InvitePreviewPage.module.css";
 
 /**
@@ -13,6 +13,39 @@ type Props = {
   code: string;
   onNavigate: (path: string) => void;
 };
+
+function InvitePreviewSkeleton() {
+  return (
+    <div className={styles.inviteRoot}>
+      <div className={styles.inviteCard} aria-busy="true">
+        <Skeleton
+          variant="text"
+          width="62%"
+          height={22}
+          className={styles.inviteSkeletonLine}
+        />
+        <Skeleton
+          variant="text"
+          width="86%"
+          height={14}
+          className={styles.inviteSkeletonLine}
+        />
+        <Skeleton
+          variant="text"
+          width="46%"
+          height={13}
+          className={styles.inviteSkeletonLine}
+        />
+        <Skeleton
+          width={180}
+          height={42}
+          radius={10}
+          className={styles.inviteSkeletonButton}
+        />
+      </div>
+    </div>
+  );
+}
 
 /**
  * React-компонент InvitePreviewPage отвечает за отрисовку и обработку UI-сценария.
@@ -61,11 +94,7 @@ export function InvitePreviewPage({ code, onNavigate }: Props) {
   }, [code, onNavigate]);
 
   if (loading) {
-    return (
-      <div className={styles.inviteRoot}>
-        <Spinner size="lg" />
-      </div>
-    );
+    return <InvitePreviewSkeleton />;
   }
 
   if (error && !preview) {

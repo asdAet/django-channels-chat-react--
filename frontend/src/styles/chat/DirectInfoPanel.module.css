@@ -4,13 +4,6 @@
   gap: 14px;
 }
 
-.centered {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 180px;
-}
-
 .tabs {
   display: flex;
   gap: 6px;

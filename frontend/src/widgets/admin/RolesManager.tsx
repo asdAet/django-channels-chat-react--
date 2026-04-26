@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { rolesController } from "../../controllers/RolesController";
 import type { Role } from "../../entities/role/types";
-import { Spinner } from "../../shared/ui";
+import { Skeleton } from "../../shared/ui";
 import styles from "../../styles/admin/RolesManager.module.css";
 
 /**
@@ -11,6 +11,24 @@ import styles from "../../styles/admin/RolesManager.module.css";
 type Props = {
   roomId: string;
 };
+
+/**
+ * Skeleton списка ролей. Шапка менеджера остается на экране, чтобы блок
+ * администрирования не схлопывался на время загрузки прав.
+ */
+function RolesSkeleton() {
+  return (
+    <div className={styles.rolesSkeleton} aria-busy="true">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div className={styles.roleItem} key={index}>
+          <Skeleton variant="circle" width={12} height={12} />
+          <Skeleton variant="text" width={index % 2 === 0 ? "38%" : "52%"} />
+          <Skeleton width={54} height={20} radius={4} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * React-компонент RolesManager отвечает за отрисовку и обработку UI-сценария.
@@ -72,8 +90,14 @@ export function RolesManager({ roomId }: Props) {
 
   if (loading) {
     return (
-      <div className={styles.centered}>
-        <Spinner size="sm" />
+      <div className={styles.root}>
+        <div className={styles.header}>
+          <span className={styles.title}>Роли</span>
+          <button type="button" className={styles.addBtn} disabled>
+            + Роль
+          </button>
+        </div>
+        <RolesSkeleton />
       </div>
     );
   }

@@ -1,0 +1,160 @@
+.chat {
+  --tg-bg-chat: linear-gradient(180deg, #313338 0%, #2f3136 100%);
+  --tg-bg-primary: rgba(43, 45, 49, 0.94);
+  --tg-border: rgba(255, 255, 255, 0.08);
+
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  position: relative;
+  background: var(--tg-bg-chat, #0e0e0e);
+}
+
+.chatHeader {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 8px var(--app-gutter, 16px);
+  border-bottom: 1px solid var(--tg-border, #303030);
+  background: var(--tg-bg-primary, #212121);
+  backdrop-filter: blur(16px);
+}
+
+.directHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.directHeaderActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.mobileHeaderButtons {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.loadingHeaderMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chatBox {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.chatLog {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  overflow-anchor: none;
+}
+
+.chatLogLoading {
+  justify-content: flex-end;
+  padding: 8px 0;
+}
+
+.historySkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: auto;
+  padding: 0 12px 8px;
+}
+
+.historySkeletonCompact {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.historySkeletonRow {
+  --skeleton-row-width: 56%;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: min(var(--skeleton-row-width), 680px);
+  max-width: calc(100% - 26px);
+}
+
+.historySkeletonRowOwn {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.historySkeletonBubble {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.historySkeletonRowOwn .historySkeletonBubble {
+  border-color: rgba(88, 101, 242, 0.18);
+  background: rgba(88, 101, 242, 0.16);
+}
+
+.composerSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px max(12px, var(--safe-right, 0px))
+    calc(8px + var(--safe-bottom, 0px)) max(12px, var(--safe-left, 0px));
+  border-top: 1px solid var(--tg-border, #303030);
+  background: var(--tg-bg-primary, #212121);
+}
+
+.composerSkeletonCompact {
+  padding-inline: 0;
+  border-top: 0;
+  background: transparent;
+}
+
+.composerSkeletonInput {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .mobileHeaderButtons {
+    display: inline-flex;
+  }
+
+  .chatHeader {
+    padding: calc(var(--safe-top, 0px) + 6px) 8px 6px;
+  }
+
+  .directHeaderActions {
+    gap: 4px;
+  }
+}

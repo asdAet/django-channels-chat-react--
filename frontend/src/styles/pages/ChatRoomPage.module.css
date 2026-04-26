@@ -313,6 +313,11 @@
   overflow-anchor: none;
 }
 
+.chatLogLoading {
+  justify-content: flex-end;
+  padding: 8px 0;
+}
+
 .chatLog::-webkit-scrollbar {
   width: 6px;
 }

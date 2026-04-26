@@ -251,6 +251,32 @@
   color: var(--friends-muted);
 }
 
+.listSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.friendSkeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 73px;
+  margin: 0 4px 8px;
+  padding: 14px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.friendSkeletonMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .emptyStateWrap {
   min-height: 100%;
   display: flex;

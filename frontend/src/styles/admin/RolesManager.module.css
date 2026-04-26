@@ -147,3 +147,12 @@
   color: var(--color-muted, #9eb0c7);
   font-size: 13px;
 }
+
+.rolesSkeleton {
+  padding: 4px 0;
+}
+
+.addBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

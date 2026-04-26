@@ -9,6 +9,7 @@ import {
   ImageLightbox,
   Modal,
   Panel,
+  Skeleton,
   Toast,
 } from "../../shared/ui";
 import styles from "../../styles/pages/ChatRoomPage.module.css";
@@ -17,6 +18,10 @@ import { MessageInput } from "../../widgets/chat/MessageInput";
 import { ReadersMenu } from "../../widgets/chat/ReadersMenu";
 import { TypingIndicator } from "../../widgets/chat/TypingIndicator";
 import { ChatHeaderSearchPopover } from "./ChatHeaderSearchPopover";
+import {
+  ChatComposerSkeleton,
+  ChatHistorySkeleton,
+} from "./ChatRoomLoadingState";
 import type { ChatRoomPageViewProps } from "./ChatRoomPageView.types";
 import {
   isOwnMessage,
@@ -127,6 +132,7 @@ export function ChatRoomPageView({
     readersMenuEntries,
   } = view;
   const { isDropTargetActive, fileDropBindings } = fileDrop;
+  const loadingHeaderActionSlots = isPublicRoom ? 1 : 2;
   const searchPopoverContent = useMemo(
     () => (
       <>
@@ -274,7 +280,11 @@ export function ChatRoomPageView({
               </svg>
             </button>
           </div>
-          {details?.kind === "direct" && details.peer ? (
+          {loading && !details ? (
+            <span className={styles.directHeaderAvatar} aria-hidden="true">
+              <Skeleton variant="circle" width={45} height={45} />
+            </span>
+          ) : details?.kind === "direct" && details.peer ? (
             <button
               type="button"
               className={styles.directHeaderAvatar}
@@ -319,42 +329,57 @@ export function ChatRoomPageView({
           )}
 
           <div className={styles.directHeaderMeta}>
-            <strong className={styles.directHeaderName}>{roomTitle}</strong>
-            <p className={styles.muted}>{roomSubtitle}</p>
+            {loading && !details ? (
+              <>
+                <Skeleton variant="text" width="38%" height={14} />
+                <Skeleton variant="text" width="24%" height={11} />
+              </>
+            ) : (
+              <>
+                <strong className={styles.directHeaderName}>{roomTitle}</strong>
+                <p className={styles.muted}>{roomSubtitle}</p>
+              </>
+            )}
           </div>
 
           <div
             className={styles.directHeaderActions}
             data-testid="chat-header-actions"
           >
-            <button
-              ref={searchAnchorRef}
-              type="button"
-              className={[
-                styles.headerIconBtn,
-                isHeaderSearchOpen ? styles.headerIconBtnActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              onClick={openRoomSearch}
-              aria-label="Поиск по чату"
-              title="Поиск по чату"
-              aria-expanded={isHeaderSearchOpen}
-              data-testid="chat-header-search-anchor"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
+            {loading && !details ? (
+              Array.from({ length: loadingHeaderActionSlots }, (_, index) => (
+                <Skeleton key={index} width={44} height={44} radius={8} />
+              ))
+            ) : (
+              <button
+                ref={searchAnchorRef}
+                type="button"
+                className={[
+                  styles.headerIconBtn,
+                  isHeaderSearchOpen ? styles.headerIconBtnActive : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onClick={openRoomSearch}
+                aria-label="Поиск по чату"
+                title="Поиск по чату"
+                aria-expanded={isHeaderSearchOpen}
+                data-testid="chat-header-search-anchor"
               >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </button>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+            )}
 
             {details?.kind === "group" && (
               <button
@@ -423,14 +448,14 @@ export function ChatRoomPageView({
 
       {visibleError && <Toast variant="danger">{visibleError}</Toast>}
 
-      {loading ? (
-        <Panel muted busy>
-          Загружаем историю...
-        </Panel>
-      ) : (
-        <div className={styles.chatBox}>
+      <div className={styles.chatBox} aria-busy={loading}>
           <div
-            className={styles.chatLog}
+            className={[
+              styles.chatLog,
+              loading ? styles.chatLogLoading : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             ref={listRef}
             aria-live="polite"
             onScroll={handleScroll}
@@ -438,80 +463,84 @@ export function ChatRoomPageView({
             onTouchStart={armPaginationInteraction}
             onPointerDown={armPaginationInteraction}
           >
-            {loadingMore && (
-              <Panel muted busy>
-                Загружаем ранние сообщения...
-              </Panel>
-            )}
+            {loading ? (
+              <ChatHistorySkeleton />
+            ) : (
+              <>
+                {loadingMore && <ChatHistorySkeleton compact />}
 
-            {timeline.map((item, index) =>
-              item.type === "day" ? (
-                <div
-                  className={styles.daySeparator}
-                  role="separator"
-                  aria-label={item.label}
-                  key={`day-${item.key}`}
-                >
-                  <span>{item.label}</span>
-                </div>
-              ) : item.type === "unread" ? (
-                <div
-                  className={styles.unreadDivider}
-                  role="separator"
-                  key="unread-divider"
-                  data-unread-divider
-                  data-unread-anchor-id={unreadDividerAnchorId ?? ""}
-                >
-                  <span>Новые сообщения</span>
-                </div>
-              ) : (
-                (() => {
-                  const previousTimelineItem = timeline[index - 1];
-                  const previousMessage =
-                    previousTimelineItem?.type === "message"
-                      ? previousTimelineItem.message
-                      : null;
-                  const grouped =
-                    previousMessage !== null &&
-                    resolveMessageActorRef(previousMessage) ===
-                      resolveMessageActorRef(item.message);
-                  const ownMessage = isOwnMessage(
-                    item.message,
-                    currentActorRef,
-                  );
-                  const canModerateMessage = Boolean(
-                    user && canManageMessagesToRoom && !ownMessage,
-                  );
-                  const canEditOrDelete = ownMessage || canModerateMessage;
-                  return (
-                    <MessageBubble
-                      key={`${item.message.id}-${item.message.createdAt}`}
-                      message={item.message}
-                      isOwn={ownMessage}
-                      showAvatar={!grouped}
-                      showHeader={!grouped}
-                      grouped={grouped}
-                      canModerate={canModerateMessage}
-                      canViewReaders={ownMessage && !item.message.isDeleted}
-                      isRead={ownMessage && item.message.id <= maxReadMessageId}
-                      highlighted={item.message.id === highlightedMessageId}
-                      onlineUsernames={onlineUsernames}
-                      onReply={user ? handleReply : undefined}
-                      onEdit={canEditOrDelete ? handleEdit : undefined}
-                      onDelete={canEditOrDelete ? handleDelete : undefined}
-                      onReact={user ? handleReact : undefined}
-                      onViewReaders={user ? handleOpenReaders : undefined}
-                      onReplyQuoteClick={handleReplyQuoteClick}
-                      onAvatarClick={openUserProfile}
-                      onOpenMediaAttachment={handleOpenMediaAttachment}
-                    />
-                  );
-                })()
-              ),
+                {timeline.map((item, index) =>
+                  item.type === "day" ? (
+                    <div
+                      className={styles.daySeparator}
+                      role="separator"
+                      aria-label={item.label}
+                      key={`day-${item.key}`}
+                    >
+                      <span>{item.label}</span>
+                    </div>
+                  ) : item.type === "unread" ? (
+                    <div
+                      className={styles.unreadDivider}
+                      role="separator"
+                      key="unread-divider"
+                      data-unread-divider
+                      data-unread-anchor-id={unreadDividerAnchorId ?? ""}
+                    >
+                      <span>Новые сообщения</span>
+                    </div>
+                  ) : (
+                    (() => {
+                      const previousTimelineItem = timeline[index - 1];
+                      const previousMessage =
+                        previousTimelineItem?.type === "message"
+                          ? previousTimelineItem.message
+                          : null;
+                      const grouped =
+                        previousMessage !== null &&
+                        resolveMessageActorRef(previousMessage) ===
+                          resolveMessageActorRef(item.message);
+                      const ownMessage = isOwnMessage(
+                        item.message,
+                        currentActorRef,
+                      );
+                      const canModerateMessage = Boolean(
+                        user && canManageMessagesToRoom && !ownMessage,
+                      );
+                      const canEditOrDelete = ownMessage || canModerateMessage;
+                      return (
+                        <MessageBubble
+                          key={`${item.message.id}-${item.message.createdAt}`}
+                          message={item.message}
+                          isOwn={ownMessage}
+                          showAvatar={!grouped}
+                          showHeader={!grouped}
+                          grouped={grouped}
+                          canModerate={canModerateMessage}
+                          canViewReaders={ownMessage && !item.message.isDeleted}
+                          isRead={
+                            ownMessage && item.message.id <= maxReadMessageId
+                          }
+                          highlighted={item.message.id === highlightedMessageId}
+                          onlineUsernames={onlineUsernames}
+                          onReply={user ? handleReply : undefined}
+                          onEdit={canEditOrDelete ? handleEdit : undefined}
+                          onDelete={canEditOrDelete ? handleDelete : undefined}
+                          onReact={user ? handleReact : undefined}
+                          onViewReaders={user ? handleOpenReaders : undefined}
+                          onReplyQuoteClick={handleReplyQuoteClick}
+                          onAvatarClick={openUserProfile}
+                          onOpenMediaAttachment={handleOpenMediaAttachment}
+                        />
+                      );
+                    })()
+                  ),
+                )}
+              </>
             )}
           </div>
 
-          {showScrollFab && (
+          {!loading && showScrollFab && (
             <button
               type="button"
               className={styles.scrollFab}
@@ -536,11 +565,11 @@ export function ChatRoomPageView({
             </button>
           )}
 
-          {activeTypingUsers.length > 0 && (
+          {!loading && activeTypingUsers.length > 0 && (
             <TypingIndicator users={activeTypingUsers} />
           )}
 
-          {!user && isPublicRoom && (
+          {!loading && !user && isPublicRoom && (
             <div className={styles.authCallout} data-testid="chat-auth-callout">
               <div className={styles.authCalloutText}>
                 <p className={styles.muted}>
@@ -550,7 +579,7 @@ export function ChatRoomPageView({
             </div>
           )}
 
-          {user && isBlocked && isBlockedByMe && (
+          {!loading && user && isBlocked && isBlockedByMe && (
             <div className={styles.authCallout}>
               <div className={styles.authCalloutText}>
                 <p className={styles.muted}>
@@ -576,7 +605,7 @@ export function ChatRoomPageView({
             </div>
           )}
 
-          {user && isBlocked && !isBlockedByMe && (
+          {!loading && user && isBlocked && !isBlockedByMe && (
             <div className={styles.authCallout}>
               <div className={styles.authCalloutText}>
                 <p className={styles.muted}>
@@ -586,7 +615,7 @@ export function ChatRoomPageView({
             </div>
           )}
 
-          {user && showGroupJoinCta && (
+          {!loading && user && showGroupJoinCta && (
             <div
               className={styles.authCallout}
               data-testid="group-join-callout"
@@ -608,7 +637,7 @@ export function ChatRoomPageView({
             </div>
           )}
 
-          {user && showGroupReadOnlyNotice && (
+          {!loading && user && showGroupReadOnlyNotice && (
             <div
               className={styles.authCallout}
               data-testid="group-readonly-callout"
@@ -623,7 +652,9 @@ export function ChatRoomPageView({
             </div>
           )}
 
-          {canSendMessages && (
+          {loading && user && <ChatComposerSkeleton />}
+
+          {!loading && canSendMessages && (
             <MessageInput
               draft={draft}
               onDraftChange={setDraft}
@@ -644,7 +675,6 @@ export function ChatRoomPageView({
             />
           )}
         </div>
-      )}
 
       {lightboxSession && lightboxSession.mediaItems.length > 0 && (
         <ImageLightbox

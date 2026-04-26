@@ -164,6 +164,40 @@ class RoomMessagesApiTests(TestCase):
         self.assertEqual(len(payload["messages"]), 50)
         self.assertTrue(payload["pagination"]["hasMore"])
 
+    def test_room_messages_paginates_only_existing_messages(self):
+        room = api._public_room()
+        for i in range(80):
+            Message.objects.create(
+                username="snapshot_name",
+                user=self.owner,
+                room=room,
+                message_content=f"deleted-{i}",
+                is_deleted=True,
+            )
+        for i in range(55):
+            Message.objects.create(
+                username="snapshot_name",
+                user=self.owner,
+                room=room,
+                message_content=f"visible-{i}",
+            )
+
+        response = self.client.get(f"/api/chat/{room.pk}/messages/?limit=50")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload["messages"]), 50)
+        self.assertTrue(payload["pagination"]["hasMore"])
+        self.assertTrue(
+            all(not message["isDeleted"] for message in payload["messages"])
+        )
+        self.assertTrue(
+            all(
+                message["content"].startswith("visible-")
+                for message in payload["messages"]
+            )
+        )
+
     def test_private_room_messages_require_membership(self):
         room = self._create_private_room()
         Message.objects.create(username=self.owner.username, user=self.owner, room=room, message_content="hello")

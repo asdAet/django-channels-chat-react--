@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import type { UserProfile } from "../entities/user/types";
 import { useGroupList } from "../hooks/useGroupList";
 import { buildChatTargetPath } from "../shared/lib/chatTarget";
-import { EmptyState, Spinner } from "../shared/ui";
+import { EmptyState, Skeleton } from "../shared/ui";
 import styles from "../styles/groups/GroupsPageView.module.css";
 import { CreateGroupDialog } from "../widgets/groups/CreateGroupDialog";
 import { GroupListItem } from "../widgets/groups/GroupListItem";
@@ -33,6 +33,26 @@ const IconPlus = () => (
     <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 );
+
+/**
+ * Skeleton списка групп. Верхняя панель и поиск остаются интерактивным каркасом,
+ * а эта зона имитирует только данные, которые приходят с API.
+ */
+function GroupsListSkeleton() {
+  return (
+    <div className={styles.listSkeleton} aria-busy="true">
+      {Array.from({ length: 5 }, (_, index) => (
+        <div className={styles.groupSkeletonRow} key={index}>
+          <Skeleton variant="circle" width={42} height={42} />
+          <div className={styles.groupSkeletonMeta}>
+            <Skeleton variant="text" width="42%" height={14} />
+            <Skeleton variant="text" width="62%" height={12} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * React-компонент GroupsPage отвечает за отрисовку и обработку UI-сценария.
@@ -90,11 +110,7 @@ export function GroupsPage({ user, onNavigate }: Props) {
       </div>
 
       <div className={styles.body}>
-        {loading && (
-          <div className={styles.centered}>
-            <Spinner size="md" />
-          </div>
-        )}
+        {loading && <GroupsListSkeleton />}
 
         {error && <div className={styles.centered}>{error}</div>}
 

@@ -574,7 +574,11 @@ def direct_chats(request):
         if not pair or request.user.pk not in pair:
             continue
 
-        last_message = Message.objects.filter(room=room).order_by("-date_added", "-id").first()
+        last_message = (
+            Message.objects.filter(room=room, is_deleted=False)
+            .order_by("-date_added", "-id")
+            .first()
+        )
 
         peer = direct_peer_for_user(room, request.user)
         if not peer:
@@ -703,7 +707,7 @@ def room_messages(request, room_id: int):
                 return Response({"error": str(exc)}, status=http_status.HTTP_400_BAD_REQUEST)
 
         messages_qs = (
-            Message.objects.filter(room=room)
+            Message.objects.filter(room=room, is_deleted=False)
             .select_related("user", "user__profile", "reply_to", "reply_to__user")
             .prefetch_related("attachments", "reactions")
         )
@@ -851,10 +855,10 @@ def message_detail(request, room_id: int, message_id):
                 "editedAt": edited_at.isoformat(),
             })
         else:
-            msg = delete_message(request.user, room, message_id)
+            deleted = delete_message(request.user, room, message_id)
             _broadcast_to_room(room, {
                 "type": "chat_message_delete",
-                "messageId": msg.pk,
+                "messageId": deleted.message_id,
                 "roomId": room.pk,
                 "deletedByRef": user_public_ref(request.user),
                 "deletedBy": user_public_username(request.user),

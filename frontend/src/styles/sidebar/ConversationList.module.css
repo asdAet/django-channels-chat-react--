@@ -38,6 +38,33 @@
   padding: 4px 4px 4px 0;
 }
 
+.listSkeleton,
+.globalSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 4px 4px 0;
+}
+
+.listSkeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 61px;
+  width: 100%;
+  padding: 8px 12px;
+  border-left: 3px solid transparent;
+  border-radius: 0 10px 10px 0;
+}
+
+.listSkeletonMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .globalSearchWrap {
   display: flex;
   flex-direction: column;
