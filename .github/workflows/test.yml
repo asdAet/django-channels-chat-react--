@@ -142,41 +142,62 @@ jobs:
             set -eu
 
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            DEPLOY_BRANCH="${{ github.ref_name }}"
+            DEPLOY_SHA="${{ github.sha }}"
+
             if [ -z "$DEPLOY_PATH" ]; then
               DEPLOY_PATH="/root/Devil"
             fi
 
+            echo "Deploy path: $DEPLOY_PATH"
+            echo "Deploy branch: $DEPLOY_BRANCH"
+            echo "Deploy commit: $DEPLOY_SHA"
+
             cd "$DEPLOY_PATH"
 
-            if ! git diff --quiet || ! git diff --cached --quiet; then
-              echo "Server repository has local changes. Deploy stopped."
-              git status --short
+            if docker compose version >/dev/null 2>&1; then
+              compose() {
+                docker compose "$@"
+              }
+            elif command -v docker-compose >/dev/null 2>&1; then
+              compose() {
+                docker-compose "$@"
+              }
+            else
+              echo "Docker Compose is not installed on the server"
               exit 1
             fi
 
-            CURRENT_BRANCH="$(git branch --show-current || true)"
+            echo "Current server state before sync:"
+            git branch --show-current || true
+            git rev-parse HEAD || true
+            git status --short || true
 
-            if [ "$CURRENT_BRANCH" != "main" ]; then
-              echo "Current branch is '$CURRENT_BRANCH'. Switching to main."
+            echo "Fetching latest main from GitHub..."
+            git fetch origin "$DEPLOY_SHA" --depth=1 || git fetch origin main --prune
 
-              if git show-ref --verify --quiet refs/heads/main; then
-                git switch main
-              else
-                git fetch origin main:refs/remotes/origin/main
-                git switch -c main --track origin/main
-              fi
-            else
-              echo "Already on main."
+            echo "Switching server repository to tested commit..."
+            git checkout -B main "$DEPLOY_SHA"
+            git reset --hard "$DEPLOY_SHA"
+
+            CURRENT_SHA="$(git rev-parse HEAD)"
+            echo "Current server commit after sync: $CURRENT_SHA"
+
+            if [ "$CURRENT_SHA" != "$DEPLOY_SHA" ]; then
+              echo "Server checkout is not on expected commit"
+              echo "Expected: $DEPLOY_SHA"
+              echo "Actual:   $CURRENT_SHA"
+              exit 1
             fi
 
-            git pull --ff-only origin main
+            echo "Repository synced. Starting Docker rebuild..."
 
-            docker compose \
+            compose \
               -f docker-compose.prod.yml \
               -f deploy/observability/compose.yml \
               up -d --build --remove-orphans
 
-            docker compose \
+            compose \
               -f docker-compose.prod.yml \
               -f deploy/observability/compose.yml \
               ps
