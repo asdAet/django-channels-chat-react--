@@ -12,19 +12,23 @@ import {
 import styles from "../../styles/ui/ZoomableImageStage.module.css";
 import { useDevice } from "../lib/device";
 import {
-  buildLimitedPinchTransform,
+  areTransformsClose,
+  buildMobilePinchTransform,
   buildPanTransform,
   buildSwipeDismissMetrics,
   buildZoomAtPointTransform,
   constrainTransform,
+  type ConstrainTransformOptions,
   DEFAULT_TRANSFORM,
   getCenter,
   getDistance,
   hasVerticalSwipeIntent,
   isZoomedTransform,
+  MAX_SCALE,
+  MAX_SCALE_WITH_MOBILE_SPRING,
   MIN_SCALE,
-  type PinchLimitState,
   type Point,
+  settleTransform,
   shouldDismissBySwipe,
   type TransformGeometry,
   type TransformState,
@@ -50,26 +54,66 @@ const TAP_MAX_MOVEMENT_PX = 6;
 const MOMENTUM_MIN_VELOCITY_PX_PER_MS = 0.08;
 const MOMENTUM_DECAY_MS = 180;
 const MOMENTUM_MAX_FRAME_MS = 32;
+const WHEEL_ZOOM_SENSITIVITY = 0.0018;
+const WHEEL_DELTA_LINE_HEIGHT_PX = 16;
+const WHEEL_DELTA_MAX_PX = 240;
+const WHEEL_DELTA_LINE = 1;
+const WHEEL_DELTA_PAGE = 2;
+
+/**
+ * Кэшированные размеры stage в координатах viewport.
+ *
+ * Нужны, чтобы не читать `getBoundingClientRect()` на каждом движении жеста.
+ */
+type FrameMetrics = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
 
 const getFramePoint = (
-  frame: HTMLElement,
+  frame: FrameMetrics,
   clientX: number,
   clientY: number,
 ): Point => {
-  const rect = frame.getBoundingClientRect();
   return {
-    x: clientX - rect.left - rect.width / 2,
-    y: clientY - rect.top - rect.height / 2,
+    x: clientX - frame.left - frame.width / 2,
+    y: clientY - frame.top - frame.height / 2,
   };
 };
 
 const getFrameCenterPoint = (
-  frame: HTMLElement,
+  frame: FrameMetrics,
   first: Point,
   second: Point,
 ): Point => {
   const center = getCenter(first, second);
   return getFramePoint(frame, center.x, center.y);
+};
+
+/**
+ * Приводит wheel delta к пикселям и ограничивает одиночный скачок масштаба.
+ *
+ * @param event React wheel-событие из stage.
+ * @returns Нормализованное значение прокрутки в пикселях.
+ */
+const normalizeWheelDelta = (
+  event: ReactWheelEvent<HTMLDivElement>,
+): number => {
+  const viewportHeight =
+    typeof window === "undefined" ? 800 : window.innerHeight || 800;
+  const multiplier =
+    event.deltaMode === WHEEL_DELTA_LINE
+      ? WHEEL_DELTA_LINE_HEIGHT_PX
+      : event.deltaMode === WHEEL_DELTA_PAGE
+        ? viewportHeight
+        : 1;
+
+  return Math.max(
+    -WHEEL_DELTA_MAX_PX,
+    Math.min(WHEEL_DELTA_MAX_PX, event.deltaY * multiplier),
+  );
 };
 
 const safeSetPointerCapture = (
@@ -102,12 +146,13 @@ const safeReleasePointerCapture = (
   }
 };
 
-function useRafImageTransform(
+function useImageTransform(
   frameRef: RefObject<HTMLDivElement | null>,
   imageRef: RefObject<HTMLImageElement | null>,
 ) {
   const transformRef = useRef<TransformState>(DEFAULT_TRANSFORM);
-  const frameIdRef = useRef<number | null>(null);
+  const geometryRef = useRef<TransformGeometry | null>(null);
+  const isZoomedRef = useRef(false);
   const momentumFrameIdRef = useRef<number | null>(null);
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -126,29 +171,23 @@ function useRafImageTransform(
     cancelAnimationFrame(frameId);
   }, []);
 
-  const applyTransform = useCallback(() => {
-    frameIdRef.current = null;
-    const image = imageRef.current;
-    if (!image) {
-      return;
-    }
+  const writeTransform = useCallback(
+    (transform: TransformState) => {
+      const image = imageRef.current;
+      if (!image) {
+        return;
+      }
 
-    const transform = transformRef.current;
-    image.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`;
-  }, [imageRef]);
+      image.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`;
+    },
+    [imageRef],
+  );
 
-  const scheduleApplyTransform = useCallback(() => {
-    if (frameIdRef.current !== null) {
-      return;
-    }
-
-    frameIdRef.current = requestFrame(applyTransform);
-  }, [applyTransform, requestFrame]);
-
-  const readGeometry = useCallback((): TransformGeometry | null => {
+  const refreshGeometry = useCallback((): TransformGeometry | null => {
     const frame = frameRef.current;
     const image = imageRef.current;
     if (!frame || !image) {
+      geometryRef.current = null;
       return null;
     }
 
@@ -167,67 +206,84 @@ function useRafImageTransform(
       content.width <= 0 ||
       content.height <= 0
     ) {
+      geometryRef.current = null;
       return null;
     }
 
-    return { viewport, content };
+    const geometry = { viewport, content };
+    geometryRef.current = geometry;
+    return geometry;
   }, [frameRef, imageRef]);
 
+  const readGeometry = useCallback(
+    (): TransformGeometry | null => geometryRef.current ?? refreshGeometry(),
+    [refreshGeometry],
+  );
+
   const commitTransform = useCallback(
-    (next: TransformState) => {
-      const clamped = constrainTransform(next, readGeometry());
+    (next: TransformState, options?: ConstrainTransformOptions) => {
+      const clamped = constrainTransform(next, readGeometry(), options);
       const nextIsZoomed = isZoomedTransform(clamped);
       transformRef.current = clamped;
-      setIsZoomed((current) =>
-        current === nextIsZoomed ? current : nextIsZoomed,
-      );
-      scheduleApplyTransform();
+      if (isZoomedRef.current !== nextIsZoomed) {
+        isZoomedRef.current = nextIsZoomed;
+        setIsZoomed(nextIsZoomed);
+      }
+      writeTransform(clamped);
       return clamped;
     },
-    [readGeometry, scheduleApplyTransform],
+    [readGeometry, writeTransform],
   );
 
   const resetTransform = useCallback(() => {
     transformRef.current = DEFAULT_TRANSFORM;
-    setIsZoomed(false);
-    scheduleApplyTransform();
-  }, [scheduleApplyTransform]);
+    if (isZoomedRef.current) {
+      isZoomedRef.current = false;
+      setIsZoomed(false);
+    }
+    writeTransform(DEFAULT_TRANSFORM);
+  }, [writeTransform]);
 
   const applyVisualTransform = useCallback(
     (transform: TransformState) => {
-      const image = imageRef.current;
-      if (!image) {
-        return;
-      }
-
-      image.style.transform = `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale})`;
+      writeTransform(transform);
     },
-    [imageRef],
+    [writeTransform],
   );
 
   const zoomAt = useCallback(
-    (nextScale: number, point: Point) => {
+    (nextScale: number, point: Point, options?: ConstrainTransformOptions) => {
       commitTransform(
         buildZoomAtPointTransform(transformRef.current, nextScale, point),
+        options,
       );
     },
     [commitTransform],
   );
 
   const panTo = useCallback(
-    (x: number, y: number) => {
-      commitTransform({
-        ...transformRef.current,
-        x,
-        y,
-      });
+    (x: number, y: number, options?: ConstrainTransformOptions) => {
+      commitTransform(
+        {
+          ...transformRef.current,
+          x,
+          y,
+        },
+        options,
+      );
     },
     [commitTransform],
   );
 
   const reClampTransform = useCallback(() => {
+    refreshGeometry();
     commitTransform(transformRef.current);
-  }, [commitTransform]);
+  }, [commitTransform, refreshGeometry]);
+
+  const settleCurrentTransform = useCallback(() => {
+    const settled = settleTransform(transformRef.current, readGeometry());
+    return commitTransform(settled);
+  }, [commitTransform, readGeometry]);
 
   const stopMomentum = useCallback(() => {
     if (momentumFrameIdRef.current === null) {
@@ -241,6 +297,15 @@ function useRafImageTransform(
   const startMomentum = useCallback(
     (velocity: Point, onDone: () => void) => {
       stopMomentum();
+
+      const settledBeforeMomentum = settleTransform(
+        transformRef.current,
+        readGeometry(),
+      );
+      if (!areTransformsClose(transformRef.current, settledBeforeMomentum)) {
+        onDone();
+        return;
+      }
 
       if (
         !isZoomedTransform(transformRef.current) ||
@@ -294,15 +359,11 @@ function useRafImageTransform(
 
       momentumFrameIdRef.current = requestFrame(step);
     },
-    [commitTransform, requestFrame, stopMomentum],
+    [commitTransform, readGeometry, requestFrame, stopMomentum],
   );
 
   useEffect(
     () => () => {
-      if (frameIdRef.current !== null) {
-        cancelFrame(frameIdRef.current);
-      }
-
       if (momentumFrameIdRef.current !== null) {
         cancelFrame(momentumFrameIdRef.current);
       }
@@ -316,7 +377,9 @@ function useRafImageTransform(
     isZoomed,
     panTo,
     reClampTransform,
+    refreshGeometry,
     resetTransform,
+    settleCurrentTransform,
     startMomentum,
     stopMomentum,
     transformRef,
@@ -333,6 +396,7 @@ function BaseZoomableImageStage({
   const frameRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const pointersRef = useRef<Map<number, Point>>(new Map());
+  const frameMetricsRef = useRef<FrameMetrics | null>(null);
   const panSessionRef = useRef<{
     pointerId: number;
     startPoint: Point;
@@ -345,7 +409,6 @@ function BaseZoomableImageStage({
     startCenter: Point;
     startDistance: number;
     startTransform: TransformState;
-    limit: PinchLimitState | null;
   } | null>(null);
   const dismissSessionRef = useRef<{
     pointerId: number;
@@ -369,22 +432,96 @@ function BaseZoomableImageStage({
     panTo,
     applyVisualTransform,
     reClampTransform,
+    refreshGeometry,
     resetTransform,
+    settleCurrentTransform,
     startMomentum,
     stopMomentum,
     transformRef,
     zoomAt,
-  } = useRafImageTransform(frameRef, imageRef);
+  } = useImageTransform(frameRef, imageRef);
+
+  const refreshFrameMetrics = useCallback((): FrameMetrics | null => {
+    const frame = frameRef.current;
+    if (!frame) {
+      frameMetricsRef.current = null;
+      return null;
+    }
+
+    const rect = frame.getBoundingClientRect();
+    const metrics = {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+    frameMetricsRef.current = metrics;
+    return metrics;
+  }, []);
+
+  const readFrameMetrics = useCallback(
+    (): FrameMetrics | null => frameMetricsRef.current ?? refreshFrameMetrics(),
+    [refreshFrameMetrics],
+  );
+
+  const getFramePointFromClient = useCallback(
+    (clientX: number, clientY: number): Point | null => {
+      const metrics = readFrameMetrics();
+      return metrics ? getFramePoint(metrics, clientX, clientY) : null;
+    },
+    [readFrameMetrics],
+  );
+
+  const getFrameCenterFromPointers = useCallback(
+    (first: Point, second: Point): Point | null => {
+      const metrics = readFrameMetrics();
+      return metrics ? getFrameCenterPoint(metrics, first, second) : null;
+    },
+    [readFrameMetrics],
+  );
+
+  const refreshStageMeasurements = useCallback(() => {
+    refreshFrameMetrics();
+    refreshGeometry();
+  }, [refreshFrameMetrics, refreshGeometry]);
 
   useEffect(() => {
-    window.addEventListener("resize", reClampTransform, { passive: true });
-    window.visualViewport?.addEventListener("resize", reClampTransform);
+    const handleResize = () => {
+      refreshStageMeasurements();
+      reClampTransform();
+    };
+
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.visualViewport?.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener("resize", reClampTransform);
-      window.visualViewport?.removeEventListener("resize", reClampTransform);
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
     };
-  }, [reClampTransform]);
+  }, [reClampTransform, refreshStageMeasurements]);
+
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const frame = frameRef.current;
+    const image = imageRef.current;
+    if (!frame || !image) {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => {
+      refreshStageMeasurements();
+      reClampTransform();
+    });
+    observer.observe(frame);
+    observer.observe(image);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [reClampTransform, refreshStageMeasurements]);
 
   useEffect(
     () => () => {
@@ -449,8 +586,10 @@ function BaseZoomableImageStage({
   const endInteraction = useCallback(() => {
     setIsDragging(false);
     setIsInteracting(false);
-    reClampTransform();
-  }, [reClampTransform]);
+    if (mode === "mobile") {
+      settleCurrentTransform();
+    }
+  }, [mode, settleCurrentTransform]);
 
   const startPanSession = useCallback(
     (
@@ -458,6 +597,7 @@ function BaseZoomableImageStage({
       point: Point,
       timestamp: number,
       dragging = true,
+      updateVisualState = true,
     ) => {
       panSessionRef.current = {
         pointerId,
@@ -467,8 +607,10 @@ function BaseZoomableImageStage({
         lastTimestamp: timestamp,
         velocity: { x: 0, y: 0 },
       };
-      setIsDragging(dragging);
-      setIsInteracting(true);
+      if (updateVisualState) {
+        setIsDragging(dragging);
+        setIsInteracting(true);
+      }
     },
     [transformRef],
   );
@@ -530,57 +672,69 @@ function BaseZoomableImageStage({
         event.preventDefault();
       }
 
-      const frame = frameRef.current;
-      if (!frame) {
+      const point = getFramePointFromClient(event.clientX, event.clientY);
+      if (!point) {
+        endInteraction();
         return;
       }
 
       const currentScale = transformRef.current.scale;
-      const scaleStep = event.deltaY < 0 ? 1.12 : 0.88;
-      zoomAt(
-        currentScale * scaleStep,
-        getFramePoint(frame, event.clientX, event.clientY),
-      );
+      const wheelDelta = normalizeWheelDelta(event);
+      const nextScale =
+        currentScale * Math.exp(-wheelDelta * WHEEL_ZOOM_SENSITIVITY);
+      zoomAt(nextScale, point);
     },
-    [clearScheduledClose, mode, stopMomentum, transformRef, zoomAt],
+    [
+      clearScheduledClose,
+      endInteraction,
+      getFramePointFromClient,
+      mode,
+      stopMomentum,
+      transformRef,
+      zoomAt,
+    ],
   );
 
   const startPinch = useCallback(() => {
-    const frame = frameRef.current;
     const points = Array.from(pointersRef.current.values());
-    if (!frame || points.length < 2) {
+    if (points.length < 2) {
       return false;
     }
 
     const [first, second] = points;
+    const startCenter = getFrameCenterFromPointers(first, second);
     const startDistance = getDistance(first, second);
-    if (startDistance <= 0) {
+    if (!startCenter || startDistance <= 0) {
       return false;
     }
 
-    pinchSessionRef.current = {
-      startCenter: getFrameCenterPoint(frame, first, second),
-      startDistance,
-      startTransform: transformRef.current,
-      limit: null,
-    };
     if (dismissSessionRef.current) {
       dismissSessionRef.current = null;
       resetDismissVisual();
     }
+    pinchSessionRef.current = {
+      startCenter,
+      startDistance,
+      startTransform: transformRef.current,
+    };
     panSessionRef.current = null;
     lastTapRef.current = 0;
     setIsDragging(false);
     setIsInteracting(true);
     gestureMovedRef.current = true;
     return true;
-  }, [resetDismissVisual, transformRef]);
+  }, [
+    getFrameCenterFromPointers,
+    resetDismissVisual,
+    transformRef,
+  ]);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       clearScheduledClose();
       stopMomentum();
       preventNativeTouchGesture(event);
+      refreshStageMeasurements();
       gestureMovedRef.current = false;
       tapStartPointRef.current = { x: event.clientX, y: event.clientY };
       const activePointerCountBeforeDown = pointersRef.current.size;
@@ -594,10 +748,10 @@ function BaseZoomableImageStage({
       ) {
         const now = Date.now();
         if (now - lastTapRef.current < 260) {
-          const frame = frameRef.current;
-          if (frame) {
+          const point = getFramePointFromClient(event.clientX, event.clientY);
+          if (point) {
             suppressCloseUntilRef.current = now + DOUBLE_TAP_CLICK_SUPPRESS_MS;
-            toggleZoomAt(getFramePoint(frame, event.clientX, event.clientY));
+            toggleZoomAt(point);
           }
           lastTapRef.current = 0;
           return;
@@ -612,22 +766,26 @@ function BaseZoomableImageStage({
 
       if (transformRef.current.scale <= MIN_SCALE) {
         if (mode === "mobile" && event.pointerType === "touch") {
-          startDismissSession(
-            event.pointerId,
-            point,
-            getEventTimestamp(event),
-          );
+          startDismissSession(event.pointerId, point, getEventTimestamp(event));
         }
         return;
       }
 
-      startPanSession(event.pointerId, point, getEventTimestamp(event));
+      startPanSession(
+        event.pointerId,
+        point,
+        getEventTimestamp(event),
+        true,
+        mode === "mobile",
+      );
     },
     [
       clearScheduledClose,
       getEventTimestamp,
       mode,
       preventNativeTouchGesture,
+      getFramePointFromClient,
+      refreshStageMeasurements,
       startPinch,
       startDismissSession,
       startPanSession,
@@ -686,23 +844,26 @@ function BaseZoomableImageStage({
       }
 
       if (mode === "mobile" && pinchSessionRef.current) {
-        const frame = frameRef.current;
         const points = Array.from(pointersRef.current.values());
-        if (frame && points.length >= 2) {
+        if (points.length >= 2) {
           const [first, second] = points;
           const pinchSession = pinchSessionRef.current;
           const nextDistance = getDistance(first, second);
-          const nextCenter = getFrameCenterPoint(frame, first, second);
-          const result = buildLimitedPinchTransform({
+          const nextCenter = getFrameCenterFromPointers(first, second);
+          if (!nextCenter) {
+            return;
+          }
+          const nextTransform = buildMobilePinchTransform({
             startCenter: pinchSession.startCenter,
             currentCenter: nextCenter,
             startDistance: pinchSession.startDistance,
             currentDistance: nextDistance,
             startTransform: pinchSession.startTransform,
-            previousLimit: pinchSession.limit,
           });
-          pinchSession.limit = result.limit;
-          commitTransform(result.transform);
+          commitTransform(nextTransform, {
+            behavior: "rubber",
+            maxScale: MAX_SCALE_WITH_MOBILE_SPRING,
+          });
           return;
         }
       }
@@ -736,11 +897,16 @@ function BaseZoomableImageStage({
         panSession.startPoint,
         point,
       );
-      panTo(nextTransform.x, nextTransform.y);
+      panTo(
+        nextTransform.x,
+        nextTransform.y,
+        mode === "mobile" ? { behavior: "rubber" } : undefined,
+      );
     },
     [
       applyVisualTransform,
       commitTransform,
+      getFrameCenterFromPointers,
       getEventTimestamp,
       mode,
       panTo,
@@ -818,6 +984,10 @@ function BaseZoomableImageStage({
       tapStartPointRef.current = null;
 
       if (finishingPanSession) {
+        if (mode === "desktop" || transformRef.current.scale > MAX_SCALE) {
+          endInteraction();
+          return;
+        }
         startMomentum(finishingPanSession.velocity, endInteraction);
         return;
       }
@@ -828,6 +998,7 @@ function BaseZoomableImageStage({
       clearPointer,
       endInteraction,
       getEventTimestamp,
+      mode,
       onRequestClose,
       preventNativeTouchGesture,
       readViewportHeight,
@@ -845,8 +1016,9 @@ function BaseZoomableImageStage({
         return;
       }
 
-      const frame = frameRef.current;
-      if (!frame) {
+      refreshStageMeasurements();
+      const point = getFramePointFromClient(event.clientX, event.clientY);
+      if (!point) {
         return;
       }
 
@@ -855,9 +1027,16 @@ function BaseZoomableImageStage({
       suppressCloseUntilRef.current = Date.now() + DOUBLE_TAP_CLICK_SUPPRESS_MS;
       event.preventDefault();
       event.stopPropagation();
-      toggleZoomAt(getFramePoint(frame, event.clientX, event.clientY));
+      toggleZoomAt(point);
     },
-    [clearScheduledClose, mode, stopMomentum, toggleZoomAt],
+    [
+      clearScheduledClose,
+      getFramePointFromClient,
+      mode,
+      refreshStageMeasurements,
+      stopMomentum,
+      toggleZoomAt,
+    ],
   );
 
   const handleClick = useCallback(
@@ -894,8 +1073,13 @@ function BaseZoomableImageStage({
     stopMomentum();
     setIsDragging(false);
     setIsInteracting(false);
+    refreshStageMeasurements();
     resetTransform();
-  }, [resetTransform, stopMomentum]);
+  }, [
+    refreshStageMeasurements,
+    resetTransform,
+    stopMomentum,
+  ]);
 
   return (
     <div
@@ -911,7 +1095,6 @@ function BaseZoomableImageStage({
       onPointerMove={handlePointerMove}
       onPointerUp={finishGesture}
       onPointerCancel={finishGesture}
-      onPointerLeave={finishGesture}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
       data-testid="image-lightbox-stage"

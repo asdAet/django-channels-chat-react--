@@ -209,6 +209,27 @@ describe("MessageBubble", () => {
     expect(screen.queryByText("Сообщение удалено")).toBeNull();
   });
 
+  it("shows the public username instead of the profile display name", () => {
+    render(
+      <MessageBubble
+        message={{
+          ...baseMessage,
+          username: "methoddpp",
+          publicRef: "@methoddpp",
+          displayName: "Name",
+        }}
+        isOwn={false}
+        onlineUsernames={new Set<string>()}
+      />,
+    );
+
+    expect(screen.getByText("methoddpp")).toBeInTheDocument();
+    expect(screen.queryByText("Name")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Профиль methoddpp" }),
+    ).toBeInTheDocument();
+  });
+
   it("renders AudioAttachmentPlayer for audio attachments", () => {
     const message: Message = {
       ...baseMessage,

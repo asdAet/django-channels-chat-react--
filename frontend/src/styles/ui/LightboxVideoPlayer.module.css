@@ -6,6 +6,9 @@
   max-width: 100%;
   max-height: 100%;
   min-height: 0;
+  transform-origin: center center;
+  will-change: transform;
+  touch-action: none;
 }
 
 .playerHost {
@@ -23,6 +26,7 @@
   height: auto;
   max-width: min(88vw, calc(100vw - 176px));
   max-height: min(86vh, calc(100vh - 176px));
+  max-height: min(86dvh, calc(100dvh - 176px));
   border-radius: 18px;
   background: #000;
   object-fit: contain;
@@ -79,6 +83,7 @@
   .video {
     max-width: calc(100vw - 24px);
     max-height: calc(100vh - 110px);
+    max-height: calc(100dvh - 110px);
     border-radius: 14px;
   }
 }

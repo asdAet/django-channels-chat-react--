@@ -212,6 +212,11 @@
   margin-bottom: 4px;
 }
 
+.messageOwn .meta {
+  align-self: flex-end;
+  text-align: right;
+}
+
 .username {
   font-weight: 600;
   color: rgb(76, 173, 208);

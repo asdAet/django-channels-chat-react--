@@ -58,7 +58,18 @@ describe("ImageLightbox", () => {
     ).toBeInTheDocument();
     expect(screen.getByAltText("photo")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Скачать preview\.png/i }),
+      screen.queryByRole("button", { name: /Скачать preview\.png/i }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.contextMenu(screen.getByRole("dialog"), {
+      clientX: 42,
+      clientY: 64,
+    });
+    expect(
+      screen.getByRole("menuitem", { name: "Скачать" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: "Закрыть" }),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByAltText("photo"));
@@ -192,6 +203,53 @@ describe("ImageLightbox", () => {
     expect(screen.getAllByTestId("lightbox-video-element")).toHaveLength(1);
 
     fireEvent.click(screen.getByTestId("lightbox-media-viewport"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes a video viewer by vertical swipe", async () => {
+    const onClose = vi.fn();
+
+    render(
+      <ImageLightbox
+        mediaItems={[
+          {
+            src: "/media/clip.mp4",
+            previewSrc: "/media/clip.jpg",
+            kind: "video",
+            alt: "clip",
+            metadata: {
+              ...baseMetadata,
+              attachmentId: 5,
+              fileName: "clip.mp4",
+              contentType: "video/mp4",
+            },
+          },
+        ]}
+        initialIndex={0}
+        onClose={onClose}
+      />,
+    );
+
+    const player = await screen.findByTestId("lightbox-video-player-desktop");
+    fireEvent.pointerDown(player, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 120,
+      clientY: 220,
+    });
+    fireEvent.pointerMove(player, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 124,
+      clientY: 410,
+    });
+    fireEvent.pointerUp(player, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 124,
+      clientY: 410,
+    });
+
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildLimitedPinchTransform,
+  buildMobilePinchTransform,
   buildPanTransform,
   buildPinchTransform,
   buildSwipeDismissMetrics,
@@ -9,6 +9,9 @@ import {
   constrainTransform,
   DEFAULT_TRANSFORM,
   getTransformBounds,
+  MAX_SCALE,
+  MAX_SCALE_WITH_MOBILE_SPRING,
+  settleTransform,
   shouldDismissBySwipe,
   type TransformGeometry,
 } from "./zoomableImageGeometry";
@@ -59,57 +62,70 @@ describe("zoomableImageGeometry", () => {
     });
   });
 
-  it("clamps transformed media inside the visible viewport", () => {
+  it("allows moving zoomed media until any corner can reach the viewport center", () => {
     expect(getTransformBounds(geometry, 2)).toEqual({
-      x: 195,
-      y: 0,
+      x: 390,
+      y: 260,
     });
     expect(
-      constrainTransform({ scale: 2, x: 500, y: 100 }, geometry),
+      constrainTransform({ scale: 2, x: 500, y: 500 }, geometry),
     ).toEqual({
       scale: 2,
-      x: 195,
-      y: 0,
+      x: 390,
+      y: 260,
     });
   });
 
-  it("freezes transform while a pinch keeps pushing past max scale", () => {
-    const first = buildLimitedPinchTransform({
+  it("rubber-bands active pan outside the final bounds without hard jumps", () => {
+    const transform = constrainTransform(
+      { scale: 2, x: 500, y: 500 },
+      geometry,
+      { behavior: "rubber" },
+    );
+
+    expect(transform.x).toBeGreaterThan(390);
+    expect(transform.x).toBeLessThan(500);
+    expect(transform.y).toBeGreaterThan(260);
+    expect(transform.y).toBeLessThan(500);
+  });
+
+  it("keeps desktop zoom inside the production max scale", () => {
+    expect(
+      buildZoomAtPointTransform(DEFAULT_TRANSFORM, MAX_SCALE * 2, {
+        x: 80,
+        y: -40,
+      }).scale,
+    ).toBe(MAX_SCALE);
+  });
+
+  it("applies a mobile-only spring when pinch goes past max scale", () => {
+    const transform = buildMobilePinchTransform({
       startCenter: { x: 0, y: 0 },
       currentCenter: { x: 12, y: 0 },
       startDistance: 100,
-      currentDistance: 620,
+      currentDistance: MAX_SCALE * 150,
       startTransform: DEFAULT_TRANSFORM,
-      previousLimit: null,
     });
 
-    const next = buildLimitedPinchTransform({
-      startCenter: { x: 0, y: 0 },
-      currentCenter: { x: 80, y: 0 },
-      startDistance: 100,
-      currentDistance: 760,
-      startTransform: DEFAULT_TRANSFORM,
-      previousLimit: first.limit,
-    });
-
-    expect(first.transform.scale).toBe(6);
-    expect(next.transform).toEqual(first.transform);
-    expect(next.limit).toEqual(first.limit);
+    expect(transform.scale).toBeGreaterThan(MAX_SCALE);
+    expect(transform.scale).toBeLessThan(MAX_SCALE_WITH_MOBILE_SPRING);
   });
 
-  it("does not drift when a pinch starts at max scale and pushes further", () => {
-    const startTransform = { scale: 6, x: -120, y: 40 };
-
+  it("settles mobile overscale back to max scale after release", () => {
     expect(
-      buildLimitedPinchTransform({
-        startCenter: { x: 0, y: 0 },
-        currentCenter: { x: 90, y: -40 },
-        startDistance: 100,
-        currentDistance: 180,
-        startTransform,
-        previousLimit: null,
-      }).transform,
-    ).toEqual(startTransform);
+      settleTransform(
+        {
+          scale: MAX_SCALE_WITH_MOBILE_SPRING,
+          x: 99999,
+          y: -99999,
+        },
+        geometry,
+      ),
+    ).toEqual({
+      scale: MAX_SCALE,
+      x: 6240,
+      y: -4160,
+    });
   });
 
   it("builds vertical swipe dismiss metrics and ignores horizontal swipes", () => {

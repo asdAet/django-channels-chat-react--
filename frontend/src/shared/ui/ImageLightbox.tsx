@@ -1,12 +1,15 @@
 import {
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import styles from "../../styles/ui/ImageLightbox.module.css";
+import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import type {
   ImageLightboxMediaItem,
   ImageLightboxProps,
@@ -69,6 +72,19 @@ const triggerDownload = (url: string, fileName: string): void => {
   anchor.click();
 };
 
+const ACTION_MENU_LONG_PRESS_MS = 520;
+const ACTION_MENU_TOUCH_MOVE_CANCEL_PX = 10;
+const ACTION_MENU_CLICK_SUPPRESS_MS = 420;
+
+type ActionMenuPosition = {
+  x: number;
+  y: number;
+};
+
+type ActionMenuTouchIntent = ActionMenuPosition & {
+  pointerId: number;
+};
+
 /**
  * Unified media viewer shell for chat attachments.
  *
@@ -77,6 +93,9 @@ const triggerDownload = (url: string, fileName: string): void => {
  */
 export function ImageLightbox(props: ImageLightboxProps) {
   const { onClose } = props;
+  const longPressTimerRef = useRef<number | null>(null);
+  const touchIntentRef = useRef<ActionMenuTouchIntent | null>(null);
+  const suppressClickUntilRef = useRef(0);
   const mediaItems = useMemo<ImageLightboxMediaItem[]>(
     () =>
       "mediaItems" in props
@@ -90,6 +109,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const [activeIndex, setActiveIndex] = useState(() =>
     clampIndex(requestedInitialIndex, mediaItems.length),
   );
+  const [actionMenu, setActionMenu] = useState<ActionMenuPosition | null>(null);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -102,6 +122,21 @@ export function ImageLightbox(props: ImageLightboxProps) {
 
   const hasNavigation = mediaItems.length > 1;
   const currentItem = mediaItems[activeIndex];
+
+  const clearActionMenuIntent = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchIntentRef.current = null;
+  }, []);
+
+  useEffect(
+    () => () => {
+      clearActionMenuIntent();
+    },
+    [clearActionMenuIntent],
+  );
 
   const goPrevious = useCallback(() => {
     setActiveIndex((current) => clampIndex(current - 1, mediaItems.length));
@@ -166,6 +201,99 @@ export function ImageLightbox(props: ImageLightboxProps) {
     [onClose],
   );
 
+  const closeActionMenu = useCallback(() => {
+    setActionMenu(null);
+  }, []);
+
+  const openActionMenu = useCallback(
+    (position: ActionMenuPosition) => {
+      clearActionMenuIntent();
+      setActionMenu(position);
+    },
+    [clearActionMenuIntent],
+  );
+
+  const handleContextMenu = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openActionMenu({ x: event.clientX, y: event.clientY });
+    },
+    [openActionMenu],
+  );
+
+  const handleActionPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.pointerType !== "touch") {
+        return;
+      }
+
+      if (!event.isPrimary) {
+        clearActionMenuIntent();
+        return;
+      }
+
+      const intent = {
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+      };
+      clearActionMenuIntent();
+      touchIntentRef.current = intent;
+      longPressTimerRef.current = window.setTimeout(() => {
+        suppressClickUntilRef.current =
+          Date.now() + ACTION_MENU_CLICK_SUPPRESS_MS;
+        openActionMenu({ x: intent.x, y: intent.y });
+      }, ACTION_MENU_LONG_PRESS_MS);
+    },
+    [clearActionMenuIntent, openActionMenu],
+  );
+
+  const handleActionPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const intent = touchIntentRef.current;
+      if (!intent || intent.pointerId !== event.pointerId) {
+        return;
+      }
+
+      if (
+        Math.hypot(event.clientX - intent.x, event.clientY - intent.y) >
+        ACTION_MENU_TOUCH_MOVE_CANCEL_PX
+      ) {
+        clearActionMenuIntent();
+      }
+    },
+    [clearActionMenuIntent],
+  );
+
+  const handleActionPointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const intent = touchIntentRef.current;
+      if (intent?.pointerId === event.pointerId) {
+        clearActionMenuIntent();
+      }
+    },
+    [clearActionMenuIntent],
+  );
+
+  const handleShellClickCapture = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest('[role="menu"]') !== null
+      ) {
+        return;
+      }
+
+      if (Date.now() < suppressClickUntilRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    [],
+  );
+
   const handleDownload = useCallback(() => {
     if (!currentItem) {
       return;
@@ -177,6 +305,24 @@ export function ImageLightbox(props: ImageLightboxProps) {
     );
   }, [currentItem]);
 
+  const actionMenuItems = useMemo<ContextMenuItem[]>(
+    () => [
+      {
+        label: "Скачать",
+        onClick: handleDownload,
+      },
+      {
+        label: "Закрыть",
+        onClick: onClose,
+      },
+    ],
+    [handleDownload, onClose],
+  );
+
+  useEffect(() => {
+    closeActionMenu();
+  }, [activeIndex, closeActionMenu]);
+
   if (!currentItem) {
     return null;
   }
@@ -185,11 +331,12 @@ export function ImageLightbox(props: ImageLightboxProps) {
     currentItem.kind === "video" ? "Просмотр видео" : "Просмотр изображения";
   const metadataParts = [
     hasNavigation ? `${activeIndex + 1} / ${mediaItems.length}` : null,
+    currentItem.metadata.contentType,
     formatFileSize(currentItem.metadata.fileSize),
     currentItem.metadata.width && currentItem.metadata.height
       ? `${currentItem.metadata.width} × ${currentItem.metadata.height}`
       : null,
-    `Отправлено: ${formatSentAt(currentItem.metadata.sentAt)}`,
+    formatSentAt(currentItem.metadata.sentAt),
   ].filter((value): value is string => Boolean(value));
 
   return (
@@ -199,33 +346,16 @@ export function ImageLightbox(props: ImageLightboxProps) {
       aria-modal="true"
       aria-label={dialogLabel}
       onClick={handleOverlayClick}
+      onContextMenu={handleContextMenu}
     >
-      <div className={styles.shell}>
-        <div className={styles.toolbar}>
-          <div className={styles.toolbarMeta}>
-            <span className={styles.fileName}>{currentItem.metadata.fileName}</span>
-          </div>
-
-          <div className={styles.toolbarActions}>
-            <button
-              type="button"
-              className={styles.toolbarButton}
-              onClick={handleDownload}
-              aria-label={`Скачать ${currentItem.metadata.fileName}`}
-            >
-              Скачать
-            </button>
-            <button
-              type="button"
-              className={styles.toolbarButton}
-              onClick={onClose}
-              aria-label="Закрыть просмотр"
-            >
-              Закрыть
-            </button>
-          </div>
-        </div>
-
+      <div
+        className={styles.shell}
+        onPointerDown={handleActionPointerDown}
+        onPointerMove={handleActionPointerMove}
+        onPointerUp={handleActionPointerEnd}
+        onPointerCancel={handleActionPointerEnd}
+        onClickCapture={handleShellClickCapture}
+      >
         {hasNavigation ? (
           <button
             type="button"
@@ -249,6 +379,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
                 src={currentItem.src}
                 poster={currentItem.previewSrc ?? null}
                 fileName={currentItem.metadata.fileName}
+                onRequestClose={onClose}
               />
             ) : (
               <ZoomableImageStage
@@ -272,11 +403,27 @@ export function ImageLightbox(props: ImageLightboxProps) {
           </button>
         ) : null}
 
-        <div className={styles.metaText}>
-          {metadataParts.map((part, index) => (
-            <div key={`${index}-${part}`}>{part}</div>
-          ))}
+        <div className={styles.metaPanel}>
+          <div className={styles.metaFileName} title={currentItem.metadata.fileName}>
+            {currentItem.metadata.fileName}
+          </div>
+          <div className={styles.metaDetails} aria-label="Данные файла">
+            {metadataParts.map((part) => (
+              <span className={styles.metaItem} key={part}>
+                {part}
+              </span>
+            ))}
+          </div>
         </div>
+
+        {actionMenu ? (
+          <ContextMenu
+            items={actionMenuItems}
+            x={actionMenu.x}
+            y={actionMenu.y}
+            onClose={closeActionMenu}
+          />
+        ) : null}
       </div>
     </div>
   );

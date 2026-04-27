@@ -37,7 +37,6 @@ import {
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
-import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import type { ContextMenuItem } from "../../shared/ui";
 import {
   AudioAttachmentPlayer,
@@ -156,6 +155,56 @@ const isAudioType = (ct: string) => ct.startsWith("audio/");
 
 const normalizeActorRef = (value: string) =>
   normalizePublicRef(value).toLowerCase();
+
+type MessageAuthorLike = {
+  username?: string | null;
+  publicRef?: string | null;
+  displayName?: string | null;
+  userId?: number | string | null;
+};
+
+const pickAuthorLabelPart = (
+  value: string | number | null | undefined,
+): string | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+/**
+ * Возвращает стабильную подпись автора для заголовка сообщения и fallback-аватарки.
+ *
+ * @param author Данные автора сообщения или цитируемого сообщения.
+ * @param fallback Подпись на случай, если публичные поля автора отсутствуют.
+ * @returns Короткая подпись автора, синхронная с тем же пользователем, что и аватарка.
+ */
+const resolveMessageAuthorLabel = (
+  author: MessageAuthorLike,
+  fallback = "user",
+): string => {
+  const username = pickAuthorLabelPart(author.username);
+  if (username) {
+    return normalizePublicRef(username) || username;
+  }
+
+  const publicRef = normalizePublicRef(author.publicRef);
+  if (publicRef) {
+    return publicRef;
+  }
+
+  return (
+    pickAuthorLabelPart(author.displayName) ??
+    pickAuthorLabelPart(author.userId) ??
+    fallback
+  );
+};
 
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
@@ -308,7 +357,7 @@ function ReplyQuote({
         onClick={onClick}
       >
         <span className={styles.replyUser}>
-          {resolveIdentityLabel(replyTo, "?")}
+          {resolveMessageAuthorLabel(replyTo, "?")}
         </span>
         <span className={styles.replyText}>{replyTo.content}</span>
       </button>
@@ -317,7 +366,7 @@ function ReplyQuote({
   return (
     <div className={styles.replyQuote}>
       <span className={styles.replyUser}>
-        {resolveIdentityLabel(replyTo, "?")}
+        {resolveMessageAuthorLabel(replyTo, "?")}
       </span>
       <span className={styles.replyText}>{replyTo.content}</span>
     </div>
@@ -831,7 +880,7 @@ export function MessageBubble({
     return null;
   }
 
-  const authorLabel = resolveIdentityLabel(message);
+  const authorLabel = resolveMessageAuthorLabel(message);
   const isCustomEmojiOnlyMessage =
     Boolean(getSingleCustomEmojiOnly(message.content)) &&
     message.attachments.length === 0 &&

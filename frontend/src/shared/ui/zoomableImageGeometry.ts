@@ -19,18 +19,6 @@ export type TransformGeometry = {
   content: Size;
 };
 
-export type PinchScaleLimit = "min" | "max";
-
-export type PinchLimitState = {
-  limit: PinchScaleLimit;
-  transform: TransformState;
-};
-
-export type PinchTransformResult = {
-  transform: TransformState;
-  limit: PinchLimitState | null;
-};
-
 export type SwipeDismissMetrics = {
   offset: Point;
   velocity: Point;
@@ -41,13 +29,24 @@ export type SwipeDismissMetrics = {
 
 export const MIN_SCALE = 1;
 export const MAX_SCALE = 32;
+export const MOBILE_MAX_SCALE_OVERSHOOT_RATIO = 0.18;
+export const MAX_SCALE_WITH_MOBILE_SPRING =
+  MAX_SCALE * (1 + MOBILE_MAX_SCALE_OVERSHOOT_RATIO);
 export const DEFAULT_TRANSFORM: TransformState = {
   scale: MIN_SCALE,
   x: 0,
   y: 0,
 };
 
+export type ConstrainTransformOptions = {
+  maxScale?: number;
+  behavior?: "strict" | "rubber";
+};
+
 const RESET_EPSILON = 0.001;
+const TRANSFORM_CLOSE_EPSILON = 0.01;
+const RUBBER_BAND_VIEWPORT_RATIO = 0.32;
+const RUBBER_BAND_MIN_LIMIT_PX = 80;
 const SWIPE_DISMISS_MIN_THRESHOLD_PX = 120;
 const SWIPE_DISMISS_MAX_THRESHOLD_PX = 220;
 const SWIPE_DISMISS_THRESHOLD_VIEWPORT_RATIO = 0.18;
@@ -77,20 +76,69 @@ export const getTransformBounds = (
   geometry: TransformGeometry,
   scale: number,
 ): Point => {
-  const viewport = normalizeSize(geometry.viewport);
   const content = normalizeSize(geometry.content);
 
   return {
-    x: Math.max(0, (content.width * scale - viewport.width) / 2),
-    y: Math.max(0, (content.height * scale - viewport.height) / 2),
+    x: Math.max(0, (content.width * scale) / 2),
+    y: Math.max(0, (content.height * scale) / 2),
   };
 };
 
+const rubberBandOverflow = (overflow: number, limit: number): number => {
+  if (overflow <= 0 || limit <= 0) {
+    return 0;
+  }
+
+  return limit * (1 - 1 / (overflow / limit + 1));
+};
+
+const rubberBandClamp = (
+  value: number,
+  min: number,
+  max: number,
+  limit: number,
+): number => {
+  if (value < min) {
+    return min - rubberBandOverflow(min - value, limit);
+  }
+
+  if (value > max) {
+    return max + rubberBandOverflow(value - max, limit);
+  }
+
+  return value;
+};
+
+/**
+ * Сравнивает два transform с допуском для дробных значений после анимации.
+ *
+ * @param first Первое состояние transform.
+ * @param second Второе состояние transform.
+ * @returns `true`, если визуальная разница между состояниями несущественна.
+ */
+export const areTransformsClose = (
+  first: TransformState,
+  second: TransformState,
+): boolean =>
+  Math.abs(first.scale - second.scale) <= TRANSFORM_CLOSE_EPSILON &&
+  Math.abs(first.x - second.x) <= TRANSFORM_CLOSE_EPSILON &&
+  Math.abs(first.y - second.y) <= TRANSFORM_CLOSE_EPSILON;
+
+/**
+ * Ограничивает transform допустимой областью просмотра.
+ *
+ * @param transform Текущее визуальное смещение и масштаб.
+ * @param geometry Размер viewport и уже вписанного медиа.
+ * @param options Дополнительные границы, например mobile spring overscale.
+ * @returns Transform, который можно безопасно применить к медиа.
+ */
 export const constrainTransform = (
   transform: TransformState,
   geometry: TransformGeometry | null,
+  options: ConstrainTransformOptions = {},
 ): TransformState => {
-  const scale = clamp(transform.scale, MIN_SCALE, MAX_SCALE);
+  const maxScale = options.maxScale ?? MAX_SCALE;
+  const scale = clamp(transform.scale, MIN_SCALE, maxScale);
   if (scale <= MIN_SCALE + RESET_EPSILON) {
     return DEFAULT_TRANSFORM;
   }
@@ -100,13 +148,73 @@ export const constrainTransform = (
   }
 
   const bounds = getTransformBounds(geometry, scale);
+  const minX = -bounds.x;
+  const maxX = bounds.x;
+  const minY = -bounds.y;
+  const maxY = bounds.y;
+
+  if (options.behavior === "rubber") {
+    const xLimit = Math.max(
+      RUBBER_BAND_MIN_LIMIT_PX,
+      geometry.viewport.width * RUBBER_BAND_VIEWPORT_RATIO,
+    );
+    const yLimit = Math.max(
+      RUBBER_BAND_MIN_LIMIT_PX,
+      geometry.viewport.height * RUBBER_BAND_VIEWPORT_RATIO,
+    );
+
+    return {
+      scale,
+      x: rubberBandClamp(transform.x, minX, maxX, xLimit),
+      y: rubberBandClamp(transform.y, minY, maxY, yLimit),
+    };
+  }
 
   return {
     scale,
-    x: clamp(transform.x, -bounds.x, bounds.x),
-    y: clamp(transform.y, -bounds.y, bounds.y),
+    x: clamp(transform.x, minX, maxX),
+    y: clamp(transform.y, minY, maxY),
   };
 };
+
+/**
+ * Применяет mobile-only пружину к масштабу, который вышел за максимум.
+ *
+ * @param scale Сырой масштаб pinch-жеста.
+ * @returns Визуальный масштаб с затухающим overscale.
+ */
+export const resolveMobileSpringScale = (scale: number): number => {
+  if (scale <= MIN_SCALE) {
+    return MIN_SCALE;
+  }
+
+  if (scale <= MAX_SCALE) {
+    return scale;
+  }
+
+  const overshootLimit = MAX_SCALE * MOBILE_MAX_SCALE_OVERSHOOT_RATIO;
+  return MAX_SCALE + rubberBandOverflow(scale - MAX_SCALE, overshootLimit);
+};
+
+/**
+ * Возвращает transform после отпускания жеста, когда spring должен вернуться
+ * к реальному максимуму масштаба.
+ *
+ * @param transform Текущий transform, возможно с mobile overscale.
+ * @param geometry Размеры области просмотра и медиа.
+ * @returns Transform с обычными production-границами.
+ */
+export const settleTransform = (
+  transform: TransformState,
+  geometry: TransformGeometry | null,
+): TransformState =>
+  constrainTransform(
+    {
+      ...transform,
+      scale: clamp(transform.scale, MIN_SCALE, MAX_SCALE),
+    },
+    geometry,
+  );
 
 export const buildZoomAtPointTransform = (
   current: TransformState,
@@ -181,80 +289,35 @@ const buildPinchTransformAtScale = ({
   };
 };
 
-export const buildLimitedPinchTransform = ({
+export const buildMobilePinchTransform = ({
   startCenter,
   currentCenter,
   startDistance,
   currentDistance,
   startTransform,
-  previousLimit,
 }: {
   startCenter: Point;
   currentCenter: Point;
   startDistance: number;
   currentDistance: number;
   startTransform: TransformState;
-  previousLimit: PinchLimitState | null;
-}): PinchTransformResult => {
+}): TransformState => {
   const safeStartDistance = Math.max(1, startDistance);
   const safeStartScale = Math.max(MIN_SCALE, startTransform.scale);
   const rawScale = startTransform.scale * (currentDistance / safeStartDistance);
+  const scale = resolveMobileSpringScale(rawScale);
 
-  if (previousLimit?.limit === "max" && rawScale >= MAX_SCALE) {
-    return {
-      transform: previousLimit.transform,
-      limit: previousLimit,
-    };
+  if (scale <= MIN_SCALE + RESET_EPSILON) {
+    return DEFAULT_TRANSFORM;
   }
 
-  if (previousLimit?.limit === "min" && rawScale <= MIN_SCALE) {
-    return {
-      transform: previousLimit.transform,
-      limit: previousLimit,
-    };
-  }
-
-  if (rawScale >= MAX_SCALE) {
-    const transform =
-      startTransform.scale >= MAX_SCALE - RESET_EPSILON
-        ? startTransform
-        : buildPinchTransformAtScale({
-            startCenter,
-            currentCenter,
-            scale: MAX_SCALE,
-            safeStartScale,
-            startTransform,
-          });
-
-    return {
-      transform,
-      limit: {
-        limit: "max",
-        transform,
-      },
-    };
-  }
-
-  if (rawScale <= MIN_SCALE) {
-    return {
-      transform: DEFAULT_TRANSFORM,
-      limit: {
-        limit: "min",
-        transform: DEFAULT_TRANSFORM,
-      },
-    };
-  }
-
-  return {
-    transform: buildPinchTransformAtScale({
-      startCenter,
-      currentCenter,
-      scale: rawScale,
-      safeStartScale,
-      startTransform,
-    }),
-    limit: null,
-  };
+  return buildPinchTransformAtScale({
+    startCenter,
+    currentCenter,
+    scale,
+    safeStartScale,
+    startTransform,
+  });
 };
 
 export const isZoomedTransform = (transform: TransformState): boolean =>
