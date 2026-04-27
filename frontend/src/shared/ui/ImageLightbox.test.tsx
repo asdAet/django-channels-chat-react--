@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -26,8 +26,36 @@ const renderWithDevice = (
     <DeviceContext.Provider value={device}>{ui}</DeviceContext.Provider>,
   );
 
+const fireTouchPointerEvent = (
+  target: Element,
+  type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+  init: {
+    pointerId: number;
+    clientX: number;
+    clientY: number;
+    buttons?: number;
+  },
+) => {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    clientX: init.clientX,
+    clientY: init.clientY,
+    buttons: init.buttons ?? (type === "pointerup" ? 0 : 1),
+  });
+
+  Object.defineProperties(event, {
+    pointerId: { value: init.pointerId },
+    pointerType: { value: "touch" },
+    isPrimary: { value: true },
+  });
+
+  fireEvent(target, event);
+};
+
 describe("ImageLightbox", () => {
   beforeEach(() => {
+    window.history.replaceState({ route: "chat" }, "", "/public");
     vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(() =>
       Promise.resolve(),
     );
@@ -38,6 +66,7 @@ describe("ImageLightbox", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+    window.history.replaceState(null, "", "/");
   });
 
   it("renders an image viewer and closes when the image is clicked", () => {
@@ -69,11 +98,11 @@ describe("ImageLightbox", () => {
       screen.getByRole("menuitem", { name: "Скачать" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("menuitem", { name: "Закрыть" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("menuitem", { name: "Закрыть" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByAltText("photo"));
-    vi.advanceTimersByTime(221);
+    vi.advanceTimersByTime(402);
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -125,7 +154,7 @@ describe("ImageLightbox", () => {
     );
   });
 
-  it("closes on Escape", () => {
+  it("closes on Escape", async () => {
     const onClose = vi.fn();
 
     render(
@@ -138,7 +167,10 @@ describe("ImageLightbox", () => {
     );
 
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+    expect(window.location.pathname).toBe("/public");
   });
 
   it("navigates through gallery items", () => {
@@ -203,7 +235,83 @@ describe("ImageLightbox", () => {
     expect(screen.getAllByTestId("lightbox-video-element")).toHaveLength(1);
 
     fireEvent.click(screen.getByTestId("lightbox-media-viewport"));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+    expect(window.location.pathname).toBe("/public");
+  });
+
+  it("closes on browser back without leaving the current page", async () => {
+    const onClose = vi.fn();
+
+    render(
+      <ImageLightbox
+        src="/media/photo.png"
+        alt="photo"
+        metadata={baseMetadata}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent(
+      window,
+      new PopStateEvent("popstate", { state: { route: "chat" } }),
+    );
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+    expect(window.location.pathname).toBe("/public");
+  });
+
+  it("closes an image viewer by vertical swipe on mobile", async () => {
+    const onClose = vi.fn();
+
+    renderWithDevice(
+      {
+        ...DEFAULT_DEVICE_SNAPSHOT,
+        viewportWidth: 390,
+        viewportHeight: 844,
+        isMobileViewport: true,
+        hasTouch: true,
+        primaryPointer: "coarse",
+      },
+      <ImageLightbox
+        src="/media/photo.png"
+        alt="photo"
+        metadata={baseMetadata}
+        onClose={onClose}
+      />,
+    );
+
+    const stage = screen.getByTestId("image-lightbox-stage");
+    Object.defineProperty(stage, "clientHeight", {
+      configurable: true,
+      value: 800,
+    });
+
+    fireTouchPointerEvent(stage, "pointerdown", {
+      pointerId: 1,
+      clientX: 120,
+      clientY: 220,
+    });
+
+    fireTouchPointerEvent(stage, "pointermove", {
+      pointerId: 1,
+      clientX: 124,
+      clientY: 410,
+    });
+
+    fireTouchPointerEvent(stage, "pointerup", {
+      pointerId: 1,
+      clientX: 124,
+      clientY: 410,
+      buttons: 0,
+    });
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("closes a video viewer by vertical swipe", async () => {
@@ -231,25 +339,32 @@ describe("ImageLightbox", () => {
     );
 
     const player = await screen.findByTestId("lightbox-video-player-desktop");
-    fireEvent.pointerDown(player, {
+    Object.defineProperty(player, "clientHeight", {
+      configurable: true,
+      value: 800,
+    });
+
+    fireTouchPointerEvent(player, "pointerdown", {
       pointerId: 1,
-      pointerType: "touch",
       clientX: 120,
       clientY: 220,
     });
-    fireEvent.pointerMove(player, {
+
+    fireTouchPointerEvent(player, "pointermove", {
       pointerId: 1,
-      pointerType: "touch",
-      clientX: 124,
-      clientY: 410,
-    });
-    fireEvent.pointerUp(player, {
-      pointerId: 1,
-      pointerType: "touch",
       clientX: 124,
       clientY: 410,
     });
 
-    expect(onClose).toHaveBeenCalledTimes(1);
+    fireTouchPointerEvent(player, "pointerup", {
+      pointerId: 1,
+      clientX: 124,
+      clientY: 410,
+      buttons: 0,
+    });
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
   });
 });

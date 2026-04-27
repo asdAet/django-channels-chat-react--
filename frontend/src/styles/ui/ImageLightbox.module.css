@@ -1,4 +1,24 @@
 .overlay {
+  --lightbox-edge-gap: 12px;
+  --lightbox-safe-left: max(
+    var(--lightbox-edge-gap),
+    env(safe-area-inset-left)
+  );
+  --lightbox-safe-right: max(
+    var(--lightbox-edge-gap),
+    env(safe-area-inset-right)
+  );
+  --lightbox-safe-bottom: max(
+    var(--lightbox-edge-gap),
+    env(safe-area-inset-bottom)
+  );
+  --lightbox-meta-space: clamp(82px, 14dvh, 136px);
+  --lightbox-stage-height: calc(100dvh - var(--lightbox-meta-space));
+  --lightbox-media-max-width: min(88vw, calc(100vw - 176px));
+  --lightbox-media-max-height: min(
+    86dvh,
+    calc(var(--lightbox-stage-height) - 32px)
+  );
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -20,11 +40,12 @@
 }
 
 .frame {
-  position: relative;
+  position: absolute;
+  inset: 0 0 var(--lightbox-meta-space);
   width: 100%;
-  height: 100%;
+  height: auto;
   max-width: 100vw;
-  max-height: 100vh;
+  max-height: var(--lightbox-stage-height);
   overflow: hidden;
 }
 
@@ -42,22 +63,23 @@
 
 .metaPanel {
   position: absolute;
-  left: max(12px, env(safe-area-inset-left));
-  right: max(12px, env(safe-area-inset-right));
-  bottom: max(12px, env(safe-area-inset-bottom));
+  left: var(--lightbox-safe-left);
+  right: var(--lightbox-safe-right);
+  bottom: var(--lightbox-safe-bottom);
   z-index: 6;
   width: fit-content;
   max-width: min(
     520px,
     calc(
-      100vw - 24px - env(safe-area-inset-left) -
-        env(safe-area-inset-right)
+      100vw - var(--lightbox-safe-left) - var(--lightbox-safe-right)
     )
   );
+  max-height: calc(var(--lightbox-meta-space) - var(--lightbox-safe-bottom));
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;
+  overflow: hidden;
   color: rgba(255, 255, 255, 0.96);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
   pointer-events: none;
@@ -71,8 +93,10 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .metaDetails {
@@ -85,6 +109,7 @@
   color: rgba(255, 255, 255, 0.9);
   font-size: 11px;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .metaItem {
@@ -92,12 +117,12 @@
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .navButton {
   position: absolute;
-  top: 50%;
+  top: calc(var(--lightbox-stage-height) / 2);
   z-index: 6;
   width: 48px;
   height: 48px;
@@ -134,14 +159,22 @@
 
 @media (max-width: 768px) {
   .overlay {
+    --lightbox-edge-gap: 10px;
+    --lightbox-meta-space: clamp(72px, 13dvh, 112px);
+    --lightbox-media-max-width: calc(
+      100vw - var(--lightbox-safe-left) - var(--lightbox-safe-right)
+    );
+    --lightbox-media-max-height: calc(var(--lightbox-stage-height) - 20px);
+  }
+
+  .overlay {
     background: rgba(0, 0, 0, 0.94);
     backdrop-filter: none;
   }
 
   .metaPanel {
     max-width: calc(
-      100vw - 24px - env(safe-area-inset-left) -
-        env(safe-area-inset-right)
+      100vw - var(--lightbox-safe-left) - var(--lightbox-safe-right)
     );
   }
 

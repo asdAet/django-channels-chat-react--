@@ -16,6 +16,7 @@ import type {
   SingleMediaProps,
 } from "./ImageLightbox.types";
 import { LightboxVideoPlayer } from "./LightboxVideoPlayer";
+import { useModalHistoryGuard } from "./useModalHistoryGuard";
 import { ZoomableImageStage } from "./ZoomableImageStage";
 
 const buildSingleItem = (props: SingleMediaProps): ImageLightboxMediaItem => ({
@@ -93,6 +94,7 @@ type ActionMenuTouchIntent = ActionMenuPosition & {
  */
 export function ImageLightbox(props: ImageLightboxProps) {
   const { onClose } = props;
+  const requestClose = useModalHistoryGuard(onClose);
   const longPressTimerRef = useRef<number | null>(null);
   const touchIntentRef = useRef<ActionMenuTouchIntent | null>(null);
   const suppressClickUntilRef = useRef(0);
@@ -138,13 +140,19 @@ export function ImageLightbox(props: ImageLightboxProps) {
     [clearActionMenuIntent],
   );
 
+  const closeActionMenu = useCallback(() => {
+    setActionMenu(null);
+  }, []);
+
   const goPrevious = useCallback(() => {
+    closeActionMenu();
     setActiveIndex((current) => clampIndex(current - 1, mediaItems.length));
-  }, [mediaItems.length]);
+  }, [closeActionMenu, mediaItems.length]);
 
   const goNext = useCallback(() => {
+    closeActionMenu();
     setActiveIndex((current) => clampIndex(current + 1, mediaItems.length));
-  }, [mediaItems.length]);
+  }, [closeActionMenu, mediaItems.length]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -160,7 +168,7 @@ export function ImageLightbox(props: ImageLightboxProps) {
           return;
         }
 
-        onClose();
+        requestClose();
         return;
       }
 
@@ -181,29 +189,25 @@ export function ImageLightbox(props: ImageLightboxProps) {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [goNext, goPrevious, hasNavigation, onClose]);
+  }, [goNext, goPrevious, hasNavigation, requestClose]);
 
   const handleOverlayClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget) {
-        onClose();
+        requestClose();
       }
     },
-    [onClose],
+    [requestClose],
   );
 
   const handleViewportClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget) {
-        onClose();
+        requestClose();
       }
     },
-    [onClose],
+    [requestClose],
   );
-
-  const closeActionMenu = useCallback(() => {
-    setActionMenu(null);
-  }, []);
 
   const openActionMenu = useCallback(
     (position: ActionMenuPosition) => {
@@ -311,17 +315,9 @@ export function ImageLightbox(props: ImageLightboxProps) {
         label: "Скачать",
         onClick: handleDownload,
       },
-      {
-        label: "Закрыть",
-        onClick: onClose,
-      },
     ],
-    [handleDownload, onClose],
+    [handleDownload],
   );
-
-  useEffect(() => {
-    closeActionMenu();
-  }, [activeIndex, closeActionMenu]);
 
   if (!currentItem) {
     return null;
@@ -379,14 +375,14 @@ export function ImageLightbox(props: ImageLightboxProps) {
                 src={currentItem.src}
                 poster={currentItem.previewSrc ?? null}
                 fileName={currentItem.metadata.fileName}
-                onRequestClose={onClose}
+                onRequestClose={requestClose}
               />
             ) : (
               <ZoomableImageStage
                 key={currentItem.metadata.attachmentId}
                 src={currentItem.src}
                 alt={currentItem.alt ?? currentItem.metadata.fileName}
-                onRequestClose={onClose}
+                onRequestClose={requestClose}
               />
             )}
           </div>

@@ -39,16 +39,14 @@
 }
 
 .imageDesktop {
-  max-width: min(88vw, calc(100vw - 176px));
-  max-height: min(86vh, calc(100vh - 176px));
-  max-height: min(86dvh, calc(100dvh - 176px));
+  max-width: var(--lightbox-media-max-width, min(88vw, calc(100vw - 176px)));
+  max-height: var(--lightbox-media-max-height, min(86dvh, calc(100dvh - 176px)));
   transition: cursor 160ms ease;
 }
 
 .imageMobile {
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 110px);
-  max-height: calc(100dvh - 110px);
+  max-width: var(--lightbox-media-max-width, calc(100vw - 24px));
+  max-height: var(--lightbox-media-max-height, calc(100dvh - 110px));
 }
 
 .imageZoomed {
