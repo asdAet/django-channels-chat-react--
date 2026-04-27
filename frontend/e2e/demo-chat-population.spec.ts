@@ -12,6 +12,8 @@ import { registerWithRetry } from "./helpers/auth";
 const DEMO_PASSWORD = "pass12345";
 const BACKEND_ORIGIN = "http://127.0.0.1:8000";
 const AVATAR_BASE_URL = `${BACKEND_ORIGIN}/media/tmp_avatar`;
+const TRANSIENT_DB_LOCK_RETRIES = 5;
+const TRANSIENT_DB_LOCK_RETRY_DELAY_MS = 300;
 const GROUP_NAME = "Монтажная";
 const GROUP_DESCRIPTION =
   "Подготовка сцен для рекламного ролика: живой чат, ответы с реплаями и активная группа.";
@@ -541,6 +543,17 @@ async function expectOk(response: APIResponse, action: string): Promise<void> {
   throw new Error(`${action} failed: ${response.status()} ${body}`);
 }
 
+async function isTransientDatabaseLock(
+  response: APIResponse,
+): Promise<boolean> {
+  if (response.status() !== 500) {
+    return false;
+  }
+
+  const body = await response.text().catch(() => "");
+  return body.includes("database is locked");
+}
+
 async function fetchCsrfToken(page: Page): Promise<string> {
   const response = await page.request.get("/api/auth/csrf/");
   await expectOk(response, "fetch csrf token");
@@ -558,15 +571,29 @@ async function requestJson(
   url: string,
   payload?: unknown,
 ): Promise<APIResponse> {
-  const csrfToken = await fetchCsrfToken(page);
-  return page.request.fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
-    },
-    data: payload === undefined ? undefined : JSON.stringify(payload),
-  });
+  for (let attempt = 1; attempt <= TRANSIENT_DB_LOCK_RETRIES; attempt += 1) {
+    const csrfToken = await fetchCsrfToken(page);
+    const response = await page.request.fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrfToken,
+      },
+      data: payload === undefined ? undefined : JSON.stringify(payload),
+    });
+
+    if (
+      attempt < TRANSIENT_DB_LOCK_RETRIES &&
+      (await isTransientDatabaseLock(response))
+    ) {
+      await page.waitForTimeout(TRANSIENT_DB_LOCK_RETRY_DELAY_MS * attempt);
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error(`request ${method} ${url} did not produce a response`);
 }
 
 async function requestMultipart(
@@ -574,14 +601,28 @@ async function requestMultipart(
   url: string,
   multipart: MultipartPayload,
 ): Promise<APIResponse> {
-  const csrfToken = await fetchCsrfToken(page);
-  return page.request.fetch(url, {
-    method: "PATCH",
-    headers: {
-      "X-CSRFToken": csrfToken,
-    },
-    multipart,
-  });
+  for (let attempt = 1; attempt <= TRANSIENT_DB_LOCK_RETRIES; attempt += 1) {
+    const csrfToken = await fetchCsrfToken(page);
+    const response = await page.request.fetch(url, {
+      method: "PATCH",
+      headers: {
+        "X-CSRFToken": csrfToken,
+      },
+      multipart,
+    });
+
+    if (
+      attempt < TRANSIENT_DB_LOCK_RETRIES &&
+      (await isTransientDatabaseLock(response))
+    ) {
+      await page.waitForTimeout(TRANSIENT_DB_LOCK_RETRY_DELAY_MS * attempt);
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error(`request PATCH ${url} did not produce a response`);
 }
 
 async function ensureUserSession(
