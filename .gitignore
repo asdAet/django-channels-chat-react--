@@ -211,3 +211,8 @@ plyr-master/
 .codex/
 .playwright-mcp/
 Telegram-andriod/
+.venv-linux/
+Test.txt
+test_pytest.txt
+test_e2e.txt
+test_unit.txt
