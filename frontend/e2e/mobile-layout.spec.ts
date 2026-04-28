@@ -87,7 +87,7 @@ test("mobile shell switches between list and chat without clipping", async ({
   await expect.poll(async () => hasNoHorizontalOverflow(page)).toBeTruthy();
 });
 
-test("mobile chat keeps input visible and opens own message actions on long press", async ({
+test("mobile chat keeps input visible and opens own message actions on tap", async ({
   page,
 }) => {
   const username = `k${Math.random().toString(36).slice(2, 9)}`;
@@ -197,34 +197,6 @@ test("mobile chat keeps input visible and opens own message actions on long pres
   );
   if (supportsTouchInput) {
     await ownMessage.tap();
-    await expect(page.getByRole("menu")).toBeHidden();
-
-    const messageBox = await ownMessage.boundingBox();
-    expect(messageBox).not.toBeNull();
-    const pressX = messageBox!.x + messageBox!.width / 2;
-    const pressY = messageBox!.y + Math.min(messageBox!.height / 2, 24);
-
-    await ownMessage.dispatchEvent("pointerdown", {
-      pointerId: 1,
-      pointerType: "touch",
-      isPrimary: true,
-      button: 0,
-      buttons: 1,
-      clientX: pressX,
-      clientY: pressY,
-      bubbles: true,
-    });
-    await page.waitForTimeout(650);
-    await ownMessage.dispatchEvent("pointerup", {
-      pointerId: 1,
-      pointerType: "touch",
-      isPrimary: true,
-      button: 0,
-      buttons: 0,
-      clientX: pressX,
-      clientY: pressY,
-      bubbles: true,
-    });
   } else {
     await ownMessage.click({ button: "right" });
   }

@@ -68,7 +68,8 @@ export function VideoAttachmentPreview({
     <button
       type="button"
       className={styles.videoPreviewTile}
-      data-message-menu-ignore="true"
+      data-attachment-id={attachment.id}
+      data-message-media-action-target="true"
       onClick={onOpen}
       aria-label={`Открыть видео ${attachment.originalFilename}`}
     >

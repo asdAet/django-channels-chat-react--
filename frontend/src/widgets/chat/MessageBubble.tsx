@@ -35,6 +35,10 @@ import {
   resolveResponsiveImageSource,
 } from "../../shared/lib/attachmentMedia";
 import { resolveAttachmentTypeLabel } from "../../shared/lib/attachmentTypeLabel";
+import {
+  copyImageUrlToClipboard,
+  triggerFileDownload,
+} from "../../shared/lib/fileActions";
 import { formatTimestamp } from "../../shared/lib/format";
 import { normalizePublicRef } from "../../shared/lib/publicRef";
 import type { ContextMenuItem } from "../../shared/ui";
@@ -208,18 +212,18 @@ const resolveMessageAuthorLabel = (
 
 const MOBILE_MENU_IGNORE_SELECTOR =
   'a,button,input,textarea,select,video,audio,img,[role="button"],[data-message-menu-ignore="true"]';
-const MOBILE_LONG_PRESS_MENU_MS = 520;
+const MOBILE_MEDIA_ACTION_TARGET_SELECTOR =
+  '[data-message-media-action-target="true"]';
 const MOBILE_LONG_PRESS_MOVE_TOLERANCE_PX = 10;
+const MOBILE_MENU_CLICK_SUPPRESS_MS = 420;
 
-type MobileLongPressState = {
+type MobileTapMenuState = {
   pointerId: number | null;
   target: HTMLElement;
   startX: number;
   startY: number;
   x: number;
   y: number;
-  timerId: number;
-  opened: boolean;
 };
 
 /**
@@ -230,7 +234,27 @@ type MobileLongPressState = {
 
 const shouldIgnoreMobileMenuGesture = (target: EventTarget | null) => {
   if (!(target instanceof Element)) return false;
+  if (target.closest(MOBILE_MEDIA_ACTION_TARGET_SELECTOR)) return true;
   return Boolean(target.closest(MOBILE_MENU_IGNORE_SELECTOR));
+};
+
+const resolveAttachmentIdFromTarget = (
+  target: EventTarget | null,
+): number | null => {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+
+  const mediaTarget = target.closest<HTMLElement>(
+    "[data-attachment-id]",
+  );
+  const rawAttachmentId = mediaTarget?.dataset.attachmentId;
+  if (!rawAttachmentId) {
+    return null;
+  }
+
+  const attachmentId = Number(rawAttachmentId);
+  return Number.isInteger(attachmentId) ? attachmentId : null;
 };
 
 const areSetsEqual = (first: Set<number>, second: Set<number>) => {
@@ -468,16 +492,22 @@ export function MessageBubble({
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
+    attachmentId: number | null;
   } | null>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [lightboxOpenIndex, setLightboxOpenIndex] = useState<number | null>(
     null,
   );
   const lastRightMouseDownTsRef = useRef<number>(0);
-  const mobileLongPressRef = useRef<MobileLongPressState | null>(null);
+  const mobileTapMenuRef = useRef<MobileTapMenuState | null>(null);
+  const suppressClickUntilRef = useRef(0);
 
-  const openContextMenuAt = useCallback((x: number, y: number) => {
-    setContextMenu({ x, y });
+  const openContextMenuAt = useCallback((
+    x: number,
+    y: number,
+    attachmentId: number | null = null,
+  ) => {
+    setContextMenu({ x, y, attachmentId });
   }, []);
 
   const resolveMenuPosition = useCallback(
@@ -531,7 +561,11 @@ export function MessageBubble({
       if (message.isDeleted) return;
       e.preventDefault();
       if (e.timeStamp - lastRightMouseDownTsRef.current < 250) return;
-      openContextMenuAt(e.clientX, e.clientY);
+      openContextMenuAt(
+        e.clientX,
+        e.clientY,
+        resolveAttachmentIdFromTarget(e.target),
+      );
     },
     [message.isDeleted, openContextMenuAt],
   );
@@ -545,84 +579,86 @@ export function MessageBubble({
         event.clientX,
         event.clientY,
       );
-      openContextMenuAt(position.x, position.y);
+      openContextMenuAt(
+        position.x,
+        position.y,
+        resolveAttachmentIdFromTarget(event.target),
+      );
       event.preventDefault();
     },
     [message.isDeleted, openContextMenuAt, resolveMenuPosition],
   );
 
-  const clearMobileLongPress = useCallback(() => {
-    const state = mobileLongPressRef.current;
+  const clearMobileTapMenu = useCallback(() => {
+    const state = mobileTapMenuRef.current;
     if (!state) return false;
 
-    window.clearTimeout(state.timerId);
-    mobileLongPressRef.current = null;
-    return state.opened;
+    mobileTapMenuRef.current = null;
+    return true;
   }, []);
 
-  const finishMobileLongPress = useCallback((pointerId: number | null) => {
-    const state = mobileLongPressRef.current;
+  const finishMobileTapMenu = useCallback((
+    pointerId: number | null,
+    fallbackX?: number,
+    fallbackY?: number,
+  ) => {
+    const state = mobileTapMenuRef.current;
     if (!state || state.pointerId !== pointerId) return false;
 
-    window.clearTimeout(state.timerId);
-    mobileLongPressRef.current = null;
-    return state.opened;
-  }, []);
+    mobileTapMenuRef.current = null;
+    if (message.isDeleted) {
+      return false;
+    }
 
-  const startMobileLongPress = useCallback(
+    const attachmentId = resolveAttachmentIdFromTarget(state.target);
+    const position = resolveMenuPosition(
+      state.target,
+      fallbackX ?? state.x,
+      fallbackY ?? state.y,
+    );
+    suppressClickUntilRef.current = Date.now() + MOBILE_MENU_CLICK_SUPPRESS_MS;
+    openContextMenuAt(position.x, position.y, attachmentId);
+    return true;
+  }, [message.isDeleted, openContextMenuAt, resolveMenuPosition]);
+
+  const startMobileTapMenu = useCallback(
     (
       target: HTMLElement,
       pointerId: number | null,
       x: number,
       y: number,
     ) => {
-      clearMobileLongPress();
+      clearMobileTapMenu();
 
-      const state: MobileLongPressState = {
+      const state: MobileTapMenuState = {
         pointerId,
         target,
         startX: x,
         startY: y,
         x,
         y,
-        timerId: 0,
-        opened: false,
       };
 
-      state.timerId = window.setTimeout(() => {
-        const current = mobileLongPressRef.current;
-        if (current !== state || message.isDeleted) return;
-
-        current.opened = true;
-        const position = resolveMenuPosition(
-          current.target,
-          current.x,
-          current.y,
-        );
-        openContextMenuAt(position.x, position.y);
-      }, MOBILE_LONG_PRESS_MENU_MS);
-
-      mobileLongPressRef.current = state;
+      mobileTapMenuRef.current = state;
     },
-    [
-      clearMobileLongPress,
-      message.isDeleted,
-      openContextMenuAt,
-      resolveMenuPosition,
-    ],
+    [clearMobileTapMenu],
   );
 
-  const cancelMobileLongPressOnMove = useCallback(
+  const cancelMobileTapMenuOnMove = useCallback(
     (pointerId: number | null, x: number, y: number) => {
-      const state = mobileLongPressRef.current;
-      if (!state || state.pointerId !== pointerId || state.opened) return;
+      const state = mobileTapMenuRef.current;
+      if (!state || state.pointerId !== pointerId) return;
 
       const movedDistance = Math.hypot(x - state.startX, y - state.startY);
       if (movedDistance > MOBILE_LONG_PRESS_MOVE_TOLERANCE_PX) {
-        clearMobileLongPress();
+        clearMobileTapMenu();
+        return;
       }
+
+      state.x = x;
+      state.y = y;
     },
-    [clearMobileLongPress],
+    [clearMobileTapMenu],
   );
 
   const handleMobilePointerDown = useCallback(
@@ -633,25 +669,25 @@ export function MessageBubble({
       }
       if (shouldIgnoreMobileMenuGesture(event.target)) return;
 
-      startMobileLongPress(
+      startMobileTapMenu(
         event.currentTarget,
         event.pointerId,
         event.clientX,
         event.clientY,
       );
     },
-    [message.isDeleted, startMobileLongPress],
+    [message.isDeleted, startMobileTapMenu],
   );
 
   const handleMobilePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
-      cancelMobileLongPressOnMove(
+      cancelMobileTapMenuOnMove(
         event.pointerId,
         event.clientX,
         event.clientY,
       );
     },
-    [cancelMobileLongPressOnMove],
+    [cancelMobileTapMenuOnMove],
   );
 
   const handleMobilePointerUp = useCallback(
@@ -659,11 +695,13 @@ export function MessageBubble({
       if (event.pointerType !== "touch" && event.pointerType !== "pen") {
         return;
       }
-      if (finishMobileLongPress(event.pointerId)) {
+      if (
+        finishMobileTapMenu(event.pointerId, event.clientX, event.clientY)
+      ) {
         event.preventDefault();
       }
     },
-    [finishMobileLongPress],
+    [finishMobileTapMenu],
   );
 
   const handleMobilePointerCancel = useCallback(
@@ -671,9 +709,9 @@ export function MessageBubble({
       if (event.pointerType !== "touch" && event.pointerType !== "pen") {
         return;
       }
-      clearMobileLongPress();
+      clearMobileTapMenu();
     },
-    [clearMobileLongPress],
+    [clearMobileTapMenu],
   );
 
   const handleMobileTouchStart = useCallback(
@@ -685,14 +723,14 @@ export function MessageBubble({
       const touch = event.touches.item(0);
       if (!touch) return;
 
-      startMobileLongPress(
+      startMobileTapMenu(
         event.currentTarget,
         null,
         touch.clientX,
         touch.clientY,
       );
     },
-    [message.isDeleted, startMobileLongPress],
+    [message.isDeleted, startMobileTapMenu],
   );
 
   const handleMobileTouchMove = useCallback(
@@ -702,33 +740,86 @@ export function MessageBubble({
       const touch = event.touches.item(0);
       if (!touch) return;
 
-      cancelMobileLongPressOnMove(null, touch.clientX, touch.clientY);
+      cancelMobileTapMenuOnMove(null, touch.clientX, touch.clientY);
     },
-    [cancelMobileLongPressOnMove],
+    [cancelMobileTapMenuOnMove],
   );
 
   const handleMobileTouchEnd = useCallback(
     (event: ReactTouchEvent<HTMLElement>) => {
       if (typeof window !== "undefined" && "PointerEvent" in window) return;
 
-      if (finishMobileLongPress(null)) {
+      const touch = event.changedTouches.item(0);
+      if (
+        finishMobileTapMenu(
+          null,
+          touch?.clientX,
+          touch?.clientY,
+        )
+      ) {
         event.preventDefault();
       }
     },
-    [finishMobileLongPress],
+    [finishMobileTapMenu],
   );
 
   const handleMobileTouchCancel = useCallback(() => {
     if (typeof window !== "undefined" && "PointerEvent" in window) return;
-    clearMobileLongPress();
-  }, [clearMobileLongPress]);
+    clearMobileTapMenu();
+  }, [clearMobileTapMenu]);
 
   useEffect(
     () => () => {
-      clearMobileLongPress();
+      clearMobileTapMenu();
     },
-    [clearMobileLongPress],
+    [clearMobileTapMenu],
   );
+
+  const handleMessageClickCapture = useCallback(
+    (event: ReactMouseEvent<HTMLElement>) => {
+      if (Date.now() >= suppressClickUntilRef.current) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    [],
+  );
+
+  const maxVisibleImageAttachments = useChatAttachmentMaxPerMessage();
+  if (message.isDeleted) {
+    return null;
+  }
+
+  const authorLabel = resolveMessageAuthorLabel(message);
+  const isCustomEmojiOnlyMessage =
+    Boolean(getSingleCustomEmojiOnly(message.content)) &&
+    message.attachments.length === 0 &&
+    !message.replyTo;
+  const isAttachmentOnlyMessage =
+    message.attachments.length > 0 &&
+    message.content.trim().length === 0 &&
+    !message.replyTo;
+  const attachmentItems = buildAttachmentRenderItems(message.attachments);
+  const attachmentBuckets = splitAttachmentRenderItems(
+    attachmentItems,
+    maxVisibleImageAttachments,
+  );
+  const selectedMenuAttachment =
+    contextMenu?.attachmentId !== null && contextMenu?.attachmentId !== undefined
+      ? message.attachments.find(
+          (attachment) => attachment.id === contextMenu.attachmentId,
+        ) ?? null
+      : message.attachments.length === 1
+        ? message.attachments[0]
+        : null;
+  const selectedMenuAttachmentUrl = selectedMenuAttachment?.url ?? null;
+  const selectedMenuAttachmentIsImage =
+    Boolean(selectedMenuAttachmentUrl) &&
+    Boolean(
+      selectedMenuAttachment?.contentType.startsWith("image/"),
+    );
 
   const contextMenuItems: ContextMenuItem[] = [];
   if (!message.isDeleted) {
@@ -773,6 +864,62 @@ export function MessageBubble({
           </svg>
         ),
         onClick: () => void writeCustomEmojiClipboardContent(messageText),
+      });
+    }
+
+    if (selectedMenuAttachmentUrl && selectedMenuAttachment) {
+      contextMenuItems.push({
+        label: "Скачать",
+        icon: (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        ),
+        onClick: () =>
+          triggerFileDownload(
+            selectedMenuAttachmentUrl,
+            selectedMenuAttachment.originalFilename,
+          ),
+      });
+    }
+
+    if (
+      selectedMenuAttachmentUrl &&
+      selectedMenuAttachment &&
+      selectedMenuAttachmentIsImage
+    ) {
+      contextMenuItems.push({
+        label: "Скопировать картинку",
+        icon: (
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        ),
+        onClick: () => {
+          void copyImageUrlToClipboard(selectedMenuAttachmentUrl);
+        },
       });
     }
 
@@ -875,25 +1022,6 @@ export function MessageBubble({
       });
     }
   }
-  const maxVisibleImageAttachments = useChatAttachmentMaxPerMessage();
-  if (message.isDeleted) {
-    return null;
-  }
-
-  const authorLabel = resolveMessageAuthorLabel(message);
-  const isCustomEmojiOnlyMessage =
-    Boolean(getSingleCustomEmojiOnly(message.content)) &&
-    message.attachments.length === 0 &&
-    !message.replyTo;
-  const isAttachmentOnlyMessage =
-    message.attachments.length > 0 &&
-    message.content.trim().length === 0 &&
-    !message.replyTo;
-  const attachmentItems = buildAttachmentRenderItems(message.attachments);
-  const attachmentBuckets = splitAttachmentRenderItems(
-    attachmentItems,
-    maxVisibleImageAttachments,
-  );
   const lightboxMediaItems: LightboxMediaItem[] = attachmentItems.flatMap(
     (item) => {
       const { attachment } = item;
@@ -949,6 +1077,7 @@ export function MessageBubble({
         data-message-grouped={grouped ? "true" : "false"}
         data-message-avatar={showAvatar ? "true" : "false"}
         data-message-header={showHeader ? "true" : "false"}
+        onClickCapture={handleMessageClickCapture}
         onContextMenu={handleContextMenu}
         onMouseDown={handleMouseDown}
         onPointerDown={handleMobilePointerDown}
@@ -1050,7 +1179,6 @@ export function MessageBubble({
                             ]
                               .filter(Boolean)
                               .join(" ")}
-                            data-message-menu-ignore="true"
                             style={
                               {
                                 left: `${item.leftPercent.toFixed(4)}%`,
@@ -1059,6 +1187,8 @@ export function MessageBubble({
                                 height: `${item.heightPercent.toFixed(4)}%`,
                               } satisfies CSSProperties
                             }
+                            data-attachment-id={item.attachment.id}
+                            data-message-media-action-target="true"
                             onClick={() =>
                               openLightboxByAttachmentId(item.attachment.id)
                             }

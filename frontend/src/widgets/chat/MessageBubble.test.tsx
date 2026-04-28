@@ -1,5 +1,4 @@
 import {
-  act,
   fireEvent,
   render,
   screen,
@@ -944,9 +943,8 @@ describe("MessageBubble", () => {
     expect(await screen.findByText("clip.mkv")).toBeInTheDocument();
   });
 
-  it("opens full own-message action menu only after long press on touch devices", () => {
+  it("opens full own-message action menu on touch release", () => {
     const restoreMatchMedia = installTouchMatchMedia();
-    vi.useFakeTimers();
     try {
       const onReply = vi.fn();
       const onEdit = vi.fn();
@@ -974,36 +972,22 @@ describe("MessageBubble", () => {
         clientX: 120,
         clientY: 160,
       });
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
       fireTouchPointerEvent(article, "pointerup", {
         pointerId: 1,
         clientX: 120,
         clientY: 160,
       });
-      act(() => {
-        vi.advanceTimersByTime(600);
-      });
-      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-
-      fireTouchPointerEvent(article, "pointerdown", {
-        pointerId: 2,
-        clientX: 120,
-        clientY: 160,
-      });
-      act(() => {
-        vi.advanceTimersByTime(600);
-      });
 
       expect(screen.getByRole("menu")).toBeInTheDocument();
       expect(screen.getAllByRole("menuitem")).toHaveLength(5);
     } finally {
-      vi.useRealTimers();
       restoreMatchMedia();
     }
   });
 
-  it("cancels touch action menu long press when the finger moves", () => {
+  it("cancels touch action menu tap when the finger moves", () => {
     const restoreMatchMedia = installTouchMatchMedia();
-    vi.useFakeTimers();
     try {
       const { container } = render(
         <MessageBubble
@@ -1031,13 +1015,14 @@ describe("MessageBubble", () => {
         clientX: 120,
         clientY: 178,
       });
-      act(() => {
-        vi.advanceTimersByTime(600);
+      fireTouchPointerEvent(article, "pointerup", {
+        pointerId: 1,
+        clientX: 120,
+        clientY: 178,
       });
 
       expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     } finally {
-      vi.useRealTimers();
       restoreMatchMedia();
     }
   });
@@ -1176,10 +1161,10 @@ describe("MessageBubble", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not open action menu when long pressing an image attachment on touch devices", () => {
+  it("opens media on media tap and actions on nearby message tap", () => {
     const restoreMatchMedia = installTouchMatchMedia();
-    vi.useFakeTimers();
     try {
+      const onOpenMediaAttachment = vi.fn();
       const message: Message = {
         ...baseMessage,
         attachments: [
@@ -1205,21 +1190,48 @@ describe("MessageBubble", () => {
           onEdit={vi.fn()}
           onDelete={vi.fn()}
           onReact={vi.fn()}
+          onOpenMediaAttachment={onOpenMediaAttachment}
         />,
       );
 
-      fireTouchPointerEvent(screen.getByAltText("photo.jpg"), "pointerdown", {
+      const mediaButton = screen.getByRole("button", {
+        name: "Открыть изображение photo.jpg",
+      });
+      fireTouchPointerEvent(mediaButton, "pointerdown", {
         pointerId: 1,
         clientX: 120,
         clientY: 160,
       });
-      act(() => {
-        vi.advanceTimersByTime(600);
+      fireTouchPointerEvent(mediaButton, "pointerup", {
+        pointerId: 1,
+        clientX: 120,
+        clientY: 160,
+      });
+      fireEvent.click(mediaButton);
+
+      expect(onOpenMediaAttachment).toHaveBeenCalledWith(22);
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+      const article = document.querySelector(
+        'article[data-message-id="1"]',
+      ) as HTMLElement;
+      fireTouchPointerEvent(article, "pointerdown", {
+        pointerId: 2,
+        clientX: 96,
+        clientY: 152,
+      });
+      fireTouchPointerEvent(article, "pointerup", {
+        pointerId: 2,
+        clientX: 96,
+        clientY: 152,
       });
 
-      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+      expect(screen.getByRole("menu")).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: "Скачать" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("menuitem", { name: "Скопировать картинку" }),
+      ).toBeInTheDocument();
     } finally {
-      vi.useRealTimers();
       restoreMatchMedia();
     }
   });
