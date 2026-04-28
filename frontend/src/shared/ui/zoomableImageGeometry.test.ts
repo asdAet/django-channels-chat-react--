@@ -128,6 +128,24 @@ describe("zoomableImageGeometry", () => {
     });
   });
 
+  it("settles overscale by reducing offset with the scale instead of jumping sideways", () => {
+    const transform = settleTransform(
+      {
+        scale: MAX_SCALE_WITH_MOBILE_SPRING,
+        x: 3200,
+        y: -1600,
+      },
+      geometry,
+    );
+
+    const ratio = MAX_SCALE / MAX_SCALE_WITH_MOBILE_SPRING;
+    expect(transform).toEqual({
+      scale: MAX_SCALE,
+      x: 3200 * ratio,
+      y: -1600 * ratio,
+    });
+  });
+
   it("builds vertical swipe dismiss metrics and ignores horizontal swipes", () => {
     const metrics = buildSwipeDismissMetrics({
       startPoint: { x: 100, y: 100 },

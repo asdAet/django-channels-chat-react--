@@ -207,14 +207,20 @@ export const resolveMobileSpringScale = (scale: number): number => {
 export const settleTransform = (
   transform: TransformState,
   geometry: TransformGeometry | null,
-): TransformState =>
-  constrainTransform(
+): TransformState => {
+  const settledScale = clamp(transform.scale, MIN_SCALE, MAX_SCALE);
+  const visualScale = Math.max(transform.scale, MIN_SCALE);
+  const settleRatio = settledScale / visualScale;
+
+  return constrainTransform(
     {
-      ...transform,
-      scale: clamp(transform.scale, MIN_SCALE, MAX_SCALE),
+      scale: settledScale,
+      x: transform.x * settleRatio,
+      y: transform.y * settleRatio,
     },
     geometry,
   );
+};
 
 export const buildZoomAtPointTransform = (
   current: TransformState,
