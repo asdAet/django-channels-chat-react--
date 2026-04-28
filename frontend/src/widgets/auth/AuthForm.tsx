@@ -1,7 +1,7 @@
 import type { FormEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
-import { Button, Card, Toast } from "../../shared/ui";
+import { Button, Card } from "../../shared/ui";
 import styles from "./AuthForm.module.css";
 
 type AuthMode = "login" | "register";
@@ -36,7 +36,6 @@ export type RegisterSubmitPayload = {
  * @property onGoogleAuth Запускает вход через Google через redirect-сценарий.
  * @property googleAuthDisabledReason Сообщение, почему Google-вход сейчас отключен.
  * @property onNavigate Переход между `/login` и `/register`.
- * @property error Текст auth-ошибки, который нужно показать пользователю.
  * @property passwordRules Список правил пароля для экрана регистрации.
  * @property className Дополнительный CSS-класс контейнера.
  */
@@ -48,7 +47,6 @@ type AuthFormProps = {
   onGoogleAuth?: () => Promise<void> | void;
   googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
-  error?: string | null;
   passwordRules?: string[];
   className?: string;
 };
@@ -71,7 +69,6 @@ export function AuthForm({
   onGoogleAuth,
   googleAuthDisabledReason = null,
   onNavigate,
-  error = null,
   passwordRules = [],
   className,
 }: AuthFormProps) {
@@ -143,11 +140,6 @@ export function AuthForm({
       <Card wide className={styles.card}>
         <p className={styles.eyebrow}>{title}</p>
         <h2 className={styles.title}>{submitLabel}</h2>
-        {error && (
-          <Toast variant="danger" role="alert">
-            {error}
-          </Toast>
-        )}
 
         <form className={styles.form} onSubmit={handleSubmit}>
           {isRegister ? (

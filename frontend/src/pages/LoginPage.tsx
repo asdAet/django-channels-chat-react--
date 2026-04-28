@@ -9,7 +9,6 @@ type Props = {
   onGoogleAuth?: () => Promise<void> | void;
   googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
-  error?: string | null;
 };
 
 /**
@@ -22,7 +21,6 @@ export function LoginPage({
   onGoogleAuth,
   googleAuthDisabledReason = null,
   onNavigate,
-  error = null,
 }: Props) {
   return (
     <AuthForm
@@ -39,7 +37,6 @@ export function LoginPage({
       onGoogleAuth={onGoogleAuth}
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
-      error={error}
       className={styles.page}
     />
   );

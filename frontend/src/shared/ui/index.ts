@@ -14,4 +14,3 @@ export { Modal } from "./Modal";
 export { Panel } from "./Panel";
 export { Skeleton } from "./Skeleton";
 export { Spinner } from "./Spinner";
-export { Toast } from "./Toast";

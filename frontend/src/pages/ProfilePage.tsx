@@ -13,6 +13,7 @@ import {
 } from "../shared/lib/format";
 import { normalizePublicRef } from "../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../shared/lib/userIdentity";
+import { useNotifications } from "../shared/notifications";
 import { usePresence } from "../shared/presence";
 import {
   AvatarCropModal,
@@ -20,7 +21,6 @@ import {
   Button,
   Card,
   Panel,
-  Toast,
 } from "../shared/ui";
 import styles from "../styles/pages/ProfilePage.module.css";
 
@@ -62,6 +62,7 @@ const USERNAME_ALLOWED_RE = /^[A-Za-z]+$/;
 export function ProfilePage({ user, onSave, onNavigate }: Props) {
   const usernameMaxLength = useUsernameMaxLength();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
+  const notifications = useNotifications();
 
   const [form, setForm] = useState({
     name: user?.name || "",
@@ -161,6 +162,17 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
     return () => window.clearTimeout(timeoutId);
   }, [formError]);
 
+  const genericError =
+    formError || fieldErrors.non_field_errors?.[0] || fieldErrors.__all__?.[0];
+
+  useEffect(() => {
+    if (!genericError) {
+      return;
+    }
+
+    notifications.error(genericError);
+  }, [genericError, notifications]);
+
   if (!user) {
     return (
       <Panel>
@@ -181,8 +193,6 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
   const nameError = fieldErrors.name?.[0];
   const bioError = fieldErrors.bio?.[0];
   const imageError = fieldErrors.image?.[0];
-  const genericError =
-    formError || fieldErrors.non_field_errors?.[0] || fieldErrors.__all__?.[0];
   const avatarIdentity = resolveIdentityLabel(user, "user");
   const currentPublicRef = normalizePublicRef(user.publicRef || "");
   const normalizedCurrentActorRef = normalizeActorRef(currentPublicRef);
@@ -295,12 +305,6 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
             </span>
           </div>
         </header>
-
-        {genericError && (
-          <Toast variant="danger" role="alert">
-            {genericError}
-          </Toast>
-        )}
 
         <section className={styles.avatarSection}>
           <div

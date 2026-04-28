@@ -16,7 +16,6 @@ type Props = {
   onGoogleAuth?: () => Promise<void> | void;
   googleAuthDisabledReason?: string | null;
   onNavigate: (path: string) => void;
-  error?: string | null;
   passwordRules?: string[];
 };
 
@@ -30,7 +29,6 @@ export function RegisterPage({
   onGoogleAuth,
   googleAuthDisabledReason = null,
   onNavigate,
-  error = null,
   passwordRules = [],
 }: Props) {
   return (
@@ -48,7 +46,6 @@ export function RegisterPage({
       onGoogleAuth={onGoogleAuth}
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
-      error={error}
       passwordRules={passwordRules}
       className={styles.page}
     />

@@ -1,0 +1,199 @@
+.viewport {
+  position: fixed;
+  top: max(14px, calc(var(--safe-top, 0px) + 12px));
+  left: 50%;
+  z-index: 2600;
+  width: min(420px, calc(100vw - max(24px, var(--safe-left, 0px) + var(--safe-right, 0px) + 24px)));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.card {
+  --notification-accent: #8ab4ff;
+  --notification-accent-soft: rgba(138, 180, 255, 0.18);
+  --notification-accent-wash: rgba(138, 180, 255, 0.16);
+  --notification-border: rgba(138, 180, 255, 0.34);
+  --notification-bg: rgba(24, 27, 34, 0.92);
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--notification-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, var(--notification-accent-wash), transparent 42%),
+    var(--notification-bg);
+  color: #f7f9ff;
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(1.2);
+  pointer-events: auto;
+  animation: notificationEnter 240ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.cardExiting {
+  animation: notificationExit 240ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.success {
+  --notification-accent: #41d98a;
+  --notification-accent-soft: rgba(65, 217, 138, 0.18);
+  --notification-accent-wash: rgba(65, 217, 138, 0.16);
+  --notification-border: rgba(65, 217, 138, 0.34);
+}
+
+.error {
+  --notification-accent: #ff6b6b;
+  --notification-accent-soft: rgba(255, 107, 107, 0.18);
+  --notification-accent-wash: rgba(255, 107, 107, 0.16);
+  --notification-border: rgba(255, 107, 107, 0.34);
+}
+
+.warning {
+  --notification-accent: #f6c453;
+  --notification-accent-soft: rgba(246, 196, 83, 0.18);
+  --notification-accent-wash: rgba(246, 196, 83, 0.16);
+  --notification-border: rgba(246, 196, 83, 0.34);
+}
+
+.info {
+  --notification-accent: #7db7ff;
+  --notification-accent-soft: rgba(125, 183, 255, 0.18);
+  --notification-accent-wash: rgba(125, 183, 255, 0.16);
+  --notification-border: rgba(125, 183, 255, 0.34);
+}
+
+.icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--notification-accent-soft);
+  color: var(--notification-accent);
+}
+
+.icon svg,
+.closeButton svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.title {
+  min-width: 0;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.message {
+  min-width: 0;
+  color: rgba(239, 244, 255, 0.86);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.closeButton {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.closeButton:active {
+  transform: scale(0.96);
+}
+
+@keyframes notificationEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes notificationExit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+
+@media (max-width: 768px) {
+  .viewport {
+    top: max(10px, calc(var(--safe-top, 0px) + 10px));
+    width: calc(100vw - var(--safe-left, 0px) - var(--safe-right, 0px) - 24px);
+    gap: 8px;
+  }
+
+  .card {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    gap: 9px;
+    padding: 10px;
+    border-radius: 8px;
+  }
+
+  .icon,
+  .closeButton {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .cardExiting {
+    animation-duration: 1ms;
+  }
+
+  .closeButton {
+    transition: none;
+  }
+}

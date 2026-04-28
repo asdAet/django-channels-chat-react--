@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { friendsController } from "../../controllers/FriendsController";
 import { formatTimestamp } from "../../shared/lib/format";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
+import { useNotifications } from "../../shared/notifications";
 import {
   Avatar,
   Button,
@@ -10,7 +11,6 @@ import {
   Modal,
   Panel,
   Skeleton,
-  Toast,
 } from "../../shared/ui";
 import styles from "../../styles/pages/ChatRoomPage.module.css";
 import { MessageBubble } from "../../widgets/chat/MessageBubble";
@@ -40,6 +40,10 @@ export function ChatRoomPageView({
   onNavigate,
   user,
 }: ChatRoomPageViewProps) {
+  const notifications = useNotifications();
+  const offlineNotificationShownRef = useRef(false);
+  const connectionErrorNotificationRef = useRef<string | null>(null);
+  const visibleErrorNotificationRef = useRef<string | null>(null);
   const { room, headerSearch, scroll, composer, actions, view, fileDrop } =
     controller;
   const {
@@ -133,6 +137,53 @@ export function ChatRoomPageView({
   } = view;
   const { isDropTargetActive, fileDropBindings } = fileDrop;
   const loadingHeaderActionSlots = isPublicRoom ? 1 : 2;
+
+  useEffect(() => {
+    if (!isOnline) {
+      if (!offlineNotificationShownRef.current) {
+        offlineNotificationShownRef.current = true;
+        notifications.warning({
+          title: "Нет подключения",
+          message: "Мы восстановим соединение автоматически.",
+        });
+      }
+      return;
+    }
+
+    offlineNotificationShownRef.current = false;
+  }, [isOnline, notifications]);
+
+  useEffect(() => {
+    if (status !== "error" || !lastError) {
+      connectionErrorNotificationRef.current = null;
+      return;
+    }
+
+    if (connectionErrorNotificationRef.current === lastError) {
+      return;
+    }
+
+    connectionErrorNotificationRef.current = lastError;
+    notifications.error({
+      title: "Проблемы с соединением",
+      message: "Проверьте сеть и попробуйте еще раз.",
+    });
+  }, [lastError, notifications, status]);
+
+  useEffect(() => {
+    if (!visibleError) {
+      visibleErrorNotificationRef.current = null;
+      return;
+    }
+
+    if (visibleErrorNotificationRef.current === visibleError) {
+      return;
+    }
+
+    visibleErrorNotificationRef.current = visibleError;
+    notifications.error(visibleError);
+  }, [notifications, visibleError]);
+
   const searchPopoverContent = useMemo(
     () => (
       <>
@@ -242,18 +293,6 @@ export function ChatRoomPageView({
             <span>Можно перетащить сразу несколько файлов</span>
           </div>
         </div>
-      )}
-
-      {!isOnline && (
-        <Toast variant="warning" role="status">
-          Нет подключения к интернету. Мы восстановим соединение автоматически.
-        </Toast>
-      )}
-
-      {lastError && status === "error" && (
-        <Toast variant="danger" role="alert">
-          Проблемы с соединением. Проверьте сеть и попробуйте еще раз.
-        </Toast>
       )}
 
       <div className={styles.chatHeader}>
@@ -445,8 +484,6 @@ export function ChatRoomPageView({
       >
         {searchPopoverContent}
       </ChatHeaderSearchPopover>
-
-      {visibleError && <Toast variant="danger">{visibleError}</Toast>}
 
       <div className={styles.chatBox} aria-busy={loading}>
           <div

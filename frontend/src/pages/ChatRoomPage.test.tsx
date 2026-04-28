@@ -1,15 +1,17 @@
 import {
   act,
   fireEvent,
-  render,
+  render as rtlRender,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
+import type { ReactElement, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Message } from "../entities/message/types";
 import type { RoomDetails } from "../entities/room/types";
+import { NotificationProvider } from "../shared/notifications";
 
 const wsState = vi.hoisted(() => ({
   status: "online" as "online" | "connecting" | "offline" | "error" | "closed",
@@ -220,6 +222,21 @@ vi.mock("../widgets/chat/TelegramEmojiPicker", () => ({
 }));
 
 import { ChatRoomPage } from "./ChatRoomPage";
+
+type RenderOptions = Parameters<typeof rtlRender>[1];
+
+const render = (ui: ReactElement, options?: RenderOptions) => {
+  const UserWrapper = options?.wrapper;
+
+  return rtlRender(ui, {
+    ...options,
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <NotificationProvider>
+        {UserWrapper ? <UserWrapper>{children}</UserWrapper> : children}
+      </NotificationProvider>
+    ),
+  });
+};
 
 const user = {
   publicRef: "demo",
@@ -487,6 +504,26 @@ describe("ChatRoomPage", () => {
     );
 
     expect(wsState.options?.roomId).toBe(7);
+  });
+
+  it("shows realtime errors through the notification service", () => {
+    wsState.status = "error";
+    wsState.lastError = "connection_error";
+
+    render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("notification-viewport")).toBeInTheDocument();
+    expect(screen.getByText("Проблемы с соединением")).toBeInTheDocument();
+    expect(
+      screen.getByText("Проверьте сеть и попробуйте еще раз."),
+    ).toBeInTheDocument();
   });
 
   it("opens the mobile drawer from room chats", () => {

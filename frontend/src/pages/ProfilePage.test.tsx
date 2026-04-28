@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const presenceMock = vi.hoisted(() => ({
@@ -59,7 +65,11 @@ vi.mock("../shared/ui", async () => {
   };
 });
 
+import { NotificationProvider } from "../shared/notifications";
 import { ProfilePage } from "./ProfilePage";
+
+const render = (ui: ReactElement) =>
+  rtlRender(<NotificationProvider>{ui}</NotificationProvider>);
 
 const user = {
   publicRef: "demo",
@@ -132,9 +142,15 @@ describe("ProfilePage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Имя уже занято")).toBeInTheDocument();
+      expect(screen.getByTestId("notification-viewport")).toBeInTheDocument();
       expect(
         screen.getByText("Проверьте введенные данные и попробуйте снова."),
       ).toBeInTheDocument();
+      expect(
+        screen
+          .getByText("Проверьте введенные данные и попробуйте снова.")
+          .closest("[data-variant]"),
+      ).toHaveAttribute("data-variant", "error");
     });
   });
 

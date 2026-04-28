@@ -27,7 +27,6 @@ type ProfileSaveResult =
  * Контракт навигационного слоя приложения.
  *
  * @property user Текущий авторизованный пользователь или `null` для гостя.
- * @property error Сообщение последней auth-ошибки, которое нужно показать на login/register.
  * @property passwordRules Список правил для отображения под формой регистрации.
  * @property googleAuthDisabledReason Причина, по которой кнопка Google OAuth недоступна.
  * @property onNavigate Унифицированный переход между страницами.
@@ -39,7 +38,6 @@ type ProfileSaveResult =
  */
 type AppRoutesProps = {
   user: UserProfile | null;
-  error: string | null;
   passwordRules: string[];
   googleAuthDisabledReason: string | null;
   onNavigate: (path: string) => void;
@@ -128,7 +126,6 @@ function InviteRoute({ onNavigate }: Pick<AppRoutesProps, "onNavigate">) {
  */
 export function AppRoutes({
   user,
-  error,
   passwordRules,
   googleAuthDisabledReason,
   onNavigate,
@@ -149,7 +146,6 @@ export function AppRoutes({
             onGoogleAuth={onGoogleOAuth}
             onNavigate={onNavigate}
             googleAuthDisabledReason={googleAuthDisabledReason}
-            error={error}
           />
         }
       />
@@ -161,7 +157,6 @@ export function AppRoutes({
             onGoogleAuth={onGoogleOAuth}
             googleAuthDisabledReason={googleAuthDisabledReason}
             onNavigate={onNavigate}
-            error={error}
             passwordRules={passwordRules}
           />
         }

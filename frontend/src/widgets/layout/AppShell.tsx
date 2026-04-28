@@ -13,7 +13,6 @@ import {
   useMobileShell,
 } from "../../shared/layout/useMobileShell";
 import { isPrefixlessChatPath } from "../../shared/lib/chatTarget";
-import { Toast } from "../../shared/ui";
 import styles from "../../styles/layout/AppShell.module.css";
 import { InfoPanel } from "./InfoPanel";
 import { Sidebar } from "./Sidebar";
@@ -25,9 +24,6 @@ type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
   onLogout: () => void;
-  banner: string | null;
-  error: string | null;
-  isAuthRoute: boolean;
   children: ReactNode;
 };
 
@@ -54,9 +50,6 @@ function ShellLayout({
   user,
   onNavigate,
   onLogout,
-  banner,
-  error,
-  isAuthRoute,
   children,
 }: Props) {
   const { isOpen } = useInfoPanel();
@@ -104,7 +97,6 @@ function ShellLayout({
       className={[
         styles.shell,
         isOpen ? styles.withInfoPanel : "",
-        showMobilePageHeader ? styles.mobilePageHeaderVisible : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -167,20 +159,6 @@ function ShellLayout({
             </button>
             <strong className={styles.mobilePageTitle}>{mobileTitle}</strong>
           </header>
-        )}
-        {(banner || (error && !isAuthRoute)) && (
-          <div className={styles.banners}>
-            {banner && (
-              <Toast variant="success" role="status">
-                {banner}
-              </Toast>
-            )}
-            {error && !isAuthRoute && (
-              <Toast variant="danger" role="alert">
-                {error}
-              </Toast>
-            )}
-          </div>
         )}
         <div
           className={[styles.mainInner, isChatRoute ? styles.mainInnerChat : ""]

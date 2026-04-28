@@ -67,7 +67,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/login"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}
@@ -82,7 +81,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/register"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}
@@ -97,7 +95,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/@alice"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}
@@ -112,7 +109,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/public"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}
@@ -127,7 +123,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/friends"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}
@@ -142,7 +137,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/users/%40%40%40%40"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}
@@ -157,7 +151,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/direct"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}
@@ -172,7 +165,6 @@ describe("AppRoutes", () => {
       <MemoryRouter initialEntries={["/some/deep/path"]}>
         <AppRoutes
           user={null}
-          error={null}
           passwordRules={[]}
           googleAuthDisabledReason={null}
           {...handlers}

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useRef } from "react";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
@@ -18,6 +18,7 @@ import { debugLog } from "../shared/lib/debug";
 import { DeviceProvider } from "../shared/lib/device";
 import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { useViewportCssVars } from "../shared/lib/viewport/useViewportCssVars";
+import { NotificationProvider, useNotifications } from "../shared/notifications";
 import { PresenceProvider } from "../shared/presence";
 import { SiteVisitTelemetry } from "../shared/visitorTelemetry";
 import { WsAuthProvider } from "../shared/wsAuth";
@@ -30,10 +31,6 @@ type SeoDescriptor = {
   title: string;
   description: string;
   robots: string;
-};
-
-type AuthRouteLocationState = {
-  oauthError?: string | null;
 };
 
 const DEFAULT_SEO: SeoDescriptor = {
@@ -181,17 +178,11 @@ function AppWorkspace() {
   const location = useLocation();
   const { config: runtimeConfig } = useRuntimeConfig();
   const { auth, login, register, logout, updateProfile } = useAuth();
+  const notifications = useNotifications();
   const { rules: passwordRules } = usePasswordRules(
     location.pathname === "/register",
   );
-  const [banner, setBanner] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!banner) return;
-    const timerId = window.setTimeout(() => setBanner(null), 4200);
-    return () => window.clearTimeout(timerId);
-  }, [banner]);
+  const notifiedOauthErrorRef = useRef<string | null>(null);
 
   /**
    * Извлекает message.
@@ -309,33 +300,34 @@ function AppWorkspace() {
 
   const isAuthRoute =
     location.pathname === "/login" || location.pathname === "/register";
-  const authRouteState =
-    (location.state as AuthRouteLocationState | null) ?? null;
-  const routeOauthError = authRouteState?.oauthError ?? null;
-  const authError = error ?? routeOauthError;
 
   const clearAuthRouteState = useCallback(() => {
-    if (!isAuthRoute || !routeOauthError) {
+    if (!isAuthRoute || (!location.search && !location.state)) {
       return;
     }
 
     navigate(location.pathname, { replace: true, state: null });
-  }, [isAuthRoute, location.pathname, navigate, routeOauthError]);
+  }, [
+    isAuthRoute,
+    location.pathname,
+    location.search,
+    location.state,
+    navigate,
+  ]);
 
   const handleLogin = useCallback(
     async (identifier: string, password: string) => {
       clearAuthRouteState();
-      setError(null);
       try {
         await login({ identifier, password });
-        setBanner("Добро пожаловать обратно!");
+        notifications.success("Добро пожаловать обратно!");
         onNavigate("/public");
       } catch (err) {
         debugLog("Login failed", err);
-        setError(extractAuthMessage(err, "Неверный логин или пароль"));
+        notifications.error(extractAuthMessage(err, "Неверный логин или пароль"));
       }
     },
-    [clearAuthRouteState, login, onNavigate],
+    [clearAuthRouteState, login, notifications, onNavigate],
   );
 
   const handleRegister = useCallback(
@@ -348,21 +340,22 @@ function AppWorkspace() {
       email?: string;
     }) => {
       clearAuthRouteState();
-      setError(null);
       try {
         await register({
           ...payload,
           username: payload.username,
           email: payload.email,
         });
-        setBanner("Аккаунт создан. Можно общаться!");
+        notifications.success("Аккаунт создан. Можно общаться!");
         onNavigate("/public");
       } catch (err) {
         debugLog("Registration failed", err);
-        setError(extractAuthMessage(err, "Проверьте данные регистрации"));
+        notifications.error(
+          extractAuthMessage(err, "Проверьте данные регистрации"),
+        );
       }
     },
-    [clearAuthRouteState, onNavigate, register],
+    [clearAuthRouteState, notifications, onNavigate, register],
   );
 
   const isGoogleOAuthConfigured = Boolean(
@@ -377,7 +370,6 @@ function AppWorkspace() {
       return;
     }
     clearAuthRouteState();
-    setError(null);
     startGoogleAuthRedirect(buildPublicChatPath(), {
       errorReturnTo: `${location.pathname}${location.search}`,
     });
@@ -390,9 +382,9 @@ function AppWorkspace() {
 
   const handleLogout = useCallback(async () => {
     await logout();
-    setBanner("Вы вышли из аккаунта");
+    notifications.info("Вы вышли из аккаунта");
     onNavigate("/login");
-  }, [logout, onNavigate]);
+  }, [logout, notifications, onNavigate]);
 
   const handleProfileSave = useCallback(
     async (fields: {
@@ -403,10 +395,9 @@ function AppWorkspace() {
     }): Promise<ProfileSaveResult> => {
       if (!auth.user)
         return { ok: false, message: "Сначала войдите в аккаунт." };
-      setError(null);
       try {
         await updateProfile(fields);
-        setBanner("Профиль обновлен");
+        notifications.success("Профиль обновлен");
         const nextPublicRef = (auth.user?.publicRef || "").trim() || null;
         if (nextPublicRef) {
           onNavigate(buildUserProfilePath(nextPublicRef));
@@ -421,7 +412,7 @@ function AppWorkspace() {
           typeof apiErr.status === "number" &&
           apiErr.status === 401
         ) {
-          setError("Сессия истекла. Войдите снова.");
+          notifications.error("Сессия истекла. Войдите снова.");
           onNavigate("/login");
           return { ok: false, message: "Сессия истекла. Войдите снова." };
         }
@@ -446,7 +437,7 @@ function AppWorkspace() {
         return { ok: false, message: extractMessage(err) };
       }
     },
-    [auth.user, onNavigate, updateProfile],
+    [auth.user, notifications, onNavigate, updateProfile],
   );
 
   useEffect(() => {
@@ -460,16 +451,19 @@ function AppWorkspace() {
       return;
     }
 
-    navigate(location.pathname, {
-      replace: true,
-      state: { ...(authRouteState ?? {}), oauthError },
-    });
+    const notificationKey = `${location.pathname}:${oauthError}`;
+    if (notifiedOauthErrorRef.current !== notificationKey) {
+      notifiedOauthErrorRef.current = notificationKey;
+      notifications.error(oauthError);
+    }
+
+    navigate(location.pathname, { replace: true, state: null });
   }, [
-    authRouteState,
     isAuthRoute,
     location.pathname,
     location.search,
     navigate,
+    notifications,
   ]);
 
   const realtimeProvidersReady = !auth.loading && !isAuthRoute;
@@ -477,7 +471,6 @@ function AppWorkspace() {
   const routesElement = (
     <AppRoutes
       user={auth.user}
-      error={authError}
       passwordRules={passwordRules}
       googleAuthDisabledReason={googleAuthDisabledReason}
       onNavigate={onNavigate}
@@ -501,9 +494,6 @@ function AppWorkspace() {
                 user={auth.user}
                 onNavigate={onNavigate}
                 onLogout={handleLogout}
-                banner={banner}
-                error={authError}
-                isAuthRoute={isAuthRoute}
               >
                 {routesElement}
               </AppShell>
@@ -581,7 +571,9 @@ export function App() {
     <BrowserRouter
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
-      <AppInner />
+      <NotificationProvider>
+        <AppInner />
+      </NotificationProvider>
     </BrowserRouter>
   );
 }

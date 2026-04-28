@@ -121,9 +121,6 @@ function ShellHarness() {
       user={user}
       onNavigate={(path) => navigate(path)}
       onLogout={vi.fn()}
-      banner={null}
-      error={null}
-      isAuthRoute={false}
     >
       <div data-testid="route-value">{location.pathname}</div>
     </AppShell>
