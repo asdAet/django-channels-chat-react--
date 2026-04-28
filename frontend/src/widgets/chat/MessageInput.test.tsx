@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CUSTOM_EMOJI_CLIPBOARD_MIME,
   CUSTOM_EMOJI_EDITOR_SENTINEL_ATTRIBUTE,
-  CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
   type CustomEmoji,
   getCustomEmojiDraftLength,
   getCustomEmojiPackSummaries,
@@ -148,14 +147,15 @@ describe("MessageInput", () => {
     expect(screen.getByTestId("draft-value")).toHaveTextContent(
       mockCustomEmoji.token,
     );
-    expect(
-      screen
-        .getByTestId("chat-message-input")
-        .querySelector(`[data-custom-emoji-id="${mockCustomEmoji.id}"]`),
-    ).toBeTruthy();
-    expect(screen.getByTestId("chat-message-input")).not.toHaveTextContent(
-      mockCustomEmoji.token,
+    const emojiNode = screen
+      .getByTestId("chat-message-input")
+      .querySelector(`[data-custom-emoji-id="${mockCustomEmoji.id}"]`);
+    const copyFallback = emojiNode?.querySelector(
+      "[data-custom-emoji-copy-placeholder]",
     );
+
+    expect(emojiNode).toBeTruthy();
+    expect(copyFallback).toHaveTextContent(mockCustomEmoji.token);
   });
 
   it("keeps the visual placeholder outside editable message content", () => {
@@ -345,7 +345,7 @@ describe("MessageInput", () => {
     expect(screen.getByTestId("chat-message-input").textContent).toBe("");
   });
 
-  it("copies a selected custom emoji as one visible clipboard symbol", () => {
+  it("copies a selected custom emoji as a portable plain-text token", () => {
     render(<ControlledMessageInput initialDraft={mockCustomEmoji.token} />);
 
     const editor = screen.getByTestId("chat-message-input");
@@ -366,9 +366,36 @@ describe("MessageInput", () => {
     );
     expect(clipboardData.setData).toHaveBeenCalledWith(
       "text/plain",
-      CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
+      mockCustomEmoji.token,
     );
-    expect(CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER).toHaveLength(1);
+  });
+
+  it("cuts mixed text and custom emoji with the portable clipboard payload", () => {
+    const initialDraft = `hello ${mockCustomEmoji.token}`;
+    render(<ControlledMessageInput initialDraft={initialDraft} />);
+
+    const editor = screen.getByTestId("chat-message-input");
+    setCustomEmojiDraftSelection(editor, {
+      start: 0,
+      end: getCustomEmojiDraftLength(initialDraft),
+    });
+
+    const clipboardData = {
+      setData: vi.fn(),
+    };
+
+    fireEvent.cut(editor, { clipboardData });
+
+    expect(clipboardData.setData).toHaveBeenCalledWith(
+      CUSTOM_EMOJI_CLIPBOARD_MIME,
+      initialDraft,
+    );
+    expect(clipboardData.setData).toHaveBeenCalledWith(
+      "text/plain",
+      initialDraft,
+    );
+    expect(screen.getByTestId("draft-value").textContent).toBe("");
+    expect(screen.getByTestId("chat-message-input").textContent).toBe("");
   });
 
   it("clears mixed text and custom emoji atomically with keyboard delete", () => {

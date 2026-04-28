@@ -14,7 +14,6 @@ import {
 } from "../../shared/config/runtimeConfig";
 import {
   CUSTOM_EMOJI_CLIPBOARD_MIME,
-  CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
   type CustomEmoji,
   getCustomEmojiPackSummaries,
 } from "../../shared/customEmoji";
@@ -443,8 +442,57 @@ describe("MessageBubble", () => {
     );
     expect(clipboardData.setData).toHaveBeenCalledWith(
       "text/plain",
-      CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
+      firstEmoji.token,
     );
+  });
+
+  it("copies message text from the context menu with portable custom emoji tokens", async () => {
+    const restoreDesktopInputModel = installDesktopInputModel();
+    const firstEmoji = getTestEmoji();
+    const originalClipboard = navigator.clipboard;
+    const writeText =
+      vi.fn<Clipboard["writeText"]>().mockResolvedValue(undefined);
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    try {
+      const message: Message = {
+        ...baseMessage,
+        content: `hello ${firstEmoji.token}`,
+      };
+
+      const { container } = render(
+        <MessageBubble
+          message={message}
+          isOwn={false}
+          onlineUsernames={new Set<string>()}
+          onReply={vi.fn()}
+          onReact={vi.fn()}
+        />,
+      );
+
+      const article = container.querySelector(
+        'article[data-message-id="1"]',
+      ) as HTMLElement;
+
+      fireEvent.contextMenu(article);
+      fireEvent.click(
+        screen.getByRole("menuitem", { name: "Копировать текст" }),
+      );
+
+      await waitFor(() => {
+        expect(writeText).toHaveBeenCalledWith(`hello ${firstEmoji.token}`);
+      });
+    } finally {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: originalClipboard,
+      });
+      restoreDesktopInputModel();
+    }
   });
 
   it("visually marks sent custom emoji inside the browser selection", async () => {
@@ -616,10 +664,15 @@ describe("MessageBubble", () => {
     expect(
       screen.getByRole("button", { name: `${firstEmoji.label} 2` }),
     ).toBeInTheDocument();
-    expect(
-      container.querySelector(`[data-custom-emoji-id="${firstEmoji.id}"]`),
-    ).toBeTruthy();
-    expect(screen.queryByText(firstEmoji.token)).not.toBeInTheDocument();
+    const emojiNode = container.querySelector(
+      `[data-custom-emoji-id="${firstEmoji.id}"]`,
+    );
+    const copyFallback = emojiNode?.querySelector(
+      "[data-custom-emoji-copy-placeholder]",
+    );
+
+    expect(emojiNode).toBeTruthy();
+    expect(copyFallback).toHaveTextContent(firstEmoji.token);
   });
 
   it("adds a custom emoji reaction from the reaction picker", async () => {

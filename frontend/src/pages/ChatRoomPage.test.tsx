@@ -712,14 +712,15 @@ describe("ChatRoomPage", () => {
     fireEvent.click(screen.getByTestId("chat-emoji-button"));
     fireEvent.click(screen.getByRole("button", { name: "Mock custom emoji" }));
 
-    expect(
-      screen
-        .getByTestId("chat-message-input")
-        .querySelector(`[data-custom-emoji-id="${customEmojiMock.emoji.id}"]`),
-    ).toBeTruthy();
-    expect(screen.getByTestId("chat-message-input")).not.toHaveTextContent(
-      customEmojiMock.emoji.token,
+    const emojiNode = screen
+      .getByTestId("chat-message-input")
+      .querySelector(`[data-custom-emoji-id="${customEmojiMock.emoji.id}"]`);
+    const copyFallback = emojiNode?.querySelector(
+      "[data-custom-emoji-copy-placeholder]",
     );
+
+    expect(emojiNode).toBeTruthy();
+    expect(copyFallback).toHaveTextContent(customEmojiMock.emoji.token);
     expect(wsState.send.mock.calls).toHaveLength(sendCallsBeforeSelect);
   });
 

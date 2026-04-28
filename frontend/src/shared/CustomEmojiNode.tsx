@@ -5,7 +5,6 @@ import { CustomEmojiRenderer } from "./CustomEmojiRenderer";
 import {
   CUSTOM_EMOJI_ID_ATTRIBUTE,
   CUSTOM_EMOJI_LABEL_ATTRIBUTE,
-  CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
   CUSTOM_EMOJI_TOKEN_ATTRIBUTE,
 } from "./customEmojiRichText";
 
@@ -75,7 +74,7 @@ export function CustomEmojiNode({
         data-custom-emoji-copy-placeholder="true"
         style={getCustomEmojiCopyPlaceholderStyle(size)}
       >
-        {CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER}
+        {emoji.token}
       </span>
       <span style={customEmojiVisualStyle}>
         <CustomEmojiRenderer

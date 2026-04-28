@@ -622,16 +622,14 @@ export const buildCustomEmojiClipboardHtml = (content: string): string =>
         return escapeHtml(part.value).replaceAll("\n", "<br>");
       }
 
-      return `<span ${CUSTOM_EMOJI_TOKEN_ATTRIBUTE}="${escapeHtml(part.value.token)}" ${CUSTOM_EMOJI_ID_ATTRIBUTE}="${escapeHtml(part.value.id)}" ${CUSTOM_EMOJI_LABEL_ATTRIBUTE}="${escapeHtml(part.value.label)}" aria-label="${escapeHtml(part.value.label)}">${CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER}</span>`;
+      return `<span ${CUSTOM_EMOJI_TOKEN_ATTRIBUTE}="${escapeHtml(part.value.token)}" ${CUSTOM_EMOJI_ID_ATTRIBUTE}="${escapeHtml(part.value.id)}" ${CUSTOM_EMOJI_LABEL_ATTRIBUTE}="${escapeHtml(part.value.label)}" aria-label="${escapeHtml(part.value.label)}">${escapeHtml(part.value.token)}</span>`;
     })
     .join("");
 
 export const buildCustomEmojiClipboardPlainText = (content: string): string =>
   parseCustomEmojiText(content)
     .map((part) =>
-      part.type === "text"
-        ? part.value
-        : CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER,
+      part.type === "text" ? part.value : part.value.token,
     )
     .join("");
 

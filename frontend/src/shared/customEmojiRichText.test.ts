@@ -36,14 +36,22 @@ describe("customEmojiRichText", () => {
     expect(parseCustomEmojiClipboardHtml(html)).toBe(content);
   });
 
-  it("represents copied custom emoji as one user-visible text symbol", () => {
+  it("represents copied custom emoji as a portable plain-text token", () => {
     const firstEmoji = getTestEmoji();
 
     const plainText = buildCustomEmojiClipboardPlainText(firstEmoji.token);
 
-    expect(plainText).toBe(CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER);
-    expect(plainText).toHaveLength(1);
-    expect(plainText).not.toContain(firstEmoji.token);
+    expect(plainText).toBe(firstEmoji.token);
+    expect(plainText).not.toContain(CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER);
+  });
+
+  it("uses a portable token fallback inside clipboard html", () => {
+    const firstEmoji = getTestEmoji();
+
+    const html = buildCustomEmojiClipboardHtml(firstEmoji.token);
+
+    expect(html).toContain(firstEmoji.token);
+    expect(html).not.toContain(CUSTOM_EMOJI_PLAIN_TEXT_PLACEHOLDER);
   });
 
   it("detects a strictly single custom emoji only message", () => {
