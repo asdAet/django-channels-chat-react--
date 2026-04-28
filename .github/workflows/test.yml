@@ -190,6 +190,29 @@ jobs:
               exit 1
             fi
 
+            echo "Repository synced. Verifying deployed files..."
+
+            echo "PWD:"
+            pwd
+
+            echo "HEAD:"
+            git rev-parse HEAD
+
+            echo "Deploy script line endings check:"
+            if grep -n "$(printf '\r')" deploy/observability/postgres/bootstrap.sh; then
+              echo "CRLF detected in deploy/observability/postgres/bootstrap.sh"
+              exit 1
+            fi
+
+            echo "bootstrap.sh first lines:"
+            sed -n '1,8p' deploy/observability/postgres/bootstrap.sh
+
+            echo "Removing previous one-shot postgres-bootstrap container..."
+            compose \
+              -f docker-compose.prod.yml \
+              -f deploy/observability/compose.yml \
+              rm -f postgres-bootstrap
+
             echo "Repository synced. Starting Docker rebuild..."
 
             compose \
