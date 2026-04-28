@@ -1,15 +1,12 @@
 import {
   type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
 import styles from "../../styles/ui/ImageLightbox.module.css";
-import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import type {
   ImageLightboxMediaItem,
   ImageLightboxProps,
@@ -64,28 +61,6 @@ const formatSentAt = (value: string): string => {
   }).format(parsed);
 };
 
-const triggerDownload = (url: string, fileName: string): void => {
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  anchor.rel = "noopener noreferrer";
-  anchor.target = "_blank";
-  anchor.click();
-};
-
-const ACTION_MENU_LONG_PRESS_MS = 520;
-const ACTION_MENU_TOUCH_MOVE_CANCEL_PX = 10;
-const ACTION_MENU_CLICK_SUPPRESS_MS = 420;
-
-type ActionMenuPosition = {
-  x: number;
-  y: number;
-};
-
-type ActionMenuTouchIntent = ActionMenuPosition & {
-  pointerId: number;
-};
-
 /**
  * Unified media viewer shell for chat attachments.
  *
@@ -95,9 +70,6 @@ type ActionMenuTouchIntent = ActionMenuPosition & {
 export function ImageLightbox(props: ImageLightboxProps) {
   const { onClose } = props;
   const requestClose = useModalHistoryGuard(onClose);
-  const longPressTimerRef = useRef<number | null>(null);
-  const touchIntentRef = useRef<ActionMenuTouchIntent | null>(null);
-  const suppressClickUntilRef = useRef(0);
   const mediaItems = useMemo<ImageLightboxMediaItem[]>(
     () =>
       "mediaItems" in props
@@ -111,7 +83,6 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const [activeIndex, setActiveIndex] = useState(() =>
     clampIndex(requestedInitialIndex, mediaItems.length),
   );
-  const [actionMenu, setActionMenu] = useState<ActionMenuPosition | null>(null);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -125,34 +96,13 @@ export function ImageLightbox(props: ImageLightboxProps) {
   const hasNavigation = mediaItems.length > 1;
   const currentItem = mediaItems[activeIndex];
 
-  const clearActionMenuIntent = useCallback(() => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-    touchIntentRef.current = null;
-  }, []);
-
-  useEffect(
-    () => () => {
-      clearActionMenuIntent();
-    },
-    [clearActionMenuIntent],
-  );
-
-  const closeActionMenu = useCallback(() => {
-    setActionMenu(null);
-  }, []);
-
   const goPrevious = useCallback(() => {
-    closeActionMenu();
     setActiveIndex((current) => clampIndex(current - 1, mediaItems.length));
-  }, [closeActionMenu, mediaItems.length]);
+  }, [mediaItems.length]);
 
   const goNext = useCallback(() => {
-    closeActionMenu();
     setActiveIndex((current) => clampIndex(current + 1, mediaItems.length));
-  }, [closeActionMenu, mediaItems.length]);
+  }, [mediaItems.length]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -209,116 +159,6 @@ export function ImageLightbox(props: ImageLightboxProps) {
     [requestClose],
   );
 
-  const openActionMenu = useCallback(
-    (position: ActionMenuPosition) => {
-      clearActionMenuIntent();
-      setActionMenu(position);
-    },
-    [clearActionMenuIntent],
-  );
-
-  const handleContextMenu = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      openActionMenu({ x: event.clientX, y: event.clientY });
-    },
-    [openActionMenu],
-  );
-
-  const handleActionPointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (event.pointerType !== "touch") {
-        return;
-      }
-
-      if (!event.isPrimary) {
-        clearActionMenuIntent();
-        return;
-      }
-
-      const intent = {
-        pointerId: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-      };
-      clearActionMenuIntent();
-      touchIntentRef.current = intent;
-      longPressTimerRef.current = window.setTimeout(() => {
-        suppressClickUntilRef.current =
-          Date.now() + ACTION_MENU_CLICK_SUPPRESS_MS;
-        openActionMenu({ x: intent.x, y: intent.y });
-      }, ACTION_MENU_LONG_PRESS_MS);
-    },
-    [clearActionMenuIntent, openActionMenu],
-  );
-
-  const handleActionPointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      const intent = touchIntentRef.current;
-      if (!intent || intent.pointerId !== event.pointerId) {
-        return;
-      }
-
-      if (
-        Math.hypot(event.clientX - intent.x, event.clientY - intent.y) >
-        ACTION_MENU_TOUCH_MOVE_CANCEL_PX
-      ) {
-        clearActionMenuIntent();
-      }
-    },
-    [clearActionMenuIntent],
-  );
-
-  const handleActionPointerEnd = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      const intent = touchIntentRef.current;
-      if (intent?.pointerId === event.pointerId) {
-        clearActionMenuIntent();
-      }
-    },
-    [clearActionMenuIntent],
-  );
-
-  const handleShellClickCapture = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest('[role="menu"]') !== null
-      ) {
-        return;
-      }
-
-      if (Date.now() < suppressClickUntilRef.current) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    },
-    [],
-  );
-
-  const handleDownload = useCallback(() => {
-    if (!currentItem) {
-      return;
-    }
-
-    triggerDownload(
-      currentItem.downloadUrl ?? currentItem.src,
-      currentItem.metadata.fileName,
-    );
-  }, [currentItem]);
-
-  const actionMenuItems = useMemo<ContextMenuItem[]>(
-    () => [
-      {
-        label: "Скачать",
-        onClick: handleDownload,
-      },
-    ],
-    [handleDownload],
-  );
-
   if (!currentItem) {
     return null;
   }
@@ -342,16 +182,8 @@ export function ImageLightbox(props: ImageLightboxProps) {
       aria-modal="true"
       aria-label={dialogLabel}
       onClick={handleOverlayClick}
-      onContextMenu={handleContextMenu}
     >
-      <div
-        className={styles.shell}
-        onPointerDown={handleActionPointerDown}
-        onPointerMove={handleActionPointerMove}
-        onPointerUp={handleActionPointerEnd}
-        onPointerCancel={handleActionPointerEnd}
-        onClickCapture={handleShellClickCapture}
-      >
+      <div className={styles.shell}>
         {hasNavigation ? (
           <button
             type="button"
@@ -412,14 +244,6 @@ export function ImageLightbox(props: ImageLightboxProps) {
           </div>
         </div>
 
-        {actionMenu ? (
-          <ContextMenu
-            items={actionMenuItems}
-            x={actionMenu.x}
-            y={actionMenu.y}
-            onClose={closeActionMenu}
-          />
-        ) : null}
       </div>
     </div>
   );

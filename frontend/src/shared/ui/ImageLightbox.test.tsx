@@ -69,9 +69,8 @@ describe("ImageLightbox", () => {
     window.history.replaceState(null, "", "/");
   });
 
-  it("renders an image viewer and closes when the image is clicked", () => {
+  it("renders an image viewer without media-surface actions or media click close", async () => {
     const onClose = vi.fn();
-    vi.useFakeTimers();
 
     render(
       <ImageLightbox
@@ -95,16 +94,14 @@ describe("ImageLightbox", () => {
       clientY: 64,
     });
     expect(
-      screen.getByRole("menuitem", { name: "Скачать" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("menuitem", { name: "Закрыть" }),
+      screen.queryByRole("menuitem", { name: "Скачать" }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByAltText("photo"));
-    vi.advanceTimersByTime(402);
+    expect(onClose).not.toHaveBeenCalled();
 
-    expect(onClose).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("dialog"));
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
   it("uses desktop zoom interactions for fine pointer screens", () => {

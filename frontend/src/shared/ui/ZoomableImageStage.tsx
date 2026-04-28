@@ -48,7 +48,6 @@ type BaseZoomableImageStageProps = ZoomableImageStageProps & {
 
 const DESKTOP_DOUBLE_CLICK_SCALE = 2.5;
 const MOBILE_DOUBLE_TAP_SCALE = 2.35;
-const CLOSE_TAP_DELAY_MS = 220;
 const DOUBLE_TAP_CLICK_SUPPRESS_MS = 320;
 const TAP_MAX_MOVEMENT_PX = 6;
 const MOMENTUM_MIN_VELOCITY_PX_PER_MS = 0.08;
@@ -422,7 +421,6 @@ function BaseZoomableImageStage({
   const lastTapRef = useRef<number>(0);
   const tapStartPointRef = useRef<Point | null>(null);
   const gestureMovedRef = useRef(false);
-  const closeTimerRef = useRef<number | null>(null);
   const suppressCloseUntilRef = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
@@ -522,34 +520,6 @@ function BaseZoomableImageStage({
       observer.disconnect();
     };
   }, [reClampTransform, refreshStageMeasurements]);
-
-  useEffect(
-    () => () => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    },
-    [],
-  );
-
-  const clearScheduledClose = useCallback(() => {
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, []);
-
-  const scheduleClose = useCallback(() => {
-    if (!onRequestClose) {
-      return;
-    }
-
-    clearScheduledClose();
-    closeTimerRef.current = window.setTimeout(() => {
-      closeTimerRef.current = null;
-      onRequestClose();
-    }, CLOSE_TAP_DELAY_MS);
-  }, [clearScheduledClose, onRequestClose]);
 
   const updatePointer = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>): Point => {
@@ -666,7 +636,6 @@ function BaseZoomableImageStage({
         return;
       }
 
-      clearScheduledClose();
       stopMomentum();
       if (event.cancelable) {
         event.preventDefault();
@@ -685,7 +654,6 @@ function BaseZoomableImageStage({
       zoomAt(nextScale, point);
     },
     [
-      clearScheduledClose,
       endInteraction,
       getFramePointFromClient,
       mode,
@@ -731,7 +699,6 @@ function BaseZoomableImageStage({
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
-      clearScheduledClose();
       stopMomentum();
       preventNativeTouchGesture(event);
       refreshStageMeasurements();
@@ -780,7 +747,6 @@ function BaseZoomableImageStage({
       );
     },
     [
-      clearScheduledClose,
       getEventTimestamp,
       mode,
       preventNativeTouchGesture,
@@ -1022,7 +988,6 @@ function BaseZoomableImageStage({
         return;
       }
 
-      clearScheduledClose();
       stopMomentum();
       suppressCloseUntilRef.current = Date.now() + DOUBLE_TAP_CLICK_SUPPRESS_MS;
       event.preventDefault();
@@ -1030,7 +995,6 @@ function BaseZoomableImageStage({
       toggleZoomAt(point);
     },
     [
-      clearScheduledClose,
       getFramePointFromClient,
       mode,
       refreshStageMeasurements,
@@ -1057,13 +1021,12 @@ function BaseZoomableImageStage({
       }
 
       if (event.target === imageRef.current) {
-        scheduleClose();
         return;
       }
 
       onRequestClose();
     },
-    [onRequestClose, scheduleClose],
+    [onRequestClose],
   );
 
   const handleImageLoad = useCallback(() => {

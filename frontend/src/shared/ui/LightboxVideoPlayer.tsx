@@ -9,8 +9,8 @@ import styles from "../../styles/ui/LightboxVideoPlayer.module.css";
 import {
   buildSwipeDismissMetrics,
   hasVerticalSwipeIntent,
-  shouldDismissBySwipe,
   type Point,
+  shouldDismissBySwipe,
 } from "./zoomableImageGeometry";
 
 type LightboxVideoPlayerProps = {
@@ -239,10 +239,10 @@ export function LightboxVideoPlayer({
       data-lightbox-video-player="true"
       data-media-file={fileName}
       onClick={(event) => event.stopPropagation()}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={finishSwipe}
-      onPointerCancel={finishSwipe}
+      onPointerDownCapture={handlePointerDown}
+      onPointerMoveCapture={handlePointerMove}
+      onPointerUpCapture={finishSwipe}
+      onPointerCancelCapture={finishSwipe}
     >
       <div className={styles.playerHost} data-testid="lightbox-video-player">
         <video
