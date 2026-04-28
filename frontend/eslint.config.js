@@ -255,6 +255,7 @@ export default defineConfig([
       'simple-import-sort/imports': 'warn',
       'simple-import-sort/exports': 'warn',
       'local/no-recursive-component-render': 'error',
+      'react-hooks/set-state-in-effect': 'off',
       'no-unused-private-class-members': 'warn',
       'css-modules/no-unused-class': 'warn',
       'css-modules/no-undef-class': 'warn',
