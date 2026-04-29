@@ -245,9 +245,7 @@ const resolveAttachmentIdFromTarget = (
     return null;
   }
 
-  const mediaTarget = target.closest<HTMLElement>(
-    "[data-attachment-id]",
-  );
+  const mediaTarget = target.closest<HTMLElement>("[data-attachment-id]");
   const rawAttachmentId = mediaTarget?.dataset.attachmentId;
   if (!rawAttachmentId) {
     return null;
@@ -436,15 +434,28 @@ function ReactionChip({
 /**
  * React-компонент CheckMark отвечает за отрисовку и обработку UI-сценария.
  */
-function CheckMark({ isRead }: { isRead: boolean }) {
+function CheckMark({
+  isRead,
+  isPending,
+}: {
+  isRead: boolean;
+  isPending: boolean;
+}) {
+  const ariaLabel = isPending
+    ? "Отправляется"
+    : isRead
+      ? "Прочитано"
+      : "Отправлено";
+
   return (
     <span
       data-testid="message-read-marker"
       data-read={isRead ? "true" : "false"}
+      data-pending={isPending ? "true" : "false"}
       className={[styles.checkMark, isRead ? styles.checkRead : ""]
         .filter(Boolean)
         .join(" ")}
-      aria-label={isRead ? "Прочитано" : "Отправлено"}
+      aria-label={ariaLabel}
     >
       <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
         <path
@@ -454,14 +465,15 @@ function CheckMark({ isRead }: { isRead: boolean }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <path
-          d="M5.5 5.5L9 9L15.5 1"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={isRead ? 1 : 0.35}
-        />
+        {isRead && (
+          <path
+            d="M5.5 5.5L9 9L15.5 1"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
       </svg>
     </span>
   );
@@ -502,13 +514,12 @@ export function MessageBubble({
   const mobileTapMenuRef = useRef<MobileTapMenuState | null>(null);
   const suppressClickUntilRef = useRef(0);
 
-  const openContextMenuAt = useCallback((
-    x: number,
-    y: number,
-    attachmentId: number | null = null,
-  ) => {
-    setContextMenu({ x, y, attachmentId });
-  }, []);
+  const openContextMenuAt = useCallback(
+    (x: number, y: number, attachmentId: number | null = null) => {
+      setContextMenu({ x, y, attachmentId });
+    },
+    [],
+  );
 
   const resolveMenuPosition = useCallback(
     (
@@ -597,37 +608,32 @@ export function MessageBubble({
     return true;
   }, []);
 
-  const finishMobileTapMenu = useCallback((
-    pointerId: number | null,
-    fallbackX?: number,
-    fallbackY?: number,
-  ) => {
-    const state = mobileTapMenuRef.current;
-    if (!state || state.pointerId !== pointerId) return false;
+  const finishMobileTapMenu = useCallback(
+    (pointerId: number | null, fallbackX?: number, fallbackY?: number) => {
+      const state = mobileTapMenuRef.current;
+      if (!state || state.pointerId !== pointerId) return false;
 
-    mobileTapMenuRef.current = null;
-    if (message.isDeleted) {
-      return false;
-    }
+      mobileTapMenuRef.current = null;
+      if (message.isDeleted) {
+        return false;
+      }
 
-    const attachmentId = resolveAttachmentIdFromTarget(state.target);
-    const position = resolveMenuPosition(
-      state.target,
-      fallbackX ?? state.x,
-      fallbackY ?? state.y,
-    );
-    suppressClickUntilRef.current = Date.now() + MOBILE_MENU_CLICK_SUPPRESS_MS;
-    openContextMenuAt(position.x, position.y, attachmentId);
-    return true;
-  }, [message.isDeleted, openContextMenuAt, resolveMenuPosition]);
+      const attachmentId = resolveAttachmentIdFromTarget(state.target);
+      const position = resolveMenuPosition(
+        state.target,
+        fallbackX ?? state.x,
+        fallbackY ?? state.y,
+      );
+      suppressClickUntilRef.current =
+        Date.now() + MOBILE_MENU_CLICK_SUPPRESS_MS;
+      openContextMenuAt(position.x, position.y, attachmentId);
+      return true;
+    },
+    [message.isDeleted, openContextMenuAt, resolveMenuPosition],
+  );
 
   const startMobileTapMenu = useCallback(
-    (
-      target: HTMLElement,
-      pointerId: number | null,
-      x: number,
-      y: number,
-    ) => {
+    (target: HTMLElement, pointerId: number | null, x: number, y: number) => {
       clearMobileTapMenu();
 
       const state: MobileTapMenuState = {
@@ -681,11 +687,7 @@ export function MessageBubble({
 
   const handleMobilePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
-      cancelMobileTapMenuOnMove(
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-      );
+      cancelMobileTapMenuOnMove(event.pointerId, event.clientX, event.clientY);
     },
     [cancelMobileTapMenuOnMove],
   );
@@ -695,9 +697,7 @@ export function MessageBubble({
       if (event.pointerType !== "touch" && event.pointerType !== "pen") {
         return;
       }
-      if (
-        finishMobileTapMenu(event.pointerId, event.clientX, event.clientY)
-      ) {
+      if (finishMobileTapMenu(event.pointerId, event.clientX, event.clientY)) {
         event.preventDefault();
       }
     },
@@ -750,13 +750,7 @@ export function MessageBubble({
       if (typeof window !== "undefined" && "PointerEvent" in window) return;
 
       const touch = event.changedTouches.item(0);
-      if (
-        finishMobileTapMenu(
-          null,
-          touch?.clientX,
-          touch?.clientY,
-        )
-      ) {
+      if (finishMobileTapMenu(null, touch?.clientX, touch?.clientY)) {
         event.preventDefault();
       }
     },
@@ -807,19 +801,18 @@ export function MessageBubble({
     maxVisibleImageAttachments,
   );
   const selectedMenuAttachment =
-    contextMenu?.attachmentId !== null && contextMenu?.attachmentId !== undefined
-      ? message.attachments.find(
+    contextMenu?.attachmentId !== null &&
+    contextMenu?.attachmentId !== undefined
+      ? (message.attachments.find(
           (attachment) => attachment.id === contextMenu.attachmentId,
-        ) ?? null
+        ) ?? null)
       : message.attachments.length === 1
         ? message.attachments[0]
         : null;
   const selectedMenuAttachmentUrl = selectedMenuAttachment?.url ?? null;
   const selectedMenuAttachmentIsImage =
     Boolean(selectedMenuAttachmentUrl) &&
-    Boolean(
-      selectedMenuAttachment?.contentType.startsWith("image/"),
-    );
+    Boolean(selectedMenuAttachment?.contentType.startsWith("image/"));
 
   const contextMenuItems: ContextMenuItem[] = [];
   if (!message.isDeleted) {
@@ -1287,7 +1280,12 @@ export function MessageBubble({
               <span className={styles.time}>
                 {formatTimestamp(message.createdAt)}
               </span>
-              {isOwn && <CheckMark isRead={isRead} />}
+              {isOwn && (
+                <CheckMark
+                  isRead={isRead}
+                  isPending={message.deliveryStatus === "pending"}
+                />
+              )}
             </div>
           </div>
 

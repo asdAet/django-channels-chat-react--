@@ -10,6 +10,7 @@ import {
   ImageLightbox,
   Modal,
   Panel,
+  PublicChatIcon,
   Skeleton,
 } from "../../shared/ui";
 import styles from "../../styles/pages/ChatRoomPage.module.css";
@@ -22,6 +23,7 @@ import {
   ChatComposerSkeleton,
   ChatHistorySkeleton,
 } from "./ChatRoomLoadingState";
+import { isOptimisticMessage } from "./optimisticMessages";
 import type { ChatRoomPageViewProps } from "./ChatRoomPageView.types";
 import {
   isOwnMessage,
@@ -43,7 +45,10 @@ export function ChatRoomPageView({
   const notifications = useNotifications();
   const offlineNotificationShownRef = useRef(false);
   const connectionErrorNotificationRef = useRef<string | null>(null);
+  const connectionNoticeNotificationRef = useRef<number | null>(null);
+  const connectionLostNotificationIdRef = useRef<string | null>(null);
   const visibleErrorNotificationRef = useRef<string | null>(null);
+  const visibleErrorNotificationIdRef = useRef<string | null>(null);
   const { room, headerSearch, scroll, composer, actions, view, fileDrop } =
     controller;
   const {
@@ -58,6 +63,7 @@ export function ChatRoomPageView({
     visibleError,
     status,
     lastError,
+    connectionNotice,
     currentActorRef,
   } = room;
   const {
@@ -171,8 +177,53 @@ export function ChatRoomPageView({
   }, [lastError, notifications, status]);
 
   useEffect(() => {
+    if (!connectionNotice) {
+      connectionNoticeNotificationRef.current = null;
+      return;
+    }
+
+    if (connectionNoticeNotificationRef.current === connectionNotice.id) {
+      return;
+    }
+
+    connectionNoticeNotificationRef.current = connectionNotice.id;
+    if (connectionNotice.type === "lost") {
+      if (connectionLostNotificationIdRef.current !== null) {
+        notifications.dismiss(connectionLostNotificationIdRef.current);
+      }
+      connectionLostNotificationIdRef.current = notifications.error({
+        message: connectionNotice.message,
+        durationMs: 0,
+      });
+      return;
+    }
+
+    if (connectionNotice.type === "restored") {
+      if (connectionLostNotificationIdRef.current !== null) {
+        notifications.dismiss(connectionLostNotificationIdRef.current);
+        connectionLostNotificationIdRef.current = null;
+      }
+      notifications.success({
+        message: connectionNotice.message,
+        durationMs: 2500,
+      });
+      return;
+    }
+
+    if (connectionNotice.type === "failed") {
+      notifications.error({
+        message: connectionNotice.message,
+      });
+    }
+  }, [connectionNotice, notifications]);
+
+  useEffect(() => {
     if (!visibleError) {
       visibleErrorNotificationRef.current = null;
+      if (visibleErrorNotificationIdRef.current !== null) {
+        notifications.dismiss(visibleErrorNotificationIdRef.current);
+        visibleErrorNotificationIdRef.current = null;
+      }
       return;
     }
 
@@ -181,7 +232,10 @@ export function ChatRoomPageView({
     }
 
     visibleErrorNotificationRef.current = visibleError;
-    notifications.error(visibleError);
+    if (visibleErrorNotificationIdRef.current !== null) {
+      notifications.dismiss(visibleErrorNotificationIdRef.current);
+    }
+    visibleErrorNotificationIdRef.current = notifications.error(visibleError);
   }, [notifications, visibleError]);
 
   const searchPopoverContent = useMemo(
@@ -340,6 +394,24 @@ export function ChatRoomPageView({
                 size="small"
               />
             </button>
+          ) : details?.kind === "public" || isPublicRoom ? (
+            <button
+              type="button"
+              className={[
+                styles.directHeaderAvatar,
+                styles.publicChatHeaderAvatar,
+              ].join(" ")}
+              disabled
+              aria-label="Информация о чате"
+            >
+              <span
+                className={styles.publicChatHeaderIcon}
+                aria-hidden="true"
+                data-testid="chat-header-public-icon"
+              >
+                <PublicChatIcon className={styles.publicChatHeaderIconSvg} />
+              </span>
+            </button>
           ) : (
             <button
               type="button"
@@ -486,232 +558,238 @@ export function ChatRoomPageView({
       </ChatHeaderSearchPopover>
 
       <div className={styles.chatBox} aria-busy={loading}>
-          <div
-            className={[
-              styles.chatLog,
-              loading ? styles.chatLogLoading : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            ref={listRef}
-            aria-live="polite"
-            onScroll={handleScroll}
-            onWheel={armPaginationInteraction}
-            onTouchStart={armPaginationInteraction}
-            onPointerDown={armPaginationInteraction}
-          >
-            {loading ? (
-              <ChatHistorySkeleton />
-            ) : (
-              <>
-                {loadingMore && <ChatHistorySkeleton compact />}
+        <div
+          className={[styles.chatLog, loading ? styles.chatLogLoading : ""]
+            .filter(Boolean)
+            .join(" ")}
+          ref={listRef}
+          aria-live="polite"
+          onScroll={handleScroll}
+          onWheel={armPaginationInteraction}
+          onTouchStart={armPaginationInteraction}
+          onPointerDown={armPaginationInteraction}
+        >
+          {loading ? (
+            <ChatHistorySkeleton />
+          ) : (
+            <>
+              {loadingMore && <ChatHistorySkeleton compact />}
 
-                {timeline.map((item, index) =>
-                  item.type === "day" ? (
-                    <div
-                      className={styles.daySeparator}
-                      role="separator"
-                      aria-label={item.label}
-                      key={`day-${item.key}`}
-                    >
-                      <span>{item.label}</span>
-                    </div>
-                  ) : item.type === "unread" ? (
-                    <div
-                      className={styles.unreadDivider}
-                      role="separator"
-                      key="unread-divider"
-                      data-unread-divider
-                      data-unread-anchor-id={unreadDividerAnchorId ?? ""}
-                    >
-                      <span>Новые сообщения</span>
-                    </div>
-                  ) : (
-                    (() => {
-                      const previousTimelineItem = timeline[index - 1];
-                      const previousMessage =
-                        previousTimelineItem?.type === "message"
-                          ? previousTimelineItem.message
-                          : null;
-                      const grouped =
-                        previousMessage !== null &&
-                        resolveMessageActorRef(previousMessage) ===
-                          resolveMessageActorRef(item.message);
-                      const ownMessage = isOwnMessage(
-                        item.message,
-                        currentActorRef,
-                      );
-                      const canModerateMessage = Boolean(
-                        user && canManageMessagesToRoom && !ownMessage,
-                      );
-                      const canEditOrDelete = ownMessage || canModerateMessage;
-                      return (
-                        <MessageBubble
-                          key={`${item.message.id}-${item.message.createdAt}`}
-                          message={item.message}
-                          isOwn={ownMessage}
-                          showAvatar={!grouped}
-                          showHeader={!grouped}
-                          grouped={grouped}
-                          canModerate={canModerateMessage}
-                          canViewReaders={ownMessage && !item.message.isDeleted}
-                          isRead={
-                            ownMessage && item.message.id <= maxReadMessageId
-                          }
-                          highlighted={item.message.id === highlightedMessageId}
-                          onlineUsernames={onlineUsernames}
-                          onReply={user ? handleReply : undefined}
-                          onEdit={canEditOrDelete ? handleEdit : undefined}
-                          onDelete={canEditOrDelete ? handleDelete : undefined}
-                          onReact={user ? handleReact : undefined}
-                          onViewReaders={user ? handleOpenReaders : undefined}
-                          onReplyQuoteClick={handleReplyQuoteClick}
-                          onAvatarClick={openUserProfile}
-                          onOpenMediaAttachment={handleOpenMediaAttachment}
-                        />
-                      );
-                    })()
-                  ),
-                )}
-              </>
-            )}
-          </div>
-
-          {!loading && showScrollFab && (
-            <button
-              type="button"
-              className={styles.scrollFab}
-              onClick={scrollToBottom}
-              aria-label="Прокрутить вниз"
-            >
-              {newMsgCount > 0 && (
-                <span className={styles.scrollFabBadge}>{newMsgCount}</span>
+              {timeline.map((item, index) =>
+                item.type === "day" ? (
+                  <div
+                    className={styles.daySeparator}
+                    role="separator"
+                    aria-label={item.label}
+                    key={`day-${item.key}`}
+                  >
+                    <span>{item.label}</span>
+                  </div>
+                ) : item.type === "unread" ? (
+                  <div
+                    className={styles.unreadDivider}
+                    role="separator"
+                    key="unread-divider"
+                    data-unread-divider
+                    data-unread-anchor-id={unreadDividerAnchorId ?? ""}
+                  >
+                    <span>Новые сообщения</span>
+                  </div>
+                ) : (
+                  (() => {
+                    const previousTimelineItem = timeline[index - 1];
+                    const previousMessage =
+                      previousTimelineItem?.type === "message"
+                        ? previousTimelineItem.message
+                        : null;
+                    const grouped =
+                      previousMessage !== null &&
+                      resolveMessageActorRef(previousMessage) ===
+                        resolveMessageActorRef(item.message);
+                    const ownMessage = isOwnMessage(
+                      item.message,
+                      currentActorRef,
+                    );
+                    const optimisticMessage = isOptimisticMessage(item.message);
+                    const canModerateMessage = Boolean(
+                      user && canManageMessagesToRoom && !ownMessage,
+                    );
+                    const canEditOrDelete =
+                      !optimisticMessage && (ownMessage || canModerateMessage);
+                    const canReplyOrReact = Boolean(user && !optimisticMessage);
+                    return (
+                      <MessageBubble
+                        key={
+                          item.message.clientMessageId ??
+                          `${item.message.id}-${item.message.createdAt}`
+                        }
+                        message={item.message}
+                        isOwn={ownMessage}
+                        showAvatar={!grouped}
+                        showHeader={!grouped}
+                        grouped={grouped}
+                        canModerate={canModerateMessage}
+                        canViewReaders={
+                          ownMessage &&
+                          !item.message.isDeleted &&
+                          !optimisticMessage
+                        }
+                        isRead={
+                          ownMessage &&
+                          !optimisticMessage &&
+                          item.message.id <= maxReadMessageId
+                        }
+                        highlighted={item.message.id === highlightedMessageId}
+                        onlineUsernames={onlineUsernames}
+                        onReply={canReplyOrReact ? handleReply : undefined}
+                        onEdit={canEditOrDelete ? handleEdit : undefined}
+                        onDelete={canEditOrDelete ? handleDelete : undefined}
+                        onReact={canReplyOrReact ? handleReact : undefined}
+                        onViewReaders={user ? handleOpenReaders : undefined}
+                        onReplyQuoteClick={handleReplyQuoteClick}
+                        onAvatarClick={openUserProfile}
+                        onOpenMediaAttachment={handleOpenMediaAttachment}
+                      />
+                    );
+                  })()
+                ),
               )}
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          )}
-
-          {!loading && activeTypingUsers.length > 0 && (
-            <TypingIndicator users={activeTypingUsers} />
-          )}
-
-          {!loading && !user && isPublicRoom && (
-            <div className={styles.authCallout} data-testid="chat-auth-callout">
-              <div className={styles.authCalloutText}>
-                <p className={styles.muted}>
-                  Чтобы писать в публичном чате, войдите или зарегистрируйтесь.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {!loading && user && isBlocked && isBlockedByMe && (
-            <div className={styles.authCallout}>
-              <div className={styles.authCalloutText}>
-                <p className={styles.muted}>
-                  Вы заблокировали этого пользователя.
-                </p>
-              </div>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  const peerId = details?.peer?.userId;
-                  if (!peerId) {
-                    return;
-                  }
-
-                  void friendsController
-                    .unblockUser(peerId)
-                    .then(() => window.location.reload())
-                    .catch(() => {});
-                }}
-              >
-                Разблокировать
-              </Button>
-            </div>
-          )}
-
-          {!loading && user && isBlocked && !isBlockedByMe && (
-            <div className={styles.authCallout}>
-              <div className={styles.authCalloutText}>
-                <p className={styles.muted}>
-                  Вы не можете писать этому пользователю.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {!loading && user && showGroupJoinCta && (
-            <div
-              className={styles.authCallout}
-              data-testid="group-join-callout"
-            >
-              <div className={styles.authCalloutText}>
-                <p className={styles.muted}>
-                  Чтобы отправлять сообщения, сначала присоединитесь к группе.
-                </p>
-              </div>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  void handleJoinGroup();
-                }}
-                disabled={joinInProgress || permissionsLoading}
-              >
-                {joinInProgress ? "Присоединяемся..." : "Присоединиться"}
-              </Button>
-            </div>
-          )}
-
-          {!loading && user && showGroupReadOnlyNotice && (
-            <div
-              className={styles.authCallout}
-              data-testid="group-readonly-callout"
-            >
-              <div className={styles.authCalloutText}>
-                <p className={styles.muted}>
-                  {isBannedInRoom
-                    ? "Вы заблокированы в этой группе."
-                    : "У вас нет прав на отправку сообщений в этой группе."}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {loading && user && <ChatComposerSkeleton />}
-
-          {!loading && canSendMessages && (
-            <MessageInput
-              draft={draft}
-              onDraftChange={setDraft}
-              onSend={() => {
-                void sendMessage();
-              }}
-              onTyping={sendTyping}
-              disabled={status !== "online" || !isOnline}
-              rateLimitActive={rateLimitActive}
-              replyTo={editingMessage ?? replyTo}
-              onCancelReply={handleCancelReply}
-              onAttach={handleAttach}
-              pendingFiles={queuedFiles}
-              onRemovePendingFile={handleRemoveQueuedFile}
-              onClearPendingFiles={handleClearQueuedFiles}
-              uploadProgress={uploadProgress}
-              onCancelUpload={handleCancelUpload}
-            />
+            </>
           )}
         </div>
+
+        {!loading && showScrollFab && (
+          <button
+            type="button"
+            className={styles.scrollFab}
+            onClick={scrollToBottom}
+            aria-label="Прокрутить вниз"
+          >
+            {newMsgCount > 0 && (
+              <span className={styles.scrollFabBadge}>{newMsgCount}</span>
+            )}
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        )}
+
+        {!loading && activeTypingUsers.length > 0 && (
+          <TypingIndicator users={activeTypingUsers} />
+        )}
+
+        {!loading && !user && isPublicRoom && (
+          <div className={styles.authCallout} data-testid="chat-auth-callout">
+            <div className={styles.authCalloutText}>
+              <p className={styles.muted}>
+                Чтобы писать в публичном чате, войдите или зарегистрируйтесь.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!loading && user && isBlocked && isBlockedByMe && (
+          <div className={styles.authCallout}>
+            <div className={styles.authCalloutText}>
+              <p className={styles.muted}>
+                Вы заблокировали этого пользователя.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const peerId = details?.peer?.userId;
+                if (!peerId) {
+                  return;
+                }
+
+                void friendsController
+                  .unblockUser(peerId)
+                  .then(() => window.location.reload())
+                  .catch(() => {});
+              }}
+            >
+              Разблокировать
+            </Button>
+          </div>
+        )}
+
+        {!loading && user && isBlocked && !isBlockedByMe && (
+          <div className={styles.authCallout}>
+            <div className={styles.authCalloutText}>
+              <p className={styles.muted}>
+                Вы не можете писать этому пользователю.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!loading && user && showGroupJoinCta && (
+          <div className={styles.authCallout} data-testid="group-join-callout">
+            <div className={styles.authCalloutText}>
+              <p className={styles.muted}>
+                Чтобы отправлять сообщения, сначала присоединитесь к группе.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              onClick={() => {
+                void handleJoinGroup();
+              }}
+              disabled={joinInProgress || permissionsLoading}
+            >
+              {joinInProgress ? "Присоединяемся..." : "Присоединиться"}
+            </Button>
+          </div>
+        )}
+
+        {!loading && user && showGroupReadOnlyNotice && (
+          <div
+            className={styles.authCallout}
+            data-testid="group-readonly-callout"
+          >
+            <div className={styles.authCalloutText}>
+              <p className={styles.muted}>
+                {isBannedInRoom
+                  ? "Вы заблокированы в этой группе."
+                  : "У вас нет прав на отправку сообщений в этой группе."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {loading && user && <ChatComposerSkeleton />}
+
+        {!loading && canSendMessages && (
+          <MessageInput
+            draft={draft}
+            onDraftChange={setDraft}
+            onSend={() => {
+              void sendMessage();
+            }}
+            onTyping={sendTyping}
+            disabled={status !== "online" || !isOnline}
+            rateLimitActive={rateLimitActive}
+            replyTo={editingMessage ?? replyTo}
+            onCancelReply={handleCancelReply}
+            onAttach={handleAttach}
+            pendingFiles={queuedFiles}
+            onRemovePendingFile={handleRemoveQueuedFile}
+            onClearPendingFiles={handleClearQueuedFiles}
+            uploadProgress={uploadProgress}
+            onCancelUpload={handleCancelUpload}
+          />
+        )}
+      </div>
 
       {lightboxSession && lightboxSession.mediaItems.length > 0 && (
         <ImageLightbox

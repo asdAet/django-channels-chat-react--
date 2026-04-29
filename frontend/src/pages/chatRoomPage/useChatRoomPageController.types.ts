@@ -3,7 +3,10 @@ import type { DragEvent } from "react";
 import type { Message } from "../../entities/message/types";
 import type { RoomDetails, RoomKind } from "../../entities/room/types";
 import type { UserProfile } from "../../entities/user/types";
-import type { WebSocketStatus } from "../../hooks/useReconnectingWebSocket";
+import type {
+  WebSocketConnectionNotice,
+  WebSocketStatus,
+} from "../../hooks/useReconnectingWebSocket";
 import type { UseChatRoomPageComposerResult } from "./useChatRoomPageComposer.types";
 import type { UseChatRoomPageHeaderSearchResult } from "./useChatRoomPageHeaderSearch.types";
 import type { UseChatRoomPageReadStateResult } from "./useChatRoomPageReadState.types";
@@ -84,6 +87,10 @@ export type ChatRoomPageRoomState = {
    * Последняя низкоуровневая ошибка соединения.
    */
   lastError: string | null;
+  /**
+   * Видимое состояние потери или восстановления соединения.
+   */
+  connectionNotice: WebSocketConnectionNotice;
   /**
    * Нормализованная actor-ссылка текущего пользователя.
    */

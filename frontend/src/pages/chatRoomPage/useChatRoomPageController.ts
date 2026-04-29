@@ -209,6 +209,7 @@ export function useChatRoomPageController({
       visibleError,
       status: realtime.status,
       lastError: realtime.lastError,
+      connectionNotice: realtime.connectionNotice,
       currentActorRef,
     },
     headerSearch: {

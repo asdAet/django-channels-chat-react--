@@ -5,9 +5,17 @@ import { decodeChatWsEvent } from "./chat";
 describe("chat WS DTO decoder", () => {
   it("decodes rate limited event", () => {
     const decoded = decodeChatWsEvent(
-      JSON.stringify({ error: "rate_limited", retry_after: "3" }),
+      JSON.stringify({
+        error: "rate_limited",
+        retry_after: "3",
+        clientMessageId: "client-1",
+      }),
     );
-    expect(decoded).toEqual({ type: "rate_limited", retryAfterSeconds: 3 });
+    expect(decoded).toEqual({
+      type: "rate_limited",
+      retryAfterSeconds: 3,
+      clientMessageId: "client-1",
+    });
   });
 
   it("decodes chat message event", () => {
@@ -16,6 +24,7 @@ describe("chat WS DTO decoder", () => {
         message: "hello",
         publicRef: "alice",
         username: "alice",
+        clientMessageId: "client-2",
         profile_pic: null,
         avatar_crop: { x: 0.1, y: 0.2, width: 0.3, height: 0.4 },
       }),
@@ -24,6 +33,7 @@ describe("chat WS DTO decoder", () => {
     expect(decoded.type).toBe("chat_message");
     if (decoded.type === "chat_message") {
       expect(decoded.message.username).toBe("alice");
+      expect(decoded.message.clientMessageId).toBe("client-2");
       expect(decoded.message.avatarCrop).toEqual({
         x: 0.1,
         y: 0.2,

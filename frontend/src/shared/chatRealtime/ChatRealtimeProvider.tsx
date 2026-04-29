@@ -20,9 +20,10 @@ export function ChatRealtimeProvider({
 }: ProviderProps) {
   const authWsToken = useWsAuthToken();
   const listenersRef = useRef<Set<ChatRealtimeListener>>(new Set());
-  const activeBindingRef = useRef<{ ownerId: string; roomId: number | null } | null>(
-    null,
-  );
+  const activeBindingRef = useRef<{
+    ownerId: string;
+    roomId: number | null;
+  } | null>(null);
 
   const dispatchListeners = useCallback(
     (key: keyof ChatRealtimeListener, ...args: unknown[]) => {
@@ -38,24 +39,30 @@ export function ChatRealtimeProvider({
 
   const wsUrl = useMemo(() => {
     if (!ready) return null;
-    return appendWebSocketAuthToken(`${getWebSocketBase()}/ws/chat/`, authWsToken);
+    return appendWebSocketAuthToken(
+      `${getWebSocketBase()}/ws/chat/`,
+      authWsToken,
+    );
   }, [authWsToken, ready]);
 
-  const sendSetActiveRoomRef = useRef<(roomId: number | null) => boolean>(() => false);
+  const sendSetActiveRoomRef = useRef<(roomId: number | null) => boolean>(
+    () => false,
+  );
 
-  const { status, lastError, send } = useReconnectingWebSocket({
-    url: wsUrl,
-    onMessage: (event) => dispatchListeners("onMessage", event),
-    onOpen: () => {
-      const activeBinding = activeBindingRef.current;
-      if (activeBinding) {
-        sendSetActiveRoomRef.current(activeBinding.roomId);
-      }
-      dispatchListeners("onOpen");
-    },
-    onClose: (event) => dispatchListeners("onClose", event),
-    onError: (event) => dispatchListeners("onError", event),
-  });
+  const { status, lastError, connectionNotice, send } =
+    useReconnectingWebSocket({
+      url: wsUrl,
+      onMessage: (event) => dispatchListeners("onMessage", event),
+      onOpen: () => {
+        const activeBinding = activeBindingRef.current;
+        if (activeBinding) {
+          sendSetActiveRoomRef.current(activeBinding.roomId);
+        }
+        dispatchListeners("onOpen");
+      },
+      onClose: (event) => dispatchListeners("onClose", event),
+      onError: (event) => dispatchListeners("onError", event),
+    });
 
   const sendSetActiveRoom = useCallback(
     (roomId: number | null) =>
@@ -122,12 +129,21 @@ export function ChatRealtimeProvider({
     () => ({
       status,
       lastError,
+      connectionNotice,
       send,
       registerListener,
       activateRoom,
       releaseRoom,
     }),
-    [activateRoom, lastError, registerListener, releaseRoom, send, status],
+    [
+      activateRoom,
+      connectionNotice,
+      lastError,
+      registerListener,
+      releaseRoom,
+      send,
+      status,
+    ],
   );
 
   return (

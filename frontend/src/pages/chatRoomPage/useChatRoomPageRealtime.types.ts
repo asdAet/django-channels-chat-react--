@@ -1,6 +1,9 @@
 import type { RoomKind } from "../../entities/room/types";
 import type { UserProfile } from "../../entities/user/types";
-import type { WebSocketStatus } from "../../hooks/useReconnectingWebSocket";
+import type {
+  WebSocketConnectionNotice,
+  WebSocketStatus,
+} from "../../hooks/useReconnectingWebSocket";
 import type {
   HandleIncomingForeignMessage,
   SetMessages,
@@ -66,6 +69,10 @@ export type UseChatRoomPageRealtimeResult = {
    * Последний код низкоуровневой ошибки соединения.
    */
   lastError: string | null;
+  /**
+   * Пользовательское состояние восстановления соединения.
+   */
+  connectionNotice: WebSocketConnectionNotice;
   /**
    * Низкоуровневый отправитель WebSocket-сообщений.
    */

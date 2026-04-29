@@ -23,6 +23,8 @@ export type ReactionSummary = {
   me: boolean;
 };
 
+export type MessageDeliveryStatus = "pending";
+
 /**
  * Описывает структуру данных `ReplyTo`.
  */
@@ -39,6 +41,8 @@ export type ReplyTo = {
  */
 export type Message = {
   id: number;
+  clientMessageId?: string;
+  deliveryStatus?: MessageDeliveryStatus;
   publicRef: string;
   username: string;
   displayName?: string;

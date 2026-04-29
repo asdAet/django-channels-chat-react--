@@ -1,6 +1,9 @@
 import { useContext, useEffect, useId, useMemo, useRef } from "react";
 
-import type { WebSocketStatus } from "../../hooks/useReconnectingWebSocket";
+import type {
+  WebSocketConnectionNotice,
+  WebSocketStatus,
+} from "../../hooks/useReconnectingWebSocket";
 import type { ChatRealtimeListener } from "./context";
 import { ChatRealtimeContext } from "./context";
 
@@ -12,6 +15,7 @@ type UseChatRealtimeRoomOptions = ChatRealtimeListener & {
 type UseChatRealtimeRoomResult = {
   status: WebSocketStatus;
   lastError: string | null;
+  connectionNotice: WebSocketConnectionNotice;
   send: (data: string) => boolean;
 };
 
@@ -27,6 +31,7 @@ export function useChatRealtimeRoom({
   const {
     status,
     lastError,
+    connectionNotice,
     send,
     registerListener,
     activateRoom,
@@ -70,6 +75,7 @@ export function useChatRealtimeRoom({
   return {
     status: enabled && roomId !== null ? status : "idle",
     lastError: enabled && roomId !== null ? lastError : null,
+    connectionNotice: enabled && roomId !== null ? connectionNotice : null,
     send: enabled && roomId !== null ? send : () => false,
   };
 }

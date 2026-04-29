@@ -11,6 +11,12 @@ export type WebSocketStatus =
   | "error"
   | "closed";
 
+export type WebSocketConnectionNotice = {
+  id: number;
+  type: "lost" | "restored" | "failed";
+  message: string;
+} | null;
+
 /**
  * Описывает настраиваемые опции `WebSocket`.
  */
@@ -31,7 +37,6 @@ type WebSocketOptions = {
  * @param options Опциональные параметры поведения.
  */
 
-
 export const useReconnectingWebSocket = (options: WebSocketOptions) => {
   const {
     url,
@@ -47,6 +52,8 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
 
   const [status, setStatus] = useState<WebSocketStatus>("idle");
   const [lastError, setLastError] = useState<string | null>(null);
+  const [connectionNotice, setConnectionNotice] =
+    useState<WebSocketConnectionNotice>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const retryRef = useRef<{ attempt: number; timeoutId: number | null }>({
     attempt: 0,
@@ -55,6 +62,13 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
   const connectRef = useRef<(() => void) | null>(null);
   const handlersRef = useRef({ onMessage, onOpen, onClose, onError });
   const activeRef = useRef(true);
+  const hasOpenedRef = useRef(false);
+  const reconnectingAfterOpenRef = useRef(false);
+  const connectionNoticeTypeRef = useRef<
+    NonNullable<WebSocketConnectionNotice>["type"] | null
+  >(null);
+  const connectionNoticeIdRef = useRef(0);
+  const connectionNoticeTimerRef = useRef<number | null>(null);
 
   /**
    * Вызывает `useEffect` как шаг текущего сценария.
@@ -75,6 +89,43 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
       retryRef.current.timeoutId = null;
     }
   };
+
+  const clearConnectionNoticeTimer = useCallback(() => {
+    if (connectionNoticeTimerRef.current === null) {
+      return;
+    }
+    window.clearTimeout(connectionNoticeTimerRef.current);
+    connectionNoticeTimerRef.current = null;
+  }, []);
+
+  const publishConnectionNotice = useCallback(
+    (
+      type: NonNullable<WebSocketConnectionNotice>["type"],
+      message: string,
+      autoClearMs?: number,
+    ) => {
+      if (connectionNoticeTypeRef.current === type && type === "lost") {
+        return;
+      }
+
+      clearConnectionNoticeTimer();
+      connectionNoticeTypeRef.current = type;
+      const id = connectionNoticeIdRef.current + 1;
+      connectionNoticeIdRef.current = id;
+      setConnectionNotice({ id, type, message });
+
+      if (autoClearMs && autoClearMs > 0) {
+        connectionNoticeTimerRef.current = window.setTimeout(() => {
+          connectionNoticeTimerRef.current = null;
+          connectionNoticeTypeRef.current = null;
+          setConnectionNotice((current) =>
+            current?.id === id ? null : current,
+          );
+        }, autoClearMs);
+      }
+    },
+    [clearConnectionNoticeTimer],
+  );
 
   const cleanup = useCallback(() => {
     /**
@@ -107,6 +158,11 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
        */
 
       setStatus("idle");
+      setLastError(null);
+      setConnectionNotice(null);
+      connectionNoticeTypeRef.current = null;
+      hasOpenedRef.current = false;
+      reconnectingAfterOpenRef.current = false;
       return;
     }
 
@@ -117,6 +173,13 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
        */
 
       cleanup();
+      if (hasOpenedRef.current) {
+        reconnectingAfterOpenRef.current = true;
+        publishConnectionNotice(
+          "lost",
+          "Соединение потеряно. Пытаемся восстановить...",
+        );
+      }
       /**
        * Вызывает `setStatus` как шаг текущего сценария.
 
@@ -143,7 +206,10 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
     socketRef.current = socket;
 
     socket.onopen = () => {
+      const wasReconnecting = reconnectingAfterOpenRef.current;
       retryRef.current.attempt = 0;
+      hasOpenedRef.current = true;
+      reconnectingAfterOpenRef.current = false;
       /**
        * Вызывает `setStatus` как шаг текущего сценария.
 
@@ -157,6 +223,13 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
        */
 
       setLastError(null);
+      if (wasReconnecting) {
+        publishConnectionNotice("restored", "Соединение восстановлено", 2500);
+      } else {
+        clearConnectionNoticeTimer();
+        connectionNoticeTypeRef.current = null;
+        setConnectionNotice(null);
+      }
       handlersRef.current.onOpen?.();
     };
 
@@ -171,6 +244,13 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
        */
 
       setStatus("error");
+      if (hasOpenedRef.current) {
+        reconnectingAfterOpenRef.current = true;
+        publishConnectionNotice(
+          "lost",
+          "Соединение потеряно. Пытаемся восстановить...",
+        );
+      }
       /**
        * Вызывает `setLastError` как шаг текущего сценария.
 
@@ -191,6 +271,13 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
          */
 
         setStatus("offline");
+        if (hasOpenedRef.current) {
+          reconnectingAfterOpenRef.current = true;
+          publishConnectionNotice(
+            "lost",
+            "Соединение потеряно. Пытаемся восстановить...",
+          );
+        }
         return;
       }
 
@@ -200,6 +287,13 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
        */
 
       setStatus("closed");
+      if (hasOpenedRef.current) {
+        reconnectingAfterOpenRef.current = true;
+        publishConnectionNotice(
+          "lost",
+          "Соединение потеряно. Пытаемся восстановить...",
+        );
+      }
 
       if (retryRef.current.attempt >= maxRetries) {
         /**
@@ -214,6 +308,10 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
          */
 
         setLastError("reconnect_limit");
+        publishConnectionNotice(
+          "failed",
+          "Не удалось восстановить соединение.",
+        );
         return;
       }
 
@@ -225,7 +323,16 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
         connectRef.current?.();
       }, delay);
     };
-  }, [baseDelayMs, cleanup, maxDelayMs, maxRetries, protocols, url]);
+  }, [
+    baseDelayMs,
+    cleanup,
+    maxDelayMs,
+    maxRetries,
+    protocols,
+    publishConnectionNotice,
+    clearConnectionNoticeTimer,
+    url,
+  ]);
 
   /**
    * Вызывает `useEffect` как шаг текущего сценария.
@@ -258,8 +365,9 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
        */
 
       cleanup();
+      clearConnectionNoticeTimer();
     };
-  }, [connect, cleanup]);
+  }, [clearConnectionNoticeTimer, connect, cleanup]);
 
   /**
    * Вызывает `useEffect` как шаг текущего сценария.
@@ -295,6 +403,13 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
        */
 
       setStatus("offline");
+      if (hasOpenedRef.current) {
+        reconnectingAfterOpenRef.current = true;
+        publishConnectionNotice(
+          "lost",
+          "Соединение потеряно. Пытаемся восстановить...",
+        );
+      }
       /**
        * Вызывает `cleanup` как шаг текущего сценария.
 
@@ -308,7 +423,7 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [cleanup, connect]);
+  }, [cleanup, connect, publishConnectionNotice]);
 
   const send = useCallback((data: string) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -321,6 +436,7 @@ export const useReconnectingWebSocket = (options: WebSocketOptions) => {
   return {
     status,
     lastError,
+    connectionNotice,
     send,
     reconnect: connect,
   };

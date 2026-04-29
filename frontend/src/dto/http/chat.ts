@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import type { Message } from "../../entities/message/types";
+import type {
+  Attachment,
+  Message,
+  ReplyTo,
+} from "../../entities/message/types";
 import type {
   DirectChatListItem,
   RoomDetails,
@@ -368,6 +372,13 @@ const uploadResponseSchema = z
   .object({
     id: z.number(),
     content: z.string(),
+    publicRef: z.string().optional(),
+    username: z.string().optional(),
+    displayName: z.string().optional(),
+    profilePic: z.string().nullable().optional(),
+    avatarCrop: avatarCropSchema.nullable().optional(),
+    createdAt: z.string().optional(),
+    replyTo: replyToSchema.nullable().optional(),
     attachments: z.array(attachmentSchema),
   })
   .passthrough();
@@ -460,8 +471,7 @@ const globalSearchResponseSchema = z
  * @returns Нормализованные данные после декодирования.
  */
 const toRoomId = (value: number | string): number => {
-  const parsed =
-    typeof value === "number" ? value : Number.parseInt(value, 10);
+  const parsed = typeof value === "number" ? value : Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
 };
 
@@ -509,7 +519,14 @@ export type SearchResponse = {
 export type UploadResponse = {
   id: number;
   content: string;
-  attachments: import("../../entities/message/types").Attachment[];
+  publicRef?: string;
+  username?: string;
+  displayName?: string;
+  profilePic?: string | null;
+  avatarCrop?: AvatarCrop | null;
+  createdAt?: string;
+  replyTo?: ReplyTo | null;
+  attachments: Attachment[];
 };
 /**
  * Описывает структуру ответа API `ReadStateResponse`.
@@ -643,6 +660,23 @@ export const decodeUploadResponse = (input: unknown): UploadResponse => {
   return {
     id: parsed.id,
     content: parsed.content,
+    publicRef: parsed.publicRef,
+    username: parsed.username,
+    displayName: parsed.displayName,
+    profilePic: parsed.profilePic ?? null,
+    avatarCrop: parsed.avatarCrop ?? null,
+    createdAt: parsed.createdAt,
+    replyTo: parsed.replyTo
+      ? {
+          ...parsed.replyTo,
+          publicRef:
+            typeof parsed.replyTo.publicRef === "string" &&
+            parsed.replyTo.publicRef.trim().length > 0
+              ? parsed.replyTo.publicRef.trim()
+              : null,
+          displayName: parsed.replyTo.displayName ?? parsed.replyTo.username,
+        }
+      : null,
     attachments: parsed.attachments.map((a) => ({
       id: a.id,
       originalFilename: a.originalFilename,
@@ -663,7 +697,11 @@ export const decodeUploadResponse = (input: unknown): UploadResponse => {
  */
 
 export const decodeReadStateResponse = (input: unknown): ReadStateResponse => {
-  const parsed = decodeOrThrow(readStateResponseSchema, input, "chat/read-state");
+  const parsed = decodeOrThrow(
+    readStateResponseSchema,
+    input,
+    "chat/read-state",
+  );
   return {
     roomId: toRoomId(parsed.roomId),
     lastReadMessageId: parsed.lastReadMessageId,

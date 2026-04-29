@@ -9,6 +9,10 @@ import {
 import { useChatRealtimeRoom } from "../../shared/chatRealtime";
 import { debugLog } from "../../shared/lib/debug";
 import { sanitizeText } from "../../shared/lib/sanitize";
+import {
+  reconcileOptimisticMessage,
+  removeOptimisticMessage,
+} from "./optimisticMessages";
 import type {
   UseChatRoomPageRealtimeOptions,
   UseChatRoomPageRealtimeResult,
@@ -42,14 +46,16 @@ export function useChatRoomPageRealtime({
   const [readReceipts, setReadReceipts] = useState<
     UseChatRoomPageRealtimeResult["readReceipts"]
   >(new Map());
-  const [rateLimitUntil, setRateLimitUntil] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
 
-  const applyRateLimit = useCallback((cooldownMs: number) => {
-    const until = Date.now() + cooldownMs;
-    setRateLimitUntil((prev) => (prev && prev > until ? prev : until));
-    setNow(Date.now());
-  }, []);
+  const rejectOptimisticMessage = useCallback(
+    (clientMessageId: string | null | undefined) => {
+      if (!clientMessageId) {
+        return;
+      }
+      setMessages((prev) => removeOptimisticMessage(prev, clientMessageId));
+    },
+    [setMessages],
+  );
 
   const matchesRoomId = useCallback(
     (eventRoomId: number | null | undefined) => {
@@ -70,20 +76,23 @@ export function useChatRoomPageRealtime({
 
       switch (decoded.type) {
         case "rate_limited": {
-          const retryAfterSeconds = Math.max(
-            1,
-            Number(decoded.retryAfterSeconds ?? 1),
-          );
-          applyRateLimit(retryAfterSeconds * 1000);
+          rejectOptimisticMessage(decoded.clientMessageId);
+          setRoomError("Сообщение не отправлено. Попробуйте ещё раз.");
           break;
         }
         case "message_too_long":
+          rejectOptimisticMessage(decoded.clientMessageId);
           setRoomError(
             `Сообщение слишком длинное (макс ${maxMessageLength} символов)`,
           );
           break;
         case "forbidden":
+          rejectOptimisticMessage(decoded.clientMessageId);
           setRoomError("Недостаточно прав для отправки сообщения");
+          break;
+        case "slow_mode":
+          rejectOptimisticMessage(decoded.clientMessageId);
+          setRoomError("В комнате включен медленный режим. Подождите немного.");
           break;
         case "chat_message": {
           if (!matchesRoomId(decoded.message.roomId)) {
@@ -110,30 +119,23 @@ export function useChatRoomPageRealtime({
           }
 
           setMessages((prev) => {
-            if (prev.some((msg) => msg.id === messageId)) {
-              return prev;
-            }
-
-            return [
-              ...prev,
-              {
-                id: messageId,
-                publicRef: decoded.message.publicRef || "",
-                username: decoded.message.username,
-                displayName:
-                  decoded.message.displayName ?? decoded.message.username,
-                content,
-                profilePic: decoded.message.profilePic || null,
-                avatarCrop: decoded.message.avatarCrop ?? null,
-                createdAt:
-                  decoded.message.createdAt ?? new Date().toISOString(),
-                editedAt: null,
-                isDeleted: false,
-                replyTo: decoded.message.replyTo ?? null,
-                attachments: decoded.message.attachments ?? [],
-                reactions: [],
-              },
-            ];
+            return reconcileOptimisticMessage(prev, {
+              id: messageId,
+              clientMessageId: decoded.message.clientMessageId,
+              publicRef: decoded.message.publicRef || "",
+              username: decoded.message.username,
+              displayName:
+                decoded.message.displayName ?? decoded.message.username,
+              content,
+              profilePic: decoded.message.profilePic || null,
+              avatarCrop: decoded.message.avatarCrop ?? null,
+              createdAt: decoded.message.createdAt ?? new Date().toISOString(),
+              editedAt: null,
+              isDeleted: false,
+              replyTo: decoded.message.replyTo ?? null,
+              attachments: decoded.message.attachments ?? [],
+              reactions: [],
+            });
           });
 
           const messageActorRef = normalizeActorRef(
@@ -308,11 +310,11 @@ export function useChatRoomPageRealtime({
       }
     },
     [
-      applyRateLimit,
       currentActorRef,
       maxMessageLength,
       matchesRoomId,
       onIncomingForeignMessage,
+      rejectOptimisticMessage,
       roomIdForRequests,
       roomKind,
       setMessages,
@@ -320,7 +322,7 @@ export function useChatRoomPageRealtime({
     ],
   );
 
-  const { status, lastError, send } = useChatRealtimeRoom({
+  const { status, lastError, connectionNotice, send } = useChatRealtimeRoom({
     roomId: roomRealtimeId,
     onMessage: handleMessage,
     onOpen: () => setRoomError(null),
@@ -372,22 +374,6 @@ export function useChatRoomPageRealtime({
   }, [typingUsers, typingUsers.size]);
 
   useEffect(() => {
-    if (!rateLimitUntil) {
-      return;
-    }
-
-    const id = window.setInterval(() => {
-      const current = Date.now();
-      setNow(current);
-      if (current >= rateLimitUntil) {
-        window.clearInterval(id);
-      }
-    }, 250);
-
-    return () => window.clearInterval(id);
-  }, [rateLimitUntil]);
-
-  useEffect(() => {
     if (!user || !currentActorRef) {
       return;
     }
@@ -423,11 +409,6 @@ export function useChatRoomPageRealtime({
     });
   }, [currentActorRef, setMessages, user]);
 
-  const rateLimitActive = useMemo(
-    () => (rateLimitUntil ? Math.max(0, rateLimitUntil - now) > 0 : false),
-    [now, rateLimitUntil],
-  );
-
   const visibleReadReceipts = useMemo<
     UseChatRoomPageRealtimeResult["readReceipts"]
   >(
@@ -438,9 +419,10 @@ export function useChatRoomPageRealtime({
   return {
     status,
     lastError,
+    connectionNotice,
     send,
     sendTyping,
-    rateLimitActive,
+    rateLimitActive: false,
     typingUsers,
     typingDisplayNames,
     readReceipts: visibleReadReceipts,

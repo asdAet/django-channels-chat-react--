@@ -17,14 +17,27 @@ const rateLimitedSchema = z
     retry_after: z.union([z.number(), z.string()]).optional(),
     retryAfter: z.union([z.number(), z.string()]).optional(),
     retry: z.union([z.number(), z.string()]).optional(),
+    clientMessageId: z.string().nullable().optional(),
   })
   .passthrough();
 
 const messageTooLongSchema = z
-  .object({ error: z.literal("message_too_long") })
+  .object({
+    error: z.literal("message_too_long"),
+    clientMessageId: z.string().nullable().optional(),
+  })
   .passthrough();
 const forbiddenSchema = z
-  .object({ error: z.literal("forbidden") })
+  .object({
+    error: z.literal("forbidden"),
+    clientMessageId: z.string().nullable().optional(),
+  })
+  .passthrough();
+const slowModeSchema = z
+  .object({
+    error: z.literal("slow_mode"),
+    clientMessageId: z.string().optional(),
+  })
   .passthrough();
 
 const replyToSchema = z
@@ -60,6 +73,7 @@ const messageSchema = z
     avatar_crop: avatarCropSchema.nullable().optional(),
     roomId: z.union([z.number(), z.string()]).optional(),
     id: z.number().optional(),
+    clientMessageId: z.string().nullable().optional(),
     createdAt: z.string().optional(),
     replyTo: replyToSchema.nullable().optional(),
     attachments: z.array(attachmentWsSchema).optional(),
@@ -143,13 +157,16 @@ export type ChatWsEvent =
   | {
       type: "rate_limited";
       retryAfterSeconds: number | null;
+      clientMessageId?: string;
     }
-  | { type: "message_too_long" }
-  | { type: "forbidden" }
+  | { type: "message_too_long"; clientMessageId?: string }
+  | { type: "forbidden"; clientMessageId?: string }
+  | { type: "slow_mode"; clientMessageId?: string }
   | {
       type: "chat_message";
       message: {
         id: number | null;
+        clientMessageId?: string;
         content: string;
         publicRef: string;
         username: string;
@@ -250,6 +267,10 @@ const toNumberOrNull = (value: unknown): number | null => {
   return null;
 };
 
+const toOptionalString = (
+  value: string | null | undefined,
+): string | undefined => (typeof value === "string" ? value : undefined);
+
 /**
  * Преобразует WebSocket-данные для операции decode chat ws event.
  * @param raw Сырые входные данные до нормализации.
@@ -268,15 +289,32 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
       toNumberOrNull(rateLimited.retry_after) ??
       toNumberOrNull(rateLimited.retryAfter) ??
       toNumberOrNull(rateLimited.retry);
-    return { type: "rate_limited", retryAfterSeconds };
+    return {
+      type: "rate_limited",
+      retryAfterSeconds,
+      clientMessageId: toOptionalString(rateLimited.clientMessageId),
+    };
   }
 
-  if (safeDecode(messageTooLongSchema, payload)) {
-    return { type: "message_too_long" };
+  const messageTooLong = safeDecode(messageTooLongSchema, payload);
+  if (messageTooLong) {
+    return {
+      type: "message_too_long",
+      clientMessageId: toOptionalString(messageTooLong.clientMessageId),
+    };
   }
 
-  if (safeDecode(forbiddenSchema, payload)) {
-    return { type: "forbidden" };
+  const forbidden = safeDecode(forbiddenSchema, payload);
+  if (forbidden) {
+    return {
+      type: "forbidden",
+      clientMessageId: toOptionalString(forbidden.clientMessageId),
+    };
+  }
+
+  const slowMode = safeDecode(slowModeSchema, payload);
+  if (slowMode) {
+    return { type: "slow_mode", clientMessageId: slowMode.clientMessageId };
   }
 
   // Typed events (have a "type" field)
@@ -367,6 +405,7 @@ export const decodeChatWsEvent = (raw: string): ChatWsEvent => {
       type: "chat_message",
       message: {
         id: message.id ?? null,
+        clientMessageId: message.clientMessageId ?? undefined,
         content: message.message,
         publicRef: message.publicRef,
         username: message.username,

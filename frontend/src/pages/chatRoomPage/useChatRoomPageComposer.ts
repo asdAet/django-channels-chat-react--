@@ -11,6 +11,11 @@ import {
   buildChatLightboxSession,
   type ChatLightboxSession,
 } from "./mediaLightbox";
+import {
+  createClientMessageId,
+  createOptimisticTextMessage,
+  reconcileOptimisticMessage,
+} from "./optimisticMessages";
 import type {
   UseChatRoomPageComposerOptions,
   UseChatRoomPageComposerResult,
@@ -65,6 +70,7 @@ export function useChatRoomPageComposer({
   );
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [joinInProgress, setJoinInProgress] = useState(false);
+  const nextOptimisticMessageIdRef = useRef(-1);
   const pendingReactionOperationsRef = useRef<
     Map<string, PendingReactionOperation>
   >(new Map());
@@ -164,12 +170,40 @@ export function useChatRoomPageComposer({
         totalBytes,
       });
       try {
-        await chatController.uploadAttachments(roomIdForRequests, queuedFiles, {
-          messageContent: cleaned,
-          replyTo: replyTo?.id ?? null,
-          onProgress: (progress) => setUploadProgress(progress),
-          signal: abortController.signal,
-        });
+        const uploadResult = await chatController.uploadAttachments(
+          roomIdForRequests,
+          queuedFiles,
+          {
+            messageContent: cleaned,
+            replyTo: replyTo?.id ?? null,
+            onProgress: (progress) => setUploadProgress(progress),
+            signal: abortController.signal,
+          },
+        );
+        setMessages((prev) =>
+          reconcileOptimisticMessage(prev, {
+            id: uploadResult.id,
+            content: uploadResult.content,
+            publicRef:
+              uploadResult.publicRef || user.publicRef || currentActorRef,
+            username: uploadResult.username || user.username,
+            displayName:
+              uploadResult.displayName ||
+              (user.name || "").trim() ||
+              user.username,
+            profilePic:
+              uploadResult.profilePic === undefined
+                ? user.profileImage
+                : uploadResult.profilePic,
+            avatarCrop: uploadResult.avatarCrop ?? user.avatarCrop ?? null,
+            createdAt: uploadResult.createdAt ?? new Date().toISOString(),
+            editedAt: null,
+            isDeleted: false,
+            replyTo: uploadResult.replyTo ?? null,
+            attachments: uploadResult.attachments,
+            reactions: [],
+          }),
+        );
         setDraft("");
         setReplyTo(null);
         setQueuedFiles([]);
@@ -193,8 +227,10 @@ export function useChatRoomPageComposer({
       return;
     }
 
+    const clientMessageId = createClientMessageId();
     const payload: Record<string, unknown> = {
       message: cleaned,
+      clientMessageId,
       username: currentActorRef,
       profile_pic: user.profileImage,
       room: roomIdForRequests,
@@ -208,6 +244,18 @@ export function useChatRoomPageComposer({
       return;
     }
 
+    const optimisticMessage = createOptimisticTextMessage({
+      id: nextOptimisticMessageIdRef.current,
+      clientMessageId,
+      content: cleaned,
+      user,
+      currentActorRef,
+      replyTo,
+      createdAt: new Date().toISOString(),
+    });
+    nextOptimisticMessageIdRef.current -= 1;
+
+    setMessages((prev) => [...prev, optimisticMessage]);
     setDraft("");
     setReplyTo(null);
     updateUnreadDividerAnchor(null);

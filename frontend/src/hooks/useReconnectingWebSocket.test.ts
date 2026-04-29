@@ -24,66 +24,66 @@ class MockWebSocket {
   public readonly url: string;
   public readonly protocols?: string | string[];
 
-    /**
-     * Инициализирует зависимости и внутреннее состояние экземпляра.
-     * @param url Параметр url, используемый в логике функции.
-     * @param protocols Параметр protocols, используемый в логике функции.
-     */
-constructor(url: string, protocols?: string | string[]) {
+  /**
+   * Инициализирует зависимости и внутреннее состояние экземпляра.
+   * @param url Параметр url, используемый в логике функции.
+   * @param protocols Параметр protocols, используемый в логике функции.
+   */
+  constructor(url: string, protocols?: string | string[]) {
     this.url = url;
     this.protocols = protocols;
     MockWebSocket.instances.push(this);
   }
 
-    /**
+  /**
    * Отправляет данные.
    *
    * @param data Данные запроса или полезная нагрузка операции.
    */
-send(data: string) {
+  send(data: string) {
     this.sent.push(data);
   }
 
-    /**
+  /**
    * Закрывает тестовое соединение и освобождает ресурсы.
    */
-close() {
+  close() {
     this.readyState = MockWebSocket.CLOSED;
     this.onclose?.({ code: 1000 } as CloseEvent);
   }
 
-    /**
+  /**
    * Выполняет open.
    */
-triggerOpen() {
+  triggerOpen() {
     this.readyState = MockWebSocket.OPEN;
     this.onopen?.(new Event("open"));
   }
 
-    /**
+  /**
    * Выполняет сообщения.
    *
    * @param data Данные запроса или полезная нагрузка операции.
    */
-triggerMessage(data: unknown) {
+  triggerMessage(data: unknown) {
     this.onmessage?.(
       new MessageEvent("message", { data: JSON.stringify(data) }),
     );
   }
 
-    /**
+  /**
    * Выполняет error.
    */
-triggerError() {
+  triggerError() {
     this.onerror?.(new Event("error"));
   }
 
-    /**
+  /**
    * Выполняет close.
    *
    * @param code Код приглашения или операции.
    */
-triggerClose(code = 1006) {
+  triggerClose(code = 1006) {
     this.readyState = MockWebSocket.CLOSED;
     this.onclose?.({ code } as CloseEvent);
   }
@@ -226,6 +226,51 @@ describe("useReconnectingWebSocket", () => {
      */
 
     expect(MockWebSocket.instances).toHaveLength(2);
+  });
+
+  it("publishes a restored notice after a reconnect and clears it", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const { result } = renderHook(() =>
+      useReconnectingWebSocket({
+        url: "ws://localhost/ws",
+        maxRetries: 2,
+        baseDelayMs: 10,
+        maxDelayMs: 20,
+      }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+
+    act(() => {
+      MockWebSocket.instances[0].triggerOpen();
+      MockWebSocket.instances[0].triggerClose(1011);
+    });
+
+    expect(result.current.connectionNotice?.type).toBe("lost");
+
+    act(() => {
+      vi.advanceTimersByTime(10);
+    });
+
+    act(() => {
+      MockWebSocket.instances[1].triggerOpen();
+    });
+
+    expect(result.current.status).toBe("online");
+    expect(result.current.connectionNotice?.type).toBe("restored");
+    expect(result.current.connectionNotice?.message).toBe(
+      "Соединение восстановлено",
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(2500);
+    });
+
+    expect(result.current.connectionNotice).toBeNull();
   });
 
   /**
