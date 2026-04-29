@@ -4,6 +4,7 @@ import { authController } from "../controllers/AuthController";
 import type {
   LoginRequestDto as LoginDto,
   RegisterRequestDto as RegisterDto,
+  TwoFactorLoginRequestDto as TwoFactorLoginDto,
   UpdateProfileRequestDto as UpdateProfileDto,
 } from "../dto";
 import type { UserProfile as UserProfileDto } from "../entities/user/types";
@@ -103,6 +104,10 @@ export const useAuth = () => {
   const login = useCallback(async (dto: LoginDto) => {
     await authController.ensureCsrf();
     const session = await authController.login(dto);
+    if (session.twoFactorRequired || !session.authenticated) {
+      setAuth((prev) => ({ ...prev, loading: false }));
+      return session;
+    }
     /**
      * Вызывает `setAuth` как шаг текущего сценария.
      * @param props Свойства компонента.
@@ -119,6 +124,18 @@ export const useAuth = () => {
 
      */
 
+    clearAllUserCaches();
+    return session;
+  }, []);
+
+  const confirmLoginTwoFactor = useCallback(async (dto: TwoFactorLoginDto) => {
+    await authController.ensureCsrf();
+    const session = await authController.confirmLoginTwoFactor(dto);
+    setAuth({
+      user: session.user,
+      loading: false,
+      wsAuthToken: session.wsAuthToken,
+    });
     clearAllUserCaches();
     return session;
   }, []);
@@ -230,6 +247,7 @@ export const useAuth = () => {
   return {
     auth,
     login,
+    confirmLoginTwoFactor,
     loginWithGoogle,
     register,
     logout,

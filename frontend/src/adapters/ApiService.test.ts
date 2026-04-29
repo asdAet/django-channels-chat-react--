@@ -7,8 +7,10 @@ import { apiService, normalizeAxiosError } from "./ApiService";
 const now = "2026-01-01T00:00:00.000Z";
 const unicodeEscapePrefix = `${String.fromCharCode(92)}u`;
 const toEscapedUnicode = (value: string) =>
-  Array.from(value, (char) =>
-    `${unicodeEscapePrefix}${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
+  Array.from(
+    value,
+    (char) =>
+      `${unicodeEscapePrefix}${char.charCodeAt(0).toString(16).padStart(4, "0")}`,
   ).join("");
 
 const friendItem = {
@@ -166,6 +168,122 @@ describe("ApiService", () => {
     expect(receivedToken).toBe("stored-token");
   });
 
+  it("completes login two-factor challenge through dedicated endpoint", async () => {
+    let receivedBody: unknown = null;
+
+    server.use(
+      http.post("/api/auth/login/2fa/", async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json({
+          authenticated: true,
+          user: {
+            name: "Demo",
+            handle: "demo",
+            publicRef: "@demo",
+            publicId: "u123",
+            profileImage: null,
+            avatarCrop: null,
+            bio: "",
+            lastSeen: null,
+            registeredAt: null,
+          },
+          wsAuthToken: "two-factor-token",
+        });
+      }),
+    );
+
+    const session = await apiService.confirmLoginTwoFactor({ code: "123456" });
+
+    expect(receivedBody).toEqual({ code: "123456" });
+    expect(session.authenticated).toBe(true);
+    expect(session.wsAuthToken).toBe("two-factor-token");
+    expect(session.user?.username).toBe("demo");
+  });
+
+  it("calls security password and 2FA endpoints with typed payloads", async () => {
+    const securityPayload = {
+      ok: true,
+      security: {
+        email: null,
+        emailVerified: false,
+        hasPassword: true,
+        oauthProviders: [],
+        twoFactorEnabled: false,
+        twoFactorEnabledAt: null,
+      },
+    };
+    const bodies: unknown[] = [];
+
+    server.use(
+      http.get("/api/settings/security/", () =>
+        HttpResponse.json(securityPayload),
+      ),
+      http.post("/api/settings/security/password/", async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(securityPayload);
+      }),
+      http.post("/api/settings/security/2fa/setup/", () =>
+        HttpResponse.json({
+          setup: {
+            manualKey: "ABCDEF",
+            otpauthUri: "otpauth://totp/Devil",
+            qrSvg: "data:image/svg+xml;base64,PHN2Zy8+",
+          },
+        }),
+      ),
+      http.post("/api/settings/security/2fa/confirm/", async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({
+          ...securityPayload,
+          security: {
+            ...securityPayload.security,
+            twoFactorEnabled: true,
+            twoFactorEnabledAt: now,
+          },
+        });
+      }),
+      http.post("/api/settings/security/2fa/disable/", async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json(securityPayload);
+      }),
+    );
+
+    await expect(apiService.getSecuritySettings()).resolves.toMatchObject({
+      security: { hasPassword: true, twoFactorEnabled: false },
+    });
+    await expect(
+      apiService.changePassword({
+        oldPassword: "oldpass123",
+        newPassword: "newpass123",
+        newPasswordConfirm: "newpass123",
+      }),
+    ).resolves.toMatchObject({
+      security: { hasPassword: true },
+    });
+    await expect(apiService.beginTwoFactorSetup()).resolves.toMatchObject({
+      setup: { manualKey: "ABCDEF" },
+    });
+    await expect(
+      apiService.confirmTwoFactor({ code: "654321" }),
+    ).resolves.toMatchObject({
+      security: { twoFactorEnabled: true },
+    });
+    await expect(
+      apiService.disableTwoFactor({ code: "111222" }),
+    ).resolves.toMatchObject({
+      security: { twoFactorEnabled: false },
+    });
+    expect(bodies).toEqual([
+      {
+        oldPassword: "oldpass123",
+        newPassword: "newpass123",
+        newPasswordConfirm: "newpass123",
+      },
+      { code: "654321" },
+      { code: "111222" },
+    ]);
+  });
+
   it("sends multipart form data for profile update", async () => {
     let contentType = "";
 
@@ -223,7 +341,12 @@ describe("ApiService", () => {
     );
 
     await expect(
-      apiService.register("taken_login", "pass12345", "pass12345", "Taken User"),
+      apiService.register(
+        "taken_login",
+        "pass12345",
+        "pass12345",
+        "Taken User",
+      ),
     ).rejects.toMatchObject({
       status: 400,
       message: expect.stringContaining("already used"),
@@ -260,7 +383,12 @@ describe("ApiService", () => {
     );
 
     await expect(
-      apiService.register("large_file_user", "pass12345", "pass12345", "Large User"),
+      apiService.register(
+        "large_file_user",
+        "pass12345",
+        "pass12345",
+        "Large User",
+      ),
     ).rejects.toMatchObject({
       status: 413,
       message: "Файл слишком большой",
@@ -281,7 +409,12 @@ describe("ApiService", () => {
     );
 
     await expect(
-      apiService.register("server_error_user", "pass12345", "pass12345", "Server User"),
+      apiService.register(
+        "server_error_user",
+        "pass12345",
+        "pass12345",
+        "Server User",
+      ),
     ).rejects.toMatchObject({
       status: 500,
       message: "Внутренняя ошибка сервера",
@@ -568,7 +701,9 @@ describe("ApiService", () => {
       }),
       http.get("/api/groups/:roomId/", () => HttpResponse.json(group)),
       http.patch("/api/groups/:roomId/", () => HttpResponse.json(group)),
-      http.delete("/api/groups/:roomId/", () => HttpResponse.json({ ok: true })),
+      http.delete("/api/groups/:roomId/", () =>
+        HttpResponse.json({ ok: true }),
+      ),
       http.post("/api/groups/:roomId/join/", () =>
         HttpResponse.json({ ok: true }),
       ),
@@ -645,12 +780,9 @@ describe("ApiService", () => {
       ).items,
     ).toHaveLength(1);
     expect(
-      (await apiService.getMyGroups({ search: "one", limit: 7 }))
-        .items,
+      (await apiService.getMyGroups({ search: "one", limit: 7 })).items,
     ).toHaveLength(1);
-    expect((await apiService.getGroupDetails("101")).name).toBe(
-      "Group One",
-    );
+    expect((await apiService.getGroupDetails("101")).name).toBe("Group One");
 
     await apiService.updateGroup("101", {
       name: "Group One Updated",
@@ -839,12 +971,10 @@ describe("ApiService", () => {
     ).toBe(4);
     await apiService.deleteRoomRole("101", 4);
 
-    expect((await apiService.getMemberRoles("101", 22)).roleIds).toEqual([
+    expect((await apiService.getMemberRoles("101", 22)).roleIds).toEqual([4]);
+    expect((await apiService.setMemberRoles("101", 22, [4])).roleIds).toEqual([
       4,
     ]);
-    expect(
-      (await apiService.setMemberRoles("101", 22, [4])).roleIds,
-    ).toEqual([4]);
 
     expect(await apiService.getRoomOverrides("101")).toHaveLength(1);
     expect(
@@ -866,9 +996,7 @@ describe("ApiService", () => {
     ).toBe(6);
     await apiService.deleteRoomOverride("101", 6);
 
-    expect((await apiService.getMyPermissions("101")).permissions).toBe(
-      15,
-    );
+    expect((await apiService.getMyPermissions("101")).permissions).toBe(15);
   });
 
   it("supports global search and attachments endpoints", async () => {
@@ -1036,13 +1164,10 @@ describe("ApiService", () => {
           editedAt: now,
         });
       }),
-      http.delete(
-        "/api/chat/:roomId/messages/:messageId/",
-        ({ params }) => {
-          deleteRoomId = String(params.roomId);
-          return HttpResponse.json({ ok: true });
-        },
-      ),
+      http.delete("/api/chat/:roomId/messages/:messageId/", ({ params }) => {
+        deleteRoomId = String(params.roomId);
+        return HttpResponse.json({ ok: true });
+      }),
       http.post(
         "/api/chat/:roomId/messages/:messageId/reactions/",
         ({ params }) => {
@@ -1113,5 +1238,3 @@ describe("ApiService", () => {
     expect(normalized.message.length).toBeGreaterThan(0);
   });
 });
-
-

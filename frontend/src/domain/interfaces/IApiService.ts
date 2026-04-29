@@ -14,7 +14,11 @@ import type {
   JoinRequest,
   PinnedMessage,
 } from "../../entities/group/types";
-import type { Attachment, Message } from "../../entities/message/types";
+import type {
+  Attachment,
+  Message,
+  ReplyTo,
+} from "../../entities/message/types";
 import type {
   MemberRoles,
   MyPermissions,
@@ -48,6 +52,32 @@ export type SessionResponse = {
   authenticated: boolean;
   user: UserProfile | null;
   wsAuthToken: string | null;
+  twoFactorRequired?: boolean;
+};
+
+export type SecuritySettings = {
+  email: string | null;
+  emailVerified: boolean;
+  hasPassword: boolean;
+  oauthProviders: string[];
+  twoFactorEnabled: boolean;
+  twoFactorEnabledAt: string | null;
+};
+
+export type TwoFactorSetup = {
+  manualKey: string;
+  otpauthUri: string;
+  qrSvg: string;
+};
+
+export type ChangePasswordInput = {
+  oldPassword: string;
+  newPassword: string;
+  newPasswordConfirm: string;
+};
+
+export type TwoFactorLoginInput = {
+  code: string;
 };
 
 /**
@@ -115,62 +145,64 @@ export type ClientRuntimeConfig = {
  * Интерфейс IApiService задает публичный контракт модуля.
  */
 export interface IApiService {
-    /**
-     * Гарантирует csrf.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-ensureCsrf(): Promise<{ csrfToken: string }>;
+  /**
+   * Гарантирует csrf.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  ensureCsrf(): Promise<{ csrfToken: string }>;
 
-    /**
-     * Гарантирует presence session.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-ensurePresenceSession(): Promise<{ ok: boolean; wsAuthToken: string | null }>;
+  /**
+   * Гарантирует presence session.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  ensurePresenceSession(): Promise<{ ok: boolean; wsAuthToken: string | null }>;
 
-    /**
-     * Возвращает client config.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getClientConfig(): Promise<ClientRuntimeConfig>;
+  /**
+   * Возвращает client config.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getClientConfig(): Promise<ClientRuntimeConfig>;
 
-    /**
-     * Возвращает session.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getSession(): Promise<SessionResponse>;
+  /**
+   * Возвращает session.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getSession(): Promise<SessionResponse>;
 
-    /**
-     * Обрабатывает login.
-     * @param identifier Идентификатор сущности, с которой выполняется операция.
-     * @param password Пароль пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-login(identifier: string, password: string): Promise<SessionResponse>;
+  /**
+   * Обрабатывает login.
+   * @param identifier Идентификатор сущности, с которой выполняется операция.
+   * @param password Пароль пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  login(identifier: string, password: string): Promise<SessionResponse>;
 
-    /**
-     * Обрабатывает oauth google.
-     * @param token Токен аутентификации.
-     * @param tokenType Тип токена аутентификации.
-     * @param username Имя пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-oauthGoogle(
+  confirmLoginTwoFactor(input: TwoFactorLoginInput): Promise<SessionResponse>;
+
+  /**
+   * Обрабатывает oauth google.
+   * @param token Токен аутентификации.
+   * @param tokenType Тип токена аутентификации.
+   * @param username Имя пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  oauthGoogle(
     token: string,
     tokenType?: "idToken" | "accessToken",
     username?: string,
   ): Promise<SessionResponse>;
 
-    /**
-     * Обрабатывает register.
-     * @param login Аргумент `login` текущего вызова.
-     * @param password Пароль пользователя.
-     * @param passwordConfirm Аргумент `passwordConfirm` текущего вызова.
-     * @param name Имя параметра или ключа, который используется в операции.
-     * @param username Имя пользователя.
-     * @param email Email пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-register(
+  /**
+   * Обрабатывает register.
+   * @param login Аргумент `login` текущего вызова.
+   * @param password Пароль пользователя.
+   * @param passwordConfirm Аргумент `passwordConfirm` текущего вызова.
+   * @param name Имя параметра или ключа, который используется в операции.
+   * @param username Имя пользователя.
+   * @param email Email пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  register(
     login: string,
     password: string,
     passwordConfirm: string,
@@ -179,40 +211,56 @@ register(
     email?: string,
   ): Promise<SessionResponse>;
 
-    /**
-     * Возвращает password rules.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getPasswordRules(): Promise<{ rules: string[] }>;
+  /**
+   * Возвращает password rules.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getPasswordRules(): Promise<{ rules: string[] }>;
 
-    /**
-     * Обрабатывает logout.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-logout(): Promise<{ ok: boolean }>;
+  /**
+   * Обрабатывает logout.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  logout(): Promise<{ ok: boolean }>;
 
-    /**
-     * Обновляет profile.
-     * @param fields Набор полей для обновления.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-updateProfile(fields: UpdateProfileInput): Promise<{ user: UserProfile }>;
+  getSecuritySettings(): Promise<{ security: SecuritySettings }>;
 
-    /**
-     * Разрешает prefixless chat target в конкретную комнату.
-     * @param target Внешний адрес чата: public, @username, public id или group publicRef.
-     * @returns Промис с данными разрешения target.
-     */
-resolveChatTarget(target: string): Promise<ChatResolveResult>;
+  changePassword(
+    input: ChangePasswordInput,
+  ): Promise<{ security: SecuritySettings }>;
 
-    /**
-     * Возвращает room details.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getRoomDetails(roomId: string): Promise<RoomDetails>;
+  beginTwoFactorSetup(): Promise<{ setup: TwoFactorSetup }>;
 
-    /**
+  confirmTwoFactor(
+    input: TwoFactorLoginInput,
+  ): Promise<{ security: SecuritySettings }>;
+
+  disableTwoFactor(
+    input: TwoFactorLoginInput,
+  ): Promise<{ security: SecuritySettings }>;
+
+  /**
+   * Обновляет profile.
+   * @param fields Набор полей для обновления.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  updateProfile(fields: UpdateProfileInput): Promise<{ user: UserProfile }>;
+
+  /**
+   * Разрешает prefixless chat target в конкретную комнату.
+   * @param target Внешний адрес чата: public, @username, public id или group publicRef.
+   * @returns Промис с данными разрешения target.
+   */
+  resolveChatTarget(target: string): Promise<ChatResolveResult>;
+
+  /**
+   * Возвращает room details.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getRoomDetails(roomId: string): Promise<RoomDetails>;
+
+  /**
    * Возвращает комнаты сообщений.
    *
    * @param roomId Идентификатор комнаты.
@@ -220,193 +268,197 @@ getRoomDetails(roomId: string): Promise<RoomDetails>;
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-getRoomMessages(
+  getRoomMessages(
     roomId: string,
     params?: { limit?: number; beforeId?: number },
   ): Promise<RoomMessagesResponse>;
 
-    /**
-     * Возвращает direct chats.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getDirectChats(): Promise<DirectChatsResponse>;
+  /**
+   * Возвращает direct chats.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getDirectChats(): Promise<DirectChatsResponse>;
 
-    /**
-     * Возвращает user profile.
-     * @param publicRef Публичный идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getUserProfile(publicRef: string): Promise<{ user: UserProfile }>;
+  /**
+   * Возвращает user profile.
+   * @param publicRef Публичный идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getUserProfile(publicRef: string): Promise<{ user: UserProfile }>;
 
-    /**
-     * Возвращает exact readers конкретного сообщения.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getMessageReaders(
+  /**
+   * Возвращает exact readers конкретного сообщения.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getMessageReaders(
     roomId: string,
     messageId: number,
   ): Promise<MessageReadersResult>;
 
-    /**
-     * Обрабатывает edit message.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @param content Текст сообщения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-editMessage(
+  /**
+   * Обрабатывает edit message.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @param content Текст сообщения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  editMessage(
     roomId: string,
     messageId: number,
     content: string,
   ): Promise<EditMessageResult>;
 
-    /**
-     * Удаляет message.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-deleteMessage(roomId: string, messageId: number): Promise<void>;
+  /**
+   * Удаляет message.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  deleteMessage(roomId: string, messageId: number): Promise<void>;
 
-    /**
-     * Добавляет reaction.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @param emoji Эмодзи реакции.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-addReaction(
+  /**
+   * Добавляет reaction.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @param emoji Эмодзи реакции.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  addReaction(
     roomId: string,
     messageId: number,
     emoji: string,
   ): Promise<ReactionResult>;
 
-    /**
-     * Удаляет reaction.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @param emoji Эмодзи реакции.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-removeReaction(roomId: string, messageId: number, emoji: string): Promise<void>;
+  /**
+   * Удаляет reaction.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @param emoji Эмодзи реакции.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  removeReaction(
+    roomId: string,
+    messageId: number,
+    emoji: string,
+  ): Promise<void>;
 
-    /**
-     * Обрабатывает search messages.
-     * @param roomId Идентификатор комнаты.
-     * @param query Поисковый запрос.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-searchMessages(roomId: string, query: string): Promise<SearchResult>;
+  /**
+   * Обрабатывает search messages.
+   * @param roomId Идентификатор комнаты.
+   * @param query Поисковый запрос.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  searchMessages(roomId: string, query: string): Promise<SearchResult>;
 
-    /**
-     * Обрабатывает upload attachments.
-     * @param roomId Идентификатор комнаты.
-     * @param files Список файлов для загрузки.
-     * @param options Опциональные параметры поведения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-uploadAttachments(
+  /**
+   * Обрабатывает upload attachments.
+   * @param roomId Идентификатор комнаты.
+   * @param files Список файлов для загрузки.
+   * @param options Опциональные параметры поведения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  uploadAttachments(
     roomId: string,
     files: File[],
     options?: UploadAttachmentsOptions,
   ): Promise<UploadResult>;
 
-    /**
-     * Обрабатывает mark read.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-markRead(roomId: string, messageId?: number): Promise<ReadStateResult>;
+  /**
+   * Обрабатывает mark read.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  markRead(roomId: string, messageId?: number): Promise<ReadStateResult>;
 
   // --- Phase 4: Friends ---
-    /**
-     * Возвращает friends.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getFriends(): Promise<Friend[]>;
-    /**
-     * Обрабатывает send friend request.
-     * @param publicRef Публичный идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-sendFriendRequest(publicRef: string): Promise<SendFriendRequestResponse>;
-    /**
-     * Возвращает incoming requests.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getIncomingRequests(): Promise<FriendRequest[]>;
-    /**
-     * Возвращает outgoing requests.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getOutgoingRequests(): Promise<FriendRequest[]>;
-    /**
-     * Обрабатывает accept friend request.
-     * @param friendshipId Идентификатор связи дружбы.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-acceptFriendRequest(friendshipId: number): Promise<void>;
-    /**
-     * Обрабатывает decline friend request.
-     * @param friendshipId Идентификатор связи дружбы.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-declineFriendRequest(friendshipId: number): Promise<void>;
-    /**
-     * Проверяет условие cancel outgoing friend request.
-     * @param friendshipId Идентификатор связи дружбы.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-cancelOutgoingFriendRequest(friendshipId: number): Promise<void>;
-    /**
-     * Удаляет friend.
-     * @param userId Идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-removeFriend(userId: number): Promise<void>;
-    /**
-     * Обрабатывает block user.
-     * @param publicRef Публичный идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-blockUser(publicRef: string): Promise<void>;
-    /**
-     * Обрабатывает unblock user.
-     * @param userId Идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-unblockUser(userId: number): Promise<void>;
-    /**
-     * Возвращает blocked users.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getBlockedUsers(): Promise<BlockedUser[]>;
+  /**
+   * Возвращает friends.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getFriends(): Promise<Friend[]>;
+  /**
+   * Обрабатывает send friend request.
+   * @param publicRef Публичный идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  sendFriendRequest(publicRef: string): Promise<SendFriendRequestResponse>;
+  /**
+   * Возвращает incoming requests.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getIncomingRequests(): Promise<FriendRequest[]>;
+  /**
+   * Возвращает outgoing requests.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getOutgoingRequests(): Promise<FriendRequest[]>;
+  /**
+   * Обрабатывает accept friend request.
+   * @param friendshipId Идентификатор связи дружбы.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  acceptFriendRequest(friendshipId: number): Promise<void>;
+  /**
+   * Обрабатывает decline friend request.
+   * @param friendshipId Идентификатор связи дружбы.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  declineFriendRequest(friendshipId: number): Promise<void>;
+  /**
+   * Проверяет условие cancel outgoing friend request.
+   * @param friendshipId Идентификатор связи дружбы.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  cancelOutgoingFriendRequest(friendshipId: number): Promise<void>;
+  /**
+   * Удаляет friend.
+   * @param userId Идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  removeFriend(userId: number): Promise<void>;
+  /**
+   * Обрабатывает block user.
+   * @param publicRef Публичный идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  blockUser(publicRef: string): Promise<void>;
+  /**
+   * Обрабатывает unblock user.
+   * @param userId Идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  unblockUser(userId: number): Promise<void>;
+  /**
+   * Возвращает blocked users.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getBlockedUsers(): Promise<BlockedUser[]>;
 
   // --- Phase 5: Groups ---
-    /**
+  /**
    * Создаёт группы.
    *
    * @param data Данные запроса или полезная нагрузка операции.
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-createGroup(data: {
+  createGroup(data: {
     name: string;
     description?: string;
     isPublic?: boolean;
     username?: string | null;
   }): Promise<Group>;
-    /**
+  /**
    * Возвращает public групп.
    *
    * @param params Параметры запроса.
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-getPublicGroups(params?: {
+  getPublicGroups(params?: {
     search?: string;
     limit?: number;
     before?: number;
@@ -419,14 +471,14 @@ getPublicGroups(params?: {
       nextBefore: number | null;
     };
   }>;
-    /**
+  /**
    * Возвращает my групп.
    *
    * @param params Параметры запроса.
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-getMyGroups(params?: {
+  getMyGroups(params?: {
     search?: string;
     limit?: number;
     before?: number;
@@ -439,38 +491,38 @@ getMyGroups(params?: {
       nextBefore: number | null;
     };
   }>;
-    /**
-     * Возвращает group details.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getGroupDetails(roomId: string): Promise<Group>;
-    /**
-     * Обновляет group.
-     * @param roomId Идентификатор комнаты.
-     * @param data Входные данные операции.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-updateGroup(roomId: string, data: UpdateGroupInput): Promise<Group>;
-    /**
-     * Удаляет group.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-deleteGroup(roomId: string): Promise<void>;
-    /**
-     * Обрабатывает join group.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-joinGroup(roomId: string): Promise<void>;
-    /**
-     * Обрабатывает leave group.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-leaveGroup(roomId: string): Promise<void>;
-    /**
+  /**
+   * Возвращает group details.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getGroupDetails(roomId: string): Promise<Group>;
+  /**
+   * Обновляет group.
+   * @param roomId Идентификатор комнаты.
+   * @param data Входные данные операции.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  updateGroup(roomId: string, data: UpdateGroupInput): Promise<Group>;
+  /**
+   * Удаляет group.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  deleteGroup(roomId: string): Promise<void>;
+  /**
+   * Обрабатывает join group.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  joinGroup(roomId: string): Promise<void>;
+  /**
+   * Обрабатывает leave group.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  leaveGroup(roomId: string): Promise<void>;
+  /**
    * Возвращает группы участников.
    *
    * @param roomId Идентификатор комнаты.
@@ -478,7 +530,7 @@ leaveGroup(roomId: string): Promise<void>;
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-getGroupMembers(
+  getGroupMembers(
     roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{
@@ -490,48 +542,48 @@ getGroupMembers(
       nextBefore: number | null;
     };
   }>;
-    /**
-     * Обрабатывает kick member.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-kickMember(roomId: string, userId: number): Promise<void>;
-    /**
-     * Обрабатывает ban member.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @param reason Причина административного действия.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-banMember(roomId: string, userId: number, reason?: string): Promise<void>;
-    /**
-     * Обрабатывает unban member.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-unbanMember(roomId: string, userId: number): Promise<void>;
-    /**
-     * Обрабатывает mute member.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @param durationSeconds Длительность действия в секундах.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-muteMember(
+  /**
+   * Обрабатывает kick member.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  kickMember(roomId: string, userId: number): Promise<void>;
+  /**
+   * Обрабатывает ban member.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @param reason Причина административного действия.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  banMember(roomId: string, userId: number, reason?: string): Promise<void>;
+  /**
+   * Обрабатывает unban member.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  unbanMember(roomId: string, userId: number): Promise<void>;
+  /**
+   * Обрабатывает mute member.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @param durationSeconds Длительность действия в секундах.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  muteMember(
     roomId: string,
     userId: number,
     durationSeconds?: number,
   ): Promise<void>;
-    /**
-     * Обрабатывает unmute member.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-unmuteMember(roomId: string, userId: number): Promise<void>;
-    /**
+  /**
+   * Обрабатывает unmute member.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  unmuteMember(roomId: string, userId: number): Promise<void>;
+  /**
    * Возвращает заблокированные участников.
    *
    * @param roomId Идентификатор комнаты.
@@ -539,7 +591,7 @@ unmuteMember(roomId: string, userId: number): Promise<void>;
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-getBannedMembers(
+  getBannedMembers(
     roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<{
@@ -551,7 +603,7 @@ getBannedMembers(
       nextBefore: number | null;
     };
   }>;
-    /**
+  /**
    * Создаёт приглашение.
    *
    * @param roomId Идентификатор комнаты.
@@ -559,93 +611,93 @@ getBannedMembers(
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-createInvite(
+  createInvite(
     roomId: string,
     data?: { maxUses?: number; expiresInHours?: number },
   ): Promise<GroupInvite>;
-    /**
-     * Возвращает invites.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getInvites(roomId: string): Promise<GroupInvite[]>;
-    /**
-     * Обрабатывает revoke invite.
-     * @param roomId Идентификатор комнаты.
-     * @param code Код приглашения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-revokeInvite(roomId: string, code: string): Promise<void>;
-    /**
-     * Возвращает invite preview.
-     * @param code Код приглашения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getInvitePreview(code: string): Promise<InvitePreview>;
-    /**
-     * Обрабатывает join via invite.
-     * @param code Код приглашения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-joinViaInvite(
+  /**
+   * Возвращает invites.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getInvites(roomId: string): Promise<GroupInvite[]>;
+  /**
+   * Обрабатывает revoke invite.
+   * @param roomId Идентификатор комнаты.
+   * @param code Код приглашения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  revokeInvite(roomId: string, code: string): Promise<void>;
+  /**
+   * Возвращает invite preview.
+   * @param code Код приглашения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getInvitePreview(code: string): Promise<InvitePreview>;
+  /**
+   * Обрабатывает join via invite.
+   * @param code Код приглашения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  joinViaInvite(
     code: string,
   ): Promise<{ roomId: number; groupPublicRef?: string | null }>;
-    /**
-     * Возвращает join requests.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getJoinRequests(roomId: string): Promise<JoinRequest[]>;
-    /**
-     * Обрабатывает approve join request.
-     * @param roomId Идентификатор комнаты.
-     * @param requestId Идентификатор заявки.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-approveJoinRequest(roomId: string, requestId: number): Promise<void>;
-    /**
-     * Обрабатывает reject join request.
-     * @param roomId Идентификатор комнаты.
-     * @param requestId Идентификатор заявки.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-rejectJoinRequest(roomId: string, requestId: number): Promise<void>;
-    /**
-     * Возвращает pinned messages.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getPinnedMessages(roomId: string): Promise<PinnedMessage[]>;
-    /**
-     * Обрабатывает pin message.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-pinMessage(roomId: string, messageId: number): Promise<void>;
-    /**
-     * Обрабатывает unpin message.
-     * @param roomId Идентификатор комнаты.
-     * @param messageId Идентификатор сообщения.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-unpinMessage(roomId: string, messageId: number): Promise<void>;
-    /**
-     * Обрабатывает transfer ownership.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-transferOwnership(roomId: string, userId: number): Promise<void>;
+  /**
+   * Возвращает join requests.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getJoinRequests(roomId: string): Promise<JoinRequest[]>;
+  /**
+   * Обрабатывает approve join request.
+   * @param roomId Идентификатор комнаты.
+   * @param requestId Идентификатор заявки.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  approveJoinRequest(roomId: string, requestId: number): Promise<void>;
+  /**
+   * Обрабатывает reject join request.
+   * @param roomId Идентификатор комнаты.
+   * @param requestId Идентификатор заявки.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  rejectJoinRequest(roomId: string, requestId: number): Promise<void>;
+  /**
+   * Возвращает pinned messages.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getPinnedMessages(roomId: string): Promise<PinnedMessage[]>;
+  /**
+   * Обрабатывает pin message.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  pinMessage(roomId: string, messageId: number): Promise<void>;
+  /**
+   * Обрабатывает unpin message.
+   * @param roomId Идентификатор комнаты.
+   * @param messageId Идентификатор сообщения.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  unpinMessage(roomId: string, messageId: number): Promise<void>;
+  /**
+   * Обрабатывает transfer ownership.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  transferOwnership(roomId: string, userId: number): Promise<void>;
 
   // --- Phase 6: Roles & Permissions ---
-    /**
-     * Возвращает room roles.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getRoomRoles(roomId: string): Promise<Role[]>;
-    /**
+  /**
+   * Возвращает room roles.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getRoomRoles(roomId: string): Promise<Role[]>;
+  /**
    * Создаёт комнаты роли.
    *
    * @param roomId Идентификатор комнаты.
@@ -653,11 +705,11 @@ getRoomRoles(roomId: string): Promise<Role[]>;
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-createRoomRole(
+  createRoomRole(
     roomId: string,
     data: { name: string; color?: string; permissions?: number },
   ): Promise<Role>;
-    /**
+  /**
    * Обновляет комнаты роли.
    *
    * @param roomId Идентификатор комнаты.
@@ -666,7 +718,7 @@ createRoomRole(
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-updateRoomRole(
+  updateRoomRole(
     roomId: string,
     roleId: number,
     data: Partial<{
@@ -676,39 +728,39 @@ updateRoomRole(
       position: number;
     }>,
   ): Promise<Role>;
-    /**
-     * Удаляет room role.
-     * @param roomId Идентификатор комнаты.
-     * @param roleId Идентификатор роли.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-deleteRoomRole(roomId: string, roleId: number): Promise<void>;
-    /**
-     * Возвращает member roles.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getMemberRoles(roomId: string, userId: number): Promise<MemberRoles>;
-    /**
-     * Устанавливает member roles.
-     * @param roomId Идентификатор комнаты.
-     * @param userId Идентификатор пользователя.
-     * @param roleIds Список идентификаторов ролей.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-setMemberRoles(
+  /**
+   * Удаляет room role.
+   * @param roomId Идентификатор комнаты.
+   * @param roleId Идентификатор роли.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  deleteRoomRole(roomId: string, roleId: number): Promise<void>;
+  /**
+   * Возвращает member roles.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getMemberRoles(roomId: string, userId: number): Promise<MemberRoles>;
+  /**
+   * Устанавливает member roles.
+   * @param roomId Идентификатор комнаты.
+   * @param userId Идентификатор пользователя.
+   * @param roleIds Список идентификаторов ролей.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  setMemberRoles(
     roomId: string,
     userId: number,
     roleIds: number[],
   ): Promise<MemberRoles>;
-    /**
-     * Возвращает room overrides.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getRoomOverrides(roomId: string): Promise<PermissionOverride[]>;
-    /**
+  /**
+   * Возвращает room overrides.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getRoomOverrides(roomId: string): Promise<PermissionOverride[]>;
+  /**
    * Создаёт комнаты override.
    *
    * @param roomId Идентификатор комнаты.
@@ -716,7 +768,7 @@ getRoomOverrides(roomId: string): Promise<PermissionOverride[]>;
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-createRoomOverride(
+  createRoomOverride(
     roomId: string,
     data: {
       targetRoleId?: number;
@@ -725,7 +777,7 @@ createRoomOverride(
       deny?: number;
     },
   ): Promise<PermissionOverride>;
-    /**
+  /**
    * Обновляет комнаты override.
    *
    * @param roomId Идентификатор комнаты.
@@ -734,26 +786,26 @@ createRoomOverride(
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-updateRoomOverride(
+  updateRoomOverride(
     roomId: string,
     overrideId: number,
     data: Partial<{ allow: number; deny: number }>,
   ): Promise<PermissionOverride>;
-    /**
-     * Удаляет room override.
-     * @param roomId Идентификатор комнаты.
-     * @param overrideId Идентификатор переопределения прав.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-deleteRoomOverride(roomId: string, overrideId: number): Promise<void>;
-    /**
-     * Возвращает my permissions.
-     * @param roomId Идентификатор комнаты.
-     * @returns Промис с данными, возвращаемыми этой функцией.
-     */
-getMyPermissions(roomId: string): Promise<MyPermissions>;
+  /**
+   * Удаляет room override.
+   * @param roomId Идентификатор комнаты.
+   * @param overrideId Идентификатор переопределения прав.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  deleteRoomOverride(roomId: string, overrideId: number): Promise<void>;
+  /**
+   * Возвращает my permissions.
+   * @param roomId Идентификатор комнаты.
+   * @returns Промис с данными, возвращаемыми этой функцией.
+   */
+  getMyPermissions(roomId: string): Promise<MyPermissions>;
 
-    /**
+  /**
    * Выполняет поиск.
    *
    * @param query Поисковый запрос.
@@ -761,7 +813,7 @@ getMyPermissions(roomId: string): Promise<MyPermissions>;
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-globalSearch(
+  globalSearch(
     query: string,
     params?: {
       usersLimit?: number;
@@ -770,7 +822,7 @@ globalSearch(
     },
   ): Promise<GlobalSearchResult>;
 
-    /**
+  /**
    * Возвращает комнаты вложения.
    *
    * @param roomId Идентификатор комнаты.
@@ -778,7 +830,7 @@ globalSearch(
    *
    * @returns Промис с данными, возвращаемыми этой функцией.
    */
-getRoomAttachments(
+  getRoomAttachments(
     roomId: string,
     params?: { limit?: number; before?: number },
   ): Promise<RoomAttachmentsResult>;
@@ -827,6 +879,13 @@ export type SearchResult = {
 export type UploadResult = {
   id: number;
   content: string;
+  publicRef?: string;
+  username?: string;
+  displayName?: string;
+  profilePic?: string | null;
+  avatarCrop?: AvatarCrop | null;
+  createdAt?: string;
+  replyTo?: ReplyTo | null;
   attachments: Attachment[];
 };
 export type UploadProgressPhase = "uploading" | "processing";

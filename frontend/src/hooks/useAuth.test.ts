@@ -6,51 +6,53 @@ import type { UserProfile } from "../entities/user/types";
 
 const authControllerMock = vi.hoisted(() => ({
   ensureCsrf: vi.fn<() => Promise<{ csrfToken: string }>>(),
-  getSession:
-    vi.fn<
-      () => Promise<{
-        authenticated: boolean;
-        user: UserProfile | null;
-        wsAuthToken: string | null;
-      }>
-    >(),
-  login:
-    vi.fn<
-      (dto: {
-        identifier: string;
-        password: string;
-      }) => Promise<{
-        authenticated: boolean;
-        user: UserProfile | null;
-        wsAuthToken: string | null;
-      }>
-    >(),
-  oauthGoogle:
-    vi.fn<
-      (
-        token: string,
-        tokenType?: "idToken" | "accessToken",
-      ) => Promise<{
-        authenticated: boolean;
-        user: UserProfile | null;
-        wsAuthToken: string | null;
-      }>
-    >(),
-  register:
-    vi.fn<
-      (dto: {
-        login: string;
-        password: string;
-        passwordConfirm: string;
-        name: string;
-        username?: string;
-        email?: string;
-      }) => Promise<{
-        authenticated: boolean;
-        user: UserProfile | null;
-        wsAuthToken: string | null;
-      }>
-    >(),
+  getSession: vi.fn<
+    () => Promise<{
+      authenticated: boolean;
+      user: UserProfile | null;
+      wsAuthToken: string | null;
+      twoFactorRequired?: boolean;
+    }>
+  >(),
+  login: vi.fn<
+    (dto: { identifier: string; password: string }) => Promise<{
+      authenticated: boolean;
+      user: UserProfile | null;
+      wsAuthToken: string | null;
+      twoFactorRequired?: boolean;
+    }>
+  >(),
+  confirmLoginTwoFactor: vi.fn<
+    (dto: { code: string }) => Promise<{
+      authenticated: boolean;
+      user: UserProfile | null;
+      wsAuthToken: string | null;
+    }>
+  >(),
+  oauthGoogle: vi.fn<
+    (
+      token: string,
+      tokenType?: "idToken" | "accessToken",
+    ) => Promise<{
+      authenticated: boolean;
+      user: UserProfile | null;
+      wsAuthToken: string | null;
+    }>
+  >(),
+  register: vi.fn<
+    (dto: {
+      login: string;
+      password: string;
+      passwordConfirm: string;
+      name: string;
+      username?: string;
+      email?: string;
+    }) => Promise<{
+      authenticated: boolean;
+      user: UserProfile | null;
+      wsAuthToken: string | null;
+    }>
+  >(),
   logout: vi.fn<() => Promise<{ ok: boolean }>>(),
   updateProfile:
     vi.fn<(dto: UpdateProfileDto) => Promise<{ user: UserProfile }>>(),
@@ -82,34 +84,31 @@ describe("useAuth", () => {
     authControllerMock.ensureCsrf
       .mockReset()
       .mockResolvedValue({ csrfToken: "token" });
-    authControllerMock.getSession
-      .mockReset()
-      .mockResolvedValue({
-        authenticated: true,
-        user: sessionUser,
-        wsAuthToken: "auth-token",
-      });
-    authControllerMock.login
-      .mockReset()
-      .mockResolvedValue({
-        authenticated: true,
-        user: sessionUser,
-        wsAuthToken: "auth-token",
-      });
-    authControllerMock.oauthGoogle
-      .mockReset()
-      .mockResolvedValue({
-        authenticated: true,
-        user: sessionUser,
-        wsAuthToken: "auth-token",
-      });
-    authControllerMock.register
-      .mockReset()
-      .mockResolvedValue({
-        authenticated: true,
-        user: sessionUser,
-        wsAuthToken: "auth-token",
-      });
+    authControllerMock.getSession.mockReset().mockResolvedValue({
+      authenticated: true,
+      user: sessionUser,
+      wsAuthToken: "auth-token",
+    });
+    authControllerMock.login.mockReset().mockResolvedValue({
+      authenticated: true,
+      user: sessionUser,
+      wsAuthToken: "auth-token",
+    });
+    authControllerMock.confirmLoginTwoFactor.mockReset().mockResolvedValue({
+      authenticated: true,
+      user: sessionUser,
+      wsAuthToken: "two-factor-token",
+    });
+    authControllerMock.oauthGoogle.mockReset().mockResolvedValue({
+      authenticated: true,
+      user: sessionUser,
+      wsAuthToken: "auth-token",
+    });
+    authControllerMock.register.mockReset().mockResolvedValue({
+      authenticated: true,
+      user: sessionUser,
+      wsAuthToken: "auth-token",
+    });
     authControllerMock.logout.mockReset().mockResolvedValue({ ok: true });
     authControllerMock.updateProfile
       .mockReset()
@@ -177,7 +176,10 @@ describe("useAuth", () => {
     await waitFor(() => expect(result.current.auth.loading).toBe(false));
 
     await act(async () => {
-      await result.current.login({ identifier: "demo_login", password: "pass12345" });
+      await result.current.login({
+        identifier: "demo_login",
+        password: "pass12345",
+      });
       await result.current.register({
         login: "demo_login",
         password: "pass12345",
@@ -216,6 +218,57 @@ describe("useAuth", () => {
      */
 
     expect(result.current.auth.user?.username).toBe("demo");
+  });
+
+  it("login waits for two-factor challenge before setting auth user", async () => {
+    authControllerMock.getSession.mockResolvedValueOnce({
+      authenticated: false,
+      user: null,
+      wsAuthToken: null,
+    });
+    authControllerMock.login.mockResolvedValueOnce({
+      authenticated: false,
+      user: null,
+      wsAuthToken: null,
+      twoFactorRequired: true,
+    });
+
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.auth.loading).toBe(false));
+
+    let twoFactorRequired = false;
+    await act(async () => {
+      const session = await result.current.login({
+        identifier: "demo_login",
+        password: "pass12345",
+      });
+      twoFactorRequired = session.twoFactorRequired === true;
+    });
+
+    expect(twoFactorRequired).toBe(true);
+    expect(result.current.auth.user).toBeNull();
+    expect(result.current.auth.wsAuthToken).toBeNull();
+  });
+
+  it("confirmLoginTwoFactor completes auth state", async () => {
+    authControllerMock.getSession.mockResolvedValueOnce({
+      authenticated: false,
+      user: null,
+      wsAuthToken: null,
+    });
+
+    const { result } = renderHook(() => useAuth());
+    await waitFor(() => expect(result.current.auth.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.confirmLoginTwoFactor({ code: "123456" });
+    });
+
+    expect(authControllerMock.confirmLoginTwoFactor).toHaveBeenCalledWith({
+      code: "123456",
+    });
+    expect(result.current.auth.user?.username).toBe("demo");
+    expect(result.current.auth.wsAuthToken).toBe("two-factor-token");
   });
 
   it("google oauth login refreshes auth user", async () => {

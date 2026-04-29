@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildChangePasswordRequestDto,
   buildLoginRequestDto,
   buildOAuthGoogleRequestDto,
   buildRegisterRequestDto,
+  buildTwoFactorLoginRequestDto,
   decodeAuthErrorPayload,
   decodeProfileEnvelopeResponse,
+  decodeSecuritySettingsResponse,
   decodeSessionResponse,
+  decodeTwoFactorSetupResponse,
 } from "./auth";
 
 describe("auth DTO decoders", () => {
@@ -72,6 +76,65 @@ describe("auth DTO decoders", () => {
       identifier: "demo_login",
       password: "pass",
     });
+  });
+
+  it("decodes two-factor login challenge session", () => {
+    const decoded = decodeSessionResponse({
+      authenticated: false,
+      user: null,
+      wsAuthToken: null,
+      twoFactorRequired: true,
+    });
+
+    expect(decoded.twoFactorRequired).toBe(true);
+    expect(decoded.user).toBeNull();
+  });
+
+  it("validates two-factor and password security payloads", () => {
+    expect(buildTwoFactorLoginRequestDto({ code: " 123456 " })).toEqual({
+      code: "123456",
+    });
+    expect(
+      buildChangePasswordRequestDto({
+        oldPassword: "old",
+        newPassword: "newpass123",
+        newPasswordConfirm: "newpass123",
+      }),
+    ).toEqual({
+      oldPassword: "old",
+      newPassword: "newpass123",
+      newPasswordConfirm: "newpass123",
+    });
+  });
+
+  it("decodes security settings and TOTP setup envelopes", () => {
+    expect(
+      decodeSecuritySettingsResponse({
+        security: {
+          hasPassword: true,
+          twoFactorEnabled: true,
+          twoFactorEnabledAt: "2026-04-28T00:00:00Z",
+        },
+      }),
+    ).toEqual({
+      security: {
+        email: null,
+        emailVerified: false,
+        hasPassword: true,
+        oauthProviders: [],
+        twoFactorEnabled: true,
+        twoFactorEnabledAt: "2026-04-28T00:00:00Z",
+      },
+    });
+    expect(
+      decodeTwoFactorSetupResponse({
+        setup: {
+          manualKey: "ABC",
+          otpauthUri: "otpauth://totp/Devil:abc",
+          qrSvg: "data:image/svg+xml;base64,abc",
+        },
+      }).setup.manualKey,
+    ).toBe("ABC");
   });
 
   it("keeps username empty when only fallback publicId exists", () => {

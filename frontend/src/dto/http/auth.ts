@@ -52,6 +52,7 @@ const sessionResponseSchema = z
     authenticated: z.boolean(),
     user: rawUserProfileSchema.nullable(),
     wsAuthToken: z.string().min(1).nullable().optional(),
+    twoFactorRequired: z.boolean().optional(),
   })
   .passthrough();
 
@@ -64,6 +65,34 @@ const presenceSessionSchema = z
   .passthrough();
 const passwordRulesSchema = z.object({ rules: z.array(z.string()) }).passthrough();
 const logoutSchema = z.object({ ok: z.boolean() }).passthrough();
+const securitySettingsSchema = z
+  .object({
+    email: z.string().nullable().optional(),
+    emailVerified: z.boolean().optional(),
+    hasPassword: z.boolean(),
+    oauthProviders: z.array(z.string()).optional(),
+    twoFactorEnabled: z.boolean(),
+    twoFactorEnabledAt: z.string().nullable().optional(),
+  })
+  .passthrough();
+const securityEnvelopeSchema = z
+  .object({
+    ok: z.boolean().optional(),
+    security: securitySettingsSchema,
+  })
+  .passthrough();
+const twoFactorSetupSchema = z
+  .object({
+    manualKey: z.string().min(1),
+    otpauthUri: z.string().min(1),
+    qrSvg: z.string().min(1),
+  })
+  .passthrough();
+const twoFactorSetupEnvelopeSchema = z
+  .object({
+    setup: twoFactorSetupSchema,
+  })
+  .passthrough();
 
 const profileEnvelopeSchema = z
   .object({
@@ -93,6 +122,30 @@ const loginRequestInputSchema = z
     identifier: dto.identifier.trim(),
     password: dto.password,
   }));
+
+const twoFactorLoginRequestInputSchema = z
+  .object({
+    code: z.string().trim().min(1),
+  })
+  .strict()
+  .transform((dto) => ({
+    code: dto.code.trim(),
+  }));
+
+const changePasswordRequestInputSchema = z
+  .object({
+    oldPassword: z.string().min(1),
+    newPassword: z.string().min(1),
+    newPasswordConfirm: z.string().min(1),
+  })
+  .strict();
+
+const twoFactorCodeRequestInputSchema = z
+  .object({
+    code: z.string().trim().min(1),
+  })
+  .strict()
+  .transform((dto) => ({ code: dto.code.trim() }));
 
 const registerRequestInputSchema = z
   .object({
@@ -218,7 +271,18 @@ export type SessionResponseDto = {
   authenticated: boolean;
   user: UserProfile | null;
   wsAuthToken: string | null;
+  twoFactorRequired?: boolean;
 };
+
+export type SecuritySettingsDto = {
+  email: string | null;
+  emailVerified: boolean;
+  hasPassword: boolean;
+  oauthProviders: string[];
+  twoFactorEnabled: boolean;
+  twoFactorEnabledAt: string | null;
+};
+export type TwoFactorSetupDto = z.infer<typeof twoFactorSetupSchema>;
 
 /**
  * Описывает структуру данных `ProfileEnvelopeDto`.
@@ -236,6 +300,9 @@ export type AuthErrorPayloadDto = z.infer<typeof errorPayloadSchema>;
  * Описывает структуру данных `LoginRequestDto`.
  */
 export type LoginRequestDto = z.infer<typeof loginRequestInputSchema>;
+export type TwoFactorLoginRequestDto = z.infer<typeof twoFactorLoginRequestInputSchema>;
+export type ChangePasswordRequestDto = z.infer<typeof changePasswordRequestInputSchema>;
+export type TwoFactorCodeRequestDto = z.infer<typeof twoFactorCodeRequestInputSchema>;
 /**
  * Описывает структуру данных `RegisterRequestDto`.
  */
@@ -319,8 +386,30 @@ export const decodeSessionResponse = (input: unknown): SessionResponseDto => {
     authenticated: parsed.authenticated,
     user: parsed.user ? mapUserProfile(parsed.user) : null,
     wsAuthToken: parsed.wsAuthToken ?? null,
+    twoFactorRequired: parsed.twoFactorRequired === true ? true : undefined,
   };
 };
+
+export const decodeSecuritySettingsResponse = (
+  input: unknown,
+): { security: SecuritySettingsDto } => {
+  const parsed = decodeOrThrow(securityEnvelopeSchema, input, "auth/security");
+  return {
+    security: {
+      email: parsed.security.email ?? null,
+      emailVerified: parsed.security.emailVerified === true,
+      hasPassword: parsed.security.hasPassword,
+      oauthProviders: parsed.security.oauthProviders ?? [],
+      twoFactorEnabled: parsed.security.twoFactorEnabled,
+      twoFactorEnabledAt: parsed.security.twoFactorEnabledAt ?? null,
+    },
+  };
+};
+
+export const decodeTwoFactorSetupResponse = (
+  input: unknown,
+): { setup: TwoFactorSetupDto } =>
+  decodeOrThrow(twoFactorSetupEnvelopeSchema, input, "auth/two-factor-setup");
 
 /**
  * Преобразует HTTP-данные для операции decode profile envelope response.
@@ -357,6 +446,33 @@ export const decodeAuthErrorPayload = (
 
 export const buildLoginRequestDto = (input: unknown): LoginRequestDto =>
   decodeOrThrow(loginRequestInputSchema, input, "auth/login-request");
+
+export const buildTwoFactorLoginRequestDto = (
+  input: unknown,
+): TwoFactorLoginRequestDto =>
+  decodeOrThrow(
+    twoFactorLoginRequestInputSchema,
+    input,
+    "auth/login-two-factor-request",
+  );
+
+export const buildChangePasswordRequestDto = (
+  input: unknown,
+): ChangePasswordRequestDto =>
+  decodeOrThrow(
+    changePasswordRequestInputSchema,
+    input,
+    "auth/change-password-request",
+  );
+
+export const buildTwoFactorCodeRequestDto = (
+  input: unknown,
+): TwoFactorCodeRequestDto =>
+  decodeOrThrow(
+    twoFactorCodeRequestInputSchema,
+    input,
+    "auth/two-factor-code-request",
+  );
 
 /**
  * Преобразует HTTP-данные для операции build register request dto.

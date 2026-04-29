@@ -2,7 +2,9 @@ import type { AxiosError, AxiosInstance } from "axios";
 import axios, { AxiosHeaders } from "axios";
 
 import type {
+  ChangePasswordInput,
   IApiService,
+  TwoFactorLoginInput,
   UpdateGroupInput,
   UpdateProfileInput,
   UploadAttachmentsOptions,
@@ -21,6 +23,7 @@ import { approveJoinRequest } from "./apiService/approveJoinRequest";
 import { banMember } from "./apiService/banMember";
 import { blockUser } from "./apiService/blockUser";
 import { cancelOutgoingFriendRequest } from "./apiService/cancelOutgoingFriendRequest";
+import { confirmLoginTwoFactor } from "./apiService/confirmLoginTwoFactor";
 import { createGroup } from "./apiService/createGroup";
 import { createInvite } from "./apiService/createInvite";
 import { createRoomOverride } from "./apiService/createRoomOverride";
@@ -77,6 +80,13 @@ import { removeReaction } from "./apiService/removeReaction";
 import { resolveChatTarget } from "./apiService/resolveChatTarget";
 import { revokeInvite } from "./apiService/revokeInvite";
 import { searchMessages } from "./apiService/searchMessages";
+import {
+  beginTwoFactorSetup,
+  changePassword,
+  confirmTwoFactor,
+  disableTwoFactor,
+  getSecuritySettings,
+} from "./apiService/security";
 import { sendFriendRequest } from "./apiService/sendFriendRequest";
 import { setMemberRoles } from "./apiService/setMemberRoles";
 import { transferOwnership } from "./apiService/transferOwnership";
@@ -395,6 +405,12 @@ class ApiService implements IApiService {
     );
   }
 
+  public async confirmLoginTwoFactor(input: TwoFactorLoginInput) {
+    return this.runWithDecode(async () =>
+      confirmLoginTwoFactor(this.apiClient, input),
+    );
+  }
+
   /**
    * Асинхронно выполняет OAuth-аутентификацию google.
    *
@@ -455,6 +471,32 @@ class ApiService implements IApiService {
    */
   public async logout() {
     return this.runWithDecode(async () => logout(this.apiClient));
+  }
+
+  public async getSecuritySettings() {
+    return this.runWithDecode(async () => getSecuritySettings(this.apiClient));
+  }
+
+  public async changePassword(input: ChangePasswordInput) {
+    return this.runWithDecode(async () =>
+      changePassword(this.apiClient, input),
+    );
+  }
+
+  public async beginTwoFactorSetup() {
+    return this.runWithDecode(async () => beginTwoFactorSetup(this.apiClient));
+  }
+
+  public async confirmTwoFactor(input: TwoFactorLoginInput) {
+    return this.runWithDecode(async () =>
+      confirmTwoFactor(this.apiClient, input),
+    );
+  }
+
+  public async disableTwoFactor(input: TwoFactorLoginInput) {
+    return this.runWithDecode(async () =>
+      disableTwoFactor(this.apiClient, input),
+    );
   }
 
   /**
