@@ -10,7 +10,12 @@ import {
 import { registerWithRetry } from "./helpers/auth";
 
 const DEMO_PASSWORD = "pass12345";
-const BACKEND_ORIGIN = "http://127.0.0.1:8000";
+const BACKEND_ORIGIN =
+  process.env.E2E_BACKEND_ORIGIN ??
+  `http://127.0.0.1:${process.env.E2E_BACKEND_PORT ?? "8000"}`;
+const BACKEND_WS_ORIGIN =
+  process.env.E2E_WS_BACKEND_ORIGIN ??
+  `ws://127.0.0.1:${process.env.E2E_BACKEND_PORT ?? "8000"}`;
 const AVATAR_BASE_URL = `${BACKEND_ORIGIN}/media/tmp_avatar`;
 const TRANSIENT_DB_LOCK_RETRIES = 5;
 const TRANSIENT_DB_LOCK_RETRY_DELAY_MS = 300;
@@ -61,7 +66,10 @@ type SeededMessage = {
 };
 
 type RequestFetchOptions = NonNullable<Parameters<Page["request"]["fetch"]>[1]>;
-type MultipartPayload = Exclude<RequestFetchOptions["multipart"], FormData | undefined>;
+type MultipartPayload = Exclude<
+  RequestFetchOptions["multipart"],
+  FormData | undefined
+>;
 type MultipartValue = MultipartPayload[string];
 type MultipartFile = Exclude<MultipartValue, string | number | boolean>;
 
@@ -489,7 +497,10 @@ function createRunSuffix(): string {
 
 function appendRunSuffix(base: string, suffix: string, maxLength = 30): string {
   const normalizedBase = base.toLowerCase();
-  const safeSuffix = suffix.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+  const safeSuffix = suffix
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 10);
   const maxBaseLength = Math.max(1, maxLength - safeSuffix.length - 1);
   return `${normalizedBase.slice(0, maxBaseLength)}_${safeSuffix}`;
 }
@@ -631,14 +642,21 @@ async function ensureUserSession(
   providedPage?: Page,
 ): Promise<ActorSession> {
   const ownedContext = !providedPage;
-  const context = providedPage ? providedPage.context() : await browser.newContext();
+  const context = providedPage
+    ? providedPage.context()
+    : await browser.newContext();
   const page = providedPage ?? (await context.newPage());
 
   await registerWithRetry(page, actor.login, DEMO_PASSWORD);
 
-  const handleResponse = await requestJson(page, "PATCH", "/api/profile/handle/", {
-    username: actor.handle,
-  });
+  const handleResponse = await requestJson(
+    page,
+    "PATCH",
+    "/api/profile/handle/",
+    {
+      username: actor.handle,
+    },
+  );
   await expectOk(handleResponse, `set handle for ${actor.displayName}`);
 
   const avatar = await fetchAvatarFixture(page, actor);
@@ -654,7 +672,9 @@ async function ensureUserSession(
 }
 
 async function resolveRoomId(page: Page, target: string): Promise<number> {
-  const response = await requestJson(page, "POST", "/api/chat/resolve/", { target });
+  const response = await requestJson(page, "POST", "/api/chat/resolve/", {
+    target,
+  });
   await expectOk(response, `resolve target ${target}`);
   const payload = (await response.json()) as {
     roomId?: number;
@@ -667,7 +687,9 @@ async function resolveRoomId(page: Page, target: string): Promise<number> {
   return roomId;
 }
 
-async function createDemoGroup(page: Page): Promise<{ roomId: number; target: string }> {
+async function createDemoGroup(
+  page: Page,
+): Promise<{ roomId: number; target: string }> {
   const createResponse = await requestJson(page, "POST", "/api/groups/", {
     name: GROUP_NAME,
     description: GROUP_DESCRIPTION,
@@ -687,7 +709,11 @@ async function createDemoGroup(page: Page): Promise<{ roomId: number; target: st
 
 async function joinGroup(page: Page, roomId: number): Promise<void> {
   for (let attempt = 1; attempt <= 4; attempt += 1) {
-    const response = await requestJson(page, "POST", `/api/groups/${roomId}/join/`);
+    const response = await requestJson(
+      page,
+      "POST",
+      `/api/groups/${roomId}/join/`,
+    );
     if (response.ok()) {
       return;
     }
@@ -702,7 +728,9 @@ async function joinGroup(page: Page, roomId: number): Promise<void> {
       continue;
     }
 
-    throw new Error(`join group ${roomId} failed: ${response.status()} ${body}`);
+    throw new Error(
+      `join group ${roomId} failed: ${response.status()} ${body}`,
+    );
   }
 }
 
@@ -714,15 +742,17 @@ async function sendWsMessage(
 ): Promise<SeededMessage> {
   return page.evaluate(
     async ({
+      backendWsOrigin,
       roomId,
       content,
       replyToId,
     }: {
+      backendWsOrigin: string;
       roomId: number;
       content: string;
       replyToId?: number;
     }) => {
-      const wsUrl = `ws://127.0.0.1:8000/ws/chat/${roomId}/`;
+      const wsUrl = `${backendWsOrigin}/ws/chat/${roomId}/`;
 
       return new Promise<SeededMessage>((resolve, reject) => {
         const socket = new WebSocket(wsUrl);
@@ -786,7 +816,9 @@ async function sendWsMessage(
 
             const messageId = Number(payload.id ?? 0);
             if (!Number.isFinite(messageId) || messageId < 1) {
-              fail(`chat websocket returned invalid message id for: ${content}`);
+              fail(
+                `chat websocket returned invalid message id for: ${content}`,
+              );
               return;
             }
 
@@ -810,7 +842,7 @@ async function sendWsMessage(
         });
       });
     },
-    { roomId, content, replyToId },
+    { backendWsOrigin: BACKEND_WS_ORIGIN, roomId, content, replyToId },
   );
 }
 
@@ -832,7 +864,12 @@ async function sendConversation(
       throw new Error(`Missing reply target ${item.replyTo} for ${item.key}`);
     }
 
-    const message = await sendWsMessage(sender.page, roomId, item.text, replyToId);
+    const message = await sendWsMessage(
+      sender.page,
+      roomId,
+      item.text,
+      replyToId,
+    );
     sentMessages.set(item.key, message.id);
     await sender.page.waitForTimeout(140);
   }
@@ -913,13 +950,13 @@ test("creates six meaningful demo users with active direct chats, public chat, a
     await expect(sidebar).toContainText(actorSessions.yura.displayName);
     await expect(sidebar).toContainText(actorSessions.izya.displayName);
     await expect(
-      actorSessions.pavel.page.getByRole("img", {
-        name: actorSessions.mira.displayName,
-      }).first(),
+      actorSessions.pavel.page
+        .getByRole("img", {
+          name: actorSessions.mira.displayName,
+        })
+        .first(),
     ).toBeVisible();
-    await expect(
-      actorSessions.pavel.page.getByLabel(GROUP_NAME),
-    ).toBeVisible();
+    await expect(actorSessions.pavel.page.getByLabel(GROUP_NAME)).toBeVisible();
 
     await actorSessions.pavel.page.goto(PUBLIC_CHAT_ROUTE);
     await expect(actorSessions.pavel.page).toHaveURL(PUBLIC_CHAT_ROUTE);
@@ -932,10 +969,14 @@ test("creates six meaningful demo users with active direct chats, public chat, a
 
     await actorSessions.pavel.page.goto(`/@${actorSessions.mira.handle}`);
     await expect(
-      actorSessions.pavel.page.getByText(DIRECT_DIALOGS[1].messages[1].text).first(),
+      actorSessions.pavel.page
+        .getByText(DIRECT_DIALOGS[1].messages[1].text)
+        .first(),
     ).toBeVisible();
     await expect(
-      actorSessions.pavel.page.getByText(DIRECT_DIALOGS[1].messages[3].text).first(),
+      actorSessions.pavel.page
+        .getByText(DIRECT_DIALOGS[1].messages[3].text)
+        .first(),
     ).toBeVisible();
 
     await actorSessions.pavel.page.goto(`/${group.target}`);

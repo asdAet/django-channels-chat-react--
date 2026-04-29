@@ -1,8 +1,20 @@
-﻿import { defineConfig, devices } from "@playwright/test";
+﻿import { existsSync } from "node:fs";
+import { defineConfig, devices } from "@playwright/test";
 
 const backendPython =
   process.env.E2E_BACKEND_PYTHON ??
-  (process.platform === "win32" ? ".\\.venv\\Scripts\\python.exe" : "python");
+  (process.platform === "win32"
+    ? ".\\.venv\\Scripts\\python.exe"
+    : existsSync("../backend/.venv/Scripts/python.exe")
+      ? ".venv/Scripts/python.exe"
+      : "python3");
+const backendPort = process.env.E2E_BACKEND_PORT ?? "8000";
+const frontendPort = process.env.E2E_FRONTEND_PORT ?? "5173";
+const backendOrigin =
+  process.env.E2E_BACKEND_ORIGIN ?? `http://127.0.0.1:${backendPort}`;
+const backendWsOrigin =
+  process.env.E2E_WS_BACKEND_ORIGIN ?? `ws://127.0.0.1:${backendPort}`;
+const frontendOrigin = `http://127.0.0.1:${frontendPort}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -11,16 +23,18 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: frontendOrigin,
     trace: "on-first-retry",
   },
   webServer: [
     {
-      command: `${backendPython} manage.py migrate && ${backendPython} manage.py shell -c "from users.models import SecurityRateLimitBucket; SecurityRateLimitBucket.objects.all().delete()" && ${backendPython} manage.py runserver 127.0.0.1:8000`,
-      url: "http://127.0.0.1:8000/api/health/live/",
+      command: `${backendPython} manage.py migrate && ${backendPython} manage.py shell -c "from users.models import SecurityRateLimitBucket; SecurityRateLimitBucket.objects.all().delete()" && ${backendPython} manage.py runserver 127.0.0.1:${backendPort}`,
+      url: `${backendOrigin}/api/health/live/`,
       cwd: "../backend",
       env: {
         ...process.env,
+        E2E_BACKEND_ORIGIN: backendOrigin,
+        E2E_WS_BACKEND_ORIGIN: backendWsOrigin,
         AUTH_RATE_LIMIT: "10000",
         AUTH_RATE_WINDOW: "60",
         AUTH_RATE_LIMIT_DISABLED: "1",
@@ -36,9 +50,16 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "npm run dev -- --host 127.0.0.1 --port 5173",
-      url: "http://127.0.0.1:5173",
+      command: `npm run dev -- --host 127.0.0.1 --port ${frontendPort}`,
+      url: frontendOrigin,
       cwd: ".",
+      env: {
+        ...process.env,
+        E2E_BACKEND_ORIGIN: backendOrigin,
+        E2E_WS_BACKEND_ORIGIN: backendWsOrigin,
+        VITE_BACKEND_ORIGIN: backendOrigin,
+        VITE_WS_BACKEND_ORIGIN: backendWsOrigin,
+      },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
