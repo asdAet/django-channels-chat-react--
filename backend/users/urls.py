@@ -10,6 +10,7 @@ urlpatterns = [
     path("presence-session/", api.presence_session_view, name="api-presence-session"),
     path("password-rules/", api.password_rules_view, name="api-password-rules"),
     path("login/", api.login_view, name="api-login"),
+    path("login/2fa/", api.login_two_factor_view, name="api-login-two-factor"),
     path("oauth/google/start/", api.oauth_google_start_view, name="api-oauth-google-start"),
     path("oauth/google/callback/", api.oauth_google_callback_view, name="api-oauth-google-callback"),
     path("oauth/google/", api.oauth_google_view, name="api-oauth-google"),

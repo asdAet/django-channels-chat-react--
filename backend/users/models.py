@@ -234,6 +234,31 @@ class OAuthIdentity(models.Model):
         return f"{self.provider}:{self.provider_user_id}"
 
 
+class UserTwoFactor(models.Model):
+    """TOTP two-factor state for a user account."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="two_factor")
+    secret_encrypted = models.TextField(blank=True, default="")
+    enabled_at = models.DateTimeField(null=True, blank=True)
+    last_accepted_timestep = models.BigIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Database metadata for two-factor credentials."""
+
+        indexes = [
+            models.Index(fields=["enabled_at"], name="users_2fa_enabled_idx"),
+        ]
+
+    @property
+    def is_enabled(self) -> bool:
+        return bool(self.secret_encrypted and self.enabled_at)
+
+    def __str__(self):
+        return f"2fa:{self.user.pk}:{'enabled' if self.is_enabled else 'pending'}"
+
+
 class PublicHandle(models.Model):
     """Модель PublicHandle описывает структуру и поведение данных в приложении."""
     handle = models.CharField(max_length=30, unique=True, db_index=True)

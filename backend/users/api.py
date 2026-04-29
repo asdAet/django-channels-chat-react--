@@ -11,6 +11,7 @@ from urllib.parse import quote, urlsplit
 
 from django.conf import settings
 from django.contrib.auth import login, logout, password_validation
+from django.contrib.auth.models import User
 from django.core.files.storage import default_storage
 from django.db import OperationalError, ProgrammingError
 from django.http import FileResponse, HttpResponse, HttpResponseRedirect
@@ -80,6 +81,9 @@ GOOGLE_OAUTH_RETURN_TO_SESSION_KEY = "auth.google_oauth_return_to"
 GOOGLE_OAUTH_ERROR_RETURN_TO_SESSION_KEY = "auth.google_oauth_error_return_to"
 GOOGLE_OAUTH_SUCCESS_RETURN_PATH = "/public"
 GOOGLE_OAUTH_ERROR_RETURN_PATH = "/login"
+TWO_FACTOR_PENDING_USER_SESSION_KEY = "auth.two_factor_user_id"
+TWO_FACTOR_PENDING_STARTED_SESSION_KEY = "auth.two_factor_started_at"
+TWO_FACTOR_CHALLENGE_TTL_SECONDS = 300
 UNAUTHORIZED_CHAT_MEDIA_FALLBACK_MEDIA_PATH = "chat_media_fallbacks/image_not_found.svg"
 UNAUTHORIZED_CHAT_MEDIA_FALLBACK_FILE_PATH = (
     Path(__file__).resolve().parent.parent
@@ -175,6 +179,51 @@ def _build_authenticated_session_payload(request, user) -> dict[str, object]:
             session_key=session_key,
         ),
     }
+
+
+def _build_two_factor_challenge_payload() -> dict[str, object]:
+    return {
+        "authenticated": False,
+        "user": None,
+        "wsAuthToken": None,
+        "twoFactorRequired": True,
+    }
+
+
+def _clear_two_factor_challenge(request) -> None:
+    request.session.pop(TWO_FACTOR_PENDING_USER_SESSION_KEY, None)
+    request.session.pop(TWO_FACTOR_PENDING_STARTED_SESSION_KEY, None)
+    request.session.modified = True
+
+
+def _start_two_factor_challenge(request, user) -> None:
+    request.session[TWO_FACTOR_PENDING_USER_SESSION_KEY] = int(user.pk)
+    request.session[TWO_FACTOR_PENDING_STARTED_SESSION_KEY] = int(time.time())
+    request.session.modified = True
+
+
+def _resolve_two_factor_challenge_user(request):
+    user_id = request.session.get(TWO_FACTOR_PENDING_USER_SESSION_KEY)
+    started_at = int(request.session.get(TWO_FACTOR_PENDING_STARTED_SESSION_KEY) or 0)
+    if not user_id or not started_at or int(time.time()) - started_at > TWO_FACTOR_CHALLENGE_TTL_SECONDS:
+        _clear_two_factor_challenge(request)
+        raise IdentityServiceError(
+            "Сессия подтверждения 2FA истекла",
+            code="two_factor_challenge_expired",
+            status_code=401,
+            errors={"code": ["Сессия подтверждения 2FA истекла"]},
+        )
+
+    user = User.objects.filter(pk=user_id, is_active=True).first()
+    if user is None:
+        _clear_two_factor_challenge(request)
+        raise IdentityServiceError(
+            "Сессия подтверждения 2FA истекла",
+            code="two_factor_challenge_expired",
+            status_code=401,
+            errors={"code": ["Сессия подтверждения 2FA истекла"]},
+        )
+    return user
 
 
 def _build_guest_presence_payload(request) -> dict[str, object]:
@@ -477,8 +526,39 @@ def login_view(request):
         audit_http_event("auth.login.failed", request, reason=exc.code)
         return _identity_error_response(exc)
 
+    if auth_service.is_two_factor_enabled(user):
+        _start_two_factor_challenge(request, user)
+        audit_http_event("auth.login.two_factor_required", request, public_ref=user_public_ref(user))
+        return Response(_build_two_factor_challenge_payload())
+
+    _clear_two_factor_challenge(request)
     login(request, user, backend=AUTH_BACKEND_PATH)
     audit_http_event("auth.login.success", request, public_ref=user_public_ref(user))
+    return Response(_build_authenticated_session_payload(request, user))
+
+
+@csrf_protect
+@api_view(["POST"])
+def login_two_factor_view(request):
+    """Completes password login after a successful TOTP challenge."""
+
+    if _rate_limited(request, "login_2fa"):
+        audit_http_event("auth.login.two_factor.rate_limited", request)
+        return error_response(status=429, error="Слишком много попыток")
+
+    payload = _extract_payload(request)
+    code = str(payload.get("code") or "")
+
+    try:
+        user = _resolve_two_factor_challenge_user(request)
+        auth_service.verify_two_factor_login(user, code)
+    except IdentityServiceError as exc:
+        audit_http_event("auth.login.two_factor.failed", request, reason=exc.code)
+        return _identity_error_response(exc)
+
+    _clear_two_factor_challenge(request)
+    login(request, user, backend=AUTH_BACKEND_PATH)
+    audit_http_event("auth.login.success", request, public_ref=user_public_ref(user), second_factor="totp")
     return Response(_build_authenticated_session_payload(request, user))
 
 
@@ -502,6 +582,7 @@ def logout_view(request):
         except (OperationalError, ProgrammingError):
             pass
 
+    _clear_two_factor_challenge(request)
     logout(request)
     audit_http_event("auth.logout", request)
     return Response({"ok": True})
@@ -852,6 +933,71 @@ def security_settings_view(request):
             "user": _serialize_user(request, user),
         }
     )
+
+
+@csrf_protect
+@api_view(["POST"])
+def security_change_password_view(request):
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return error_response(status=401, error="Требуется авторизация")
+
+    payload = _extract_payload(request)
+    try:
+        auth_service.change_password(
+            user,
+            old_password=str(payload.get("oldPassword") or ""),
+            new_password=str(payload.get("newPassword") or ""),
+            new_password_confirm=str(payload.get("newPasswordConfirm") or ""),
+        )
+    except IdentityServiceError as exc:
+        return _identity_error_response(exc)
+
+    return Response({"ok": True, "security": auth_service.get_security_settings(user)})
+
+
+@csrf_protect
+@api_view(["POST"])
+def security_two_factor_setup_view(request):
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return error_response(status=401, error="Требуется авторизация")
+
+    try:
+        setup = auth_service.begin_two_factor_setup(user)
+    except IdentityServiceError as exc:
+        return _identity_error_response(exc)
+    return Response({"setup": setup})
+
+
+@csrf_protect
+@api_view(["POST"])
+def security_two_factor_confirm_view(request):
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return error_response(status=401, error="Требуется авторизация")
+
+    payload = _extract_payload(request)
+    try:
+        auth_service.confirm_two_factor_setup(user, str(payload.get("code") or ""))
+    except IdentityServiceError as exc:
+        return _identity_error_response(exc)
+    return Response({"ok": True, "security": auth_service.get_security_settings(user)})
+
+
+@csrf_protect
+@api_view(["POST"])
+def security_two_factor_disable_view(request):
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return error_response(status=401, error="Требуется авторизация")
+
+    payload = _extract_payload(request)
+    try:
+        auth_service.disable_two_factor(user, str(payload.get("code") or ""))
+    except IdentityServiceError as exc:
+        return _identity_error_response(exc)
+    return Response({"ok": True, "security": auth_service.get_security_settings(user)})
 
 
 @api_view(["GET"])

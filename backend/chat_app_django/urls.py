@@ -88,6 +88,7 @@ def api_index(request):
             "presenceSession": _link(request, "api-presence-session"),
             "passwordRules": _link(request, "api-password-rules"),
             "login": _link(request, "api-login"),
+            "loginTwoFactor": _link(request, "api-login-two-factor"),
             "googleOAuthStart": _link(request, "api-oauth-google-start"),
             "googleOAuthCallback": _link(request, "api-oauth-google-callback"),
             "logout": _link(request, "api-logout"),
@@ -99,6 +100,10 @@ def api_index(request):
         },
         "settings": {
             "security": _link(request, "api-settings-security"),
+            "password": _link(request, "api-settings-security-password"),
+            "twoFactorSetup": _link(request, "api-settings-security-2fa-setup"),
+            "twoFactorConfirm": _link(request, "api-settings-security-2fa-confirm"),
+            "twoFactorDisable": _link(request, "api-settings-security-2fa-disable"),
         },
         "public": {
             "resolve": _absolute(request, "/api/public/resolve/{ref}"),
@@ -204,6 +209,26 @@ urlpatterns = [
     path("api/profile/", users_api.profile_view, name="api-profile"),
     path("api/profile/handle/", users_api.profile_handle_view, name="api-profile-handle"),
     path("api/settings/security/", users_api.security_settings_view, name="api-settings-security"),
+    path(
+        "api/settings/security/password/",
+        users_api.security_change_password_view,
+        name="api-settings-security-password",
+    ),
+    path(
+        "api/settings/security/2fa/setup/",
+        users_api.security_two_factor_setup_view,
+        name="api-settings-security-2fa-setup",
+    ),
+    path(
+        "api/settings/security/2fa/confirm/",
+        users_api.security_two_factor_confirm_view,
+        name="api-settings-security-2fa-confirm",
+    ),
+    path(
+        "api/settings/security/2fa/disable/",
+        users_api.security_two_factor_disable_view,
+        name="api-settings-security-2fa-disable",
+    ),
     path("api/public/resolve/<path:ref>/", users_api.public_resolve_view, name="api-public-resolve"),
     path("api/public/resolve/<path:ref>", users_api.public_resolve_view),
     path("api/chat/", include("chat.api_urls")),

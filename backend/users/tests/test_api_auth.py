@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import time
 from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 
+import pyotp
 from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 
@@ -102,6 +104,175 @@ class AuthApiTests(TestCase):
         payload = response.json()
         self.assertIn("errors", payload)
         self.assertIn("email", payload["errors"])
+
+    def test_password_change_requires_old_password_and_updates_login_identity(self):
+        self._create_login_user(login="passchange", password="oldpass123")
+        csrf = self._csrf()
+        login_response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"identifier": "passchange", "password": "oldpass123"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(login_response.status_code, 200)
+        self.assertTrue(login_response.json().get("authenticated"))
+        csrf = self._csrf()
+
+        wrong_response = self.client.post(
+            "/api/settings/security/password/",
+            data=json.dumps(
+                {
+                    "oldPassword": "wrong",
+                    "newPassword": "newpass123",
+                    "newPasswordConfirm": "newpass123",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(wrong_response.status_code, 400)
+
+        response = self.client.post(
+            "/api/settings/security/password/",
+            data=json.dumps(
+                {
+                    "oldPassword": "oldpass123",
+                    "newPassword": "newpass123",
+                    "newPasswordConfirm": "newpass123",
+                }
+            ),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json().get("security", {}).get("hasPassword"))
+
+        self.client.post("/api/auth/logout/", HTTP_X_CSRFTOKEN=csrf)
+        csrf = self._csrf()
+        old_login_response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"identifier": "passchange", "password": "oldpass123"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(old_login_response.status_code, 400)
+
+        new_login_response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"identifier": "passchange", "password": "newpass123"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(new_login_response.status_code, 200)
+        self.assertTrue(new_login_response.json().get("authenticated"))
+
+    def test_totp_setup_confirm_disable_and_login_challenge(self):
+        self._create_login_user(login="totplogin", password="pass12345")
+        csrf = self._csrf()
+        login_response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"identifier": "totplogin", "password": "pass12345"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(login_response.status_code, 200)
+        csrf = self._csrf()
+
+        setup_response = self.client.post(
+            "/api/settings/security/2fa/setup/",
+            data=json.dumps({}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(setup_response.status_code, 200)
+        setup = setup_response.json()["setup"]
+        self.assertIn("otpauthUri", setup)
+        self.assertTrue(setup["qrSvg"].startswith("data:image/svg+xml;base64,"))
+
+        confirm_ts = int(time.time()) + 60
+        confirm_code = pyotp.TOTP(setup["manualKey"]).at(confirm_ts)
+        with patch("users.application.two_factor_service.time.time", return_value=confirm_ts):
+            confirm_response = self.client.post(
+                "/api/settings/security/2fa/confirm/",
+                data=json.dumps({"code": confirm_code}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=csrf,
+            )
+        self.assertEqual(confirm_response.status_code, 200)
+        self.assertTrue(confirm_response.json()["security"]["twoFactorEnabled"])
+
+        self.client.post("/api/auth/logout/", HTTP_X_CSRFTOKEN=csrf)
+        challenge_response = self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"identifier": "totplogin", "password": "pass12345"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        self.assertEqual(challenge_response.status_code, 200)
+        challenge_payload = challenge_response.json()
+        self.assertFalse(challenge_payload["authenticated"])
+        self.assertTrue(challenge_payload["twoFactorRequired"])
+
+        login_ts = confirm_ts + 60
+        login_code = pyotp.TOTP(setup["manualKey"]).at(login_ts)
+        with patch("users.application.two_factor_service.time.time", return_value=login_ts):
+            wrong_response = self.client.post(
+                "/api/auth/login/2fa/",
+                data=json.dumps({"code": "000000"}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=csrf,
+            )
+            self.assertEqual(wrong_response.status_code, 400)
+            login_two_factor_response = self.client.post(
+                "/api/auth/login/2fa/",
+                data=json.dumps({"code": login_code}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=csrf,
+            )
+        self.assertEqual(login_two_factor_response.status_code, 200)
+        self.assertTrue(login_two_factor_response.json()["authenticated"])
+        csrf = self._csrf()
+
+        self.client.post("/api/auth/logout/", HTTP_X_CSRFTOKEN=csrf)
+        csrf = self._csrf()
+        self.client.post(
+            "/api/auth/login/",
+            data=json.dumps({"identifier": "totplogin", "password": "pass12345"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+        )
+        with patch("users.application.two_factor_service.time.time", return_value=login_ts):
+            replay_response = self.client.post(
+                "/api/auth/login/2fa/",
+                data=json.dumps({"code": login_code}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=csrf,
+            )
+        self.assertEqual(replay_response.status_code, 400)
+
+        disable_ts = login_ts + 60
+        disable_code = pyotp.TOTP(setup["manualKey"]).at(disable_ts)
+        with patch("users.application.two_factor_service.time.time", return_value=disable_ts):
+            login_again_response = self.client.post(
+                "/api/auth/login/2fa/",
+                data=json.dumps({"code": disable_code}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=csrf,
+            )
+        self.assertEqual(login_again_response.status_code, 200)
+        csrf = self._csrf()
+
+        disable_ts += 60
+        disable_code = pyotp.TOTP(setup["manualKey"]).at(disable_ts)
+        with patch("users.application.two_factor_service.time.time", return_value=disable_ts):
+            disable_response = self.client.post(
+                "/api/settings/security/2fa/disable/",
+                data=json.dumps({"code": disable_code}),
+                content_type="application/json",
+                HTTP_X_CSRFTOKEN=csrf,
+            )
+        self.assertEqual(disable_response.status_code, 200)
+        self.assertFalse(disable_response.json()["security"]["twoFactorEnabled"])
 
     @override_settings(USER_PASSWORD_DEFAULT_AVATAR="avatars/missing_pwd_default.jpg")
     def test_register_default_avatar_is_served_from_bundled_asset_when_media_file_is_missing(self):

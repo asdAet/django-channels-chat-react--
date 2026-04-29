@@ -30,6 +30,7 @@ from users.identity import (
 from users.models import EmailIdentity, LoginIdentity, OAuthIdentity
 
 from .errors import IdentityConflictError, IdentityServiceError, IdentityUnauthorizedError
+from . import two_factor_service
 
 GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -86,6 +87,16 @@ def _normalize_optional_email(email: str | None) -> str | None:
     """
     normalized = normalize_email(email)
     return normalized or None
+
+
+def _identity_password_hash(login_identity: object | None) -> str:
+    password_hash = getattr(login_identity, "password_hash", "")
+    return password_hash if isinstance(password_hash, str) else ""
+
+
+def _has_usable_identity_password(login_identity: object | None) -> bool:
+    password_hash = _identity_password_hash(login_identity)
+    return bool(password_hash and is_password_usable(password_hash))
 
 
 def _email_local_part(email: str) -> str:
@@ -740,7 +751,7 @@ def _unlink_oauth_provider(user: AbstractUser, provider: str) -> None:
         )
 
     login_identity = getattr(user, "login_identity", None)
-    has_password = bool(login_identity and is_password_usable(login_identity.password_hash))
+    has_password = _has_usable_identity_password(login_identity)
     has_other_oauth = OAuthIdentity.objects.filter(user=user).exclude(pk=identity.pk).exists()
     if not has_password and not has_other_oauth:
         raise IdentityServiceError(
@@ -771,9 +782,90 @@ def get_security_settings(user: AbstractUser) -> dict[str, Any]:
     return {
         "email": getattr(email_identity, "email_normalized", None) or None,
         "emailVerified": bool(getattr(email_identity, "email_verified", False)),
-        "hasPassword": bool(login_identity and is_password_usable(login_identity.password_hash)),
+        "hasPassword": _has_usable_identity_password(login_identity),
         "oauthProviders": oauth_providers,
+        **two_factor_service.get_two_factor_state(user),
     }
+
+
+def is_two_factor_enabled(user: AbstractUser) -> bool:
+    return two_factor_service.is_two_factor_enabled(user)
+
+
+def begin_two_factor_setup(user: AbstractUser) -> dict[str, str]:
+    return two_factor_service.begin_totp_setup(user)
+
+
+def confirm_two_factor_setup(user: AbstractUser, code: str | None) -> dict[str, object]:
+    return two_factor_service.confirm_totp_setup(user, code)
+
+
+def disable_two_factor(user: AbstractUser, code: str | None) -> dict[str, object]:
+    return two_factor_service.disable_totp(user, code)
+
+
+def verify_two_factor_login(user: AbstractUser, code: str | None) -> None:
+    two_factor_service.verify_user_totp(user, code)
+
+
+def change_password(
+    user: AbstractUser,
+    *,
+    old_password: str | None,
+    new_password: str | None,
+    new_password_confirm: str | None,
+) -> None:
+    """Changes a password after validating the existing password."""
+
+    current_password = str(old_password or "")
+    next_password = str(new_password or "")
+    confirm_password = str(new_password_confirm or "")
+
+    if not current_password:
+        raise IdentityServiceError(
+            "Укажите текущий пароль",
+            errors={"oldPassword": ["Укажите текущий пароль"]},
+        )
+    if not next_password:
+        raise IdentityServiceError(
+            "Укажите новый пароль",
+            errors={"newPassword": ["Укажите новый пароль"]},
+        )
+    if next_password != confirm_password:
+        raise IdentityServiceError(
+            "Пароли не совпадают",
+            errors={"newPasswordConfirm": ["Пароли не совпадают"]},
+        )
+
+    login_identity = getattr(user, "login_identity", None)
+    identity_password_hash = _identity_password_hash(login_identity)
+    has_identity_password = bool(
+        identity_password_hash and is_password_usable(identity_password_hash)
+    )
+    has_django_password = user.has_usable_password()
+    current_password_valid = (
+        bool(has_identity_password and check_password(current_password, identity_password_hash))
+        or bool(has_django_password and user.check_password(current_password))
+    )
+    if not current_password_valid:
+        raise IdentityUnauthorizedError("Неверный текущий пароль")
+
+    try:
+        password_validation.validate_password(next_password, user=user)
+    except Exception as exc:  # noqa: BLE001
+        messages = list(getattr(exc, "messages", [])) or ["Пароль слишком слабый"]
+        raise IdentityServiceError(
+            "Пароль слишком слабый",
+            errors={"newPassword": [str(item) for item in messages]},
+        ) from exc
+
+    login_identity = _ensure_login_identity(user)
+    login_identity.password_hash = make_password(next_password)
+    login_identity.save(update_fields=["password_hash", "updated_at"])
+
+    if has_django_password:
+        user.set_password(next_password)
+        user.save(update_fields=["password"])
 
 
 def update_security_settings(
@@ -828,7 +920,7 @@ def update_security_settings(
             ) from exc
 
         login_identity = getattr(user, "login_identity", None)
-        has_usable_password = bool(login_identity and is_password_usable(login_identity.password_hash))
+        has_usable_password = _has_usable_identity_password(login_identity)
         has_oauth = OAuthIdentity.objects.filter(user=user).exists()
         has_email = bool(
             getattr(getattr(user, "email_identity", None), "email_normalized", None)
