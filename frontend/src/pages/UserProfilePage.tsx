@@ -411,12 +411,14 @@ export function UserProfilePage({
       <h1 className={styles.title}>Профиль</h1>
       <section className={styles.profileHero}>
         <div
-          className={[
-            styles.profileAvatarWrapper,
-            isUserOnline ? styles.online : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
+
+          // className={[
+          //   styles.profileAvatarWrapper,
+          //   isUserOnline ? styles.online : "",
+          // ]
+          //   .filter(Boolean)
+          //   .join(" ")}
+          
           data-online={isUserOnline ? "true" : "false"}
         >
           <div
@@ -456,7 +458,7 @@ export function UserProfilePage({
             </p>
           )}
 
-          <span
+          {/* <span
             className={[
               styles.statusChip,
               isUserOnline ? styles.statusChipOnline : "",
@@ -467,7 +469,9 @@ export function UserProfilePage({
             {isUserOnline
               ? "В сети"
               : `Последний раз в сети: ${formatLastSeen(profileUser.lastSeen) || "—"}`}
-          </span>
+          </span> */}
+
+
         </div>
       </section>
 

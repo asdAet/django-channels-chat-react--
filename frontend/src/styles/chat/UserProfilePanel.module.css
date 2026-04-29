@@ -89,7 +89,7 @@
 }
 
 .actionButtonPrimary {
-  background: var(--tg-primary);
+  /* background: var(--tg-primary); */
   color: var(--color-text-primary);
 }
 
