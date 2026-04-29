@@ -1061,7 +1061,7 @@ class ChatMessageFeatureApiTests(TestCase):
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))
 
-            with self.captureOnCommitCallbacks(execute=True):
+            with _capture_on_commit_callbacks(self, execute=True):
                 response = self.client.delete(
                     f"/api/chat/{self.direct_room.pk}/messages/{message.pk}/"
                 )

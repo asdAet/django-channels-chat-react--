@@ -1,6 +1,8 @@
 """Unit tests for chat.services business logic."""
 
 from datetime import timedelta
+from contextlib import AbstractContextManager
+from typing import Any, cast
 from unittest.mock import Mock
 from unittest.mock import patch
 
@@ -25,6 +27,11 @@ from testsupport.files import require_stored_file_name
 from testsupport.users import typed_user_model
 
 User = typed_user_model()
+
+
+def _capture_on_commit_callbacks(test_case: TestCase, *, execute: bool) -> AbstractContextManager[list[object]]:
+    callback_capture = cast(Any, test_case).captureOnCommitCallbacks
+    return cast(AbstractContextManager[list[object]], callback_capture(execute=execute))
 
 
 def _attachment_file_name(attachment: MessageAttachment) -> str:
@@ -130,7 +137,7 @@ class ChatServicesTests(TestCase):
             self.assertTrue(file_storage.exists(file_name))
             self.assertTrue(thumb_storage.exists(thumb_name))
 
-            with self.captureOnCommitCallbacks(execute=True):
+            with _capture_on_commit_callbacks(self, execute=True):
                 deleted = services.delete_message(self.owner, self.room, msg.pk)
 
             self.assertFalse(file_storage.exists(file_name))
@@ -184,7 +191,7 @@ class ChatServicesTests(TestCase):
             with patch.object(storage, "delete", side_effect=OSError("storage down")) as delete_mock, patch(
                 "chat.services.logger.warning",
             ) as logger_warning:
-                with self.captureOnCommitCallbacks(execute=True):
+                with _capture_on_commit_callbacks(self, execute=True):
                     deleted = services.delete_message(self.owner, self.room, msg.pk)
 
             self.assertGreaterEqual(delete_mock.call_count, 1)
@@ -213,7 +220,7 @@ class ChatServicesTests(TestCase):
             with patch.object(storage, "delete", side_effect=[locked_error, None]) as delete_mock, patch(
                 "chat.services.time.sleep",
             ) as sleep_mock, patch("chat.services.logger.warning") as logger_warning:
-                with self.captureOnCommitCallbacks(execute=True):
+                with _capture_on_commit_callbacks(self, execute=True):
                     deleted = services.delete_message(self.owner, self.room, msg.pk)
 
             self.assertEqual(delete_mock.call_count, 2)

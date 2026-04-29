@@ -140,36 +140,25 @@ class ChatConsumerInternalTests(TestCase):
             "chat_message_send": {"limit": 2, "window_seconds": 60},
         }
     )
-    def test_rate_limit_counts_and_resets(self):
-        """Проверяет сценарий `test_rate_limit_counts_and_resets`."""
+    def test_message_send_rate_limit_is_not_applied(self):
+        """Chat message send no longer uses server-side cooldown."""
         consumer = self._consumer()
 
-        self.assertFalse(async_to_sync(consumer._rate_limited)(self.user))
-        self.assertFalse(async_to_sync(consumer._rate_limited)(self.user))
-        self.assertTrue(async_to_sync(consumer._rate_limited)(self.user))
-
-        cache.clear()
-        self.assertTrue(async_to_sync(consumer._rate_limited)(self.user))
-
         key = f'rl:chat:message:{self.user.pk}'
-        bucket = SecurityRateLimitBucket.objects.get(scope_key=key)
-        bucket.reset_at = timezone.now() - timedelta(seconds=1)
-        bucket.save(update_fields=['reset_at', 'updated_at'])
-        self.assertFalse(async_to_sync(consumer._rate_limited)(self.user))
+        self.assertFalse(hasattr(consumer, '_rate_limited'))
+        self.assertFalse(SecurityRateLimitBucket.objects.filter(scope_key=key).exists())
 
     @override_settings(
         RATE_LIMITS={
             "chat_message_send": {"limit": 1, "window_seconds": 60},
         }
     )
-    def test_rate_limit_ignored_for_superuser(self):
-        """Суперпользователь не ограничивается chat message rate-limit."""
+    def test_message_send_rate_limit_is_not_applied_for_superuser(self):
+        """Superusers also bypass the removed chat message cooldown path."""
         consumer = self._consumer(user=self.superuser)
 
-        self.assertFalse(async_to_sync(consumer._rate_limited)(self.superuser))
-        self.assertFalse(async_to_sync(consumer._rate_limited)(self.superuser))
-
         key = f'rl:chat:message:{self.superuser.pk}'
+        self.assertFalse(hasattr(consumer, '_rate_limited'))
         self.assertFalse(SecurityRateLimitBucket.objects.filter(scope_key=key).exists())
 
     def test_chat_message_serializes_and_sends_payload(self):
@@ -201,18 +190,33 @@ class ChatConsumerInternalTests(TestCase):
         consumer.save_message.assert_not_awaited()
         consumer.send.assert_not_awaited()
 
-    def test_receive_returns_rate_limit_error(self):
-        """Проверяет сценарий `test_receive_returns_rate_limit_error`."""
+    def test_receive_ignores_legacy_rate_limit_hook(self):
+        """Legacy cooldown hooks must not block fast consecutive messages."""
         consumer = self._consumer()
-        consumer.save_message = AsyncMock()
+        consumer.room = Room.objects.create(
+            name='chat-internal-fast-send',
+            kind=Room.Kind.PRIVATE,
+            created_by=self.user,
+        )
+        consumer.room_name = str(consumer.room.pk)
+        consumer.room_group_name = f'chat_room_{consumer.room.pk}'
+        consumer._delivery_dispatcher = SimpleNamespace(enqueue=Mock())
+        consumer.save_message = AsyncMock(
+            return_value=SimpleNamespace(
+                pk=123,
+                date_added=timezone.now(),
+                reply_to=None,
+            )
+        )
         consumer._rate_limited = AsyncMock(return_value=True)
 
         async_to_sync(consumer.receive)(json.dumps({'message': 'hello'}))
 
-        consumer.save_message.assert_not_awaited()
+        consumer._rate_limited.assert_not_awaited()
+        consumer.save_message.assert_awaited_once()
         consumer.send.assert_awaited_once()
         payload = json.loads(consumer.send.await_args.kwargs['text_data'])
-        self.assertEqual(payload['error'], 'rate_limited')
+        self.assertEqual(payload['message'], 'hello')
 
     def test_receive_ping_refreshes_activity_without_message_flow(self):
         """Heartbeat ping должен обновлять активность без message/error веток."""

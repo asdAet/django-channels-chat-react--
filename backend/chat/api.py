@@ -1486,6 +1486,13 @@ def upload_attachments(request, room_id: int):
         {
             "id": message.pk,
             "content": message_content,
+            "publicRef": user_public_ref(user),
+            "username": user_public_username(user),
+            "displayName": user_display_name(user),
+            "profilePic": profile_url,
+            "avatarCrop": serialize_avatar_crop(profile),
+            "createdAt": message.date_added.isoformat(),
+            "replyTo": _serialize_reply_to(message.reply_to),
             "attachments": attachments_data,
         },
         status=http_status.HTTP_201_CREATED,
@@ -1846,6 +1853,11 @@ def mark_read_view(request, room_id: int):
         state = service_mark_read(request.user, room, last_read_id)
     except MessageNotFoundError:
         return Response({"error": "Сообщение не найдено"}, status=http_status.HTTP_404_NOT_FOUND)
+    except OperationalError:
+        return Response(
+            {"error": "read_state_busy", "retryable": True},
+            status=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     # Sync with DirectInbox cache for DM rooms
     if room.kind == Room.Kind.DIRECT:

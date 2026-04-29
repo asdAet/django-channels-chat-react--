@@ -373,6 +373,35 @@ class ChatConsumerTests(TransactionTestCase):
 
         inner()
 
+    def test_message_too_long_echoes_client_message_id(self):
+        """Проверяет сценарий `test_message_too_long_echoes_client_message_id`."""
+        @override_settings(CHAT_MESSAGE_MAX_LENGTH=10)
+        def inner():
+            """Проверяет сценарий `inner`."""
+            async def run():
+                """Проверяет сценарий `run`."""
+                communicator, connected, _ = await self._connect(
+                    f'/ws/chat/{self.private_room.pk}/',
+                    user=self.member,
+                )
+                self.assertTrue(connected)
+                await communicator.send_to(
+                    text_data=json.dumps(
+                        {
+                            'message': 'x' * 20,
+                            'clientMessageId': 'client-too-long',
+                        }
+                    )
+                )
+                payload = json.loads(await communicator.receive_from(timeout=2))
+                self.assertEqual(payload.get('error'), 'message_too_long')
+                self.assertEqual(payload.get('clientMessageId'), 'client-too-long')
+                await communicator.disconnect()
+
+            async_to_sync(run)()
+
+        inner()
+
     def test_message_persisted(self):
         """Проверяет сценарий `test_message_persisted`."""
         self.member.profile.avatar_crop_x = 0.1
@@ -395,9 +424,14 @@ class ChatConsumerTests(TransactionTestCase):
                 user=self.member,
             )
             self.assertTrue(connected)
-            await communicator.send_to(text_data=json.dumps({'message': 'hello'}))
+            await communicator.send_to(
+                text_data=json.dumps(
+                    {'message': 'hello', 'clientMessageId': 'client-1'}
+                )
+            )
             event = json.loads(await communicator.receive_from(timeout=2))
             self.assertEqual(event.get('message'), 'hello')
+            self.assertEqual(event.get('clientMessageId'), 'client-1')
             self.assertEqual(event.get('username'), user_public_username(self.member))
             self.assertIsInstance(event.get('id'), int)
             self.assertTrue(event.get('createdAt'))
@@ -525,8 +559,8 @@ class ChatConsumerTests(TransactionTestCase):
             "chat_message_send": {"limit": 1, "window_seconds": 30},
         }
     )
-    def test_rate_limit(self):
-        """Проверяет сценарий `test_rate_limit`."""
+    def test_fast_consecutive_messages_are_not_rate_limited(self):
+        """Message cooldown is intentionally not applied to chat sending."""
         async def run():
             """Проверяет сценарий `run`."""
             communicator, connected, _ = await self._connect(
@@ -540,12 +574,13 @@ class ChatConsumerTests(TransactionTestCase):
 
             await communicator.send_to(text_data=json.dumps({'message': 'second'}))
             payload = json.loads(await communicator.receive_from(timeout=2))
-            self.assertEqual(payload.get('error'), 'rate_limited')
-            self.assertIsInstance(payload.get("retry_after"), int)
-            self.assertGreaterEqual(payload.get("retry_after"), 1)
-            self.assertLessEqual(payload.get("retry_after"), 30)
+            self.assertEqual(payload.get('message'), 'second')
+            self.assertIsNone(payload.get('error'))
             await communicator.disconnect()
 
         async_to_sync(run)()
+        self.assertTrue(
+            Message.objects.filter(room=self.private_room, message_content='second').exists()
+        )
 
 
