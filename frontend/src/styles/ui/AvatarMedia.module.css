@@ -1,10 +1,12 @@
 .frame {
   position: relative;
   display: block;
+  flex: 0 0 100%;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: inherit;
+  border-radius: var(--radius-round);
+  clip-path: circle(50% at 50% 50%);
 }
 
 .image {

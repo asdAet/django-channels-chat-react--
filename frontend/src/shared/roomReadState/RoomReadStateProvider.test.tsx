@@ -1,13 +1,11 @@
-import type { ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Message } from "../../entities/message/types";
 import { resetUnreadOverrides } from "../unreadOverrides/store";
-import {
-  RoomReadStateProvider,
-  useRoomReadController,
-} from "./RoomReadStateProvider";
+import { RoomReadStateProvider } from "./RoomReadStateProvider";
+import { useRoomReadController } from "./useRoomReadState";
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <RoomReadStateProvider>{children}</RoomReadStateProvider>

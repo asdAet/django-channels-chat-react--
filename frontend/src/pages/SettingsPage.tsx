@@ -1,4 +1,5 @@
 ﻿import type { UserProfile } from "../entities/user/types";
+import type { AvatarCrop } from "../shared/api/users";
 import { SettingsContent } from "../widgets/settings/SettingsContent";
 
 /**
@@ -10,6 +11,7 @@ type Props = {
     name?: string;
     username?: string;
     image?: File | null;
+    avatarCrop?: AvatarCrop | null;
     bio?: string;
   }) => Promise<
     | { ok: true }

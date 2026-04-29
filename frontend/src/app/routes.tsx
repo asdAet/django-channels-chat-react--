@@ -12,6 +12,7 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { UserProfilePage } from "../pages/UserProfilePage";
+import type { AvatarCrop } from "../shared/api/users";
 import {
   isReservedChatTarget,
   normalizeChatTarget,
@@ -59,6 +60,7 @@ type AppRoutesProps = {
     name?: string;
     username?: string;
     image?: File | null;
+    avatarCrop?: AvatarCrop | null;
     bio?: string;
   }) => Promise<ProfileSaveResult>;
 };

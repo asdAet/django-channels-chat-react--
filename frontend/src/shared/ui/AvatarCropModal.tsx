@@ -12,6 +12,7 @@ import { Button } from "./Button";
 type AvatarCropModalProps = {
   open: boolean;
   image: string | null;
+  initialCrop?: AvatarCrop | null;
   applying?: boolean;
   onCancel: () => void;
   onApply: (crop: AvatarCrop) => void;
@@ -31,6 +32,16 @@ const ZOOM_STEP = 0.01;
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
+const toInitialAreaPercentages = (crop?: AvatarCrop | null): Area | undefined =>
+  crop
+    ? {
+        x: crop.x * 100,
+        y: crop.y * 100,
+        width: crop.width * 100,
+        height: crop.height * 100,
+      }
+    : undefined;
+
 /**
  * Рендерит модальное окно выбора круглой области аватарки.
  * @param props Свойства модального окна.
@@ -38,6 +49,7 @@ const clamp = (value: number, min: number, max: number) =>
 export function AvatarCropModal({
   open,
   image,
+  initialCrop = null,
   applying = false,
   onCancel,
   onApply,
@@ -95,6 +107,9 @@ export function AvatarCropModal({
             aspect={1}
             cropShape="round"
             showGrid={false}
+            initialCroppedAreaPercentages={toInitialAreaPercentages(
+              initialCrop,
+            )}
             objectFit="contain"
             restrictPosition
             onCropChange={setCrop}

@@ -1,8 +1,6 @@
 import {
-  createContext,
   type ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -11,6 +9,14 @@ import {
 
 import type { Message } from "../../entities/message/types";
 import { setUnreadOverride } from "../unreadOverrides/store";
+import {
+  type RoomReadLocalInput,
+  type RoomReadSnapshotInput,
+  RoomReadStateContext,
+  type RoomReadStateContextValue,
+  type RoomReadStateMap,
+  type ServerUnreadSnapshotOptions,
+} from "./context";
 
 export type RoomReadState = {
   initialized: boolean;
@@ -24,60 +30,6 @@ export type RoomReadState = {
   pendingMarkReadMessageId: number | null;
   lastAuthoritativeVersion: number;
   authoritativeUnreadCount: number | null;
-};
-
-type RoomReadStateMap = Record<string, RoomReadState>;
-
-type RoomReadSnapshotInput = {
-  roomId: string | number | null | undefined;
-  serverLastReadMessageId: number | null | undefined;
-  pendingMarkReadMessageId?: number | null | undefined;
-  messages: Message[];
-  currentActorRef: string | null | undefined;
-};
-
-type RoomReadLocalInput = {
-  roomId: string | number | null | undefined;
-  lastReadMessageId: number | null | undefined;
-  messages: Message[];
-  currentActorRef: string | null | undefined;
-};
-
-type ServerUnreadSnapshotOptions = {
-  roomIds?: Iterable<string | number | null | undefined>;
-};
-
-type RoomReadStateContextValue = {
-  rooms: RoomReadStateMap;
-  unreadCounts: Record<string, number>;
-  getRoomState: (
-    roomId: string | number | null | undefined,
-  ) => RoomReadState | null;
-  getRoomUnreadCount: (
-    roomId: string | number | null | undefined,
-    fallback?: number | null | undefined,
-  ) => number;
-  initializeRoom: (input: RoomReadSnapshotInput) => void;
-  refreshRoomMessages: (input: RoomReadSnapshotInput) => void;
-  applyLocalRead: (input: RoomReadLocalInput) => void;
-  applyServerUnreadSnapshot: (
-    counts: Record<string, number>,
-    options?: ServerUnreadSnapshotOptions,
-  ) => void;
-  setRoomDivider: (
-    roomId: string | number | null | undefined,
-    dividerMessageId: number | null,
-  ) => void;
-  setPendingMarkRead: (
-    roomId: string | number | null | undefined,
-    messageId: number | null,
-  ) => void;
-  acknowledgeServerRead: (
-    roomId: string | number | null | undefined,
-    messageId: number | null | undefined,
-  ) => void;
-  markRoomFullyRead: (roomId: string | number | null | undefined) => void;
-  resetRooms: () => void;
 };
 
 const EMPTY_ROOM_READ_STATE: RoomReadState = {
@@ -293,26 +245,6 @@ const applyProjection = (
         : null,
   };
 };
-
-const FALLBACK_ROOM_READ_STATE_CONTEXT: RoomReadStateContextValue = {
-  rooms: {},
-  unreadCounts: {},
-  getRoomState: () => null,
-  getRoomUnreadCount: (_roomId, fallback) => normalizeCount(fallback),
-  initializeRoom: () => {},
-  refreshRoomMessages: () => {},
-  applyLocalRead: () => {},
-  applyServerUnreadSnapshot: () => {},
-  setRoomDivider: () => {},
-  setPendingMarkRead: () => {},
-  acknowledgeServerRead: () => {},
-  markRoomFullyRead: () => {},
-  resetRooms: () => {},
-};
-
-const RoomReadStateContext = createContext<RoomReadStateContextValue>(
-  FALLBACK_ROOM_READ_STATE_CONTEXT,
-);
 
 export function RoomReadStateProvider({ children }: { children: ReactNode }) {
   const [rooms, setRooms] = useState<RoomReadStateMap>({});
@@ -675,14 +607,3 @@ export function RoomReadStateProvider({ children }: { children: ReactNode }) {
     </RoomReadStateContext.Provider>
   );
 }
-
-export const useRoomReadController = () => {
-  return useContext(RoomReadStateContext);
-};
-
-export const useRoomReadState = (
-  roomId: string | number | null | undefined,
-) => {
-  const context = useRoomReadController();
-  return context.getRoomState(roomId);
-};

@@ -23,8 +23,8 @@ import {
   ChatComposerSkeleton,
   ChatHistorySkeleton,
 } from "./ChatRoomLoadingState";
-import { isOptimisticMessage } from "./optimisticMessages";
 import type { ChatRoomPageViewProps } from "./ChatRoomPageView.types";
+import { isOptimisticMessage } from "./optimisticMessages";
 import {
   isOwnMessage,
   normalizeActorRef,

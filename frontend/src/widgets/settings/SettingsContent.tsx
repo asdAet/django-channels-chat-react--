@@ -7,10 +7,16 @@ import {
 } from "react";
 
 import type { UserProfile } from "../../entities/user/types";
+import type { AvatarCrop } from "../../shared/api/users";
 import { avatarFallback } from "../../shared/lib/format";
 import { resolveIdentityLabel } from "../../shared/lib/userIdentity";
 import { useNotifications } from "../../shared/notifications";
-import { AvatarMedia, Button, EmptyState } from "../../shared/ui";
+import {
+  AvatarCropModal,
+  AvatarMedia,
+  Button,
+  EmptyState,
+} from "../../shared/ui";
 import styles from "../../styles/pages/SettingsPage.module.css";
 import { SecuritySettingsSection } from "./SecuritySettingsSection";
 
@@ -22,6 +28,7 @@ type ProfileSaveInput = {
   name?: string;
   username?: string;
   image?: File | null;
+  avatarCrop?: AvatarCrop | null;
   bio?: string;
 };
 
@@ -166,6 +173,19 @@ const BellIcon = () => (
   </svg>
 );
 
+type AvatarCropSession =
+  | {
+      source: "existing";
+      image: string;
+      initialCrop: AvatarCrop | null;
+    }
+  | {
+      source: "upload";
+      image: string;
+      file: File;
+      initialCrop: null;
+    };
+
 export function SettingsContent({
   user,
   onProfileSave,
@@ -175,6 +195,7 @@ export function SettingsContent({
   const notifications = useNotifications();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const cropSessionUrlRef = useRef<string | null>(null);
   const [profileForm, setProfileForm] = useState({
     name: user?.name || "",
     username: user?.username || "",
@@ -182,6 +203,12 @@ export function SettingsContent({
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [draftAvatarCrop, setDraftAvatarCrop] = useState<AvatarCrop | null>(
+    null,
+  );
+  const [cropSession, setCropSession] = useState<AvatarCropSession | null>(
+    null,
+  );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [savingProfile, setSavingProfile] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState<
@@ -196,6 +223,30 @@ export function SettingsContent({
     mentions: true,
   });
 
+  const revokeBlobUrl = (value: string | null) => {
+    if (value?.startsWith("blob:")) {
+      URL.revokeObjectURL(value);
+    }
+  };
+
+  useEffect(() => {
+    previewUrlRef.current = avatarPreviewUrl;
+  }, [avatarPreviewUrl]);
+
+  useEffect(() => {
+    cropSessionUrlRef.current =
+      cropSession?.source === "upload" ? cropSession.image : null;
+  }, [cropSession]);
+
+  useEffect(() => {
+    return () => {
+      revokeBlobUrl(previewUrlRef.current);
+      if (cropSessionUrlRef.current !== previewUrlRef.current) {
+        revokeBlobUrl(cropSessionUrlRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     setProfileForm({
       name: user?.name || "",
@@ -203,18 +254,14 @@ export function SettingsContent({
       bio: user?.bio || "",
     });
     setAvatarFile(null);
+    setDraftAvatarCrop(null);
+    setCropSession(null);
     setFieldErrors({});
+    setAvatarPreviewUrl((previousUrl) => {
+      revokeBlobUrl(previousUrl);
+      return null;
+    });
   }, [user?.name, user?.username, user?.bio, user?.publicRef]);
-
-  useEffect(() => {
-    previewUrlRef.current = avatarPreviewUrl;
-  }, [avatarPreviewUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-    };
-  }, []);
 
   if (!user) {
     return (
@@ -227,6 +274,7 @@ export function SettingsContent({
 
   const avatarIdentity = resolveIdentityLabel(user, "user");
   const avatarUrl = avatarPreviewUrl ?? user.profileImage;
+  const avatarCrop = draftAvatarCrop ?? user.avatarCrop ?? null;
   const bioLength = profileForm.bio.length;
 
   const clearFieldError = (field: string) => {
@@ -241,11 +289,55 @@ export function SettingsContent({
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     if (!file) return;
-    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
-    setAvatarFile(file);
-    setAvatarPreviewUrl(URL.createObjectURL(file));
+    if (cropSession?.source === "upload") {
+      revokeBlobUrl(cropSession.image);
+    }
+    const nextUrl = URL.createObjectURL(file);
+    setCropSession({
+      source: "upload",
+      image: nextUrl,
+      file,
+      initialCrop: null,
+    });
     clearFieldError("image");
     event.currentTarget.value = "";
+  };
+
+  const openExistingAvatarCrop = () => {
+    if (!avatarUrl) {
+      fileInputRef.current?.click();
+      return;
+    }
+    setCropSession({
+      source: "existing",
+      image: avatarUrl,
+      initialCrop: avatarCrop,
+    });
+  };
+
+  const closeCropSession = () => {
+    setCropSession((session) => {
+      if (session?.source === "upload") {
+        revokeBlobUrl(session.image);
+      }
+      return null;
+    });
+  };
+
+  const applyAvatarCrop = (nextCrop: AvatarCrop) => {
+    if (!cropSession) return;
+    if (cropSession.source === "upload") {
+      setAvatarFile(cropSession.file);
+      setAvatarPreviewUrl((previousUrl) => {
+        if (previousUrl !== cropSession.image) {
+          revokeBlobUrl(previousUrl);
+        }
+        return cropSession.image;
+      });
+    }
+    setDraftAvatarCrop(nextCrop);
+    setCropSession(null);
+    clearFieldError("image");
   };
 
   const handleProfileSubmit = async (event: FormEvent) => {
@@ -257,6 +349,7 @@ export function SettingsContent({
         username: profileForm.username,
         bio: profileForm.bio,
         image: avatarFile || undefined,
+        avatarCrop,
       });
       if (!result.ok) {
         setFieldErrors(result.errors || {});
@@ -312,30 +405,41 @@ export function SettingsContent({
 
         <form className={styles.profileForm} onSubmit={handleProfileSubmit}>
           <div className={styles.profileTopRow}>
-            <button
-              type="button"
-              className={styles.avatarButton}
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Изменить аватар"
-            >
-              {avatarUrl ? (
-                <AvatarMedia
-                  src={avatarUrl}
-                  alt={avatarIdentity}
-                  avatarCrop={avatarFile ? null : user.avatarCrop}
-                  loading="eager"
-                />
-              ) : (
-                <span>{avatarFallback(avatarIdentity)}</span>
+            <div className={styles.avatarControls}>
+              <button
+                type="button"
+                className={styles.avatarButton}
+                onClick={openExistingAvatarCrop}
+                aria-label="Изменить аватар"
+              >
+                {avatarUrl ? (
+                  <AvatarMedia
+                    src={avatarUrl}
+                    alt={avatarIdentity}
+                    avatarCrop={avatarCrop}
+                    loading="eager"
+                  />
+                ) : (
+                  <span>{avatarFallback(avatarIdentity)}</span>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className={styles.hiddenInput}
+                onChange={handleAvatarChange}
+              />
+              {avatarUrl && (
+                <button
+                  type="button"
+                  className={styles.avatarUploadButton}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Новое фото
+                </button>
               )}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className={styles.hiddenInput}
-              onChange={handleAvatarChange}
-            />
+            </div>
 
             <div className={styles.profileFields}>
               <label className={styles.field}>
@@ -451,6 +555,15 @@ export function SettingsContent({
       </section>
 
       <SecuritySettingsSection enabled={Boolean(user)} />
+
+      <AvatarCropModal
+        key={cropSession?.image ?? "avatar-crop"}
+        open={Boolean(cropSession)}
+        image={cropSession?.image ?? null}
+        initialCrop={cropSession?.initialCrop ?? null}
+        onCancel={closeCropSession}
+        onApply={applyAvatarCrop}
+      />
     </div>
   );
 }

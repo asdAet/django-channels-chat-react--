@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { usePasswordRules } from "../hooks/usePasswordRules";
 import { HomePage } from "../pages/HomePage";
 import type { ApiError } from "../shared/api/types";
+import type { AvatarCrop } from "../shared/api/users";
 import { startGoogleAuthRedirect } from "../shared/auth/googleRedirect";
 import { ChatRealtimeProvider } from "../shared/chatRealtime";
 import { useRuntimeConfig } from "../shared/config/RuntimeConfigContext";
@@ -419,6 +420,7 @@ function AppWorkspace() {
       name?: string;
       username?: string;
       image?: File | null;
+      avatarCrop?: AvatarCrop | null;
       bio?: string;
     }): Promise<ProfileSaveResult> => {
       if (!auth.user)
