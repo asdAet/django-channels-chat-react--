@@ -11,7 +11,10 @@ import {
   formatLastSeen,
   formatRegistrationDate,
 } from "../shared/lib/format";
-import { normalizePublicRef } from "../shared/lib/publicRef";
+import {
+  buildUserProfilePath,
+  normalizePublicRef,
+} from "../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../shared/lib/userIdentity";
 import { useNotifications } from "../shared/notifications";
 import { usePresence } from "../shared/presence";
@@ -256,7 +259,9 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
     } catch (error) {
       debugLog("Avatar crop failed", error);
       if (applyToken === cropApplyTokenRef.current) {
-        setFormError("Не удалось подготовить аватарку. Выберите другое изображение.");
+        setFormError(
+          "Не удалось подготовить аватарку. Выберите другое изображение.",
+        );
         setAvatarCropApplying(false);
       }
       return;
@@ -373,6 +378,7 @@ export function ProfilePage({ user, onSave, onNavigate }: Props) {
             });
             if (result.ok) {
               setFieldErrors({});
+              onNavigate(buildUserProfilePath(currentPublicRef));
               return;
             }
             if (result.errors) {

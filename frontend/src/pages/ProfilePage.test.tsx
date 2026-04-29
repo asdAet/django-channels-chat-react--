@@ -30,6 +30,26 @@ vi.mock("../shared/lib/avatarImageCrop", () => ({
   cropAvatarImageFile: cropAvatarImageFileMock,
 }));
 
+vi.mock("../shared/security/useSecuritySettings", () => ({
+  useSecuritySettings: () => ({
+    security: {
+      email: null,
+      emailVerified: false,
+      hasPassword: true,
+      oauthProviders: [],
+      twoFactorEnabled: false,
+      twoFactorEnabledAt: null,
+    },
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+    changePassword: vi.fn(),
+    beginTwoFactorSetup: vi.fn(),
+    confirmTwoFactor: vi.fn(),
+    disableTwoFactor: vi.fn(),
+  }),
+}));
+
 vi.mock("../shared/ui", async () => {
   const actual =
     await vi.importActual<typeof import("../shared/ui")>("../shared/ui");
@@ -154,6 +174,27 @@ describe("ProfilePage", () => {
     });
   });
 
+  it("renders profile editing sections without email editing", () => {
+    render(
+      <ProfilePage
+        user={user}
+        onSave={vi.fn(async () => ({ ok: true }))}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Редактировать профиль" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Основные данные" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Имя пользователя" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
+  });
+
   it("shows max-bio warning over 1000 chars", () => {
     render(
       <ProfilePage
@@ -241,7 +282,8 @@ describe("ProfilePage", () => {
 
   it("submits name separately from username", async () => {
     const onSave = vi.fn(async () => ({ ok: true as const }));
-    render(<ProfilePage user={user} onSave={onSave} onNavigate={vi.fn()} />);
+    const onNavigate = vi.fn();
+    render(<ProfilePage user={user} onSave={onSave} onNavigate={onNavigate} />);
 
     fireEvent.change(screen.getByLabelText("Имя"), {
       target: { value: "Directness" },
@@ -258,6 +300,7 @@ describe("ProfilePage", () => {
         username: "demohandle",
       }),
     );
+    expect(onNavigate).toHaveBeenCalledWith("/users/demo");
   });
 
   it("discards the pending upload when crop modal is cancelled", async () => {

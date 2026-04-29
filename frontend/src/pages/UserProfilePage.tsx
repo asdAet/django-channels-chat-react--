@@ -23,7 +23,7 @@ import {
 } from "../shared/lib/publicRef";
 import { resolveIdentityLabel } from "../shared/lib/userIdentity";
 import { usePresence } from "../shared/presence";
-import { AvatarMedia, Button, Card, Panel, Skeleton } from "../shared/ui";
+import { AvatarMedia, Button, Card, PageState, Skeleton } from "../shared/ui";
 import styles from "../styles/pages/UserProfilePage.module.css";
 
 /**
@@ -362,14 +362,28 @@ export function UserProfilePage({
 
   if (error || !profileUser) {
     return (
-      <Panel>
-        <p>Профиль не найден.</p>
-        <div className={styles.actions}>
-          <Button variant="ghost" onClick={() => onNavigate("/public")}>
-            Вернуться в чат
-          </Button>
-        </div>
-      </Panel>
+      <PageState
+        tone="warning"
+        eyebrow="Профиль"
+        title="Профиль не найден"
+        description="Пользователь мог изменить публичный адрес, удалить аккаунт или ссылка была введена с ошибкой."
+        icon={
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5 20a7 7 0 0 1 14 0M18 6l3 3M21 6l-3 3"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+            />
+          </svg>
+        }
+      >
+        <Button variant="outline" onClick={() => onNavigate("/public")}>
+          Вернуться в чат
+        </Button>
+      </PageState>
     );
   }
 
@@ -393,47 +407,69 @@ export function UserProfilePage({
     );
 
   return (
-    <Card wide>
-      <div>
-        <p className={styles.eyebrowProfile}>Профиль пользователя</p>
-      </div>
-
-      <div
-        className={[
-          styles.profileAvatarWrapper,
-          isUserOnline ? styles.online : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        data-online={isUserOnline ? "true" : "false"}
-      >
+    <Card wide className={styles.profileCard}>
+      <h1 className={styles.title}>Профиль</h1>
+      <section className={styles.profileHero}>
         <div
           className={[
-            styles.profileAvatar,
-            styles.readonly,
-            hasProfileImage ? styles.clickable : "",
+            styles.profileAvatarWrapper,
+            isUserOnline ? styles.online : "",
           ]
             .filter(Boolean)
             .join(" ")}
-          role={hasProfileImage ? "button" : undefined}
-          data-testid={hasProfileImage ? "profile-avatar-open" : undefined}
-          tabIndex={hasProfileImage ? 0 : -1}
-          aria-label={hasProfileImage ? "Открыть аватар" : undefined}
-          onClick={openPreview}
-          onKeyDown={handleAvatarKeyDown}
+          data-online={isUserOnline ? "true" : "false"}
         >
-          {profileUser.profileImage ? (
-            <AvatarMedia
-              src={profileUser.profileImage}
-              alt={avatarIdentity}
-              avatarCrop={profileUser.avatarCrop}
-              loading="eager"
-            />
-          ) : (
-            <span>{avatarFallback(avatarIdentity)}</span>
-          )}
+          <div
+            className={[
+              styles.profileAvatar,
+              styles.readonly,
+              hasProfileImage ? styles.clickable : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            role={hasProfileImage ? "button" : undefined}
+            data-testid={hasProfileImage ? "profile-avatar-open" : undefined}
+            tabIndex={hasProfileImage ? 0 : -1}
+            aria-label={hasProfileImage ? "Открыть аватар" : undefined}
+            onClick={openPreview}
+            onKeyDown={handleAvatarKeyDown}
+          >
+            {profileUser.profileImage ? (
+              <AvatarMedia
+                src={profileUser.profileImage}
+                alt={avatarIdentity}
+                avatarCrop={profileUser.avatarCrop}
+                loading="eager"
+              />
+            ) : (
+              <span>{avatarFallback(avatarIdentity)}</span>
+            )}
+          </div>
         </div>
-      </div>
+
+        <div className={styles.profileSummary}>
+          <p className={styles.eyebrowProfile}>Профиль пользователя</p>
+          <h1 className={styles.profileName}>{fullName}</h1>
+          {publicRef && (
+            <p className={styles.usernameHandle}>
+              {formatPublicRef(publicRef)}
+            </p>
+          )}
+
+          <span
+            className={[
+              styles.statusChip,
+              isUserOnline ? styles.statusChipOnline : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            {isUserOnline
+              ? "В сети"
+              : `Последний раз в сети: ${formatLastSeen(profileUser.lastSeen) || "—"}`}
+          </span>
+        </div>
+      </section>
 
       {isPreviewOpen && profileUser.profileImage && (
         <div
@@ -476,66 +512,87 @@ export function UserProfilePage({
       )}
 
       <div className={styles.stack}>
-        <div>
-          <h2>{fullName}</h2>
-          {publicRef && (
-            <p className={styles.usernameHandle}>
-              {formatPublicRef(publicRef)}
+        <section
+          className={styles.section}
+          data-testid={
+            profileUser.bio?.trim() ? "profile-bio-section" : undefined
+          }
+        >
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon} aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM5 20a7 7 0 0 1 14 0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            </span>
+            <h2>Информация</h2>
+          </header>
+          <div className={styles.bioBlock}>
+            <p className={styles.muted}>Краткая информация</p>
+            <p className={styles.bioText}>
+              {profileUser.bio?.trim() || "Тут пока что нет ничего."}
             </p>
-          )}
-          {profileUser.bio?.trim() ? (
-            <div data-testid="profile-bio-section">
-              <p className={styles.muted}>О себе</p>
-              <p className={styles.bioText}>{profileUser.bio}</p>
-            </div>
-          ) : null}
+          </div>
+        </section>
 
-          {isUserOnline ? (
-            <p
-              className={[styles.profileMeta, styles.profileMetaRight].join(
-                " ",
-              )}
-            >
-              В сети
-            </p>
-          ) : (
-            <p
-              className={[styles.profileMeta, styles.profileMetaRight].join(
-                " ",
-              )}
-            >
-              Последний раз в сети:{" "}
-              {formatLastSeen(profileUser.lastSeen) || "—"}
-            </p>
-          )}
-          <p
-            className={[styles.profileMeta, styles.profileMetaRight].join(" ")}
-          >
-            Зарегистрирован:{" "}
-            {formatRegistrationDate(profileUser.registeredAt) || "—"}
-          </p>
-        </div>
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon} aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 3.5 18.5 6v5.25c0 4.1-2.55 7.65-6.5 9.25-3.95-1.6-6.5-5.15-6.5-9.25V6L12 3.5Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinejoin="round"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            </span>
+            <h2>Аккаунт</h2>
+          </header>
+          <dl className={styles.profileMetaGrid}>
+            <div>
+              <dt>Статус</dt>
+              <dd>
+                {isUserOnline
+                  ? "В сети"
+                  : `Последний раз в сети: ${formatLastSeen(profileUser.lastSeen) || "—"}`}
+              </dd>
+            </div>
+            <div>
+              <dt>Регистрация</dt>
+              <dd>{formatRegistrationDate(profileUser.registeredAt) || "—"}</dd>
+            </div>
+          </dl>
+        </section>
+
         <div className={styles.actions}>
           {isSelf && (
-            <Button variant="link" onClick={() => onNavigate("/profile")}>
+            <Button variant="primary" onClick={() => onNavigate("/settings")}>
               Редактировать
             </Button>
           )}
           {!isSelf && currentUser && publicRef && (
             <Button
-              variant="link"
+              variant="primary"
               onClick={() => onNavigate(buildDirectPath(publicRef))}
               data-testid="send-dm-button"
             >
               Отправить сообщение
             </Button>
           )}
-          <Button variant="link" onClick={() => onNavigate("/public")}>
+          <Button variant="ghost" onClick={() => onNavigate("/public")}>
             Вернуться в чат
           </Button>
           {isSelf && (
             <Button
-              variant="dangerLink"
+              variant="danger"
               onClick={onLogout}
               data-testid="logout-button"
             >

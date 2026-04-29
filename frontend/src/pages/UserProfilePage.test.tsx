@@ -140,6 +140,28 @@ describe("UserProfilePage", () => {
     expect(screen.queryByTestId("profile-bio-section")).toBeNull();
   });
 
+  it("renders not-found profile state with chat fallback", () => {
+    const onNavigate = vi.fn();
+    profileMock.user = null as unknown as UserProfile;
+    profileMock.error = "missing";
+
+    render(
+      <UserProfilePage
+        user={makeUser("bob")}
+        currentUser={makeUser("bob")}
+        username="missing"
+        onNavigate={onNavigate}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Профиль не найден" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Вернуться в чат" }));
+    expect(onNavigate).toHaveBeenCalledWith("/public");
+  });
+
   it("hides send message button for own profile", () => {
     render(
       <UserProfilePage
