@@ -1,0 +1,59 @@
+.codeInputLabel {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.codeInput {
+  position: absolute;
+  inset: auto;
+  width: 1px;
+  height: 1px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  opacity: 0;
+  outline: none;
+  pointer-events: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.codeInput:focus {
+  border-color: var(--color-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+.codeSlots {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.codeSlot {
+  display: grid;
+  aspect-ratio: 1;
+  min-height: 50px;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.codeInputLabel:focus-within .codeSlot {
+  border-color: var(--color-focus);
+  box-shadow: var(--shadow-focus);
+}

@@ -6,21 +6,26 @@ import { SettingsContent } from "../widgets/settings/SettingsContent";
  */
 type Props = {
   user: UserProfile | null;
-  onNavigate: (path: string) => void;
-  onLogout: () => Promise<void>;
+  onProfileSave: (fields: {
+    name?: string;
+    username?: string;
+    image?: File | null;
+    bio?: string;
+  }) => Promise<
+    | { ok: true }
+    | { ok: false; errors?: Record<string, string[]>; message?: string }
+  >;
 };
 
 /**
  * React-компонент SettingsPage отвечает за отрисовку и обработку UI-сценария.
  */
-export function SettingsPage({ user, onNavigate, onLogout }: Props) {
+export function SettingsPage({ user, onProfileSave }: Props) {
   return (
     <SettingsContent
       user={user}
-      onNavigate={onNavigate}
-      onLogout={onLogout}
+      onProfileSave={onProfileSave}
       showTitle={true}
     />
   );
 }
-

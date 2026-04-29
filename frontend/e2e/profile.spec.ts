@@ -18,7 +18,7 @@ test("profile update works with validation and save", async ({ page }) => {
 
   await registerAndSetUsername(page, username, password);
 
-  await page.goto("/profile");
+  await page.goto("/settings");
   const bioField = page.getByLabel("Биография (необязательно)");
   await expect(bioField).toBeVisible();
   await bioField.fill(nextBio);
@@ -28,7 +28,7 @@ test("profile update works with validation and save", async ({ page }) => {
         response.url().includes("/api/profile/")) &&
       response.request().method() === "PATCH",
   );
-  await page.getByRole("button", { name: "Сохранить" }).click();
+  await page.getByRole("button", { name: "Сохранить профиль" }).click();
   const profileUpdateResponse = await profileUpdateResponsePromise;
   if (!profileUpdateResponse.ok()) {
     const body = await profileUpdateResponse.text().catch(() => "");
@@ -37,7 +37,7 @@ test("profile update works with validation and save", async ({ page }) => {
     );
   }
 
-  await page.goto("/profile");
+  await page.goto("/settings");
   await expect(page.getByLabel("Биография (необязательно)")).toHaveValue(
     nextBio,
   );

@@ -24,7 +24,7 @@ test("register and login flow keeps session", async ({ page }) => {
 
   await loginWithRetry(page, username, password);
 
-  await page.goto("/profile");
+  await page.goto("/settings");
   const usernameInput = page.getByLabel("Юзернейм (@username)");
   await expect(usernameInput).toBeVisible();
   await expect(usernameInput).toHaveValue(username);

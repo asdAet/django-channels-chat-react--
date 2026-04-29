@@ -27,15 +27,13 @@ import {
   resolveIdentityLabel,
 } from "../../shared/lib/userIdentity";
 import { usePresence } from "../../shared/presence";
-import { Avatar, Button, Modal } from "../../shared/ui";
+import { Avatar, Button, PublicChatIcon } from "../../shared/ui";
 import styles from "../../styles/layout/Sidebar.module.css";
 import { CreateGroupDialog } from "../groups/CreateGroupDialog";
-import { SettingsContent } from "../settings/SettingsContent";
 
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
-  onLogout: () => void;
   onCloseMobileDrawer?: () => void;
 };
 
@@ -60,15 +58,6 @@ const FriendsIcon = () => (
   </svg>
 );
 
-const PublicChatIcon = () => (
-  <svg viewBox="0 0 24 24" className={styles.iconSvg} aria-hidden="true">
-    <path
-      fill="currentColor"
-      d="M10 4a1 1 0 0 1 1 1v2h2V5a1 1 0 1 1 2 0v2h2a1 1 0 1 1 0 2h-2v4h2a1 1 0 1 1 0 2h-2v4a1 1 0 1 1-2 0v-4h-2v4a1 1 0 1 1-2 0v-4H7a1 1 0 1 1 0-2h2V9H7a1 1 0 1 1 0-2h2V5a1 1 0 0 1 1-1Zm1 5v4h2V9h-2Z"
-    />
-  </svg>
-);
-
 const SettingsIcon = () => (
   <svg viewBox="0 0 24 24" className={styles.iconSvg} aria-hidden="true">
     <path
@@ -84,22 +73,19 @@ const SettingsIcon = () => (
  * Компонент также отвечает за desktop-resize, mobile drawer UX, открытие
  * настроек, быстрый переход к друзьям и восстановление последнего личного чата.
  */
-export function Sidebar({
-  user,
-  onNavigate,
-  onLogout,
-  onCloseMobileDrawer,
-}: Props) {
+export function Sidebar({ user, onNavigate, onCloseMobileDrawer }: Props) {
   const location = useLocation();
   const sidebarRef = useRef<HTMLElement | null>(null);
   const resizeCleanupRef = useRef<(() => void) | null>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
 
   const { searchQuery, setSearchQuery, serverItems, refresh } =
     useConversationList();
-  const { items: directItems, unreadCounts, unreadDialogsCount, roomUnreadCounts } =
-    useDirectInbox();
+  const {
+    items: directItems,
+    unreadCounts,
+    unreadDialogsCount,
+  } = useDirectInbox();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
 
   const onlineUsernames = useMemo(
@@ -164,10 +150,10 @@ export function Sidebar({
   const pushedDirectUnreadDialogsCount = useMemo(
     () =>
       directItems.reduce((total, item) => {
-        const unread = roomUnreadCounts[String(item.roomId)] ?? 0;
+        const unread = unreadCounts[String(item.roomId)] ?? 0;
         return unread > 0 ? total + 1 : total;
       }, 0),
-    [directItems, roomUnreadCounts],
+    [directItems, unreadCounts],
   );
 
   const filteredDirectItems = useMemo(() => {
@@ -245,7 +231,9 @@ export function Sidebar({
 
     // Пересчитываем ширину от исходной точки drag и мгновенно применяем в CSS-var shell.
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const nextWidth = clampSidebarWidth(startWidth + moveEvent.clientX - startX);
+      const nextWidth = clampSidebarWidth(
+        startWidth + moveEvent.clientX - startX,
+      );
       document.documentElement.style.setProperty(
         SIDEBAR_WIDTH_VAR,
         `${nextWidth}px`,
@@ -275,24 +263,8 @@ export function Sidebar({
     [navigateFromSidebar, refresh],
   );
 
-  const handleSettingsNavigate = useCallback(
-    (path: string) => {
-      setShowSettings(false);
-      navigateFromSidebar(path);
-    },
-    [navigateFromSidebar],
-  );
-
-  const handleSettingsLogout = useCallback(async () => {
-    setShowSettings(false);
-    await onLogout();
-  }, [onLogout]);
-
   return (
-    <aside
-      className={styles.sidebar}
-      ref={sidebarRef}
-    >
+    <aside className={styles.sidebar} ref={sidebarRef}>
       <nav className={styles.guildsSidebar} aria-label="Серверы">
         <div
           className={[
@@ -350,10 +322,19 @@ export function Sidebar({
                       className={styles.guildIcon}
                     />
                   ) : (
-                    <span className={styles.guildFallback}>
-                      {server.isPublic
-                        ? "#"
-                        : server.name.slice(0, 2).toUpperCase()}
+                    <span
+                      className={[
+                        styles.guildFallback,
+                        server.isPublic ? styles.guildFallbackPublic : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      {server.isPublic ? (
+                        <PublicChatIcon className={styles.iconSvg} />
+                      ) : (
+                        server.name.slice(0, 2).toUpperCase()
+                      )}
                     </span>
                   )}
                   {unread > 0 && (
@@ -370,7 +351,9 @@ export function Sidebar({
         {user && (
           <div className={styles.guildItem}>
             <button
-              className={[styles.guildButton, styles.guildButtonCreate].join(" ")}
+              className={[styles.guildButton, styles.guildButtonCreate].join(
+                " ",
+              )}
               type="button"
               title="Создать группу"
               aria-label="Создать группу"
@@ -449,8 +432,9 @@ export function Sidebar({
             <span
               className={[styles.dmIcon, styles.dmIconPublic].join(" ")}
               aria-hidden="true"
+              data-testid="public-chat-icon"
             >
-              <PublicChatIcon />
+              <PublicChatIcon className={styles.iconSvg} />
             </span>
             <span className={styles.dmName}>Публичный чат</span>
             {publicChatUnread > 0 && (
@@ -460,11 +444,15 @@ export function Sidebar({
             )}
           </button>
 
-          <div className={styles.dmSectionDivider} data-testid="friends-divider" />
+          <div
+            className={styles.dmSectionDivider}
+            data-testid="friends-divider"
+          />
 
           <div className={styles.privateHeader}>
             <span className={styles.privateTitle}>Личные сообщения</span>
-            {Math.max(unreadDialogsCount, pushedDirectUnreadDialogsCount) > 0 && (
+            {Math.max(unreadDialogsCount, pushedDirectUnreadDialogsCount) >
+              0 && (
               <span className={styles.privateBadge}>
                 {Math.max(unreadDialogsCount, pushedDirectUnreadDialogsCount)}
               </span>
@@ -472,7 +460,9 @@ export function Sidebar({
           </div>
 
           {!user ? (
-            <div className={styles.emptyHint}>Войдите, чтобы видеть личные чаты</div>
+            <div className={styles.emptyHint}>
+              Войдите, чтобы видеть личные чаты
+            </div>
           ) : filteredDirectItems.length === 0 ? (
             <div className={styles.emptyHint}>
               {normalizedSearchQuery
@@ -491,10 +481,7 @@ export function Sidebar({
                 const isPeerOnline = onlineUsernames.has(
                   normalizeActorRef(peerRef),
                 );
-                const unread =
-                  unreadCounts[String(item.roomId)] ??
-                  roomUnreadCounts[String(item.roomId)] ??
-                  0;
+                const unread = unreadCounts[String(item.roomId)] ?? 0;
 
                 return (
                   <li key={item.roomId} className={styles.dmItem}>
@@ -560,7 +547,7 @@ export function Sidebar({
               type="button"
               title="Настройки"
               aria-label="Открыть настройки"
-              onClick={() => setShowSettings(true)}
+              onClick={() => navigateFromSidebar("/settings")}
               data-testid="sidebar-settings-button"
             >
               <SettingsIcon />
@@ -600,20 +587,6 @@ export function Sidebar({
           onClose={() => setShowCreateGroup(false)}
         />
       )}
-
-      <Modal
-        open={showSettings}
-        onClose={() => setShowSettings(false)}
-        title="Настройки"
-      >
-        <SettingsContent
-          user={user}
-          onNavigate={handleSettingsNavigate}
-          onLogout={handleSettingsLogout}
-          compact={true}
-          showTitle={false}
-        />
-      </Modal>
     </aside>
   );
 }

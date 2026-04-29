@@ -1,0 +1,10 @@
+.twoFactorModal {
+  display: grid;
+  gap: 16px;
+}
+
+.modalLead {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}

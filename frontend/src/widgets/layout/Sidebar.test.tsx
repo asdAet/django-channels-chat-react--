@@ -96,7 +96,7 @@ describe("Sidebar", () => {
 
     render(
       <MemoryRouter initialEntries={["/"]}>
-        <Sidebar user={user} onNavigate={onNavigate} onLogout={vi.fn()} />
+        <Sidebar user={user} onNavigate={onNavigate} />
       </MemoryRouter>,
     );
 
@@ -109,7 +109,7 @@ describe("Sidebar", () => {
 
     render(
       <MemoryRouter initialEntries={["/friends"]}>
-        <Sidebar user={user} onNavigate={onNavigate} onLogout={vi.fn()} />
+        <Sidebar user={user} onNavigate={onNavigate} />
       </MemoryRouter>,
     );
 
@@ -123,7 +123,7 @@ describe("Sidebar", () => {
 
     render(
       <MemoryRouter initialEntries={["/friends"]}>
-        <Sidebar user={user} onNavigate={onNavigate} onLogout={vi.fn()} />
+        <Sidebar user={user} onNavigate={onNavigate} />
       </MemoryRouter>,
     );
 
@@ -139,7 +139,7 @@ describe("Sidebar", () => {
 
     render(
       <MemoryRouter initialEntries={["/public"]}>
-        <Sidebar user={user} onNavigate={onNavigate} onLogout={vi.fn()} />
+        <Sidebar user={user} onNavigate={onNavigate} />
       </MemoryRouter>,
     );
 
@@ -153,27 +153,28 @@ describe("Sidebar", () => {
 
     render(
       <MemoryRouter initialEntries={["/"]}>
-        <Sidebar user={user} onNavigate={onNavigate} onLogout={vi.fn()} />
+        <Sidebar user={user} onNavigate={onNavigate} />
       </MemoryRouter>,
     );
 
     expect(screen.getByTestId("friends-divider")).toBeInTheDocument();
+    expect(screen.getByTestId("public-chat-icon")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("friends-nav-button"));
     expect(onNavigate).toHaveBeenCalledWith("/friends");
     fireEvent.click(screen.getByTestId("public-chat-nav-button"));
     expect(onNavigate).toHaveBeenCalledWith("/public");
   });
 
-  it("opens settings modal from footer button", () => {
+  it("navigates to account settings from footer button", () => {
+    const onNavigate = vi.fn();
     render(
       <MemoryRouter initialEntries={["/"]}>
-        <Sidebar user={user} onNavigate={vi.fn()} onLogout={vi.fn()} />
+        <Sidebar user={user} onNavigate={onNavigate} />
       </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByTestId("sidebar-settings-button"));
-    expect(screen.getByText("Опасная зона")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Выйти из аккаунта" })).toBeInTheDocument();
+    expect(onNavigate).toHaveBeenCalledWith("/settings");
   });
 
   it("falls back to /profile when publicRef is empty", () => {
@@ -184,7 +185,6 @@ describe("Sidebar", () => {
         <Sidebar
           user={{ ...user, username: "   ", publicRef: "   " }}
           onNavigate={onNavigate}
-          onLogout={vi.fn()}
         />
       </MemoryRouter>,
     );
@@ -196,7 +196,7 @@ describe("Sidebar", () => {
   it("updates sidebar width and persists it while resizing", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/"]}>
-        <Sidebar user={user} onNavigate={vi.fn()} onLogout={vi.fn()} />
+        <Sidebar user={user} onNavigate={vi.fn()} />
       </MemoryRouter>,
     );
 
@@ -228,9 +228,9 @@ describe("Sidebar", () => {
     fireEvent.mouseMove(window, { clientX: 180 });
     fireEvent.mouseUp(window);
 
-    expect(document.documentElement.style.getPropertyValue("--tg-sidebar-w")).toBe(
-      "440px",
-    );
+    expect(
+      document.documentElement.style.getPropertyValue("--tg-sidebar-w"),
+    ).toBe("440px");
     expect(window.localStorage.getItem("ui.sidebar.width")).toBe("440");
   });
 
@@ -242,7 +242,6 @@ describe("Sidebar", () => {
         <Sidebar
           user={user}
           onNavigate={vi.fn()}
-          onLogout={vi.fn()}
           onCloseMobileDrawer={onCloseMobileDrawer}
         />
       </MemoryRouter>,

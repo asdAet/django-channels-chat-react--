@@ -14,10 +14,6 @@ vi.mock("../pages/RegisterPage", () => ({
   RegisterPage: () => <div>REGISTER_PAGE</div>,
 }));
 
-vi.mock("../pages/ProfilePage", () => ({
-  ProfilePage: () => <div>PROFILE_PAGE</div>,
-}));
-
 vi.mock("../pages/SettingsPage", () => ({
   SettingsPage: () => <div>SETTINGS_PAGE</div>,
 }));
@@ -31,7 +27,9 @@ vi.mock("../pages/GroupsPage", () => ({
 }));
 
 vi.mock("../pages/InvitePreviewPage", () => ({
-  InvitePreviewPage: ({ code }: { code: string }) => <div>INVITE_PAGE:{code}</div>,
+  InvitePreviewPage: ({ code }: { code: string }) => (
+    <div>INVITE_PAGE:{code}</div>
+  ),
 }));
 
 vi.mock("../pages/UserProfilePage", () => ({
@@ -130,6 +128,20 @@ describe("AppRoutes", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("FRIENDS_PAGE")).toBeInTheDocument();
+  });
+
+  it("renders the dedicated settings route", () => {
+    render(
+      <MemoryRouter initialEntries={["/settings"]}>
+        <AppRoutes
+          user={null}
+          passwordRules={[]}
+          googleAuthDisabledReason={null}
+          {...handlers}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText("SETTINGS_PAGE")).toBeInTheDocument();
   });
 
   it("normalizes user profile route by trimming one leading @", () => {

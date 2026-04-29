@@ -1,0 +1,111 @@
+.section {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 6px;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.sectionHeader h2::before {
+  content: "";
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  vertical-align: -3px;
+  background: currentColor;
+  mask:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3.5 18.5 6v5.25c0 4.1-2.55 7.65-6.5 9.25-3.95-1.6-6.5-5.15-6.5-9.25V6L12 3.5Z' fill='none' stroke='black' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.sectionHeader p,
+.settingText span {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.securityList {
+  display: grid;
+}
+
+.settingRow {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) minmax(176px, auto);
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.settingRow:first-child {
+  border-top: 0;
+}
+
+.settingIcon {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-secondary);
+}
+
+.settingIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.settingText {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.settingText strong {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-weight: 800;
+}
+
+@media (max-width: 620px) {
+  .section {
+    padding: 16px;
+  }
+
+  .settingRow {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .settingRow > button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

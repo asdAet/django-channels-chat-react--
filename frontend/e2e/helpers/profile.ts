@@ -9,7 +9,7 @@ export async function registerAndSetUsername(
 ): Promise<void> {
   await registerWithRetry(page, username, password);
 
-  await page.goto("/profile");
+  await page.goto("/settings");
   const usernameInput = page.getByLabel("Юзернейм (@username)");
   await expect(usernameInput).toBeVisible({ timeout: 15_000 });
   await usernameInput.fill(username);
@@ -21,7 +21,7 @@ export async function registerAndSetUsername(
       response.request().method() === "PATCH",
   );
 
-  await page.getByRole("button", { name: "Сохранить" }).click();
+  await page.getByRole("button", { name: "Сохранить профиль" }).click();
   const profileUpdateResponse = await profileUpdateResponsePromise;
   if (!profileUpdateResponse.ok()) {
     const body = await profileUpdateResponse.text().catch(() => "");
@@ -31,15 +31,13 @@ export async function registerAndSetUsername(
   }
 
   const sessionResponse = await page.request.get("/api/auth/session/");
-  const sessionPayload = (await sessionResponse.json().catch(() => null)) as
-    | { user?: { publicRef?: string; publicId?: string } }
-    | null;
+  const sessionPayload = (await sessionResponse.json().catch(() => null)) as {
+    user?: { publicRef?: string; publicId?: string };
+  } | null;
   const profileId = String(sessionPayload?.user?.publicId || "").trim();
   const profileRef = String(sessionPayload?.user?.publicRef || "")
     .trim()
     .replace(/^@+/, "");
-  const routeRef = profileId || profileRef;
-
-  expect(routeRef.length).toBeGreaterThan(0);
-  await expect(page).toHaveURL(`/users/${encodeURIComponent(routeRef)}`);
+  expect((profileId || profileRef).length).toBeGreaterThan(0);
+  await expect(page).toHaveURL("/settings");
 }

@@ -1,4 +1,4 @@
-﻿import { Route, Routes, useParams } from "react-router-dom";
+﻿import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
 import { decodePublicRefParam } from "../dto";
 import type { UserProfile } from "../entities/user/types";
@@ -9,7 +9,6 @@ import { HomePage } from "../pages/HomePage";
 import { InvitePreviewPage } from "../pages/InvitePreviewPage";
 import { LoginPage } from "../pages/LoginPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
-import { ProfilePage } from "../pages/ProfilePage";
 import { RegisterPage } from "../pages/RegisterPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { UserProfilePage } from "../pages/UserProfilePage";
@@ -17,6 +16,10 @@ import {
   isReservedChatTarget,
   normalizeChatTarget,
 } from "../shared/lib/chatTarget";
+import {
+  buildUserProfilePath,
+  normalizePublicRef,
+} from "../shared/lib/publicRef";
 
 type ProfileFieldErrors = Record<string, string[]>;
 type ProfileSaveResult =
@@ -81,6 +84,22 @@ function UserProfileRoute({
       onLogout={onLogout}
     />
   );
+}
+
+function OwnProfileRoute({
+  user,
+  onNavigate,
+}: Pick<AppRoutesProps, "user" | "onNavigate">) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const publicRef = normalizePublicRef(user.publicRef || user.username);
+  if (!publicRef) {
+    return <NotFoundPage onNavigate={onNavigate} />;
+  }
+
+  return <Navigate to={buildUserProfilePath(publicRef)} replace />;
 }
 
 function ChatTargetRoute({
@@ -163,24 +182,11 @@ export function AppRoutes({
       />
       <Route
         path="/profile"
-        element={
-          <ProfilePage
-            key={user?.username || "guest"}
-            user={user}
-            onSave={onProfileSave}
-            onNavigate={onNavigate}
-          />
-        }
+        element={<OwnProfileRoute user={user} onNavigate={onNavigate} />}
       />
       <Route
         path="/settings"
-        element={
-          <SettingsPage
-            user={user}
-            onNavigate={onNavigate}
-            onLogout={onLogout}
-          />
-        }
+        element={<SettingsPage user={user} onProfileSave={onProfileSave} />}
       />
       <Route
         path="/friends"

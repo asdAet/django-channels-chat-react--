@@ -23,7 +23,6 @@ import { Sidebar } from "./Sidebar";
 type Props = {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
-  onLogout: () => void;
   children: ReactNode;
 };
 
@@ -46,12 +45,7 @@ const resolveMobileTitle = (pathname: string): string => {
  *
  * @param props Свойства компонента.
  */
-function ShellLayout({
-  user,
-  onNavigate,
-  onLogout,
-  children,
-}: Props) {
+function ShellLayout({ user, onNavigate, children }: Props) {
   const { isOpen } = useInfoPanel();
   const { closeDrawer, isDrawerOpen, isMobileViewport, openDrawer } =
     useMobileShell();
@@ -94,24 +88,21 @@ function ShellLayout({
 
   return (
     <div
-      className={[
-        styles.shell,
-        isOpen ? styles.withInfoPanel : "",
-      ]
+      className={[styles.shell, isOpen ? styles.withInfoPanel : ""]
         .filter(Boolean)
         .join(" ")}
     >
       <button
-          type="button"
-          className={[
-            styles.sidebarBackdrop,
-            isDrawerOpen ? styles.sidebarBackdropOpen : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          onClick={closeDrawer}
-          aria-label="Закрыть меню"
-          data-testid="app-shell-sidebar-backdrop"
+        type="button"
+        className={[
+          styles.sidebarBackdrop,
+          isDrawerOpen ? styles.sidebarBackdropOpen : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        onClick={closeDrawer}
+        aria-label="Закрыть меню"
+        data-testid="app-shell-sidebar-backdrop"
       />
 
       <div
@@ -130,7 +121,6 @@ function ShellLayout({
         <Sidebar
           user={user}
           onNavigate={handleNavigate}
-          onLogout={onLogout}
           onCloseMobileDrawer={closeDrawer}
         />
       </div>

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef } from "react";
+﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
@@ -16,13 +16,17 @@ import {
 } from "../shared/lib/chatTarget";
 import { debugLog } from "../shared/lib/debug";
 import { DeviceProvider } from "../shared/lib/device";
-import { buildUserProfilePath } from "../shared/lib/publicRef";
 import { useViewportCssVars } from "../shared/lib/viewport/useViewportCssVars";
-import { NotificationProvider, useNotifications } from "../shared/notifications";
+import {
+  NotificationProvider,
+  useNotifications,
+} from "../shared/notifications";
 import { PresenceProvider } from "../shared/presence";
+import { RoomReadStateProvider } from "../shared/roomReadState";
 import { SiteVisitTelemetry } from "../shared/visitorTelemetry";
 import { WsAuthProvider } from "../shared/wsAuth";
 import appStyles from "../styles/app/AppAuthPage.module.css";
+import { LoginTwoFactorModal } from "../widgets/auth/LoginTwoFactorModal";
 import { AppShell } from "../widgets/layout/AppShell";
 import { AppRoutes } from "./routes";
 import { useAuthEntryNavigation } from "./useAuthEntryNavigation";
@@ -177,8 +181,16 @@ function AppWorkspace() {
   const navigate = useNavigate();
   const location = useLocation();
   const { config: runtimeConfig } = useRuntimeConfig();
-  const { auth, login, register, logout, updateProfile } = useAuth();
+  const {
+    auth,
+    login,
+    confirmLoginTwoFactor,
+    register,
+    logout,
+    updateProfile,
+  } = useAuth();
   const notifications = useNotifications();
+  const [loginTwoFactorOpen, setLoginTwoFactorOpen] = useState(false);
   const { rules: passwordRules } = usePasswordRules(
     location.pathname === "/register",
   );
@@ -319,15 +331,31 @@ function AppWorkspace() {
     async (identifier: string, password: string) => {
       clearAuthRouteState();
       try {
-        await login({ identifier, password });
+        const session = await login({ identifier, password });
+        if (session.twoFactorRequired) {
+          notifications.info("Введите код двухфакторной защиты");
+          setLoginTwoFactorOpen(true);
+          return;
+        }
         notifications.success("Добро пожаловать обратно!");
         onNavigate("/public");
       } catch (err) {
         debugLog("Login failed", err);
-        notifications.error(extractAuthMessage(err, "Неверный логин или пароль"));
+        notifications.error(
+          extractAuthMessage(err, "Неверный логин или пароль"),
+        );
       }
     },
     [clearAuthRouteState, login, notifications, onNavigate],
+  );
+
+  const handleConfirmLoginTwoFactor = useCallback(
+    async (code: string) => {
+      await confirmLoginTwoFactor({ code });
+      notifications.success("Добро пожаловать обратно!");
+      onNavigate("/public");
+    },
+    [confirmLoginTwoFactor, notifications, onNavigate],
   );
 
   const handleRegister = useCallback(
@@ -398,10 +426,6 @@ function AppWorkspace() {
       try {
         await updateProfile(fields);
         notifications.success("Профиль обновлен");
-        const nextPublicRef = (auth.user?.publicRef || "").trim() || null;
-        if (nextPublicRef) {
-          onNavigate(buildUserProfilePath(nextPublicRef));
-        }
         return { ok: true };
       } catch (err) {
         debugLog("Profile update failed", err);
@@ -484,23 +508,29 @@ function AppWorkspace() {
 
   return (
     <WsAuthProvider token={auth.wsAuthToken}>
-      <ChatRealtimeProvider ready={realtimeProvidersReady}>
-        <PresenceProvider user={auth.user} ready={realtimeProvidersReady}>
-          <DirectInboxProvider user={auth.user} ready={realtimeProvidersReady}>
-            {isAuthRoute ? (
-              <div className={appStyles.authPage}>{routesElement}</div>
-            ) : (
-              <AppShell
-                user={auth.user}
-                onNavigate={onNavigate}
-                onLogout={handleLogout}
-              >
-                {routesElement}
-              </AppShell>
-            )}
-          </DirectInboxProvider>
-        </PresenceProvider>
-      </ChatRealtimeProvider>
+      <RoomReadStateProvider>
+        <ChatRealtimeProvider ready={realtimeProvidersReady}>
+          <PresenceProvider user={auth.user} ready={realtimeProvidersReady}>
+            <DirectInboxProvider
+              user={auth.user}
+              ready={realtimeProvidersReady}
+            >
+              {isAuthRoute ? (
+                <div className={appStyles.authPage}>{routesElement}</div>
+              ) : (
+                <AppShell user={auth.user} onNavigate={onNavigate}>
+                  {routesElement}
+                </AppShell>
+              )}
+              <LoginTwoFactorModal
+                open={loginTwoFactorOpen}
+                onClose={() => setLoginTwoFactorOpen(false)}
+                onConfirm={handleConfirmLoginTwoFactor}
+              />
+            </DirectInboxProvider>
+          </PresenceProvider>
+        </ChatRealtimeProvider>
+      </RoomReadStateProvider>
     </WsAuthProvider>
   );
 }

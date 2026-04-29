@@ -1,4 +1,10 @@
-﻿import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+﻿import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,11 +123,7 @@ function ShellHarness() {
   const location = useLocation();
 
   return (
-    <AppShell
-      user={user}
-      onNavigate={(path) => navigate(path)}
-      onLogout={vi.fn()}
-    >
+    <AppShell user={user} onNavigate={(path) => navigate(path)}>
       <div data-testid="route-value">{location.pathname}</div>
     </AppShell>
   );
@@ -186,7 +188,9 @@ describe("AppShell mobile navigation", () => {
     );
 
     expect(screen.getByTestId("app-shell-mobile-back")).toBeInTheDocument();
-    expect(screen.getByTestId("app-shell-sidebar-backdrop")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("app-shell-sidebar-backdrop"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("app-shell-sidebar-pane")).toHaveAttribute(
       "data-mobile-drawer-open",
       "false",
@@ -210,4 +214,3 @@ describe("AppShell mobile navigation", () => {
     );
   });
 });
-
