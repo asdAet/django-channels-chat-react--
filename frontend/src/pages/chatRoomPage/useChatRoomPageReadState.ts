@@ -10,8 +10,9 @@ import {
 import { chatController } from "../../controllers/ChatController";
 import { useReadTracker } from "../../shared/chat/readTracker";
 import {
-  setUnreadOverride,
-} from "../../shared/unreadOverrides/store";
+  useRoomReadController,
+  useRoomReadState,
+} from "../../shared/roomReadState";
 import type {
   UseChatRoomPageReadStateOptions,
   UseChatRoomPageReadStateResult,
@@ -104,6 +105,14 @@ export function useChatRoomPageReadState({
   >(null);
   const [showScrollFab, setShowScrollFab] = useState(false);
   const [newMsgCount, setNewMsgCount] = useState(0);
+  const {
+    initializeRoom,
+    applyLocalRead: applyRoomLocalRead,
+    setRoomDivider,
+    setPendingMarkRead,
+    acknowledgeServerRead,
+  } = useRoomReadController();
+  const roomReadState = useRoomReadState(roomIdForRequests);
 
   const beginProgrammaticScroll = useCallback(() => {
     isProgrammaticScrollRef.current = true;
@@ -128,15 +137,17 @@ export function useChatRoomPageReadState({
     [],
   );
 
-  const updateUnreadDividerAnchor =
-    useCallback<UseChatRoomPageReadStateResult["updateUnreadDividerAnchor"]>(
+  const updateUnreadDividerAnchor = useCallback<
+    UseChatRoomPageReadStateResult["updateUnreadDividerAnchor"]
+  >(
     (nextAnchorId) => {
       unreadDividerAnchorRef.current = nextAnchorId;
       setUnreadDividerAnchorId((prev) =>
         prev === nextAnchorId ? prev : nextAnchorId,
       );
+      setRoomDivider(roomIdForRequests, nextAnchorId);
     },
-    [],
+    [roomIdForRequests, setRoomDivider],
   );
 
   const persistPendingRead = useCallback(
@@ -152,9 +163,10 @@ export function useChatRoomPageReadState({
 
       pendingReadFlushRef.current = normalized;
       setPendingReadFloor(normalized);
+      setPendingMarkRead(roomIdForRequests, normalized);
       writePendingReadToStorage(roomId, normalized);
     },
-    [roomId],
+    [roomId, roomIdForRequests, setPendingMarkRead],
   );
 
   const clearPendingRead = useCallback(
@@ -166,9 +178,11 @@ export function useChatRoomPageReadState({
 
       pendingReadFlushRef.current = 0;
       setPendingReadFloor(0);
+      setPendingMarkRead(roomIdForRequests, null);
+      acknowledgeServerRead(roomIdForRequests, normalized);
       clearPendingReadFromStorage(roomId);
     },
-    [roomId],
+    [acknowledgeServerRead, roomId, roomIdForRequests, setPendingMarkRead],
   );
 
   const readStateEnabled = Boolean(user);
@@ -191,17 +205,36 @@ export function useChatRoomPageReadState({
   });
 
   const localLastReadMessageId = readStateEnabled
-    ? trackedLocalLastReadMessageId
+    ? Math.max(
+        trackedLocalLastReadMessageId,
+        roomReadState?.localLastReadMessageId ?? 0,
+      )
     : 0;
   const firstUnreadMessageId = readStateEnabled
-    ? trackedFirstUnreadMessageId
+    ? roomReadState?.initialized
+      ? roomReadState.firstUnreadMessageId
+      : trackedFirstUnreadMessageId
     : null;
-  const localUnreadCount = readStateEnabled ? trackedLocalUnreadCount : 0;
+  const localUnreadCount = readStateEnabled
+    ? roomReadState?.initialized
+      ? roomReadState.unreadCount
+      : trackedLocalUnreadCount
+    : 0;
+  const loadedUnreadCount = readStateEnabled
+    ? roomReadState?.initialized
+      ? roomReadState.loadedUnreadCount
+      : trackedLocalUnreadCount
+    : 0;
   const roomDataReady =
     !loading &&
     ((details?.roomId !== undefined &&
       String(details.roomId) === roomIdForRequests) ||
       Boolean(error));
+  const initialUnreadHistoryPending =
+    readStateEnabled &&
+    roomDataReady &&
+    localUnreadCount > loadedUnreadCount &&
+    hasMore;
   const shouldStartUnreadEntryFromBottom = useMemo(() => {
     if (!readStateEnabled || localUnreadCount < 1 || !firstUnreadMessageId) {
       return false;
@@ -439,7 +472,10 @@ export function useChatRoomPageReadState({
       markReadTimerRef.current = window.setTimeout(() => {
         markReadTimerRef.current = null;
         sendMarkReadIfNeeded(lastReadMessageId);
-        if (resolvedRoomId !== null && isDirectRoomFullyRead(lastReadMessageId)) {
+        if (
+          resolvedRoomId !== null &&
+          isDirectRoomFullyRead(lastReadMessageId)
+        ) {
           markDirectRoomRead(resolvedRoomId);
         }
       }, MARK_READ_DEBOUNCE_MS);
@@ -531,12 +567,31 @@ export function useChatRoomPageReadState({
           ? (messagesRef.current[messagesRef.current.length - 1]?.id ?? 0)
           : 0;
       if (nextLastRead > 0 && nextLastRead <= latestVisibleMessageId) {
+        applyRoomLocalRead({
+          roomId: roomIdForRequests,
+          lastReadMessageId: nextLastRead,
+          messages: messagesRef.current,
+          currentActorRef,
+        });
         sendMarkReadIfNeeded(nextLastRead);
+        if (resolvedRoomId !== null && isDirectRoomFullyRead(nextLastRead)) {
+          markDirectRoomRead(resolvedRoomId);
+        }
       }
 
       return nextLastRead;
     },
-    [applyViewportRead, persistPendingRead, sendMarkReadIfNeeded],
+    [
+      applyRoomLocalRead,
+      applyViewportRead,
+      currentActorRef,
+      isDirectRoomFullyRead,
+      markDirectRoomRead,
+      persistPendingRead,
+      resolvedRoomId,
+      roomIdForRequests,
+      sendMarkReadIfNeeded,
+    ],
   );
 
   const scheduleViewportReadSync = useCallback(() => {
@@ -615,14 +670,88 @@ export function useChatRoomPageReadState({
   }, [details?.kind, resolvedRoomId, setActiveRoom, user]);
 
   useEffect(() => {
-    setUnreadOverride({
+    if (!readStateEnabled || !roomDataReady) {
+      return;
+    }
+
+    initializeRoom({
       roomId: roomIdForRequests,
-      unreadCount: localUnreadCount,
+      serverLastReadMessageId: normalizeReadMessageId(
+        details?.lastReadMessageId,
+      ),
+      pendingMarkReadMessageId: pendingReadFlushRef.current,
+      messages,
+      currentActorRef,
     });
-  }, [localUnreadCount, roomIdForRequests]);
+  }, [
+    currentActorRef,
+    details?.lastReadMessageId,
+    initializeRoom,
+    messages,
+    readStateEnabled,
+    roomDataReady,
+    roomReadState?.lastAuthoritativeVersion,
+    roomIdForRequests,
+  ]);
+
+  useEffect(() => {
+    if (!readStateEnabled || !roomDataReady || localLastReadMessageId < 1) {
+      return;
+    }
+
+    applyRoomLocalRead({
+      roomId: roomIdForRequests,
+      lastReadMessageId: localLastReadMessageId,
+      messages,
+      currentActorRef,
+    });
+  }, [
+    applyRoomLocalRead,
+    currentActorRef,
+    localLastReadMessageId,
+    messages,
+    readStateEnabled,
+    roomDataReady,
+    roomIdForRequests,
+  ]);
+
+  useEffect(() => {
+    if (!readStateEnabled || !roomDataReady || localUnreadCount > 0) {
+      return;
+    }
+
+    if (unreadDividerAnchorRef.current !== null) {
+      updateUnreadDividerAnchor(null);
+    }
+  }, [
+    localUnreadCount,
+    readStateEnabled,
+    roomDataReady,
+    updateUnreadDividerAnchor,
+  ]);
+
+  useEffect(() => {
+    if (!initialUnreadHistoryPending) {
+      return;
+    }
+    if (initialPositioningPhaseRef.current !== "pending") {
+      return;
+    }
+    if (initialPositioningTargetRef.current !== null) {
+      return;
+    }
+    if (loadingMore || loading) {
+      return;
+    }
+
+    void loadMore();
+  }, [initialUnreadHistoryPending, loadMore, loading, loadingMore]);
 
   useEffect(() => {
     if (!roomDataReady) {
+      return;
+    }
+    if (initialUnreadHistoryPending) {
       return;
     }
     if (initialPositioningPhaseRef.current !== "pending") {
@@ -643,6 +772,7 @@ export function useChatRoomPageReadState({
     initialPositioningTargetRef.current = "bottom";
   }, [
     firstUnreadMessageId,
+    initialUnreadHistoryPending,
     localUnreadCount,
     roomDataReady,
     shouldStartUnreadEntryFromBottom,
@@ -902,11 +1032,7 @@ export function useChatRoomPageReadState({
         }, 120);
       });
     });
-  }, [
-    applyViewportReadNow,
-    beginProgrammaticScroll,
-    endProgrammaticScroll,
-  ]);
+  }, [applyViewportReadNow, beginProgrammaticScroll, endProgrammaticScroll]);
 
   useEffect(() => {
     const previousSnapshot = lastMessageSnapshotRef.current;
@@ -966,21 +1092,22 @@ export function useChatRoomPageReadState({
     messages,
   ]);
 
-  const handleIncomingForeignMessage =
-    useCallback<UseChatRoomPageReadStateResult["handleIncomingForeignMessage"]>(
-      (messageId) => {
-        if (isAtBottomRef.current) {
-          pendingBottomStickyReadRef.current = true;
-          return;
-        }
+  const handleIncomingForeignMessage = useCallback<
+    UseChatRoomPageReadStateResult["handleIncomingForeignMessage"]
+  >(
+    (messageId) => {
+      if (isAtBottomRef.current) {
+        pendingBottomStickyReadRef.current = true;
+        return;
+      }
 
-        setNewMsgCount((count) => count + 1);
-        if (readStateEnabled && unreadDividerAnchorRef.current === null) {
-          updateUnreadDividerAnchor(messageId);
-        }
-      },
-      [readStateEnabled, updateUnreadDividerAnchor],
-    );
+      setNewMsgCount((count) => count + 1);
+      if (readStateEnabled && unreadDividerAnchorRef.current === null) {
+        updateUnreadDividerAnchor(messageId);
+      }
+    },
+    [readStateEnabled, updateUnreadDividerAnchor],
+  );
 
   return {
     listRef,

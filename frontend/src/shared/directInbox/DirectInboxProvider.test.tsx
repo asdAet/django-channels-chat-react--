@@ -7,6 +7,8 @@ import {
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Message } from "../../entities/message/types";
+
 const wsMock = vi.hoisted(() => ({
   status: "online" as
     | "online"
@@ -61,9 +63,9 @@ vi.mock("../../hooks/useReconnectingWebSocket", () => ({
 }));
 
 import {
-  resetUnreadOverrides,
-  setUnreadOverride,
-} from "../unreadOverrides/store";
+  RoomReadStateProvider,
+  useRoomReadController,
+} from "../roomReadState";
 import { WsAuthProvider } from "../wsAuth";
 import { DirectInboxProvider } from "./DirectInboxProvider";
 import { useDirectInbox } from "./useDirectInbox";
@@ -78,11 +80,29 @@ const user = {
   registeredAt: null,
 };
 
+const buildForeignMessages = (ids: number[]): Message[] =>
+  ids.map((id) => ({
+    id,
+    publicRef: "alice",
+    username: "alice",
+    displayName: "Alice",
+    content: `message ${id}`,
+    profilePic: null,
+    avatarCrop: null,
+    createdAt: `2026-02-13T10:00:${String(id).padStart(2, "0")}Z`,
+    editedAt: null,
+    isDeleted: false,
+    replyTo: null,
+    attachments: [],
+    reactions: [],
+  }));
+
 /**
  * Проверяет состояние провайдера в тестовом окружении.
  */
 function Probe() {
   const inbox = useDirectInbox();
+  const roomRead = useRoomReadController();
 
   return (
     <div>
@@ -97,7 +117,86 @@ function Probe() {
       </p>
       <button onClick={() => inbox.setActiveRoom("1")}>set-active</button>
       <button onClick={() => inbox.markRead("1")}>mark-read</button>
+      <button
+        onClick={() =>
+          roomRead.initializeRoom({
+            roomId: 1,
+            serverLastReadMessageId: 1,
+            messages: buildForeignMessages([2, 3, 4, 5]),
+            currentActorRef: "demo",
+          })
+        }
+      >
+        set-local-unread-4
+      </button>
+      <button
+        onClick={() => {
+          const messages = buildForeignMessages([2, 3, 4, 5, 6, 7, 8]);
+          roomRead.initializeRoom({
+            roomId: 1,
+            serverLastReadMessageId: 1,
+            messages,
+            currentActorRef: "demo",
+          });
+          roomRead.applyLocalRead({
+            roomId: 1,
+            lastReadMessageId: 5,
+            messages,
+            currentActorRef: "demo",
+          });
+        }}
+      >
+        set-local-unread-3-from-7
+      </button>
+      <button
+        onClick={() => {
+          const messages = buildForeignMessages([2, 3, 4, 5, 6, 7]);
+          roomRead.initializeRoom({
+            roomId: 1,
+            serverLastReadMessageId: 1,
+            messages,
+            currentActorRef: "demo",
+          });
+          roomRead.applyLocalRead({
+            roomId: 1,
+            lastReadMessageId: 5,
+            messages,
+            currentActorRef: "demo",
+          });
+        }}
+      >
+        set-local-unread-2-from-6
+      </button>
+      <button
+        onClick={() => {
+          const messages = buildForeignMessages([2, 3]);
+          roomRead.initializeRoom({
+            roomId: 1,
+            serverLastReadMessageId: 1,
+            messages,
+            currentActorRef: "demo",
+          });
+          roomRead.applyLocalRead({
+            roomId: 1,
+            lastReadMessageId: 3,
+            messages,
+            currentActorRef: "demo",
+          });
+        }}
+      >
+        set-local-read-zero
+      </button>
     </div>
+  );
+}
+
+function InboxWithRoomReadState() {
+  return (
+    <RoomReadStateProvider>
+      <DirectInboxProvider user={user}>
+        <Probe />
+      </DirectInboxProvider>
+    </RoomReadStateProvider>
   );
 }
 
@@ -130,7 +229,6 @@ describe("DirectInboxProvider", () => {
     wsMock.send.mockReset().mockReturnValue(true);
     wsMock.options = null;
     chatMock.getDirectChats.mockReset().mockResolvedValue({ items: [] });
-    resetUnreadOverrides();
   });
 
   /**
@@ -507,7 +605,7 @@ describe("DirectInboxProvider", () => {
     expect(wsMock.options?.url).toContain("wst=auth-token");
   });
 
-  it("applies local unread override for active direct chat to counts and dialogs", async () => {
+  it("uses local read progress on top of existing direct inbox count", async () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
@@ -519,52 +617,7 @@ describe("DirectInboxProvider", () => {
       ],
     });
 
-    render(
-      <DirectInboxProvider user={user}>
-        <Probe />
-      </DirectInboxProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("items-order").textContent).toBe("1");
-    });
-
-    act(() => {
-      wsMock.options?.onMessage?.(
-        new MessageEvent("message", {
-          data: JSON.stringify({
-            type: "direct_unread_state",
-            unread: { dialogs: 0, roomIds: [], counts: {} },
-          }),
-        }),
-      );
-    });
-
-    act(() => {
-      setUnreadOverride({ roomId: "1", unreadCount: 4 });
-    });
-
-    expect(screen.getByTestId("unread-count").textContent).toBe("1");
-    expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":4}');
-  });
-
-  it("applies local unread override on top of existing direct inbox count", async () => {
-    chatMock.getDirectChats.mockResolvedValue({
-      items: [
-        {
-          roomId: 1,
-          peer: { publicRef: "alice", username: "alice", profileImage: null },
-          lastMessage: "hello",
-          lastMessageAt: "2026-02-13T10:00:00Z",
-        },
-      ],
-    });
-
-    render(
-      <DirectInboxProvider user={user}>
-        <Probe />
-      </DirectInboxProvider>,
-    );
+    render(<InboxWithRoomReadState />);
 
     await waitFor(() => {
       expect(screen.getByTestId("items-order").textContent).toBe("1");
@@ -581,9 +634,9 @@ describe("DirectInboxProvider", () => {
       );
     });
 
-    act(() => {
-      setUnreadOverride({ roomId: "1", unreadCount: 3 });
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "set-local-unread-3-from-7" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("unread-count").textContent).toBe("1");
@@ -591,7 +644,7 @@ describe("DirectInboxProvider", () => {
     });
   });
 
-  it("keeps local lower unread override while websocket snapshot is stale", async () => {
+  it("keeps lower local read progress while websocket snapshot is stale", async () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
@@ -603,11 +656,7 @@ describe("DirectInboxProvider", () => {
       ],
     });
 
-    render(
-      <DirectInboxProvider user={user}>
-        <Probe />
-      </DirectInboxProvider>,
-    );
+    render(<InboxWithRoomReadState />);
 
     await waitFor(() => {
       expect(screen.getByTestId("items-order").textContent).toBe("1");
@@ -624,9 +673,9 @@ describe("DirectInboxProvider", () => {
       );
     });
 
-    act(() => {
-      setUnreadOverride({ roomId: "1", unreadCount: 2 });
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "set-local-unread-2-from-6" }),
+    );
 
     act(() => {
       wsMock.options?.onMessage?.(
@@ -645,7 +694,7 @@ describe("DirectInboxProvider", () => {
     });
   });
 
-  it("drops local override after websocket catches up to the same unread count", async () => {
+  it("keeps centralized count after websocket catches up to the same unread count", async () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
@@ -657,19 +706,15 @@ describe("DirectInboxProvider", () => {
       ],
     });
 
-    render(
-      <DirectInboxProvider user={user}>
-        <Probe />
-      </DirectInboxProvider>,
-    );
+    render(<InboxWithRoomReadState />);
 
     await waitFor(() => {
       expect(screen.getByTestId("items-order").textContent).toBe("1");
     });
 
-    act(() => {
-      setUnreadOverride({ roomId: "1", unreadCount: 2 });
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "set-local-unread-2-from-6" }),
+    );
 
     expect(screen.getByTestId("unread-counts").textContent).toBe('{"1":2}');
 
@@ -690,7 +735,7 @@ describe("DirectInboxProvider", () => {
     });
   });
 
-  it("keeps local zero override while websocket still reports stale unread", async () => {
+  it("keeps local fully-read state while websocket still reports stale unread", async () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
@@ -702,19 +747,15 @@ describe("DirectInboxProvider", () => {
       ],
     });
 
-    render(
-      <DirectInboxProvider user={user}>
-        <Probe />
-      </DirectInboxProvider>,
-    );
+    render(<InboxWithRoomReadState />);
 
     await waitFor(() => {
       expect(screen.getByTestId("items-order").textContent).toBe("1");
     });
 
-    act(() => {
-      setUnreadOverride({ roomId: "1", unreadCount: 0 });
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "set-local-read-zero" }),
+    );
 
     expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
 
@@ -735,7 +776,7 @@ describe("DirectInboxProvider", () => {
     });
   });
 
-  it("drops local zero override after websocket confirms full read", async () => {
+  it("keeps zero unread after websocket confirms full read", async () => {
     chatMock.getDirectChats.mockResolvedValue({
       items: [
         {
@@ -747,19 +788,15 @@ describe("DirectInboxProvider", () => {
       ],
     });
 
-    render(
-      <DirectInboxProvider user={user}>
-        <Probe />
-      </DirectInboxProvider>,
-    );
+    render(<InboxWithRoomReadState />);
 
     await waitFor(() => {
       expect(screen.getByTestId("items-order").textContent).toBe("1");
     });
 
-    act(() => {
-      setUnreadOverride({ roomId: "1", unreadCount: 0 });
-    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "set-local-read-zero" }),
+    );
 
     expect(screen.getByTestId("unread-counts").textContent).toBe("{}");
 

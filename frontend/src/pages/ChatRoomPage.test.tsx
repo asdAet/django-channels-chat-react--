@@ -485,6 +485,19 @@ describe("ChatRoomPage", () => {
     expect(screen.queryByLabelText("Сообщение")).toBeNull();
   });
 
+  it("renders the public chat avatar icon in the chat header", () => {
+    render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("chat-header-public-icon")).toBeInTheDocument();
+  });
+
   it("binds realtime to the resolved numeric room id", () => {
     chatRoomMock.details = {
       roomId: 7,
@@ -695,6 +708,76 @@ describe("ChatRoomPage", () => {
     expect(payload).toBeTruthy();
     expect(payload.message).toBe("Hello from test");
     expect(payload.username).toBe("demo");
+    expect(payload.clientMessageId).toEqual(expect.any(String));
+    expect(chatRoomMock.messages).toEqual([
+      expect.objectContaining({
+        id: -1,
+        clientMessageId: payload.clientMessageId,
+        deliveryStatus: "pending",
+        content: "Hello from test",
+        publicRef: "demo",
+      }),
+    ]);
+  });
+
+  it("replaces optimistic own message with the server websocket echo", () => {
+    const { rerender } = render(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    setComposerText("fast path");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Отправить сообщение" }),
+    );
+
+    const outbound = JSON.parse(wsState.send.mock.calls.at(-1)?.[0] ?? "{}");
+    expect(chatRoomMock.messages[0]).toEqual(
+      expect.objectContaining({
+        id: -1,
+        clientMessageId: outbound.clientMessageId,
+        deliveryStatus: "pending",
+      }),
+    );
+
+    act(() => {
+      wsState.options?.onMessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            id: 51,
+            message: "fast path",
+            publicRef: "demo",
+            username: "demo",
+            roomId: 1,
+            clientMessageId: outbound.clientMessageId,
+            createdAt: "2026-02-13T12:03:00.000Z",
+            attachments: [],
+          }),
+        }),
+      );
+    });
+
+    rerender(
+      <ChatRoomPage
+        roomId="1"
+        initialRoomKind="public"
+        user={user}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    expect(chatRoomMock.messages).toEqual([
+      expect.objectContaining({
+        id: 51,
+        clientMessageId: outbound.clientMessageId,
+        deliveryStatus: undefined,
+        content: "fast path",
+      }),
+    ]);
   });
 
   it("inserts selected custom emoji into the rich message input", () => {
@@ -853,7 +936,7 @@ describe("ChatRoomPage", () => {
     ).toBeDisabled();
   });
 
-  it("activates local rate limit cooldown from ws error event", () => {
+  it("keeps composer available after rate limit ws error event", () => {
     render(
       <ChatRoomPage
         roomId="1"
@@ -878,7 +961,7 @@ describe("ChatRoomPage", () => {
 
     expect(
       screen.getByRole("button", { name: "Отправить сообщение" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
   });
 
   it("shows online status for direct peer", () => {
@@ -1907,9 +1990,8 @@ describe("ChatRoomPage", () => {
     });
 
     divider = chatLog.querySelector<HTMLElement>("[data-unread-divider]");
-    expect(divider).not.toBeNull();
-    expect(divider?.dataset.unreadAnchorId).toBe("1");
-    expect(directInboxMock.markRead).not.toHaveBeenCalled();
+    expect(divider).toBeNull();
+    expect(directInboxMock.markRead).toHaveBeenCalledWith(2);
   });
 
   it("hides unread divider when current user sends a message", async () => {

@@ -9,12 +9,7 @@ import { useReconnectingWebSocket } from "../../hooks/useReconnectingWebSocket";
 import { invalidateDirectChats } from "../cache/cacheManager";
 import { debugLog } from "../lib/debug";
 import { appendWebSocketAuthToken, getWebSocketBase } from "../lib/ws";
-import {
-  clearUnreadOverride,
-  clearUnreadOverridesForRooms,
-  collectSettledUnreadOverrideRoomIds,
-  useUnreadOverrides,
-} from "../unreadOverrides/store";
+import { useRoomReadController } from "../roomReadState";
 import { useWsAuthToken } from "../wsAuth/useWsAuthToken";
 import { DirectInboxContext } from "./context";
 
@@ -24,6 +19,17 @@ type ProviderProps = {
   user: UserProfile | null;
   ready?: boolean;
   children: ReactNode;
+};
+
+type DirectUnreadState = {
+  dialogs: number;
+  roomIds: string[];
+  counts: Record<string, number>;
+};
+
+type ApplyUnreadStateOptions = {
+  ackRoomId?: number | null;
+  item?: DirectChatListItemDto | null;
 };
 
 const mergeItem = (
@@ -80,13 +86,30 @@ export function DirectInboxProvider({
   const [roomUnreadCounts, setRoomUnreadCounts] = useState<
     Record<string, number>
   >({});
-  const unreadOverrides = useUnreadOverrides();
+  const {
+    applyServerUnreadSnapshot,
+    getRoomUnreadCount,
+    markRoomFullyRead,
+    resetRooms,
+  } = useRoomReadController();
 
   const activeRoomRef = useRef<string | number | null>(null);
+  const pendingMarkReadAtRef = useRef<Record<string, number>>({});
+  const latestDirectUnreadStateRef = useRef<DirectUnreadState | null>(null);
   const knownDirectRoomIds = useMemo(
     () => items.map((item) => String(item.roomId)),
     [items],
   );
+  const directLastMessageTimestamps = useMemo(() => {
+    const timestamps: Record<string, number> = {};
+    for (const item of items) {
+      const timestamp = Date.parse(item.lastMessageAt);
+      if (Number.isFinite(timestamp)) {
+        timestamps[String(item.roomId)] = timestamp;
+      }
+    }
+    return timestamps;
+  }, [items]);
 
   const wsUrl = useMemo(() => {
     if (!ready || !user) return null;
@@ -97,24 +120,69 @@ export function DirectInboxProvider({
   }, [authWsToken, ready, user]);
 
   const applyUnreadState = useCallback(
-    (next: {
-      dialogs: number;
-      roomIds: string[];
-      counts: Record<string, number>;
-    }) => {
-      const settledOverrideRoomIds = collectSettledUnreadOverrideRoomIds({
-        authoritativeRoomIds: new Set([
-          ...knownDirectRoomIds,
-          ...Object.keys(next.counts),
-        ]),
-        authoritativeCounts: next.counts,
-      });
+    (next: DirectUnreadState, options: ApplyUnreadStateOptions = {}) => {
+      latestDirectUnreadStateRef.current = next;
 
-      setUnreadRoomIds(next.roomIds);
-      setUnreadCounts(next.counts);
-      clearUnreadOverridesForRooms(settledOverrideRoomIds);
+      const pendingReads = pendingMarkReadAtRef.current;
+      const nextCounts = { ...next.counts };
+      const itemRoomKey =
+        options.item?.roomId && Number.isFinite(options.item.roomId)
+          ? String(Math.trunc(options.item.roomId))
+          : "";
+      const itemTimestamp = options.item?.lastMessageAt
+        ? Date.parse(options.item.lastMessageAt)
+        : Number.NaN;
+      const ackRoomKey = options.ackRoomId ? String(options.ackRoomId) : "";
+
+      if (ackRoomKey) {
+        delete pendingReads[ackRoomKey];
+      }
+
+      for (const [roomKey, markedAt] of Object.entries(pendingReads)) {
+        const latestKnownItemTimestamp =
+          roomKey === itemRoomKey && Number.isFinite(itemTimestamp)
+            ? itemTimestamp
+            : directLastMessageTimestamps[roomKey];
+        const hasFreshIncomingItem =
+          Number.isFinite(latestKnownItemTimestamp) &&
+          latestKnownItemTimestamp > markedAt;
+
+        if (hasFreshIncomingItem) {
+          delete pendingReads[roomKey];
+          continue;
+        }
+
+        if (!(roomKey in nextCounts)) {
+          delete pendingReads[roomKey];
+          continue;
+        }
+
+        delete nextCounts[roomKey];
+      }
+
+      const roomIds = Object.keys(nextCounts);
+      const sanitizedUnread = {
+        dialogs: roomIds.length,
+        roomIds,
+        counts: nextCounts,
+      };
+      const authoritativeRoomIds = new Set([
+        ...knownDirectRoomIds,
+        ...Object.keys(next.counts),
+        ...Object.keys(pendingReads),
+      ]);
+
+      setUnreadRoomIds(sanitizedUnread.roomIds);
+      setUnreadCounts(sanitizedUnread.counts);
+      applyServerUnreadSnapshot(sanitizedUnread.counts, {
+        roomIds: authoritativeRoomIds,
+      });
     },
-    [knownDirectRoomIds],
+    [
+      applyServerUnreadSnapshot,
+      directLastMessageTimestamps,
+      knownDirectRoomIds,
+    ],
   );
 
   const refresh = useCallback(async () => {
@@ -149,15 +217,16 @@ export function DirectInboxProvider({
           }
           invalidateDirectChats();
           if (decoded.unread) {
-            applyUnreadState(decoded.unread);
+            applyUnreadState(decoded.unread, { item: incomingItem ?? null });
           }
           break;
         }
         case "direct_mark_read_ack":
-          applyUnreadState(decoded.unread);
+          applyUnreadState(decoded.unread, { ackRoomId: decoded.roomId });
           break;
         case "room_unread_state":
           setRoomUnreadCounts(decoded.unread.counts);
+          applyServerUnreadSnapshot(decoded.unread.counts);
           break;
         case "error":
           if (decoded.code === "forbidden") {
@@ -168,7 +237,7 @@ export function DirectInboxProvider({
           break;
       }
     },
-    [applyUnreadState],
+    [applyServerUnreadSnapshot, applyUnreadState],
   );
 
   const { status, lastError, send } = useReconnectingWebSocket({
@@ -193,7 +262,8 @@ export function DirectInboxProvider({
       const roomId = parseRoomIdRef(roomRef);
       if (!roomId) return;
       const roomKey = String(roomId);
-      clearUnreadOverride(roomKey);
+      pendingMarkReadAtRef.current[roomKey] = Date.now();
+      markRoomFullyRead(roomKey);
 
       setUnreadRoomIds((prev) => prev.filter((item) => item !== roomKey));
       setUnreadCounts((prev) => {
@@ -206,31 +276,32 @@ export function DirectInboxProvider({
       if (status !== "online") return;
       send(JSON.stringify({ type: "mark_read", roomId }));
     },
-    [send, status],
+    [markRoomFullyRead, send, status],
   );
 
-  const unreadCountsWithOverrides = useMemo(() => {
-    const knownDirectRoomIds = new Set(items.map((item) => String(item.roomId)));
-    const nextCounts = { ...unreadCounts };
+  const unreadCountsWithReadState = useMemo(() => {
+    const nextCounts: Record<string, number> = {};
 
-    for (const [roomId, overrideCount] of Object.entries(unreadOverrides)) {
-      if (!knownDirectRoomIds.has(roomId)) continue;
-      if (overrideCount > 0) {
-        nextCounts[roomId] = overrideCount;
-      } else {
-        delete nextCounts[roomId];
+    for (const item of items) {
+      const roomKey = String(item.roomId);
+      const count = getRoomUnreadCount(
+        item.roomId,
+        unreadCounts[roomKey] ?? roomUnreadCounts[roomKey],
+      );
+      if (count > 0) {
+        nextCounts[roomKey] = count;
       }
     }
 
     return nextCounts;
-  }, [items, unreadCounts, unreadOverrides]);
+  }, [getRoomUnreadCount, items, roomUnreadCounts, unreadCounts]);
 
   const unreadRoomIdsWithOverrides = useMemo(
     () =>
-      Object.keys(unreadCountsWithOverrides).filter(
-        (roomId) => unreadCountsWithOverrides[roomId] > 0,
+      Object.keys(unreadCountsWithReadState).filter(
+        (roomId) => unreadCountsWithReadState[roomId] > 0,
       ),
-    [unreadCountsWithOverrides],
+    [unreadCountsWithReadState],
   );
 
   const unreadDialogsCountWithOverrides = unreadRoomIdsWithOverrides.length;
@@ -247,6 +318,9 @@ export function DirectInboxProvider({
         setRoomUnreadCounts({});
         setLoading(false);
         setError(null);
+        pendingMarkReadAtRef.current = {};
+        latestDirectUnreadStateRef.current = null;
+        resetRooms();
       });
       return () => {
         active = false;
@@ -258,7 +332,13 @@ export function DirectInboxProvider({
     return () => {
       active = false;
     };
-  }, [ready, user, refresh]);
+  }, [ready, resetRooms, user, refresh]);
+
+  useEffect(() => {
+    const latestDirectUnreadState = latestDirectUnreadStateRef.current;
+    if (!latestDirectUnreadState) return;
+    applyUnreadState(latestDirectUnreadState);
+  }, [applyUnreadState]);
 
   useEffect(() => {
     if (status !== "online") return;
@@ -292,7 +372,7 @@ export function DirectInboxProvider({
       error,
       status,
       unreadRoomIds: unreadRoomIdsWithOverrides,
-      unreadCounts: unreadCountsWithOverrides,
+      unreadCounts: unreadCountsWithReadState,
       unreadDialogsCount: unreadDialogsCountWithOverrides,
       roomUnreadCounts,
       setActiveRoom,
@@ -307,7 +387,7 @@ export function DirectInboxProvider({
       refresh,
       setActiveRoom,
       status,
-      unreadCountsWithOverrides,
+      unreadCountsWithReadState,
       unreadDialogsCountWithOverrides,
       unreadRoomIdsWithOverrides,
       roomUnreadCounts,

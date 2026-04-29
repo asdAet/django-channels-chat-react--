@@ -26,11 +26,7 @@ import { debugLog } from "../lib/debug";
 import { normalizePublicRef } from "../lib/publicRef";
 import { resolveIdentityLabel } from "../lib/userIdentity";
 import { usePresence } from "../presence";
-import {
-  clearUnreadOverridesForRooms,
-  collectSettledUnreadOverrideRoomIds,
-  useUnreadOverrides,
-} from "../unreadOverrides/store";
+import { useRoomReadController } from "../roomReadState";
 import { CONVERSATION_LIST_REFRESH_EVENT } from "./events";
 
 type FilterTab = "all" | "personal" | "groups";
@@ -119,7 +115,8 @@ export function ConversationListProvider({ user, ready, children }: Props) {
     unreadCounts,
     roomUnreadCounts,
   } = useDirectInbox();
-  const unreadOverrides = useUnreadOverrides();
+  const { applyServerUnreadSnapshot, getRoomUnreadCount } =
+    useRoomReadController();
   const { online: presenceOnline, status: presenceStatus } = usePresence();
   const [filter, setFilter] = useState<FilterTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -173,15 +170,12 @@ export function ConversationListProvider({ user, ready, children }: Props) {
       counts: Record<string, number>,
       authoritativeRoomIds: Iterable<string>,
     ) => {
-      const settledOverrideRoomIds = collectSettledUnreadOverrideRoomIds({
-        authoritativeRoomIds,
-        authoritativeCounts: counts,
-      });
-
       setRoomUnreads(counts);
-      clearUnreadOverridesForRooms(settledOverrideRoomIds);
+      applyServerUnreadSnapshot(counts, {
+        roomIds: authoritativeRoomIds,
+      });
     },
-    [],
+    [applyServerUnreadSnapshot],
   );
 
   const fetchData = useCallback(async () => {
@@ -241,12 +235,14 @@ export function ConversationListProvider({ user, ready, children }: Props) {
       if (!roomKey) {
         return typeof wsUnreadCount === "number" ? wsUnreadCount : 0;
       }
-      const overrideUnread = unreadOverrides[roomKey];
-      if (typeof overrideUnread === "number") return overrideUnread;
-      if (typeof wsUnreadCount === "number") return wsUnreadCount;
-      return roomUnreads[roomKey] ?? 0;
+      return getRoomUnreadCount(
+        roomKey,
+        typeof wsUnreadCount === "number"
+          ? wsUnreadCount
+          : (roomUnreads[roomKey] ?? 0),
+      );
     },
-    [roomUnreads, unreadOverrides],
+    [getRoomUnreadCount, roomUnreads],
   );
 
   useEffect(() => {
@@ -309,7 +305,8 @@ export function ConversationListProvider({ user, ready, children }: Props) {
       for (const dm of directItems) {
         const dmUnread = resolveUnreadCount(
           dm.roomId,
-          unreadCounts[String(dm.roomId)] ?? roomUnreadCounts[String(dm.roomId)],
+          unreadCounts[String(dm.roomId)] ??
+            roomUnreadCounts[String(dm.roomId)],
         );
         const peerRef = dm.peer.publicRef;
         conversations.push({
@@ -331,7 +328,8 @@ export function ConversationListProvider({ user, ready, children }: Props) {
 
     if (filter !== "personal") {
       for (const group of groupItems) {
-        if (conversations.some((item) => item.roomId === group.roomId)) continue;
+        if (conversations.some((item) => item.roomId === group.roomId))
+          continue;
         conversations.push({
           type: "group",
           roomId: group.roomId,

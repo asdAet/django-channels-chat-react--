@@ -55,6 +55,7 @@ const inboxItemEventSchema = z
 const markReadAckEventSchema = z
   .object({
     type: z.literal("direct_mark_read_ack"),
+    roomId: z.union([z.number(), z.string()]).optional(),
     unread: unreadSchema.optional(),
   })
   .passthrough();
@@ -157,6 +158,7 @@ export type DirectInboxWsEvent =
     }
   | {
       type: "direct_mark_read_ack";
+      roomId: number | null;
       unread: {
         dialogs: number;
         roomIds: string[];
@@ -205,8 +207,18 @@ export const decodeDirectInboxWsEvent = (raw: string): DirectInboxWsEvent => {
 
   const markReadAck = safeDecode(markReadAckEventSchema, payload);
   if (markReadAck) {
+    const parsedRoomId =
+      typeof markReadAck.roomId === "string"
+        ? Number(markReadAck.roomId)
+        : markReadAck.roomId;
     return {
       type: "direct_mark_read_ack",
+      roomId:
+        typeof parsedRoomId === "number" &&
+        Number.isFinite(parsedRoomId) &&
+        parsedRoomId > 0
+          ? Math.trunc(parsedRoomId)
+          : null,
       unread: normalizeUnread(markReadAck.unread),
     };
   }
