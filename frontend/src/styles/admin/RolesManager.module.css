@@ -7,20 +7,20 @@
   align-items: center;
   gap: 12px;
   padding: 0 20px 12px;
-  border-bottom: 1px solid var(--color-border, #2a2a2a);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .title {
   font-size: 15px;
   font-weight: 700;
-  color: var(--color-text, #e2e8f5);
+  color: var(--color-text);
   flex: 1;
 }
 
 .addBtn {
   background: none;
-  border: 1px solid var(--color-accent, #8ae6ff);
-  color: var(--color-accent, #8ae6ff);
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
   font-size: 12px;
   font-weight: 600;
   padding: 4px 12px;
@@ -29,7 +29,7 @@
 }
 
 .addBtn:hover {
-  background: rgba(47, 179, 163, 0.1);
+  background: var(--color-info-soft);
 }
 
 /* Role row */
@@ -42,7 +42,7 @@
 }
 
 .roleItem:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-surface-hover);
 }
 
 .roleColor {
@@ -55,14 +55,14 @@
 .roleName {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text, #e2e8f5);
+  color: var(--color-text);
   flex: 1;
 }
 
 .roleDefault {
   font-size: 10px;
-  color: var(--color-muted, #9eb0c7);
-  background: rgba(158, 176, 199, 0.15);
+  color: var(--color-muted);
+  background: var(--color-surface-active);
   border-radius: 4px;
   padding: 1px 6px;
 }
@@ -75,7 +75,7 @@
 .roleActionBtn {
   background: none;
   border: none;
-  color: var(--color-muted, #9eb0c7);
+  color: var(--color-muted);
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;
@@ -83,18 +83,18 @@
 }
 
 .roleActionBtn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--color-text, #e2e8f5);
+  background: var(--color-surface-hover);
+  color: var(--color-text);
 }
 
 .roleActionBtnDanger:hover {
-  color: #ff6b6b;
+  color: var(--color-danger);
 }
 
 /* Create role form */
 .createForm {
   padding: 12px 20px;
-  border-top: 1px solid var(--color-border, #2a2a2a);
+  border-top: 1px solid var(--color-border);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -103,16 +103,16 @@
 .createInput {
   flex: 1;
   padding: 6px 10px;
-  background: #1a1a1a;
-  border: 1px solid var(--color-border, #2a2a2a);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  color: var(--color-text, #e2e8f5);
+  color: var(--color-text);
   font-size: 13px;
   outline: none;
 }
 
 .createInput:focus {
-  border-color: var(--color-accent, #8ae6ff);
+  border-color: var(--color-accent);
 }
 
 .createColorInput {
@@ -126,9 +126,9 @@
 }
 
 .createSubmitBtn {
-  background: var(--color-accent, #8ae6ff);
+  background: var(--color-accent);
   border: none;
-  color: #181818;
+  color: var(--color-page-bg);
   font-size: 12px;
   font-weight: 600;
   padding: 6px 14px;
@@ -144,7 +144,7 @@
 .centered {
   padding: 24px 20px;
   text-align: center;
-  color: var(--color-muted, #9eb0c7);
+  color: var(--color-muted);
   font-size: 13px;
 }
 

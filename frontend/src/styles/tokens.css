@@ -1,64 +1,218 @@
-﻿:root {
-  /* ---- Telegram Web Dark Theme ---- */
+:root {
+  color-scheme: dark;
 
-  /* Primary */
-  --tg-primary: #2fb3a3;
-  --tg-primary-hover: #278f82;
-  --tg-primary-light: rgba(47, 179, 163, 0.15);
+  /* Palette source: graphite app surfaces inspired by the "top players" reference. */
+  --palette-black: #070808;
+  --palette-graphite-950: #0b0c0d;
+  --palette-graphite-900: #101112;
+  --palette-graphite-850: #141516;
+  --palette-graphite-800: #181a1b;
+  --palette-graphite-760: #1d1f20;
+  --palette-graphite-720: #222425;
+  --palette-graphite-680: #292b2c;
+  --palette-graphite-620: #333536;
+  --palette-graphite-560: #434647;
+  --palette-graphite-500: #56595a;
+  --palette-graphite-420: #727677;
+  --palette-graphite-340: #969a9b;
+  --palette-graphite-250: #c6c9ca;
+  --palette-graphite-160: #e4e6e7;
+  --palette-white: #f7f8f8;
 
-  /* Backgrounds */
-  --tg-bg-primary: #2b2d31;
-  --tg-bg-secondary: #181818;
-  --tg-bg-surface: #2b2b2b;
-  --tg-bg-sidebar: #181818;
-  --tg-bg-chat: #0e0e0e;
-  --tg-bg-input: #2b2b2b;
+  --palette-cyan: #9ecfd8;
+  --palette-cyan-strong: #c9f1f5;
+  --palette-green: #58cf8f;
+  --palette-red: #f05b61;
+  --palette-red-soft: #4a1518;
+  --palette-yellow: #d9b45f;
+  --palette-blue: #8aa3d8;
+  --palette-purple: #b39aff;
 
-  /* Message bubbles */
-  --tg-msg-out-bg: #5f50a7;
-  --tg-msg-in-bg: #212121;
-  --tg-msg-out-text: #ffffff;
-  --tg-msg-in-text: #ffffff;
-  /* Message replay */
-  --tg-msg-replay-bg: #5f50a731;
+  --color-message-own-bg: #242530;
+  --color-user-name-bg: #9bbad1;
 
-  /* Text */
-  --tg-text-primary: #ffffff;
-  --tg-text-secondary: #aaaaaa;
-  --tg-text-link: #2fb3a3;
+  --color-page-bg: var(--palette-black);
+  --color-app-bg: var(--palette-graphite-950);
+  --color-chat-bg: var(--palette-graphite-950);
+  --color-sidebar-bg: var(--palette-graphite-900);
+  --color-rail-bg: var(--palette-graphite-950);
+  --color-surface: var(--palette-graphite-900);
+  --color-surface-2: var(--palette-graphite-850);
+  --color-surface-elevated: var(--palette-graphite-800);
+  --color-surface-overlay: var(--palette-graphite-850);
+  --color-input-bg: var(--palette-graphite-760);
+  --color-input-bg-focus: var(--palette-graphite-720);
+  --color-surface-hover: color-mix(
+    in srgb,
+    var(--palette-white) 6%,
+    transparent
+  );
+  --color-surface-active: color-mix(
+    in srgb,
+    var(--palette-white) 10%,
+    transparent
+  );
+  --color-surface-selected: color-mix(
+    in srgb,
+    var(--palette-white) 13%,
+    transparent
+  );
 
-  /* Borders */
-  --tg-border: #303030;
+  --color-border-subtle: color-mix(
+    in srgb,
+    var(--palette-white) 6%,
+    transparent
+  );
+  --color-border: color-mix(in srgb, var(--palette-white) 10%, transparent);
+  --color-border-strong: color-mix(
+    in srgb,
+    var(--palette-white) 16%,
+    transparent
+  );
+  --color-border-danger: color-mix(
+    in srgb,
+    var(--palette-red) 54%,
+    transparent
+  );
+  --color-border-success: color-mix(
+    in srgb,
+    var(--palette-green) 42%,
+    transparent
+  );
+  --color-border-warning: color-mix(
+    in srgb,
+    var(--palette-yellow) 42%,
+    transparent
+  );
+  --color-border-info: color-mix(in srgb, var(--palette-cyan) 42%, transparent);
 
-  /* Status */
-  --tg-danger: #ff595a;
-  --tg-success: #5cc85e;
-  --tg-online: #5cc85e;
-  --tg-warning: #e5a64e;
+  --color-text-primary: var(--palette-white);
+  --color-text-secondary: var(--palette-graphite-250);
+  --color-text-muted: var(--palette-graphite-340);
+  --color-text-soft: var(--palette-graphite-420);
+  --color-text-inverse: var(--palette-black);
+  --color-text-link: var(--palette-cyan-strong);
 
-  /* Badges & accents */
-  --tg-unread-badge: #2fb3a3;
+  --color-primary: var(--palette-graphite-160);
+  --color-primary-hover: var(--palette-white);
+  --color-primary-soft: color-mix(
+    in srgb,
+    var(--palette-white) 12%,
+    transparent
+  );
+  --color-focus: var(--palette-cyan);
+  --color-focus-soft: color-mix(in srgb, var(--palette-cyan) 18%, transparent);
+  --color-success: var(--palette-green);
+  --color-success-soft: color-mix(
+    in srgb,
+    var(--palette-green) 16%,
+    transparent
+  );
+  --color-danger: var(--palette-red);
+  --color-danger-soft: color-mix(in srgb, var(--palette-red) 15%, transparent);
+  --color-warning: var(--palette-yellow);
+  --color-warning-soft: color-mix(
+    in srgb,
+    var(--palette-yellow) 14%,
+    transparent
+  );
+  --color-info: var(--palette-cyan);
+  --color-info-soft: color-mix(in srgb, var(--palette-cyan) 14%, transparent);
+  --color-unread: var(--palette-cyan);
+  --color-online: var(--palette-green);
 
-  /* Interactive */
-  --tg-hover: rgba(255, 255, 255, 0.05);
-  --tg-active: rgba(255, 255, 255, 0.08);
-  --tg-ripple: rgba(255, 255, 255, 0.08);
+  --color-message-in-bg: var(--palette-graphite-800);
+  --color-message-in-text: var(--color-text-primary);
+  --color-message-out-bg: var(--palette-graphite-680);
+  --color-message-out-text: var(--color-text-primary);
+  --color-message-reply-bg: color-mix(
+    in srgb,
+    var(--palette-white) 8%,
+    transparent
+  );
+  --color-attachment-bg: var(--palette-graphite-760);
+  --color-media-backdrop: color-mix(
+    in srgb,
+    var(--palette-black) 88%,
+    transparent
+  );
+  --color-qr-bg: var(--palette-white);
+  --color-qr-ink: var(--palette-black);
 
-  /* Shadows */
-  --tg-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --tg-shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-card: 0 18px 50px
+    color-mix(in srgb, var(--palette-black) 42%, transparent);
+  --shadow-panel: 0 10px 26px
+    color-mix(in srgb, var(--palette-black) 34%, transparent);
+  --shadow-modal: 0 24px 80px
+    color-mix(in srgb, var(--palette-black) 58%, transparent);
+  --shadow-focus: 0 0 0 3px var(--color-focus-soft);
+  --shadow-soft-ring: inset 0 1px 0
+    color-mix(in srgb, var(--palette-white) 7%, transparent);
+  --color-shadow-soft: color-mix(
+    in srgb,
+    var(--palette-black) 28%,
+    transparent
+  );
+  --color-shadow-medium: color-mix(
+    in srgb,
+    var(--palette-black) 40%,
+    transparent
+  );
+  --color-shadow-strong: color-mix(
+    in srgb,
+    var(--palette-black) 58%,
+    transparent
+  );
 
-  /* Radii */
-  --tg-radius-sm: 6px;
-  --tg-radius-md: 10px;
-  --tg-radius-lg: 16px;
-  --tg-radius-bubble: 12px;
-  --tg-radius-round: 50%;
+  --gradient-page:
+    radial-gradient(
+      circle at top,
+      color-mix(in srgb, var(--palette-white) 6%, transparent),
+      transparent 34%
+    ),
+    linear-gradient(180deg, var(--palette-graphite-800), var(--palette-black));
+  --gradient-surface: linear-gradient(
+    180deg,
+    var(--palette-graphite-850),
+    var(--palette-graphite-900)
+  );
+  --gradient-surface-raised: linear-gradient(
+    180deg,
+    var(--palette-graphite-800),
+    var(--palette-graphite-900)
+  );
+  --gradient-button-primary: linear-gradient(
+    180deg,
+    var(--palette-graphite-160),
+    var(--palette-graphite-250)
+  );
+  --gradient-button-success: linear-gradient(
+    180deg,
+    var(--palette-green),
+    color-mix(in srgb, var(--palette-green) 68%, var(--palette-black))
+  );
+  --gradient-button-danger: linear-gradient(
+    180deg,
+    var(--palette-red),
+    color-mix(in srgb, var(--palette-red) 70%, var(--palette-black))
+  );
 
-  /* Typography */
-  --tg-font: "Manrope", "Segoe UI", sans-serif;
+  --modal-backdrop-bg: color-mix(
+    in srgb,
+    var(--palette-graphite-950) 34%,
+    transparent
+  );
+  --modal-backdrop-blur: 16px;
 
-  /* Layout */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 18px;
+  --radius-bubble: 12px;
+  --radius-round: 50%;
+
+  --font-app: "Manrope", "Segoe UI", sans-serif;
+
   --tg-sidebar-w: 360px;
   --tg-info-w: 360px;
   --bp-compact: 480px;
@@ -78,21 +232,53 @@
   --app-gutter: clamp(12px, 2.5vw, 20px);
   --touch-target-min: 44px;
 
-  /* Transitions */
-  --tg-transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  --tg-transition-fast: 150ms ease;
+  --z-modal: 100;
+  --transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms ease;
 
-  /* ---- Backward-compatible aliases ---- */
-  --color-text: var(--tg-text-primary);
-  --color-muted: var(--tg-text-secondary);
-  --color-surface: var(--tg-hover);
-  --color-surface-border: var(--tg-border);
-  --color-accent: var(--tg-primary);
-  --color-accent-2: var(--tg-primary-hover);
-  --color-success: var(--tg-success);
-  --color-danger: var(--tg-danger);
-  --radius-lg: var(--tg-radius-lg);
-  --radius-md: var(--tg-radius-md);
+  /* Backward-compatible aliases. */
+  --tg-primary: var(--color-primary);
+  --tg-primary-hover: var(--color-primary-hover);
+  --tg-primary-light: var(--color-primary-soft);
+  --tg-bg-primary: var(--color-app-bg);
+  --tg-bg-secondary: var(--color-page-bg);
+  --tg-bg-surface: var(--color-surface);
+  --tg-bg-sidebar: var(--color-sidebar-bg);
+  --tg-bg-chat: var(--color-chat-bg);
+  --tg-bg-input: var(--color-input-bg);
+  --tg-msg-out-bg: var(--color-message-out-bg);
+  --tg-msg-in-bg: var(--color-message-in-bg);
+  --tg-msg-out-text: var(--color-message-out-text);
+  --tg-msg-in-text: var(--color-message-in-text);
+  --tg-msg-replay-bg: var(--color-message-reply-bg);
+  --tg-text-primary: var(--color-text-primary);
+  --tg-text-secondary: var(--color-text-muted);
+  --tg-text-link: var(--color-text-link);
+  --tg-border: var(--color-border);
+  --tg-danger: var(--color-danger);
+  --tg-success: var(--color-success);
+  --tg-online: var(--color-online);
+  --tg-warning: var(--color-warning);
+  --tg-unread-badge: var(--color-unread);
+  --tg-hover: var(--color-surface-hover);
+  --tg-active: var(--color-surface-active);
+  --tg-ripple: var(--color-surface-active);
+  --tg-shadow: var(--shadow-panel);
+  --tg-shadow-lg: var(--shadow-card);
+  --tg-radius-sm: var(--radius-sm);
+  --tg-radius-md: var(--radius-md);
+  --tg-radius-lg: var(--radius-lg);
+  --tg-radius-bubble: var(--radius-bubble);
+  --tg-radius-round: var(--radius-round);
+  --tg-font: var(--font-app);
+  --tg-transition: var(--transition);
+  --tg-transition-fast: var(--transition-fast);
+
+  --color-text: var(--color-text-primary);
+  --color-muted: var(--color-text-muted);
+  --color-surface-border: var(--color-border);
+  --color-accent: var(--color-primary);
+  --color-accent-2: var(--color-primary-hover);
 }
 
 @supports (height: 100dvh) {

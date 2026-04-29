@@ -6,6 +6,6 @@
   justify-content: center;
   padding: calc(var(--safe-top, 0px) + 32px) max(24px, var(--safe-right, 0px))
     calc(var(--safe-bottom, 0px) + 32px) max(24px, var(--safe-left, 0px));
-  background: var(--tg-bg-secondary, #181818);
+  background: var(--tg-bg-secondary);
   color: var(--tg-text-primary);
 }

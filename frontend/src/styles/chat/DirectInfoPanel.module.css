@@ -15,16 +15,16 @@
   flex: 1;
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--tg-text-secondary, #aaa);
+  background: var(--color-surface-hover);
+  color: var(--tg-text-secondary);
   padding: 8px 10px;
   font-size: 13px;
   cursor: pointer;
 }
 
 .tabActive {
-  background: rgba(241, 153, 87, 0.18);
-  color: var(--tg-text-primary, #fff);
+  background: var(--color-warning-soft);
+  color: var(--tg-text-primary);
 }
 
 .profile {
@@ -41,7 +41,7 @@
 
 .meta {
   margin: 0;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   font-size: 13px;
 }
 
@@ -50,14 +50,14 @@
   padding: 10px 14px;
   margin-top: 4px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-hover);
 }
 
 .bioLabel {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: var(--tg-primary, #2fb3a3);
+  color: var(--tg-primary);
   margin-bottom: 4px;
 }
 
@@ -65,7 +65,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--tg-text-primary, #fff);
+  color: var(--tg-text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -77,7 +77,7 @@
 }
 
 .empty {
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   margin: 0;
 }
 
@@ -90,8 +90,8 @@
 .card {
   border-radius: 10px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-shadow-medium);
+  border: 1px solid var(--color-border);
   min-height: 96px;
   text-decoration: none;
   color: inherit;
@@ -123,8 +123,8 @@
 .loadMoreBtn {
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--tg-text-primary, #fff);
+  background: var(--color-surface-hover);
+  color: var(--tg-text-primary);
   padding: 8px 10px;
   cursor: pointer;
 }
@@ -144,8 +144,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--tg-text-secondary, #aaa);
+  border-top: 1px solid var(--color-border);
+  color: var(--tg-text-secondary);
   font-size: 11px;
   padding: 8px 10px;
 }
@@ -174,5 +174,4 @@
     flex-direction: column;
     align-items: flex-start;
   }
-
 }

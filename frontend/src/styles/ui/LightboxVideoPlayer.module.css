@@ -27,11 +27,11 @@
   max-width: var(--lightbox-media-max-width, min(88vw, calc(100vw - 176px)));
   max-height: var(--lightbox-media-max-height, min(86dvh, calc(100dvh - 176px)));
   border-radius: 18px;
-  background: #000;
+  background: var(--color-page-bg);
   object-fit: contain;
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.32),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    0 24px 60px var(--color-shadow-medium),
+    inset 0 0 0 1px var(--color-border);
 }
 
 .root:fullscreen,
@@ -45,7 +45,7 @@
 
 .root:fullscreen,
 .playerHost:fullscreen {
-  background: #000;
+  background: var(--color-page-bg);
 }
 
 .video:fullscreen {
@@ -67,7 +67,7 @@
 
 .root:-webkit-full-screen,
 .playerHost:-webkit-full-screen {
-  background: #000;
+  background: var(--color-page-bg);
 }
 
 .video:-webkit-full-screen {

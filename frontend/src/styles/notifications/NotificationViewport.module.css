@@ -12,11 +12,11 @@
 }
 
 .card {
-  --notification-accent: #8ab4ff;
-  --notification-accent-soft: rgba(138, 180, 255, 0.18);
-  --notification-accent-wash: rgba(138, 180, 255, 0.16);
-  --notification-border: rgba(138, 180, 255, 0.34);
-  --notification-bg: rgba(24, 27, 34, 0.92);
+  --notification-accent: var(--color-info);
+  --notification-accent-soft: var(--color-info-soft);
+  --notification-accent-wash: var(--color-info-soft);
+  --notification-border: var(--color-info-soft);
+  --notification-bg: var(--color-surface-overlay);
   width: 100%;
   min-width: 0;
   display: grid;
@@ -29,10 +29,10 @@
   background:
     linear-gradient(135deg, var(--notification-accent-wash), transparent 42%),
     var(--notification-bg);
-  color: #f7f9ff;
+  color: var(--color-text-primary);
   box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 18px 50px var(--color-shadow-medium),
+    inset 0 1px 0 var(--color-border);
   backdrop-filter: blur(18px) saturate(1.2);
   pointer-events: auto;
   animation: notificationEnter 240ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
@@ -43,31 +43,31 @@
 }
 
 .success {
-  --notification-accent: #41d98a;
-  --notification-accent-soft: rgba(65, 217, 138, 0.18);
-  --notification-accent-wash: rgba(65, 217, 138, 0.16);
-  --notification-border: rgba(65, 217, 138, 0.34);
+  --notification-accent: var(--color-success);
+  --notification-accent-soft: var(--color-success-soft);
+  --notification-accent-wash: var(--color-success-soft);
+  --notification-border: var(--color-success-soft);
 }
 
 .error {
-  --notification-accent: #ff6b6b;
-  --notification-accent-soft: rgba(255, 107, 107, 0.18);
-  --notification-accent-wash: rgba(255, 107, 107, 0.16);
-  --notification-border: rgba(255, 107, 107, 0.34);
+  --notification-accent: var(--color-danger);
+  --notification-accent-soft: var(--color-danger-soft);
+  --notification-accent-wash: var(--color-danger-soft);
+  --notification-border: var(--color-danger-soft);
 }
 
 .warning {
-  --notification-accent: #f6c453;
-  --notification-accent-soft: rgba(246, 196, 83, 0.18);
-  --notification-accent-wash: rgba(246, 196, 83, 0.16);
-  --notification-border: rgba(246, 196, 83, 0.34);
+  --notification-accent: var(--color-text-primary);
+  --notification-accent-soft: var(--color-surface-hover);
+  --notification-accent-wash: var(--color-surface-hover);
+  --notification-border: var(--color-surface-hover);
 }
 
 .info {
-  --notification-accent: #7db7ff;
-  --notification-accent-soft: rgba(125, 183, 255, 0.18);
-  --notification-accent-wash: rgba(125, 183, 255, 0.16);
-  --notification-border: rgba(125, 183, 255, 0.34);
+  --notification-accent: var(--color-text-primary);
+  --notification-accent-soft: var(--color-surface-hover);
+  --notification-accent-wash: var(--color-surface-hover);
+  --notification-border: var(--color-surface-hover);
 }
 
 .icon {
@@ -100,7 +100,7 @@
 
 .title {
   min-width: 0;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.25;
@@ -109,7 +109,7 @@
 
 .message {
   min-width: 0;
-  color: rgba(239, 244, 255, 0.86);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.35;
@@ -123,8 +123,8 @@
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.82);
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition:
     background-color 160ms ease,
@@ -133,8 +133,8 @@
 }
 
 .closeButton:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: var(--color-surface-active);
+  color: var(--color-text-primary);
 }
 
 .closeButton:active {

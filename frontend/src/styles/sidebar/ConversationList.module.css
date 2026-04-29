@@ -13,7 +13,7 @@
   border: none;
   border-radius: 8px;
   background: none;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -21,12 +21,12 @@
 }
 
 .tab:hover {
-  background: var(--tg-hover, rgba(255, 255, 255, 0.05));
+  background: var(--tg-hover);
 }
 
 .tab.active {
-  background: rgba(47, 179, 163, 0.12);
-  color: var(--tg-primary, #2fb3a3);
+  background: var(--color-info-soft);
+  color: var(--tg-primary);
 }
 
 /* ---- list ---- */
@@ -81,7 +81,7 @@
 .globalTitle {
   margin: 0;
   font-size: 12px;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   padding: 0 6px;
 }
 
@@ -100,7 +100,7 @@
 }
 
 .globalItem:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-hover);
 }
 
 .globalMeta {
@@ -112,7 +112,7 @@
 
 .globalPrimary {
   font-size: 13px;
-  color: var(--tg-text-primary, #fff);
+  color: var(--tg-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -120,7 +120,7 @@
 
 .globalSecondary {
   font-size: 12px;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

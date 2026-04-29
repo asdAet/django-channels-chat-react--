@@ -8,11 +8,11 @@
   align-items: center;
   justify-content: center;
   overflow: visible;
-  color: #4ac0d4;
+  color: var(--color-info);
   font-weight: 800;
   text-transform: uppercase;
   flex: 0 0 auto;
-  background: #4b4e53;
+  background: var(--color-surface-elevated);
 }
 
 .default {
@@ -46,9 +46,9 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #3aa8ff;
-  border: 2px solid #0e1628;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  background: var(--color-info);
+  border: 2px solid var(--color-app-bg);
+  box-shadow: 0 0 0 1px var(--color-border);
 }
 
 .small.online::after,

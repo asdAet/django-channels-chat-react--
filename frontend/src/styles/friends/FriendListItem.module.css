@@ -8,7 +8,7 @@
   padding: 14px;
   border: 1px solid transparent;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface-hover);
   transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
 }
 
@@ -18,8 +18,8 @@
 }
 
 .item:hover {
-  border-color: rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-text-muted);
+  background: var(--color-surface-hover);
   transform: translateY(-1px);
 }
 
@@ -31,7 +31,7 @@
 .itemName {
   font-size: 14px;
   font-weight: 700;
-  color: var(--friends-text, #f2f3f5);
+  color: var(--friends-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -39,7 +39,7 @@
 
 .itemMeta {
   margin-top: 4px;
-  color: var(--friends-soft, #949ba4);
+  color: var(--friends-soft);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -62,27 +62,27 @@
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: var(--friends-panel-soft, #1e1f22);
-  color: var(--friends-text, #f2f3f5);
+  background: var(--friends-panel-soft);
+  color: var(--friends-text);
   cursor: pointer;
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
 .actionMenuTrigger:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-text-muted);
+  background: var(--color-surface-hover);
 }
 
 .actionMenu {
   z-index: 8;
   min-width: 180px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: linear-gradient(180deg, #2b2d31, #232428);
-  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.36);
+  background: linear-gradient(180deg, var(--color-sidebar-bg), var(--color-surface-elevated));
+  box-shadow: 0 18px 36px var(--color-shadow-medium);
 }
 
 .actionMenuItem {
@@ -92,7 +92,7 @@
   padding: 11px 14px;
   border: 0;
   background: transparent;
-  color: var(--friends-text, #f2f3f5);
+  color: var(--friends-text);
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
@@ -101,15 +101,15 @@
 }
 
 .actionMenuItem:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-surface-hover);
 }
 
 .actionMenuItemDanger {
-  color: #ffb5b7;
+  color: var(--color-danger);
 }
 
 .actionMenuItemDanger:hover {
-  background: rgba(242, 63, 67, 0.12);
+  background: var(--color-danger-soft);
 }
 
 @media (max-width: 768px) {

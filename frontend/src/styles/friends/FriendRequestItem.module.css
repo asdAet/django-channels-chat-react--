@@ -6,13 +6,13 @@
   padding: 14px;
   border: 1px solid transparent;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface-hover);
   transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
 }
 
 .item:hover {
-  border-color: rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-text-muted);
+  background: var(--color-surface-hover);
   transform: translateY(-1px);
 }
 
@@ -24,7 +24,7 @@
 .itemName {
   font-size: 14px;
   font-weight: 700;
-  color: var(--friends-text, #f2f3f5);
+  color: var(--friends-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -32,7 +32,7 @@
 
 .itemMeta {
   margin-top: 4px;
-  color: var(--friends-soft, #949ba4);
+  color: var(--friends-soft);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -47,10 +47,10 @@
 .actionBtn {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: var(--friends-panel-soft, #1e1f22);
-  color: var(--friends-text, #f2f3f5);
+  background: var(--friends-panel-soft);
+  color: var(--friends-text);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -58,30 +58,30 @@
 }
 
 .actionBtn:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-text-muted);
+  background: var(--color-surface-hover);
 }
 
 .actionBtnAccept {
-  border-color: rgba(35, 165, 90, 0.34);
-  background: rgba(35, 165, 90, 0.12);
-  color: #c9ffda;
+  border-color: var(--color-success-soft);
+  background: var(--color-success-soft);
+  color: var(--color-text-primary);
 }
 
 .actionBtnAccept:hover {
-  border-color: rgba(35, 165, 90, 0.5);
-  background: rgba(35, 165, 90, 0.2);
+  border-color: var(--color-success-soft);
+  background: var(--color-success-soft);
 }
 
 .actionBtnDanger {
-  border-color: rgba(242, 63, 67, 0.26);
-  background: rgba(242, 63, 67, 0.08);
-  color: #ffb5b7;
+  border-color: var(--color-danger-soft);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 .actionBtnDanger:hover {
-  border-color: rgba(242, 63, 67, 0.45);
-  background: rgba(242, 63, 67, 0.14);
+  border-color: var(--color-danger-soft);
+  background: var(--color-danger-soft);
 }
 
 @media (max-width: 768px) {

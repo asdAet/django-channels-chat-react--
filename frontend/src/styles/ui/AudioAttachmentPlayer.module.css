@@ -7,10 +7,10 @@
   max-width: 100%;
   min-width: 0;
   padding: 9px 10px;
-  /* border: 1px solid rgba(255, 255, 255, 0.08); */
+  /* border: 1px solid var(--color-border); */
   border-radius: 8px;
   background: transparent;
-  color: var(--tg-text-primary, #fff);
+  color: var(--tg-text-primary);
 }
 
 .compact {
@@ -32,8 +32,8 @@
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: rgba(137, 146, 255, 0.14);
-  color: #aeb8ff;
+  background: var(--color-info-soft);
+  color: var(--color-info);
 }
 
 .meta {
@@ -54,7 +54,7 @@
 .title {
   min-width: 0;
   overflow: hidden;
-  /* color: #66d9ef; */
+  /* color: var(--color-info); */
   font-size: 13px;
   font-weight: 650;
   line-height: 1.25;
@@ -67,8 +67,8 @@
   overflow: hidden;
   padding: 2px 6px;
   border-radius: 999px;
-  background: rgba(104, 214, 232, 0.12);
-  color: #68d6e8;
+  background: var(--color-info-soft);
+  color: var(--color-info);
   font-size: 10px;
   font-weight: 700;
   line-height: 1.2;
@@ -82,7 +82,7 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   font-size: 11px;
   line-height: 1.25;
 }
@@ -107,7 +107,7 @@
   min-width: 0;
   padding: 5px 6px;
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.28);
+  background: var(--color-shadow-medium);
 }
 
 .playButton,
@@ -122,7 +122,7 @@
   border: none;
   border-radius: 7px;
   background: transparent;
-  color: #c8d5f6;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition:
     background var(--tg-transition-fast, 150ms ease),
@@ -137,12 +137,12 @@
 
 .playButton:hover:not(:disabled),
 .volumeButton:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 
 .timeLabel {
-  color: #b8c2dc;
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -162,8 +162,8 @@
   height: 4px;
   background: linear-gradient(
     90deg,
-    #68d6e8 0 var(--audio-progress, 0%),
-    rgba(255, 255, 255, 0.16) var(--audio-progress, 0%) 100%
+    var(--color-info) 0 var(--audio-progress, 0%),
+    var(--color-border) var(--audio-progress, 0%) 100%
   );
 }
 
@@ -178,8 +178,8 @@
   height: 8px;
   border: none;
   border-radius: 999px;
-  background: #68d6e8;
-  box-shadow: 0 0 0 2px rgba(104, 214, 232, 0.14);
+  background: var(--color-info);
+  box-shadow: 0 0 0 2px var(--color-info-soft);
 }
 
 .progress::-moz-range-thumb,
@@ -188,8 +188,8 @@
   height: 8px;
   border: none;
   border-radius: 999px;
-  background: #68d6e8;
-  box-shadow: 0 0 0 2px rgba(104, 214, 232, 0.14);
+  background: var(--color-info);
+  box-shadow: 0 0 0 2px var(--color-info-soft);
 }
 
 .volumeWrap {
@@ -208,10 +208,10 @@
   justify-content: center;
   width: 28px;
   height: 92px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
   border-radius: 9px;
-  background: rgba(5, 8, 14, 0.92);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  background: var(--color-surface-hover);
+  box-shadow: 0 12px 30px var(--color-shadow-medium);
   opacity: 0;
   pointer-events: none;
   transition:
@@ -260,21 +260,21 @@
   height: 4px;
   background: linear-gradient(
     90deg,
-    #68d6e8 0 var(--audio-volume, 90%),
-    rgba(255, 255, 255, 0.16) var(--audio-volume, 90%) 100%
+    var(--color-info) 0 var(--audio-volume, 90%),
+    var(--color-border) var(--audio-volume, 90%) 100%
   );
   transform: translate(-50%, -50%) rotate(-90deg);
 }
 
 .errorText {
   margin: 0;
-  color: #ffb4b4;
+  color: var(--color-danger);
   font-size: 12px;
   line-height: 1.35;
 }
 
 .errorText a {
-  color: #68d6e8;
+  color: var(--color-info);
   text-decoration: none;
 }
 

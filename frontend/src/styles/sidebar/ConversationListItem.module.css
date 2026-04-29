@@ -8,7 +8,7 @@
   border-left: 3px solid transparent;
   border-radius: 0 10px 10px 0;
   background: none;
-  color: var(--tg-text-primary, #fff);
+  color: var(--tg-text-primary);
   text-align: left;
   cursor: pointer;
   transition:
@@ -17,12 +17,12 @@
 }
 
 .item:hover {
-  background: var(--tg-hover, rgba(255, 255, 255, 0.05));
+  background: var(--tg-hover);
 }
 
 .item.active {
-  background: var(--tg-active, rgba(255, 255, 255, 0.08));
-  border-left-color: var(--tg-primary, #2fb3a3);
+  background: var(--tg-active);
+  border-left-color: var(--tg-primary);
 }
 
 .itemBody {
@@ -61,8 +61,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: rgba(241, 153, 87, 0.22);
-  color: #ffd5ab;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
   font-size: 10px;
   font-weight: 700;
   padding: 1px 6px;
@@ -72,13 +72,13 @@
 
 .itemTime {
   font-size: 12px;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .item.active .itemTime {
-  color: var(--tg-primary, #2fb3a3);
+  color: var(--tg-primary);
 }
 
 .itemBottom {
@@ -90,7 +90,7 @@
 
 .itemPreview {
   font-size: 13px;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -106,8 +106,8 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 10px;
-  background: var(--tg-unread-badge, #2fb3a3);
-  color: #fff;
+  background: var(--tg-unread-badge);
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
@@ -129,8 +129,8 @@
 }
 
 .item.active .badge {
-  background: rgba(47, 179, 163, 0.5);
-  color: #fff;
+  background: var(--color-info-soft);
+  color: var(--color-text-primary);
 }
 
 @media (max-width: 768px) {

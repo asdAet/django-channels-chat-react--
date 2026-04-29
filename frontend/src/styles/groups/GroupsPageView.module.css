@@ -10,13 +10,13 @@
   align-items: center;
   gap: 12px;
   padding: 16px var(--app-gutter, 20px);
-  border-bottom: 1px solid var(--color-border, #2a2a2a);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .headerTitle {
   font-size: 18px;
   font-weight: 700;
-  color: var(--color-text, #e2e8f5);
+  color: var(--color-text);
 }
 
 .headerSpacer {
@@ -24,9 +24,9 @@
 }
 
 .createBtn {
-  background: var(--color-accent, #8ae6ff);
+  background: var(--color-accent);
   border: none;
-  color: #181818;
+  color: var(--color-page-bg);
   font-size: 13px;
   font-weight: 600;
   min-height: var(--touch-target-min, 44px);
@@ -44,23 +44,23 @@
 
 .searchRow {
   padding: 8px var(--app-gutter, 20px);
-  border-bottom: 1px solid var(--color-border, #2a2a2a);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .searchInput {
   width: 100%;
   padding: 8px 12px;
-  background: #1a1a1a;
-  border: 1px solid var(--color-border, #2a2a2a);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  color: var(--color-text, #e2e8f5);
+  color: var(--color-text);
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
 }
 
 .searchInput:focus {
-  border-color: var(--color-accent, #8ae6ff);
+  border-color: var(--color-accent);
 }
 
 .body {
@@ -74,7 +74,7 @@
   align-items: center;
   justify-content: center;
   padding: 48px 20px;
-  color: var(--color-muted, #9eb0c7);
+  color: var(--color-muted);
   font-size: 14px;
 }
 

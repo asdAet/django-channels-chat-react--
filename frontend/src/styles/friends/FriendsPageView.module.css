@@ -1,19 +1,19 @@
 .root {
-  --friends-bg: #313338;
-  --friends-panel: #2b2d31;
-  --friends-panel-strong: #232428;
-  --friends-panel-soft: #1e1f22;
-  --friends-border: rgba(255, 255, 255, 0.08);
-  --friends-border-strong: rgba(255, 255, 255, 0.12);
-  --friends-text: #f2f3f5;
-  --friends-muted: #b5bac1;
-  --friends-soft: #949ba4;
-  --friends-brand: #5865f2;
-  --friends-green: #23a55a;
-  --friends-green-hover: #2bbd68;
-  --friends-orange: #f0b232;
-  --friends-red: #f23f43;
-  --friends-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+  --friends-bg: var(--color-app-bg);
+  --friends-panel: var(--color-sidebar-bg);
+  --friends-panel-strong: var(--color-surface-elevated);
+  --friends-panel-soft: var(--color-surface);
+  --friends-border: var(--color-border);
+  --friends-border-strong: var(--color-border);
+  --friends-text: var(--color-text-primary);
+  --friends-muted: var(--color-text-secondary);
+  --friends-soft: var(--color-text-soft);
+  --friends-brand: var(--color-info);
+  --friends-green: var(--color-success);
+  --friends-green-hover: var(--color-success);
+  --friends-orange: var(--color-warning);
+  --friends-red: var(--color-danger);
+  --friends-shadow: 0 18px 40px var(--color-shadow-medium);
 
   display: flex;
   flex-direction: column;
@@ -22,9 +22,9 @@
   overflow: hidden;
   color: var(--friends-text);
   background:
-    radial-gradient(circle at top right, rgba(88, 101, 242, 0.18), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(35, 165, 90, 0.12), transparent 24%),
-    linear-gradient(180deg, #313338 0%, #2f3136 100%);
+    radial-gradient(circle at top right, var(--color-info-soft), transparent 28%),
+    radial-gradient(circle at bottom left, var(--color-success-soft), transparent 24%),
+    linear-gradient(180deg, var(--color-app-bg) 0%, var(--color-app-bg) 100%);
 }
 
 .toolbar {
@@ -33,7 +33,7 @@
   gap: 14px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--friends-border);
-  background: rgba(43, 45, 49, 0.9);
+  background: var(--color-surface-hover);
   backdrop-filter: blur(16px);
 }
 
@@ -51,9 +51,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: linear-gradient(135deg, #4f545c, #404249);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-surface-elevated), var(--color-surface-active));
+  box-shadow: inset 0 1px 0 var(--color-border);
 }
 
 .toolbarTitle {
@@ -83,7 +83,7 @@
 }
 
 .toolbarTabs::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-surface-hover);
   border-radius: 999px;
 }
 
@@ -103,13 +103,13 @@
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-surface-hover);
   color: var(--friends-text);
 }
 
 .tabActive {
-  background: #404249;
-  color: #fff;
+  background: var(--color-surface-active);
+  color: var(--color-text-primary);
 }
 
 .tabCount {
@@ -120,7 +120,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-hover);
   color: inherit;
   font-size: 11px;
   font-weight: 700;
@@ -135,10 +135,10 @@
   align-items: center;
   gap: 8px;
   background: var(--friends-green);
-  color: #fff;
+  color: var(--color-text-primary);
   cursor: pointer;
   font-weight: 700;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 var(--color-border);
   transition: background 150ms ease, transform 150ms ease;
 }
 
@@ -154,10 +154,10 @@
 .infoBanner {
   margin: 14px 20px 0;
   padding: 10px 12px;
-  border: 1px solid rgba(35, 165, 90, 0.34);
+  border: 1px solid var(--color-success-soft);
   border-radius: 12px;
-  background: rgba(35, 165, 90, 0.14);
-  color: #ccffd9;
+  background: var(--color-success-soft);
+  color: var(--color-success);
   font-size: 13px;
 }
 
@@ -177,14 +177,14 @@
   border: 1px solid var(--friends-border);
   border-radius: 18px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(35, 36, 40, 0.96), rgba(30, 31, 34, 0.96));
+  background: linear-gradient(180deg, var(--color-surface-hover), var(--color-surface-hover));
   box-shadow: var(--friends-shadow);
 }
 
 .listControls {
   padding: 18px;
   border-bottom: 1px solid var(--friends-border);
-  background: rgba(43, 45, 49, 0.78);
+  background: var(--color-surface-hover);
 }
 
 .searchWrap {
@@ -223,8 +223,8 @@
 }
 
 .searchInput:focus {
-  border-color: rgba(88, 101, 242, 0.45);
-  background: #18191c;
+  border-color: var(--color-info-soft);
+  background: var(--color-page-bg);
 }
 
 .body {
@@ -239,7 +239,7 @@
 }
 
 .body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface-hover);
   border-radius: 999px;
 }
 
@@ -266,7 +266,7 @@
   padding: 14px;
   border: 1px solid transparent;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface-hover);
 }
 
 .friendSkeletonMeta {
@@ -291,8 +291,8 @@
   padding: 36px 28px;
   border: 1px solid var(--friends-border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, var(--color-border), var(--color-border));
+  box-shadow: inset 0 1px 0 var(--color-border);
 }
 
 .guestShell {
@@ -312,13 +312,13 @@
   padding: 14px;
   border: 1px solid transparent;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface-hover);
   transition: background 150ms ease, border-color 150ms ease;
 }
 
 .blockedRow:hover {
-  border-color: rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-text-muted);
+  background: var(--color-surface-hover);
 }
 
 .blockedInfo {
@@ -343,10 +343,10 @@
 .blockedAction {
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid rgba(242, 63, 67, 0.3);
+  border: 1px solid var(--color-danger-soft);
   border-radius: 999px;
-  background: rgba(242, 63, 67, 0.08);
-  color: #ffb5b7;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
@@ -354,8 +354,8 @@
 }
 
 .blockedAction:hover {
-  border-color: rgba(242, 63, 67, 0.5);
-  background: rgba(242, 63, 67, 0.15);
+  border-color: var(--color-danger-soft);
+  background: var(--color-danger-soft);
 }
 
 @media (max-width: 1100px) {

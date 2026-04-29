@@ -25,7 +25,7 @@
 
 .usernameHandle {
   margin: -2px 0 0;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   font-size: 12px;
   line-height: 1.3;
   max-width: 100%;
@@ -36,7 +36,7 @@
 
 .meta {
   margin: 0;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
   font-size: 13px;
 }
 
@@ -45,14 +45,14 @@
   padding: 10px 14px;
   margin-top: 4px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-hover);
 }
 
 .bioLabel {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: var(--tg-primary, #2fb3a3);
+  color: var(--tg-primary);
   margin-bottom: 4px;
 }
 
@@ -60,7 +60,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--tg-text-primary, #fff);
+  color: var(--tg-text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -89,20 +89,20 @@
 }
 
 .actionButtonPrimary {
-  background: var(--tg-primary, #2fb3a3);
-  color: #fff;
+  background: var(--tg-primary);
+  color: var(--color-text-primary);
 }
 
 .actionButtonGhost {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: var(--tg-text-primary, #fff);
+  background: var(--color-surface-hover);
+  border-color: var(--color-text-muted);
+  color: var(--tg-text-primary);
 }
 
 .actionButtonDanger {
-  background: rgba(255, 89, 90, 0.14);
-  border-color: rgba(255, 89, 90, 0.2);
-  color: var(--tg-danger, #ff595a);
+  background: var(--color-surface-hover);
+  border-color: var(--color-surface-hover);
+  color: var(--tg-danger);
 }
 
 @media (max-width: 480px) {

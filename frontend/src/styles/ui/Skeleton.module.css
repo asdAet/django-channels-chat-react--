@@ -4,7 +4,7 @@
   overflow: hidden;
   min-width: 1px;
   min-height: 1px;
-  background: rgba(255, 255, 255, 0.075);
+  background: var(--color-surface-hover);
   border-radius: 8px;
   isolation: isolate;
 }
@@ -17,7 +17,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.12),
+    var(--color-border),
     transparent
   );
   animation: skeletonShimmer 1.35s ease-in-out infinite;

@@ -7,7 +7,7 @@
 }
 
 .inviteCard {
-  background: #242424;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 32px;
   width: 400px;
@@ -18,32 +18,32 @@
 .inviteGroupName {
   font-size: 22px;
   font-weight: 700;
-  color: var(--color-text, #e2e8f5);
+  color: var(--color-text);
   margin-bottom: 8px;
 }
 
 .inviteGroupDesc {
   font-size: 14px;
-  color: var(--color-muted, #9eb0c7);
+  color: var(--color-muted);
   margin-bottom: 16px;
 }
 
 .inviteMeta {
   font-size: 13px;
-  color: var(--color-muted, #9eb0c7);
+  color: var(--color-muted);
   margin-bottom: 24px;
 }
 
 .dialogError {
   font-size: 13px;
-  color: #ff6b6b;
+  color: var(--color-danger);
   margin-top: 8px;
 }
 
 .inviteJoinBtn {
-  background: var(--color-accent, #8ae6ff);
+  background: var(--color-accent);
   border: none;
-  color: #181818;
+  color: var(--color-page-bg);
   font-size: 15px;
   font-weight: 600;
   padding: 10px 32px;

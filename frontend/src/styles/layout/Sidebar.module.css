@@ -1,24 +1,26 @@
 .sidebar {
-  --bg-main: #313338;
-  --bg-sidebar: #2b2d31;
-  --bg-guilds: #1e1f22;
-  --bg-panel: #232428;
-  --bg-hover: #35373c;
-  --bg-active: #404249;
-  --bg-input: #1e1f22;
-  --text-main: #f2f3f5;
-  --text-muted: #b5bac1;
-  --text-soft: #949ba4;
-  --brand: #5865f2;
-  --brand-hover: #6d78f7;
-  --green: #23a55a;
-  --border: rgba(255, 255, 255, 0.06);
-  --panel-height: 64px;
+  --bg-main: var(--color-app-bg);
+  --bg-sidebar: var(--color-sidebar-bg);
+  --bg-guilds: var(--color-surface);
+  --bg-panel: var(--color-surface-elevated);
+  --bg-hover: var(--color-surface-hover);
+  --bg-active: var(--color-surface-active);
+  --bg-input: var(--color-surface);
+  --text-main: var(--color-text-primary);
+  --text-muted: var(--color-text-secondary);
+  --text-soft: var(--color-text-soft);
+  --brand: var(--color-info);
+  --brand-hover: var(--color-info);
+  --green: var(--color-success);
+  --border: var(--color-border);
+  --rail-width: 72px;
+  --header-height: var(--app-shell-top-row-size);
+  --panel-height: var(--app-shell-bottom-row-size);
   --guild-size: 48px;
 
   position: relative;
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) var(--panel-height);
   width: 100%;
   min-width: 0;
@@ -29,6 +31,18 @@
   border-right: 1px solid var(--border);
 }
 
+.sidebar::before {
+  content: "";
+  position: absolute;
+  left: var(--rail-width);
+  right: 0;
+  top: calc(var(--header-height) - 1px);
+  height: 1px;
+  background: var(--border);
+  pointer-events: none;
+  z-index: 2;
+}
+
 .mobileCloseButton {
   display: none;
   flex: 0 0 40px;
@@ -36,7 +50,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--bg-input);
   color: var(--text-soft);
@@ -54,8 +68,8 @@
 }
 
 .mobileCloseButton:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: #191a1d;
+  border-color: var(--color-text-muted);
+  background: var(--color-page-bg);
   color: var(--text-main);
 }
 
@@ -81,7 +95,7 @@
 .guildsSidebar::-webkit-scrollbar-thumb,
 .dmScroll::-webkit-scrollbar-thumb,
 .dmList::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-hover);
   border-radius: 999px;
 }
 
@@ -101,7 +115,7 @@
   height: 28px;
   transform: translateY(-50%);
   border-radius: 0 999px 999px 0;
-  background: #fff;
+  background: var(--color-text-primary);
 }
 
 .guildButton {
@@ -110,7 +124,7 @@
   height: var(--guild-size);
   border: 0;
   border-radius: 16px;
-  background: #2b2d31;
+  background: var(--color-sidebar-bg);
   color: var(--text-main);
   display: inline-flex;
   align-items: center;
@@ -130,10 +144,15 @@
   transform: translateY(-1px);
 }
 
+.guildButton:focus,
+.guildButton:focus-visible {
+  outline: none;
+}
+
 .guildButtonLogo {
-  /* background: #0f1012; */
+  /* background: var(--color-rail-bg); */
   border-radius: 14px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px var(--color-border);
   overflow: hidden;
 }
 
@@ -159,10 +178,17 @@
 .guildFallback {
   position: relative;
   z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.guildFallbackPublic {
+  color: var(--color-text-primary);
 }
 
 .guildBadge {
@@ -172,8 +198,8 @@
   min-width: 18px;
   height: 18px;
   border-radius: 999px;
-  background: #da373c;
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--color-text-primary);
   border: 2px solid var(--bg-guilds);
   font-size: 10px;
   font-weight: 700;
@@ -186,7 +212,7 @@
 }
 
 .guildButtonCreate {
-  background: #23272a;
+  background: var(--color-surface-elevated);
   color: var(--green);
   font-size: 28px;
   font-weight: 500;
@@ -194,7 +220,7 @@
 
 .guildButtonCreate:hover {
   background: var(--green);
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .guildButtonIcon {
@@ -206,7 +232,7 @@
   height: 2px;
   margin: 4px 0 2px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-surface-hover);
   flex: 0 0 auto;
 }
 
@@ -232,8 +258,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+  height: var(--header-height);
+  padding: 10px 12px;
   background: var(--bg-sidebar);
 }
 
@@ -256,8 +283,8 @@
 }
 
 .searchInput:focus {
-  outline: 1px solid rgba(255, 255, 255, 0.12);
-  background: #191a1d;
+  outline: 1px solid var(--color-border);
+  background: var(--color-page-bg);
 }
 
 .dmScroll {
@@ -293,8 +320,8 @@
   min-width: 20px;
   height: 20px;
   border-radius: 999px;
-  background: rgba(88, 101, 242, 0.25);
-  color: #e8ebff;
+  background: var(--color-info-soft);
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
@@ -353,7 +380,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #444950;
+  background: var(--color-surface-active);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -362,18 +389,19 @@
 }
 
 .dmIconPublic {
-  background: linear-gradient(
-    135deg,
-    rgba(88, 101, 242, 0.92),
-    rgba(71, 82, 196, 0.92)
-  );
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  background:
+    linear-gradient(135deg, var(--color-surface-hover), var(--color-info-soft)),
+    var(--color-info-soft);
+  color: var(--color-text-primary);
+  box-shadow:
+    inset 0 1px 0 var(--color-border),
+    0 8px 18px var(--color-surface-hover);
 }
 
 .iconSvg {
   width: 18px;
   height: 18px;
+  overflow: visible;
 }
 
 .dmName {
@@ -389,8 +417,8 @@
   min-width: 20px;
   height: 20px;
   border-radius: 999px;
-  background: #5865f2;
-  color: #fff;
+  background: var(--color-info);
+  color: var(--color-text-primary);
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -410,13 +438,14 @@
 .userPanel {
   grid-column: 2;
   grid-row: 2;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 0 10px;
-  background: var(--bg-panel);
   border-top: 1px solid var(--border);
+  background: var(--bg-panel);
 }
 
 .userProfileButton {
@@ -490,12 +519,13 @@
 .authButtons {
   grid-column: 2;
   grid-row: 2;
+  box-sizing: border-box;
   display: flex;
   gap: 8px;
   align-items: center;
   padding: 8px 10px;
-  background: var(--bg-panel);
   border-top: 1px solid var(--border);
+  background: var(--bg-panel);
 }
 
 .sidebarResizeHandle {
@@ -514,7 +544,7 @@
 
 @media (max-width: 1024px) {
   .sidebar {
-    grid-template-columns: 68px minmax(0, 1fr);
+    --rail-width: 68px;
   }
 
   .sidebarSearch {
@@ -524,9 +554,11 @@
 
 @media (max-width: 768px) {
   .sidebar {
+    --header-height: calc(var(--safe-top, 0px) + var(--app-shell-top-row-size));
+    --panel-height: calc(var(--safe-bottom, 0px) + var(--app-shell-bottom-row-size));
+    --rail-width: 64px;
     border-right: none;
-    grid-template-columns: 64px minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) 72px;
+    grid-template-rows: minmax(0, 1fr) var(--panel-height);
   }
 
   .guildsSidebar {
@@ -534,7 +566,7 @@
   }
 
   .sidebarSearch {
-    padding: calc(var(--safe-top, 0px) + 10px) 10px 10px;
+    padding: calc(var(--safe-top, 0px) + 8px) 8px 8px;
   }
 
   .searchInput {
@@ -545,7 +577,10 @@
     min-height: var(--touch-target-min, 44px);
   }
 
-  .userPanel,
+  .userPanel {
+    padding-bottom: var(--safe-bottom, 0px);
+  }
+
   .authButtons {
     padding-bottom: max(8px, var(--safe-bottom, 0px));
   }
@@ -563,7 +598,7 @@
 
 @media (max-width: 480px) {
   .sidebar {
-    grid-template-columns: 60px minmax(0, 1fr);
+    --rail-width: 60px;
   }
 
   .dmScroll {
@@ -571,7 +606,7 @@
   }
 
   .sidebarSearch {
-    padding: calc(var(--safe-top, 0px) + 8px) 8px 8px;
+    padding-inline: 8px;
   }
 
   .authButtons {

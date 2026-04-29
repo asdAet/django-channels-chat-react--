@@ -5,9 +5,9 @@
   max-width: 260px;
   padding: 6px 0;
   border-radius: 10px;
-  background: var(--tg-bg-surface, #2b2b2b);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  background: var(--tg-bg-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 24px var(--color-shadow-medium);
   animation: ctxEnter 120ms ease;
 }
 
@@ -30,7 +30,7 @@
   padding: 9px 14px;
   border: none;
   background: none;
-  color: var(--tg-text-primary, #fff);
+  color: var(--tg-text-primary);
   font-size: 13px;
   cursor: pointer;
   text-align: left;
@@ -38,15 +38,15 @@
 }
 
 .item:hover {
-  background: var(--tg-hover, rgba(255, 255, 255, 0.05));
+  background: var(--tg-hover);
 }
 
 .item:active {
-  background: var(--tg-active, rgba(255, 255, 255, 0.08));
+  background: var(--tg-active);
 }
 
 .danger {
-  color: var(--tg-danger, #ff595a);
+  color: var(--tg-danger);
 }
 
 .disabled {
@@ -62,11 +62,11 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  color: var(--tg-text-secondary, #aaa);
+  color: var(--tg-text-secondary);
 }
 
 .danger .icon {
-  color: var(--tg-danger, #ff595a);
+  color: var(--tg-danger);
 }
 
 @media (max-width: 480px) {

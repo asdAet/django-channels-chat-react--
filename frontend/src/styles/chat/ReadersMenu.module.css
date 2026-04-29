@@ -6,9 +6,9 @@
   overflow-y: auto;
   padding: 8px;
   border-radius: 12px;
-  background: var(--tg-bg-surface, #2b2b2b);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  background: var(--tg-bg-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 28px var(--color-shadow-medium);
   animation: readersMenuEnter 120ms ease;
 }
 
@@ -25,7 +25,7 @@
 
 .state {
   padding: 12px 10px;
-  color: var(--tg-text-secondary, #9ca3af);
+  color: var(--tg-text-secondary);
   text-align: center;
   font-size: 13px;
 }
@@ -39,18 +39,18 @@
   border: none;
   border-radius: 10px;
   background: none;
-  color: var(--tg-text-primary, #f5f7fb);
+  color: var(--tg-text-primary);
   text-align: left;
   cursor: pointer;
   transition: background 120ms ease;
 }
 
 .row:hover {
-  background: var(--tg-hover, rgba(255, 255, 255, 0.05));
+  background: var(--tg-hover);
 }
 
 .row:active {
-  background: var(--tg-active, rgba(255, 255, 255, 0.08));
+  background: var(--tg-active);
 }
 
 .rowStatic {
@@ -71,14 +71,14 @@
 }
 
 .name {
-  color: var(--tg-text-primary, #f5f7fb);
+  color: var(--tg-text-primary);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
 }
 
 .time {
-  color: var(--tg-text-secondary, #9ca3af);
+  color: var(--tg-text-secondary);
   font-size: 12px;
   line-height: 1.3;
 }
@@ -87,6 +87,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--tg-text-secondary, #9ca3af);
+  color: var(--tg-text-secondary);
   flex: 0 0 auto;
 }

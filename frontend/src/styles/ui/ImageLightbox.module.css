@@ -26,7 +26,7 @@
   align-items: center;
   justify-content: center;
   padding: 0;
-  background: rgba(0, 0, 0, 0.88);
+  background: var(--color-shadow-medium);
   backdrop-filter: blur(6px);
   overscroll-behavior: contain;
 }
@@ -80,8 +80,8 @@
   flex-direction: column;
   gap: 5px;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.96);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  color: var(--color-text-muted);
+  text-shadow: 0 1px 2px var(--color-shadow-medium);
   pointer-events: none;
 }
 
@@ -89,7 +89,7 @@
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-  color: #f4f8ff;
+  color: var(--color-text-primary);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.25;
@@ -106,7 +106,7 @@
   flex-wrap: wrap;
   gap: 3px 8px;
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -130,8 +130,8 @@
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: rgba(7, 11, 20, 0.58);
-  color: #f4f8ff;
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
   font-size: 32px;
   line-height: 1;
   cursor: pointer;
@@ -142,7 +142,7 @@
 }
 
 .navButton:hover {
-  background: rgba(7, 11, 20, 0.82);
+  background: var(--color-surface-hover);
 }
 
 .navButton:active {
@@ -165,10 +165,7 @@
       100vw - var(--lightbox-safe-left) - var(--lightbox-safe-right)
     );
     --lightbox-media-max-height: calc(var(--lightbox-stage-height) - 20px);
-  }
-
-  .overlay {
-    background: rgba(0, 0, 0, 0.94);
+    background: var(--color-shadow-medium);
     backdrop-filter: none;
   }
 
