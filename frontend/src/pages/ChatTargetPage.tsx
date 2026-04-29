@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { chatController } from "../controllers/ChatController";
 import type { UserProfile } from "../entities/user/types";
@@ -6,8 +6,7 @@ import type { ApiError } from "../shared/api/types";
 import { normalizeChatTarget } from "../shared/lib/chatTarget";
 import { debugLog } from "../shared/lib/debug";
 import { rememberLastDirectRef } from "../shared/lib/directNavigation";
-import { Button, Panel } from "../shared/ui";
-import styles from "../styles/pages/ChatTargetPage.module.css";
+import { Button, PageState, type PageStateTone } from "../shared/ui";
 import { ChatRoomPage } from "./ChatRoomPage";
 import { ChatRoomLoadingShell } from "./chatRoomPage/ChatRoomLoadingState";
 
@@ -17,19 +16,98 @@ type Props = {
   onNavigate: (path: string) => void;
 };
 
+type ChatTargetErrorKind =
+  | "not_found"
+  | "invalid"
+  | "auth"
+  | "forbidden"
+  | "unavailable";
+
 type ChatTargetState = {
   key: string;
   roomId: string | null;
   roomKind: "public" | "private" | "direct" | "group" | null;
-  error: string | null;
+  errorKind: ChatTargetErrorKind | null;
+};
+
+type ChatTargetErrorMeta = {
+  tone: PageStateTone;
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
+const ChatTargetStateIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path
+      d="M4.75 5.5h14.5v9.25H10L5.25 19v-4.25h-.5V5.5Z"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M9 9h6M9 12h3"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="1.8"
+    />
+  </svg>
+);
+
+const getChatTargetErrorMeta = (
+  errorKind: ChatTargetErrorKind,
+): ChatTargetErrorMeta => {
+  if (errorKind === "not_found") {
+    return {
+      tone: "warning",
+      eyebrow: "Не найдено",
+      title: "Чат не найден",
+      description:
+        "Такого чата нет, ссылка устарела или адрес был введен с ошибкой.",
+    };
+  }
+
+  if (errorKind === "invalid") {
+    return {
+      tone: "warning",
+      eyebrow: "Неверный адрес",
+      title: "Нельзя открыть чат с этим адресом",
+      description: "Проверьте ссылку или выберите чат из списка контактов.",
+    };
+  }
+
+  if (errorKind === "auth") {
+    return {
+      tone: "info",
+      eyebrow: "Нужен вход",
+      title: "Нужна авторизация",
+      description: "Войдите в аккаунт, чтобы открыть этот чат.",
+    };
+  }
+
+  if (errorKind === "forbidden") {
+    return {
+      tone: "danger",
+      eyebrow: "Нет доступа",
+      title: "Доступ запрещен",
+      description: "У вас нет прав на просмотр этого чата.",
+    };
+  }
+
+  return {
+    tone: "danger",
+    eyebrow: "Недоступно",
+    title: "Чат недоступен",
+    description:
+      "Не удалось открыть чат. Попробуйте позже или вернитесь в общий чат.",
+  };
 };
 
 /**
  * Открывает чат по внешнему `target`, предварительно разрешая его в `roomId`.
- *
- * Страница нужна как мост между канонической внешней навигацией по public target
- * и внутренним room-id transport: сначала дергает `resolveChatTarget`, а затем
- * либо показывает `ChatRoomPage`, либо выводит понятную ошибку доступа.
  */
 export function ChatTargetPage({ user, target, onNavigate }: Props) {
   const normalizedTarget = useMemo(() => normalizeChatTarget(target), [target]);
@@ -45,7 +123,7 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
     key: "initial",
     roomId: null,
     roomKind: null,
-    error: null,
+    errorKind: null,
   }));
 
   useEffect(() => {
@@ -66,7 +144,7 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
           key: requestKey,
           roomId: String(payload.roomId),
           roomKind: payload.roomKind,
-          error: null,
+          errorKind: null,
         });
       })
       .catch((err) => {
@@ -74,48 +152,17 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
         debugLog("Chat target resolve failed", err);
         const apiErr = err as ApiError;
 
-        if (apiErr.status === 404) {
-          setState({
-            key: requestKey,
-            roomId: null,
-            roomKind: null,
-            error: "Чат не найден",
-          });
-          return;
-        }
-        if (apiErr.status === 400) {
-          setState({
-            key: requestKey,
-            roomId: null,
-            roomKind: null,
-            error: "Нельзя открыть чат с этим адресом",
-          });
-          return;
-        }
-        if (apiErr.status === 401) {
-          setState({
-            key: requestKey,
-            roomId: null,
-            roomKind: null,
-            error: "Нужна авторизация",
-          });
-          return;
-        }
-        if (apiErr.status === 403) {
-          setState({
-            key: requestKey,
-            roomId: null,
-            roomKind: null,
-            error: "Доступ запрещен",
-          });
-          return;
-        }
+        let errorKind: ChatTargetErrorKind = "unavailable";
+        if (apiErr.status === 404) errorKind = "not_found";
+        if (apiErr.status === 400) errorKind = "invalid";
+        if (apiErr.status === 401) errorKind = "auth";
+        if (apiErr.status === 403) errorKind = "forbidden";
 
         setState({
           key: requestKey,
           roomId: null,
           roomKind: null,
-          error: "Не удалось открыть чат",
+          errorKind,
         });
       });
 
@@ -126,10 +173,11 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
 
   const isCurrent = state.key === requestKey;
   const loading = !isCurrent;
-  const error = isCurrent ? state.error : null;
+  const errorKind = isCurrent ? state.errorKind : null;
   const roomId = isCurrent ? state.roomId : null;
   const roomKind = isCurrent ? state.roomKind : null;
   const headerActionSlots = normalizedTarget === "public" ? 1 : 2;
+  const canOfferFriends = normalizedTarget !== "public";
 
   if (loading) {
     return (
@@ -140,24 +188,49 @@ export function ChatTargetPage({ user, target, onNavigate }: Props) {
     );
   }
 
-  if (error) {
+  if (errorKind) {
+    const meta = getChatTargetErrorMeta(errorKind);
+
     return (
-      <Panel>
-        <p>{error}</p>
-        <div className={styles.actions}>
+      <PageState
+        tone={meta.tone}
+        eyebrow={meta.eyebrow}
+        title={meta.title}
+        description={meta.description}
+        icon={<ChatTargetStateIcon />}
+      >
+        {errorKind === "auth" ? (
+          <Button variant="primary" onClick={() => onNavigate("/login")}>
+            Войти
+          </Button>
+        ) : null}
+        {canOfferFriends ? (
           <Button variant="ghost" onClick={() => onNavigate("/friends")}>
             К друзьям
           </Button>
-        </div>
-      </Panel>
+        ) : null}
+        <Button variant="outline" onClick={() => onNavigate("/public")}>
+          В публичный чат
+        </Button>
+      </PageState>
     );
   }
 
   if (!roomId) {
+    const meta = getChatTargetErrorMeta("unavailable");
+
     return (
-      <Panel>
-        <p>Чат недоступен.</p>
-      </Panel>
+      <PageState
+        tone={meta.tone}
+        eyebrow={meta.eyebrow}
+        title={meta.title}
+        description={meta.description}
+        icon={<ChatTargetStateIcon />}
+      >
+        <Button variant="outline" onClick={() => onNavigate("/public")}>
+          В публичный чат
+        </Button>
+      </PageState>
     );
   }
 

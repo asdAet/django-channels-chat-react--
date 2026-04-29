@@ -1,4 +1,4 @@
-﻿import { Button, Panel } from "../shared/ui";
+import { Button, PageState } from "../shared/ui";
 
 type Props = {
   onNavigate: (path: string) => void;
@@ -6,19 +6,41 @@ type Props = {
 
 /**
  * Отображает fallback-экран для неизвестных или невалидных маршрутов.
- *
- * Страница не пытается восстановить контекст автоматически: она явно сообщает
- * пользователю, что путь не найден, и предлагает вернуться на главную.
  */
 export function NotFoundPage({ onNavigate }: Props) {
   return (
-    <Panel>
-      <div data-testid="not-found-page">
-        <p>Страница не найдена.</p>
-      </div>
-      <Button variant="ghost" onClick={() => onNavigate("/public")}>
-        Вернуться в чат
+    <PageState
+      tone="warning"
+      eyebrow="404"
+      title="Страница не найдена"
+      description="Такого адреса нет или он больше недоступен. Можно вернуться в общий чат или на главную."
+      icon={
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M5 5.5h14v9.5H9.5L5 19.5v-14Z"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.8"
+          />
+          <path
+            d="M9 9h6M9 12h3.5"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="1.8"
+          />
+        </svg>
+      }
+      className="not-found-page"
+    >
+      <Button variant="primary" onClick={() => onNavigate("/public")}>
+        В публичный чат
       </Button>
-    </Panel>
+      <Button variant="ghost" onClick={() => onNavigate("/")}>
+        На главную
+      </Button>
+    </PageState>
   );
 }

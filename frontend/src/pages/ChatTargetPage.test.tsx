@@ -12,7 +12,9 @@ vi.mock("../controllers/ChatController", () => ({
 }));
 
 vi.mock("./ChatRoomPage", () => ({
-  ChatRoomPage: ({ roomId }: { roomId: string }) => <div>CHAT_ROOM:{roomId}</div>,
+  ChatRoomPage: ({ roomId }: { roomId: string }) => (
+    <div>CHAT_ROOM:{roomId}</div>
+  ),
 }));
 
 import { ChatTargetPage } from "./ChatTargetPage";
@@ -99,7 +101,9 @@ describe("ChatTargetPage", () => {
     const onNavigate = vi.fn();
     controllerMock.resolveChatTarget.mockRejectedValue({ status: 404 });
 
-    render(<ChatTargetPage user={user} target="@missing" onNavigate={onNavigate} />);
+    render(
+      <ChatTargetPage user={user} target="@missing" onNavigate={onNavigate} />,
+    );
 
     expect(await screen.findByText("Чат не найден")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "К друзьям" }));
@@ -114,14 +118,46 @@ describe("ChatTargetPage", () => {
     ];
 
     for (const item of cases) {
-      controllerMock.resolveChatTarget.mockRejectedValueOnce({ status: item.status });
+      controllerMock.resolveChatTarget.mockRejectedValueOnce({
+        status: item.status,
+      });
       const { unmount } = render(
-        <ChatTargetPage user={user} target={`case-${item.status}`} onNavigate={vi.fn()} />,
+        <ChatTargetPage
+          user={user}
+          target={`case-${item.status}`}
+          onNavigate={vi.fn()}
+        />,
       );
       await waitFor(() => {
         expect(screen.getByText(item.text)).toBeInTheDocument();
       });
       unmount();
     }
+  });
+
+  it("offers login action for protected chats", async () => {
+    const onNavigate = vi.fn();
+    controllerMock.resolveChatTarget.mockRejectedValue({ status: 401 });
+
+    render(
+      <ChatTargetPage user={null} target="@private" onNavigate={onNavigate} />,
+    );
+
+    expect(await screen.findByText("Нужна авторизация")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Войти" }));
+    expect(onNavigate).toHaveBeenCalledWith("/login");
+  });
+
+  it("shows unavailable state for unknown resolve failures", async () => {
+    controllerMock.resolveChatTarget.mockRejectedValue(new Error("offline"));
+
+    render(
+      <ChatTargetPage user={user} target="@offline" onNavigate={vi.fn()} />,
+    );
+
+    expect(await screen.findByText("Чат недоступен")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "В публичный чат" }),
+    ).toBeInTheDocument();
   });
 });
