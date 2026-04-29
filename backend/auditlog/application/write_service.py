@@ -19,6 +19,7 @@ LOGGER_NAME = "security.audit"
 
 _audit_logger = logging.getLogger(LOGGER_NAME)
 _internal_logger = logging.getLogger("auditlog")
+_pending_persist_tasks: set[asyncio.Task] = set()
 
 
 def _normalize_int(value):
@@ -174,7 +175,7 @@ def _persist_event_row(payload: dict) -> None:
         _internal_logger.exception("Failed to persist audit event")
 
 
-def _persist_event(payload: dict) -> None:
+def _persist_event(payload: dict) -> asyncio.Task | None:
     """Сохраняет event в постоянном хранилище.
     
     Args:
@@ -184,7 +185,7 @@ def _persist_event(payload: dict) -> None:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         _persist_event_row(payload)
-        return
+        return None
 
     async def _persist_event_async() -> None:
         """Выполняет вспомогательную обработку для persist event async."""
@@ -195,7 +196,40 @@ def _persist_event(payload: dict) -> None:
         await persist_row_async(payload)
 
     # WebSocket handlers run in async context, so persist through sync_to_async.
-    loop.create_task(_persist_event_async())
+    task = loop.create_task(_persist_event_async())
+    if task is None:
+        return None
+    _pending_persist_tasks.add(task)
+
+    def _cleanup_persist_task(done_task: asyncio.Task) -> None:
+        _pending_persist_tasks.discard(done_task)
+        try:
+            done_task.result()
+        except asyncio.CancelledError:
+            return
+        except Exception:
+            _internal_logger.exception("Failed to persist audit event asynchronously")
+
+    task.add_done_callback(_cleanup_persist_task)
+    return task
+
+
+async def drain_pending_audit_events() -> None:
+    """Wait until scheduled audit writes from the current process are persisted."""
+
+    while True:
+        pending = [task for task in _pending_persist_tasks if not task.done()]
+        if not pending:
+            return
+        await asyncio.gather(*pending, return_exceptions=True)
+
+
+async def wait_for_audit_event(task: asyncio.Task | None) -> None:
+    """Wait for one scheduled audit write without coupling unrelated sessions."""
+
+    if task is None or task.done():
+        return
+    await asyncio.gather(task, return_exceptions=True)
 
 
 def write_event(
@@ -214,7 +248,7 @@ def write_event(
     is_authenticated=None,
     metadata=None,
     **fields,
-):
+) -> asyncio.Task | None:
     """Записывает event в хранилище или аудит.
     
     Args:
@@ -276,7 +310,7 @@ def write_event(
         )
     )
 
-    _persist_event(
+    return _persist_event(
         {
             "action": action,
             "protocol": protocol,
@@ -295,7 +329,7 @@ def write_event(
     )
 
 
-def audit_security_event(event: str, **fields) -> None:
+def audit_security_event(event: str, **fields) -> asyncio.Task | None:
     """Фиксирует security event в системе аудита.
     
     Args:
@@ -303,7 +337,7 @@ def audit_security_event(event: str, **fields) -> None:
         **fields: Дополнительные поля, переданные в функцию.
     """
     protocol = fields.pop("protocol", "system")
-    write_event(
+    return write_event(
         event,
         protocol=protocol,
         status_code=fields.pop("status_code", None),
@@ -317,7 +351,7 @@ def audit_security_event(event: str, **fields) -> None:
     )
 
 
-def audit_http_event(event: str, request, **fields) -> None:
+def audit_http_event(event: str, request, **fields) -> asyncio.Task | None:
     """Фиксирует http event в системе аудита.
     
     Args:
@@ -326,7 +360,7 @@ def audit_http_event(event: str, request, **fields) -> None:
         **fields: Дополнительные поля, переданные в функцию.
     """
     user = getattr(request, "user", None)
-    write_event(
+    return write_event(
         event,
         protocol="http",
         method=getattr(request, "method", None),
@@ -343,7 +377,7 @@ def audit_http_event(event: str, request, **fields) -> None:
     )
 
 
-def audit_ws_event(event: str, scope, **fields) -> None:
+def audit_ws_event(event: str, scope, **fields) -> asyncio.Task | None:
     """Фиксирует ws event в системе аудита.
     
     Args:
@@ -352,7 +386,7 @@ def audit_ws_event(event: str, scope, **fields) -> None:
         **fields: Дополнительные поля, переданные в функцию.
     """
     user = scope.get("user")
-    write_event(
+    return write_event(
         event,
         protocol="ws",
         path=scope.get("path"),
@@ -368,7 +402,11 @@ def audit_ws_event(event: str, scope, **fields) -> None:
     )
 
 
-def audit_http_request(request, response=None, exception: Exception | None = None) -> None:
+def audit_http_request(
+    request,
+    response=None,
+    exception: Exception | None = None,
+) -> asyncio.Task | None:
     """Фиксирует http request в системе аудита.
     
     Args:
@@ -401,7 +439,7 @@ def audit_http_request(request, response=None, exception: Exception | None = Non
         metadata["exception"] = exception.__class__.__name__
 
     action = AuditAction.HTTP_EXCEPTION if exception else AuditAction.HTTP_REQUEST
-    write_event(
+    return write_event(
         action,
         protocol="http",
         method=getattr(request, "method", None),

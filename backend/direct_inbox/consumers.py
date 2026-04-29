@@ -19,7 +19,11 @@ from chat_app_django.metrics import (
     observe_ws_connect,
     observe_ws_event,
 )
-from chat_app_django.security.audit import audit_ws_event
+from chat_app_django.security.audit import (
+    audit_ws_event,
+    drain_pending_audit_events,
+    wait_for_audit_event,
+)
 from chat_app_django.security.rate_limit import DbRateLimiter
 from chat_app_django.security.rate_limit_config import (
     ws_connect_rate_limit_disabled,
@@ -168,7 +172,14 @@ class DirectInboxConsumer(AsyncWebsocketConsumer):
                 room_kind=self._metrics_room_kind,
             )
             observe_ws_event("direct_inbox", event_type="disconnect", result="accepted")
-        audit_ws_event("ws.disconnect", self.scope, endpoint="direct_inbox", code=code)
+        audit_task = audit_ws_event(
+            "ws.disconnect",
+            self.scope,
+            endpoint="direct_inbox",
+            code=code,
+        )
+        await wait_for_audit_event(audit_task)
+        await drain_pending_audit_events()
 
     async def receive(self, text_data=None, bytes_data=None):
         """Принимает входящее сообщение и маршрутизирует его обработку.
