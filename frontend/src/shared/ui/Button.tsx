@@ -5,7 +5,14 @@ import styles from "../../styles/ui/Button.module.css";
 /**
  * Описывает структуру данных `ButtonVariant`.
  */
-type ButtonVariant = "primary" | "ghost" | "outline" | "link" | "dangerLink";
+export type ButtonVariant =
+  | "primary"
+  | "success"
+  | "danger"
+  | "ghost"
+  | "outline"
+  | "link"
+  | "dangerLink";
 
 /**
  * Описывает входные props компонента `Button`.
@@ -16,7 +23,9 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variantClassMap: Record<ButtonVariant, string> = {
+  danger: styles.danger,
   primary: styles.primary,
+  success: styles.success,
   ghost: styles.ghost,
   outline: styles.outline,
   link: styles.link,

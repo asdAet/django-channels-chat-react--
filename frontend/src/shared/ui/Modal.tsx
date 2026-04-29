@@ -1,5 +1,7 @@
 import { type ReactNode, useCallback, useEffect } from "react";
 
+import styles from "../../styles/ui/Modal.module.css";
+
 /**
  * Описывает входные props компонента `Props`.
  */
@@ -8,43 +10,6 @@ type Props = {
   onClose: () => void;
   title?: string;
   children: ReactNode;
-};
-
-const overlayStyle: React.CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding:
-    "max(8px, var(--safe-top, 0px)) max(8px, var(--safe-right, 0px)) max(8px, var(--safe-bottom, 0px)) max(8px, var(--safe-left, 0px))",
-  zIndex: 100,
-};
-
-const backdropStyle: React.CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  background: "rgba(0, 0, 0, 0.6)",
-};
-
-const cardStyle: React.CSSProperties = {
-  position: "relative",
-  background: "#242424",
-  borderRadius: 14,
-  padding: 20,
-  width: "min(460px, calc(100vw - 16px))",
-  maxWidth: "100%",
-  maxHeight:
-    "calc(var(--app-height, 100vh) - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 16px)",
-  overflow: "auto",
-  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
-};
-
-const titleStyle: React.CSSProperties = {
-  fontSize: 16,
-  fontWeight: 700,
-  color: "#e2e8f5",
-  marginBottom: 16,
 };
 
 /**
@@ -67,10 +32,26 @@ export function Modal({ open, onClose, title, children }: Props) {
   if (!open) return null;
 
   return (
-    <div style={overlayStyle} role="dialog">
-      <div style={backdropStyle} onClick={onClose} />
-      <div style={cardStyle}>
-        {title && <div style={titleStyle}>{title}</div>}
+    <div className={styles.overlay} role="dialog" aria-modal="true">
+      <div className={styles.backdrop} onClick={onClose} />
+      <div className={styles.card}>
+        <button
+          type="button"
+          className={styles.closeButton}
+          onClick={onClose}
+          aria-label="Закрыть"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="m6 6 12 12M18 6 6 18"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="2"
+            />
+          </svg>
+        </button>
+        {title && <div className={styles.title}>{title}</div>}
         {children}
       </div>
     </div>
